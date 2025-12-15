@@ -540,39 +540,6 @@ describe('IssuanceAllocator - Default Allocation', () => {
       expect(target1Balance).to.equal(expectedTarget1)
     })
 
-    it('should inherit lastChangeNotifiedBlock when changing default address', async () => {
-      // This test verifies the comment at IssuanceAllocator.sol:477-478
-      // "Note this will also copy the lastChangeNotifiedBlock from old to new, which is relevant if
-      // forceTargetNoChangeNotificationBlock was used to set a future block for the default address."
-
-      // Set default to target1
-      await issuanceAllocator.connect(accounts.governor).setDefaultAllocationAddress(addresses.target1)
-
-      // Force a future notification block on target1 (the current default)
-      const currentBlock = await ethers.provider.getBlockNumber()
-      const futureBlock = currentBlock + 100
-      await issuanceAllocator
-        .connect(accounts.governor)
-        .forceTargetNoChangeNotificationBlock(addresses.target1, futureBlock)
-
-      // Verify target1 has the future block set
-      const target1Data = await issuanceAllocator.getTargetData(addresses.target1)
-      expect(target1Data.lastChangeNotifiedBlock).to.equal(futureBlock)
-
-      // Change default from target1 to target2
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setDefaultAllocationAddress(address,bool)'](addresses.target2, true)
-
-      // Verify target2 (new default) inherited the lastChangeNotifiedBlock from target1
-      const target2Data = await issuanceAllocator.getTargetData(addresses.target2)
-      expect(target2Data.lastChangeNotifiedBlock).to.equal(futureBlock)
-
-      // Verify old default (target1) no longer has data
-      const oldDefaultData = await issuanceAllocator.getTargetData(addresses.target1)
-      expect(oldDefaultData.lastChangeNotifiedBlock).to.equal(0)
-    })
-
     it('should handle changing default to address that previously had normal allocation', async () => {
       // Scenario: target1 has normal allocation → removed (0%) → set as default
       // This tests for stale data issues
@@ -679,6 +646,44 @@ describe('IssuanceAllocator - Default Allocation', () => {
       // Target1 should have accumulated tokens across multiple blocks
       const target1Balance = await graphToken.balanceOf(addresses.target1)
       expect(target1Balance).to.be.gt(0n) // Should have received something
+
+      // Verify lastChangeNotifiedBlock was preserved for the new default (not overwritten to 0 from address(0))
+      const target2Data = await issuanceAllocator.getTargetData(addresses.target2)
+      const currentBlock = await ethers.provider.getBlockNumber()
+      expect(target2Data.lastChangeNotifiedBlock).to.be.gt(0n)
+      expect(target2Data.lastChangeNotifiedBlock).to.be.lte(currentBlock)
+    })
+
+    it('should not transfer future notification block from old default to new default', async () => {
+      // Set initial default to target1
+      await issuanceAllocator.connect(accounts.governor).setDefaultAllocationAddress(addresses.target1)
+
+      // Force a future notification block on target1 (the current default)
+      const currentBlock = await ethers.provider.getBlockNumber()
+      const futureBlock = currentBlock + 100
+      await issuanceAllocator
+        .connect(accounts.governor)
+        .forceTargetNoChangeNotificationBlock(addresses.target1, futureBlock)
+
+      // Verify target1 has the future block set
+      const target1DataBefore = await issuanceAllocator.getTargetData(addresses.target1)
+      expect(target1DataBefore.lastChangeNotifiedBlock).to.equal(futureBlock)
+
+      // Change default from target1 to target2
+      await issuanceAllocator.connect(accounts.governor).setDefaultAllocationAddress(addresses.target2)
+
+      // Verify target2 (new default) has its own notification block (current block), not the future block from target1
+      const target2Data = await issuanceAllocator.getTargetData(addresses.target2)
+      const blockAfterChange = await ethers.provider.getBlockNumber()
+
+      // target2 should have been notified at the current block, not inherit the future block
+      expect(target2Data.lastChangeNotifiedBlock).to.equal(blockAfterChange)
+      expect(target2Data.lastChangeNotifiedBlock).to.not.equal(futureBlock)
+      expect(target2Data.lastChangeNotifiedBlock).to.be.lt(futureBlock)
+
+      // Old default (target1) should no longer have data (it was removed)
+      const target1DataAfter = await issuanceAllocator.getTargetData(addresses.target1)
+      expect(target1DataAfter.lastChangeNotifiedBlock).to.equal(0)
     })
   })
 

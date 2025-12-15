@@ -473,12 +473,17 @@ contract IssuanceAllocator is
         _notifyTarget(oldAddress);
         _notifyTarget(newAddress);
 
+        // Preserve the notification block of newAddress before copying old address data
+        uint256 newAddressNotificationBlock = $.allocationTargets[newAddress].lastChangeNotifiedBlock;
+
         // Update the default allocation address at index 0
-        // Note this will also copy the lastChangeNotifiedBlock from old to new, which is relevant if
-        // forceTargetNoChangeNotificationBlock was used to set a future block for the default address.
+        // This copies allocation data from old to new, including allocatorMintingPPM and selfMintingPPM
         $.targetAddresses[0] = newAddress;
         $.allocationTargets[newAddress] = $.allocationTargets[oldAddress];
         delete $.allocationTargets[oldAddress];
+
+        // Restore the notification block for newAddress (regard as target-specific, not about default)
+        $.allocationTargets[newAddress].lastChangeNotifiedBlock = newAddressNotificationBlock;
 
         emit DefaultAllocationAddressUpdated(oldAddress, newAddress);
         return true;
