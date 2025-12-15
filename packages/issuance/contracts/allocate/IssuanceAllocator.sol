@@ -422,12 +422,33 @@ contract IssuanceAllocator is
 
     /**
      * @inheritdoc IIssuanceAllocationAdministration
+     */
+    function setDefaultAllocationAddress(address newAddress) external override onlyRole(GOVERNOR_ROLE) returns (bool) {
+        return _setDefaultAllocationAddress(newAddress, false);
+    }
+
+    /**
+     * @inheritdoc IIssuanceAllocationAdministration
+     */
+    function setDefaultAllocationAddress(
+        address newAddress,
+        bool evenIfDistributionPending
+    ) external override onlyRole(GOVERNOR_ROLE) returns (bool) {
+        return _setDefaultAllocationAddress(newAddress, evenIfDistributionPending);
+    }
+
+    /**
+     * @notice Internal implementation for setting default allocation address
      * @dev The default allocation automatically receives the portion of issuance not allocated to other targets
      * @dev This maintains the invariant that total allocation is always 100%
      * @dev Reverts if attempting to set to an address that has a normal (non-default) allocation
+     * @dev Allocation data is copied from the old default to the new default, including lastChangeNotifiedBlock
      * @dev No-op if setting to the same address
      */
-    function setDefaultAllocationAddress(address newAddress) external override onlyRole(GOVERNOR_ROLE) returns (bool) {
+    function _setDefaultAllocationAddress(
+        address newAddress,
+        bool evenIfDistributionPending
+    ) internal returns (bool) {
         IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
 
         address oldAddress = $.targetAddresses[0];
@@ -444,11 +465,17 @@ contract IssuanceAllocator is
             require($.targetAddresses[i] != newAddress, CannotSetDefaultToAllocatedTarget());
         }
 
+        // Distribute any pending issuance to the old default address before changing.
+        // If paused and evenIfDistributionPending is false, return false to prevent the change.
+        if (!_handleDistributionBeforeAllocation(oldAddress, 0, evenIfDistributionPending)) return false;
+
         // Notify both old and new addresses of the allocation change
         _notifyTarget(oldAddress);
         _notifyTarget(newAddress);
 
         // Update the default allocation address at index 0
+        // Note this will also copy the lastChangeNotifiedBlock from old to new, which is relevant if
+        // forceTargetNoChangeNotificationBlock was used to set a future block for the default address.
         $.targetAddresses[0] = newAddress;
         $.allocationTargets[newAddress] = $.allocationTargets[oldAddress];
         delete $.allocationTargets[oldAddress];
