@@ -28,7 +28,7 @@ import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/int
  * @dev The contract maintains a 100% allocation invariant through a default allocation mechanism:
  * - A default allocation target exists at targetAddresses[0] (initialized to address(0))
  * - The default allocation automatically receives any unallocated portion of issuance
- * - Total allocation across all targets always equals 100% (MILLION PPM)
+ * - Total allocation across all targets always equals 100% (tracked in parts per MILLION)
  * - The default allocation address can be changed via setDefaultAllocationAddress()
  * - When the default address is address(0), the unallocated portion is not minted
  * - Regular targets cannot be set as the default allocation address
@@ -123,7 +123,7 @@ contract IssuanceAllocator is
     /// @notice Thrown when attempting to add a target with zero address
     error TargetAddressCannotBeZero();
 
-    /// @notice Thrown when the total allocation would exceed 100% (PPM)
+    /// @notice Thrown when the total allocation would exceed 100% (MILLION)
     error InsufficientAllocationAvailable();
 
     /// @notice Thrown when a target does not support the IIssuanceTarget interface
@@ -400,7 +400,7 @@ contract IssuanceAllocator is
      * - If both allocations are 0 and the target doesn't exist, this function is a no-op
      * - If both allocations are 0 and the target exists, the target will be removed
      * - If any allocation is non-zero and the target doesn't exist, the target will be added
-     * - Will revert if the total allocation would exceed PPM, or if attempting to add a target that doesn't support IIssuanceTarget
+     * - Will revert if the total allocation would exceed 100% (MILLION), or if attempting to add a target that doesn't support IIssuanceTarget
      *
      * Self-minting allocation is a special case for backwards compatibility with
      * existing contracts like the RewardsManager. The IssuanceAllocator calculates
@@ -439,16 +439,16 @@ contract IssuanceAllocator is
 
     /**
      * @notice Internal implementation for setting default allocation address
+     * @param newAddress The address to set as the new default allocation target
+     * @param evenIfDistributionPending Whether to force the change even if issuance distribution is behind
+     * @return True if the value is applied (including if already the case), false if not applied due to paused state
      * @dev The default allocation automatically receives the portion of issuance not allocated to other targets
      * @dev This maintains the invariant that total allocation is always 100%
      * @dev Reverts if attempting to set to an address that has a normal (non-default) allocation
      * @dev Allocation data is copied from the old default to the new default, including lastChangeNotifiedBlock
      * @dev No-op if setting to the same address
      */
-    function _setDefaultAllocationAddress(
-        address newAddress,
-        bool evenIfDistributionPending
-    ) internal returns (bool) {
+    function _setDefaultAllocationAddress(address newAddress, bool evenIfDistributionPending) internal returns (bool) {
         IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
 
         address oldAddress = $.targetAddresses[0];
@@ -640,23 +640,25 @@ contract IssuanceAllocator is
             targetData.allocatorMintingPPM = allocatorMintingPPM;
             targetData.selfMintingPPM = selfMintingPPM;
         } else {
-            // Remove from list and delete mapping
-            _removeTargetFromList(target);
-            delete $.allocationTargets[target];
+            // Remove target completely (from list and mapping)
+            _removeTarget(target);
         }
     }
 
     /**
-     * @notice Removes target from targetAddresses array using swap-and-pop for gas efficiency
+     * @notice Removes target from targetAddresses array and deletes its allocation data
      * @param target Address of the target to remove
+     * @dev Starts at index 1 since index 0 is always the default allocation and should never be removed
+     * @dev Uses swap-and-pop for gas efficiency
      */
-    function _removeTargetFromList(address target) private {
+    function _removeTarget(address target) private {
         IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
 
-        for (uint256 i = 0; i < $.targetAddresses.length; ++i) {
+        for (uint256 i = 1; i < $.targetAddresses.length; ++i) {
             if ($.targetAddresses[i] == target) {
                 $.targetAddresses[i] = $.targetAddresses[$.targetAddresses.length - 1];
                 $.targetAddresses.pop();
+                delete $.allocationTargets[target];
                 break;
             }
         }

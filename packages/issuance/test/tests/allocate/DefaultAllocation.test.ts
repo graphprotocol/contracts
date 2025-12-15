@@ -638,6 +638,48 @@ describe('IssuanceAllocator - Default Allocation', () => {
       expect(target1Allocation.totalAllocationPPM).to.equal(600_000n)
       expect(target2Allocation.totalAllocationPPM).to.equal(400_000n)
     })
+
+    it('should handle changing from initial address(0) default without errors', async () => {
+      // Verify initial state: default is address(0)
+      const initialDefault = await issuanceAllocator.getTargetAt(0)
+      expect(initialDefault).to.equal(ethers.ZeroAddress)
+
+      // Add a normal allocation so there's pending issuance to distribute
+      await issuanceAllocator
+        .connect(accounts.governor)
+        ['setTargetAllocation(address,uint256)'](addresses.target1, 400_000n)
+
+      // Mine a few blocks to accumulate issuance
+      await ethers.provider.send('evm_mine', [])
+      await ethers.provider.send('evm_mine', [])
+
+      // Change default from address(0) to target2
+      // This should:
+      // 1. Call _handleDistributionBeforeAllocation(address(0), ...) - should not revert
+      // 2. Call _notifyTarget(address(0)) - should return early safely
+      // 3. Delete allocationTargets[address(0)] - should not cause issues
+      await issuanceAllocator.connect(accounts.governor).setDefaultAllocationAddress(addresses.target2)
+
+      // Verify the change succeeded
+      const newDefault = await issuanceAllocator.getTargetAt(0)
+      expect(newDefault).to.equal(addresses.target2)
+
+      // Verify address(0) received no tokens (can't mint to zero address)
+      const zeroAddressBalance = await graphToken.balanceOf(ethers.ZeroAddress)
+      expect(zeroAddressBalance).to.equal(0n)
+
+      // Distribute and verify target2 (new default) receives correct allocation
+      await issuanceAllocator.distributeIssuance()
+
+      // Target2 should have received 60% for 1 block (from setDefaultAllocationAddress to distributeIssuance)
+      const target2Balance = await graphToken.balanceOf(addresses.target2)
+      const expectedTarget2 = (issuancePerBlock * 600_000n) / MILLION
+      expect(target2Balance).to.equal(expectedTarget2)
+
+      // Target1 should have accumulated tokens across multiple blocks
+      const target1Balance = await graphToken.balanceOf(addresses.target1)
+      expect(target1Balance).to.be.gt(0n) // Should have received something
+    })
   })
 
   describe('View functions', () => {
