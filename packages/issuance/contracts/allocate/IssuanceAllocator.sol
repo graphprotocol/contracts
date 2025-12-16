@@ -283,10 +283,10 @@ contract IssuanceAllocator is
         if (newIssuancePerBlock == $.issuancePerBlock) return true;
 
         if (_distributeIssuance() < block.number) {
-            if (evenIfDistributionPending) accumulatePendingIssuance();
+            if (evenIfDistributionPending) _accumulatePendingIssuance();
             else return false;
         }
-        notifyAllTargets();
+        _notifyAllTargets();
 
         uint256 oldIssuancePerBlock = $.issuancePerBlock;
         $.issuancePerBlock = newIssuancePerBlock;
@@ -332,7 +332,7 @@ contract IssuanceAllocator is
      * @dev Each target is notified at most once per block.
      * Will revert if any target notification reverts.
      */
-    function notifyAllTargets() private {
+    function _notifyAllTargets() private {
         IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
 
         for (uint256 i = 0; i < $.targetAddresses.length; ++i) {
@@ -576,7 +576,7 @@ contract IssuanceAllocator is
             // So for a self-minting change, accumulate pending issuance prior to the rate change.
             IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
             AllocationTarget storage targetData = $.allocationTargets[target];
-            if (selfMintingPPM != targetData.selfMintingPPM) accumulatePendingIssuance();
+            if (selfMintingPPM != targetData.selfMintingPPM) _accumulatePendingIssuance();
         }
 
         return true;
@@ -693,7 +693,7 @@ contract IssuanceAllocator is
     function distributePendingIssuance(
         uint256 toBlockNumber
     ) external override onlyRole(GOVERNOR_ROLE) returns (uint256) {
-        accumulatePendingIssuance(toBlockNumber);
+        _accumulatePendingIssuance(toBlockNumber);
         return _distributePendingIssuance();
     }
 
@@ -739,8 +739,8 @@ contract IssuanceAllocator is
      * @dev Used to accumulate pending issuance while paused prior to a rate or allocator-minting allocation change.
      * @return The block number that has been accumulated to
      */
-    function accumulatePendingIssuance() private returns (uint256) {
-        return accumulatePendingIssuance(block.number);
+    function _accumulatePendingIssuance() private returns (uint256) {
+        return _accumulatePendingIssuance(block.number);
     }
 
     /**
@@ -749,7 +749,7 @@ contract IssuanceAllocator is
      * @param toBlockNumber The block number to accumulate to (must be >= lastIssuanceAccumulationBlock and <= current block).
      * @return The block number that has been accumulated to
      */
-    function accumulatePendingIssuance(uint256 toBlockNumber) private returns (uint256) {
+    function _accumulatePendingIssuance(uint256 toBlockNumber) private returns (uint256) {
         IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
 
         // solhint-disable-next-line gas-strict-inequalities
