@@ -826,6 +826,9 @@ contract IssuanceAllocator is
 
     /**
      * @inheritdoc IIssuanceAllocationStatus
+     * @dev Returns assigned allocation regardless of whether target is address(0) or the default.
+     * @dev For address(0), no minting occurs but the allocation represents the unallocated portion.
+     * @dev For effective allocations excluding unmintable portion, use getTotalAllocation().
      */
     function getTargetAllocation(address target) external view override returns (Allocation memory) {
         AllocationTarget storage targetData = _getIssuanceAllocatorStorage().allocationTargets[target];
@@ -839,6 +842,8 @@ contract IssuanceAllocator is
 
     /**
      * @inheritdoc IIssuanceAllocationDistribution
+     * @dev Returns assigned issuance rates regardless of whether target is address(0) or the default.
+     * @dev For address(0), no minting occurs but rates reflect what would be issued if mintable.
      */
     function getTargetIssuancePerBlock(address target) external view override returns (TargetIssuancePerBlock memory) {
         IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
