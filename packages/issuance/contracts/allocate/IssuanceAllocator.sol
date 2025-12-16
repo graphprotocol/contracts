@@ -25,6 +25,14 @@ import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/int
  * of the protocol. It calculates issuance for all targets based on their configured proportions
  * and handles minting for allocator-minting portions.
  *
+ * @dev The contract maintains a 100% allocation invariant through a default allocation mechanism:
+ * - A default allocation target exists at targetAddresses[0] (initialized to address(0))
+ * - The default allocation automatically receives any unallocated portion of issuance
+ * - Total allocation across all targets always equals 100% (tracked in parts per MILLION)
+ * - The default allocation address can be changed via setDefaultAllocationAddress()
+ * - When the default address is address(0), the unallocated portion is not minted
+ * - Regular targets cannot be set as the default allocation address
+ *
  * @dev The contract supports two types of allocation for each target:
  * 1. Allocator-minting allocation: The IssuanceAllocator calculates and mints tokens directly to targets
  *    for this portion of their allocation.
@@ -77,10 +85,13 @@ contract IssuanceAllocator is
     /// @param lastAccumulationBlock Last block when pending issuance was accumulated
     /// @dev Design invariant: lastDistributionBlock <= lastAccumulationBlock
     /// @param allocationTargets Mapping of target addresses to their allocation data
-    /// @param targetAddresses Array of all target addresses with non-zero allocation
-    /// @param totalAllocatorMintingPPM Total allocator-minting allocation (in PPM) across all targets
+    /// @param targetAddresses Array of all target addresses (including default allocation at index 0)
     /// @param totalSelfMintingPPM Total self-minting allocation (in PPM) across all targets
     /// @param pendingAccumulatedAllocatorIssuance Accumulated but not distributed issuance for allocator-minting from lastDistributionBlock to lastAccumulationBlock
+    /// @dev Design invariant: Total allocation across all targets always equals MILLION (100%)
+    /// @dev Design invariant: targetAddresses[0] is always the default allocation address
+    /// @dev Design invariant: 1 <= targetAddresses.length (default allocation always exists)
+    /// @dev Design invariant: Default allocation (targetAddresses[0]) is automatically adjusted to maintain 100% total
     /// @custom:storage-location erc7201:graphprotocol.storage.IssuanceAllocator
     struct IssuanceAllocatorData {
         uint256 issuancePerBlock;
@@ -88,7 +99,6 @@ contract IssuanceAllocator is
         uint256 lastAccumulationBlock;
         mapping(address => AllocationTarget) allocationTargets;
         address[] targetAddresses;
-        uint256 totalAllocatorMintingPPM;
         uint256 totalSelfMintingPPM;
         uint256 pendingAccumulatedAllocatorIssuance;
     }
@@ -113,7 +123,7 @@ contract IssuanceAllocator is
     /// @notice Thrown when attempting to add a target with zero address
     error TargetAddressCannotBeZero();
 
-    /// @notice Thrown when the total allocation would exceed 100% (PPM)
+    /// @notice Thrown when the total allocation would exceed 100% (MILLION)
     error InsufficientAllocationAvailable();
 
     /// @notice Thrown when a target does not support the IIssuanceTarget interface
@@ -121,6 +131,12 @@ contract IssuanceAllocator is
 
     /// @notice Thrown when toBlockNumber is out of valid range for accumulation
     error ToBlockOutOfRange();
+
+    /// @notice Thrown when attempting to set allocation for the default allocation target
+    error CannotSetAllocationForDefaultTarget();
+
+    /// @notice Thrown when attempting to set default allocation address to a normally allocated target
+    error CannotSetDefaultToAllocatedTarget();
 
     // -- Events --
 
@@ -143,6 +159,11 @@ contract IssuanceAllocator is
     event IssuancePerBlockUpdated(uint256 oldIssuancePerBlock, uint256 newIssuancePerBlock); // solhint-disable-line gas-indexed-events
     // Do not need to index issuance per block values
 
+    /// @notice Emitted when the default allocation address is updated
+    /// @param oldAddress The previous default allocation address
+    /// @param newAddress The new default allocation address
+    event DefaultAllocationAddressUpdated(address indexed oldAddress, address indexed newAddress);
+
     // -- Constructor --
 
     /**
@@ -159,9 +180,17 @@ contract IssuanceAllocator is
     /**
      * @notice Initialize the IssuanceAllocator contract
      * @param _governor Address that will have the GOVERNOR_ROLE
+     * @dev Initializes with a default allocation at index 0 set to address(0) with 100% allocation
      */
     function initialize(address _governor) external virtual initializer {
         __BaseUpgradeable_init(_governor);
+
+        IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
+
+        // Initialize default allocation at index 0 with address(0) and 100% allocator-minting
+        $.targetAddresses.push(address(0));
+        $.allocationTargets[address(0)].allocatorMintingPPM = MILLION;
+        $.allocationTargets[address(0)].selfMintingPPM = 0;
     }
 
     // -- Core Functionality --
@@ -219,6 +248,10 @@ contract IssuanceAllocator is
         if (0 < newIssuance) {
             for (uint256 i = 0; i < $.targetAddresses.length; ++i) {
                 address target = $.targetAddresses[i];
+
+                // Skip minting to zero address (default allocation when not configured)
+                if (target == address(0)) continue;
+
                 AllocationTarget storage targetData = $.allocationTargets[target];
 
                 if (0 < targetData.allocatorMintingPPM) {
@@ -272,9 +305,12 @@ contract IssuanceAllocator is
      * Use forceTargetNoChangeNotificationBlock to skip notification for malfunctioning targets.
      *
      * @param target Address of the target to notify
-     * @return True if notification was sent or already sent for this block
+     * @return True if notification was sent or already sent for this block. Always returns true for address(0) without notifying.
      */
     function _notifyTarget(address target) private returns (bool) {
+        // Skip notification for zero address (default allocation when unset)
+        if (target == address(0)) return true;
+
         IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
         AllocationTarget storage targetData = $.allocationTargets[target];
 
@@ -364,7 +400,7 @@ contract IssuanceAllocator is
      * - If both allocations are 0 and the target doesn't exist, this function is a no-op
      * - If both allocations are 0 and the target exists, the target will be removed
      * - If any allocation is non-zero and the target doesn't exist, the target will be added
-     * - Will revert if the total allocation would exceed PPM, or if attempting to add a target that doesn't support IIssuanceTarget
+     * - Will revert if the total allocation would exceed 100% (MILLION), or if attempting to add a target that doesn't support IIssuanceTarget
      *
      * Self-minting allocation is a special case for backwards compatibility with
      * existing contracts like the RewardsManager. The IssuanceAllocator calculates
@@ -382,6 +418,75 @@ contract IssuanceAllocator is
         bool evenIfDistributionPending
     ) external override onlyRole(GOVERNOR_ROLE) returns (bool) {
         return _setTargetAllocation(target, allocatorMintingPPM, selfMintingPPM, evenIfDistributionPending);
+    }
+
+    /**
+     * @inheritdoc IIssuanceAllocationAdministration
+     */
+    function setDefaultAllocationAddress(address newAddress) external override onlyRole(GOVERNOR_ROLE) returns (bool) {
+        return _setDefaultAllocationAddress(newAddress, false);
+    }
+
+    /**
+     * @inheritdoc IIssuanceAllocationAdministration
+     */
+    function setDefaultAllocationAddress(
+        address newAddress,
+        bool evenIfDistributionPending
+    ) external override onlyRole(GOVERNOR_ROLE) returns (bool) {
+        return _setDefaultAllocationAddress(newAddress, evenIfDistributionPending);
+    }
+
+    /**
+     * @notice Internal implementation for setting default allocation address
+     * @param newAddress The address to set as the new default allocation target
+     * @param evenIfDistributionPending Whether to force the change even if issuance distribution is behind
+     * @return True if the value is applied (including if already the case), false if not applied due to paused state
+     * @dev The default allocation automatically receives the portion of issuance not allocated to other targets
+     * @dev This maintains the invariant that total allocation is always 100%
+     * @dev Reverts if attempting to set to an address that has a normal (non-default) allocation
+     * @dev Allocation data is copied from the old default to the new default, including lastChangeNotifiedBlock
+     * @dev No-op if setting to the same address
+     */
+    function _setDefaultAllocationAddress(address newAddress, bool evenIfDistributionPending) internal returns (bool) {
+        IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
+
+        address oldAddress = $.targetAddresses[0];
+
+        // No-op if setting to same address
+        if (newAddress == oldAddress) return true;
+
+        // Cannot set default allocation to a normally allocated target
+        // Check if newAddress is in targetAddresses (excluding index 0 which is the default)
+        // Note: This is O(n) for the number of targets, which could become expensive as targets increase.
+        // However, other operations (distribution, notifications) already loop through all targets and
+        // would encounter gas issues first. Recovery mechanisms exist (pause, per-target notification control).
+        for (uint256 i = 1; i < $.targetAddresses.length; ++i) {
+            require($.targetAddresses[i] != newAddress, CannotSetDefaultToAllocatedTarget());
+        }
+
+        // Distribute any pending issuance to the old default address before changing.
+        // If paused and evenIfDistributionPending is false, return false to prevent the change.
+        if (!_handleDistributionBeforeAllocation(oldAddress, 0, evenIfDistributionPending)) return false;
+
+        // Notify both old and new addresses of the allocation change
+        _notifyTarget(oldAddress);
+        _notifyTarget(newAddress);
+
+        // Preserve the notification block of newAddress before copying old address data
+        uint256 newAddressNotificationBlock = $.allocationTargets[newAddress].lastChangeNotifiedBlock;
+
+        // Update the default allocation address at index 0
+        // This copies allocation data from old to new, including allocatorMintingPPM and selfMintingPPM
+        $.targetAddresses[0] = newAddress;
+        $.allocationTargets[newAddress] = $.allocationTargets[oldAddress];
+        delete $.allocationTargets[oldAddress];
+
+        // Restore the notification block for newAddress (regard as target-specific, not about default)
+        $.allocationTargets[newAddress].lastChangeNotifiedBlock = newAddressNotificationBlock;
+
+        emit DefaultAllocationAddressUpdated(oldAddress, newAddress);
+        return true;
     }
 
     /**
@@ -404,8 +509,16 @@ contract IssuanceAllocator is
 
         _notifyTarget(target);
 
+        // Total allocation calculation and check is delayed until after notifications.
+        // Distributing and notifying unnecessarily is harmless, but we need to prevent
+        // reentrancy from looping and changing allocations mid-calculation.
+        // (Would not be likely to be exploitable due to only governor being able to
+        // make a call to set target allocation, but better to be paranoid.)
+        // Validate totals and auto-adjust default allocation BEFORE updating target data
+        // so we can read the old allocation values
         _validateAndUpdateTotalAllocations(target, allocatorMintingPPM, selfMintingPPM);
 
+        // Then update the target's allocation data
         _updateTargetAllocationData(target, allocatorMintingPPM, selfMintingPPM);
 
         emit TargetAllocationUpdated(target, allocatorMintingPPM, selfMintingPPM);
@@ -427,6 +540,9 @@ contract IssuanceAllocator is
         require(target != address(0), TargetAddressCannotBeZero());
 
         IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
+
+        require(target != $.targetAddresses[0], CannotSetAllocationForDefaultTarget());
+
         AllocationTarget storage targetData = $.allocationTargets[target];
 
         if (targetData.allocatorMintingPPM == allocatorMintingPPM && targetData.selfMintingPPM == selfMintingPPM)
@@ -467,10 +583,12 @@ contract IssuanceAllocator is
     }
 
     /**
-     * @notice Updates global allocation totals and validates they don't exceed maximum
+     * @notice Updates global allocation totals and auto-adjusts default allocation to maintain 100% invariant
      * @param target Address of the target being updated
      * @param allocatorMintingPPM New allocator-minting allocation for the target (in PPM)
      * @param selfMintingPPM New self-minting allocation for the target (in PPM)
+     * @dev The default allocation (at targetAddresses[0]) is automatically adjusted to ensure total allocation equals MILLION
+     * @dev This function is called BEFORE the target's allocation data has been updated so we can read old values
      */
     function _validateAndUpdateTotalAllocations(
         address target,
@@ -479,18 +597,22 @@ contract IssuanceAllocator is
     ) private {
         IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
         AllocationTarget storage targetData = $.allocationTargets[target];
+        AllocationTarget storage defaultTarget = $.allocationTargets[$.targetAddresses[0]];
 
-        // Total allocation calculation and check is delayed until after notifications.
-        // Distributing and notifying unnecessarily is harmless, but we need to prevent
-        // reentrancy looping changing allocations mid-calculation.
-        // (Would not be likely to be exploitable due to only governor being able to
-        // make a call to set target allocation, but better to be paranoid.)
-        $.totalAllocatorMintingPPM = $.totalAllocatorMintingPPM - targetData.allocatorMintingPPM + allocatorMintingPPM;
-        $.totalSelfMintingPPM = $.totalSelfMintingPPM - targetData.selfMintingPPM + selfMintingPPM;
+        // Calculations occur after notifications in the caller to prevent reentrancy issues
 
-        // Ensure the new total allocation doesn't exceed MILLION as in PPM.
+        // availablePPM comprises the default allocation's current allocator-minting PPM,
+        // the target's current allocator-minting PPM, and the target's current self-minting PPM.
+        // This maintains the 100% allocation invariant by calculating how much can be reallocated
+        // to the target without exceeding total available allocation.
+        uint256 availablePPM = defaultTarget.allocatorMintingPPM +
+            targetData.allocatorMintingPPM +
+            targetData.selfMintingPPM;
         // solhint-disable-next-line gas-strict-inequalities
-        require(($.totalAllocatorMintingPPM + $.totalSelfMintingPPM) <= MILLION, InsufficientAllocationAvailable());
+        require(allocatorMintingPPM + selfMintingPPM <= availablePPM, InsufficientAllocationAvailable());
+
+        defaultTarget.allocatorMintingPPM = availablePPM - allocatorMintingPPM - selfMintingPPM;
+        $.totalSelfMintingPPM = $.totalSelfMintingPPM - targetData.selfMintingPPM + selfMintingPPM;
     }
 
     /**
@@ -498,23 +620,24 @@ contract IssuanceAllocator is
      * @param target Address of the target being updated
      * @param allocatorMintingPPM New allocator-minting allocation for the target (in PPM)
      * @param selfMintingPPM New self-minting allocation for the target (in PPM)
+     * @dev This function is never called for the default allocation (at index 0), which is handled separately
      */
     function _updateTargetAllocationData(address target, uint256 allocatorMintingPPM, uint256 selfMintingPPM) private {
         IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
         AllocationTarget storage targetData = $.allocationTargets[target];
 
         // Internal design invariants:
-        // - targetAddresses contains all targets with non-zero allocation.
-        // - targetAddresses does not contain targets with zero allocation.
-        // - targetAddresses does not contain duplicates.
-        // - allocationTargets mapping contains all targets in targetAddresses with a non-zero allocation.
-        // - allocationTargets mapping allocations are zero for targets not in targetAddresses.
+        // - targetAddresses[0] is always the default allocation and is never removed
+        // - targetAddresses[1..n] contains all non-default targets with explicitly set non-zero allocations
+        // - targetAddresses does not contain duplicates
+        // - allocationTargets mapping contains allocation data for all targets in targetAddresses
+        // - Default allocation is automatically adjusted by _validateAndUpdateTotalAllocations
         // - Governance actions can create allocationTarget mappings with lastChangeNotifiedBlock set for targets not in targetAddresses. This is valid.
         // Therefore:
-        // - Only add a target to the list if it previously had no allocation.
-        // - Remove a target from the list when setting both allocations to 0.
-        // - Delete allocationTargets mapping entry when removing a target from targetAddresses.
-        // - Do not set lastChangeNotifiedBlock in this function.
+        // - Only add a non-default target to the list if it previously had no allocation
+        // - Remove a non-default target from the list when setting both allocations to 0
+        // - Delete allocationTargets mapping entry when removing a target from targetAddresses
+        // - Do not set lastChangeNotifiedBlock in this function
         if (allocatorMintingPPM != 0 || selfMintingPPM != 0) {
             // Add to list if previously had no allocation
             if (targetData.allocatorMintingPPM == 0 && targetData.selfMintingPPM == 0) $.targetAddresses.push(target);
@@ -522,23 +645,25 @@ contract IssuanceAllocator is
             targetData.allocatorMintingPPM = allocatorMintingPPM;
             targetData.selfMintingPPM = selfMintingPPM;
         } else {
-            // Remove from list and delete mapping
-            _removeTargetFromList(target);
-            delete $.allocationTargets[target];
+            // Remove target completely (from list and mapping)
+            _removeTarget(target);
         }
     }
 
     /**
-     * @notice Removes target from targetAddresses array using swap-and-pop for gas efficiency
+     * @notice Removes target from targetAddresses array and deletes its allocation data
      * @param target Address of the target to remove
+     * @dev Starts at index 1 since index 0 is always the default allocation and should never be removed
+     * @dev Uses swap-and-pop for gas efficiency
      */
-    function _removeTargetFromList(address target) private {
+    function _removeTarget(address target) private {
         IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
 
-        for (uint256 i = 0; i < $.targetAddresses.length; ++i) {
+        for (uint256 i = 1; i < $.targetAddresses.length; ++i) {
             if ($.targetAddresses[i] == target) {
                 $.targetAddresses[i] = $.targetAddresses[$.targetAddresses.length - 1];
                 $.targetAddresses.pop();
+                delete $.allocationTargets[target];
                 break;
             }
         }
@@ -586,10 +711,14 @@ contract IssuanceAllocator is
         if (pendingAmount == 0) return $.lastDistributionBlock;
         $.pendingAccumulatedAllocatorIssuance = 0;
 
-        if ($.totalAllocatorMintingPPM == 0) return $.lastDistributionBlock;
+        if ($.totalSelfMintingPPM == MILLION) return $.lastDistributionBlock;
 
         for (uint256 i = 0; i < $.targetAddresses.length; ++i) {
             address target = $.targetAddresses[i];
+
+            // Skip minting to zero address (default allocation when not configured)
+            if (target == address(0)) continue;
+
             AllocationTarget storage targetData = $.allocationTargets[target];
 
             if (0 < targetData.allocatorMintingPPM) {
@@ -727,13 +856,32 @@ contract IssuanceAllocator is
 
     /**
      * @inheritdoc IIssuanceAllocationStatus
+     * @dev For reporting purposes, if the default allocation target is address(0), its allocation
+     * @dev is treated as "unallocated" since address(0) cannot receive minting.
+     * @dev When default is address(0): returns actual allocated amounts (may be less than 100%)
+     * @dev When default is a real address: returns 100% total allocation
+     * @dev Note: Internally, the contract always maintains 100% allocation invariant, even when default is address(0)
      */
     function getTotalAllocation() external view override returns (Allocation memory) {
         IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
+
+        uint256 totalAllocatorMinting = MILLION - $.totalSelfMintingPPM;
+        uint256 totalAllocation = MILLION;
+
+        // If default is address(0), exclude its allocation from reported totals
+        // since it doesn't actually receive minting (effectively unallocated)
+        address defaultAddress = $.targetAddresses[0];
+        if (defaultAddress == address(0)) {
+            AllocationTarget storage defaultTarget = $.allocationTargets[defaultAddress];
+            uint256 defaultAllocation = defaultTarget.allocatorMintingPPM;
+            totalAllocatorMinting -= defaultAllocation;
+            totalAllocation -= defaultAllocation;
+        }
+
         return
             Allocation({
-                totalAllocationPPM: $.totalAllocatorMintingPPM + $.totalSelfMintingPPM,
-                allocatorMintingPPM: $.totalAllocatorMintingPPM,
+                totalAllocationPPM: totalAllocation,
+                allocatorMintingPPM: totalAllocatorMinting,
                 selfMintingPPM: $.totalSelfMintingPPM
             });
     }
