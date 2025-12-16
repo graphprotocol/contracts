@@ -1,5 +1,6 @@
 import type { HardhatEthersProvider } from '@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider'
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { ethers } from 'ethers'
 
 // The Graph convention for account derivation is:
 // 0: Deployer
@@ -20,13 +21,13 @@ enum GraphAccountIndex {
 }
 
 export type GraphAccounts = {
-  deployer: HardhatEthersSigner
-  governor: HardhatEthersSigner
-  arbitrator: HardhatEthersSigner
-  pauseGuardian: HardhatEthersSigner
-  subgraphAvailabilityOracle: HardhatEthersSigner
-  gateway: HardhatEthersSigner
-  test: HardhatEthersSigner[]
+  deployer: HardhatEthersSigner | ethers.Signer
+  governor: HardhatEthersSigner | ethers.Signer
+  arbitrator: HardhatEthersSigner | ethers.Signer
+  pauseGuardian: HardhatEthersSigner | ethers.Signer
+  subgraphAvailabilityOracle: HardhatEthersSigner | ethers.Signer
+  gateway: HardhatEthersSigner | ethers.Signer
+  test: (HardhatEthersSigner | ethers.Signer)[]
 }
 
 export async function getAccounts(provider: HardhatEthersProvider): Promise<GraphAccounts> {
@@ -85,6 +86,30 @@ export async function getTestAccounts(provider: HardhatEthersProvider) {
   )
 }
 
-async function _getAccount(provider: HardhatEthersProvider, accountIndex: number | string) {
-  return await provider.getSigner(accountIndex)
+async function _getAccount(
+  provider: HardhatEthersProvider,
+  accountIndex: number | string,
+): Promise<HardhatEthersSigner | ethers.Signer> {
+  try {
+    const accounts = await provider.send('eth_accounts', [])
+    if (typeof accountIndex === 'number') {
+      if (accounts.length > accountIndex) {
+        return provider.getSigner(accountIndex)
+      }
+    } else if (typeof accountIndex === 'string') {
+      if (accounts.includes(accountIndex)) {
+        return provider.getSigner(accountIndex)
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  // Remote provider fallback
+  return new ethers.VoidSigner(
+    typeof accountIndex === 'string'
+      ? accountIndex
+      : ethers.ZeroAddress,
+    provider,
+  )
 }
