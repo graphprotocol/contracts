@@ -4,7 +4,9 @@ The RewardsEligibilityOracle is a smart contract that manages indexer eligibilit
 
 ## Overview
 
-The contract operates on a "deny by default" principle - all indexers are initially ineligible for rewards until their eligibility is explicitly renewed by an authorized oracle. Once eligibility is renewed, indexers remain eligible for a configurable period before their eligibility expires and needs to be renewed again.
+The contract operates on a "deny by default" principle - indexers are not eligible for rewards until their eligibility is explicitly validated by an authorized oracle. (See edge case below for extremely large eligibility periods.) After eligibility is initially validated or renewed, indexers remain eligible for a configurable period before their eligibility expires and needs to be renewed again. We generally refer to all validation as "renewal" for simplicity.
+
+**Very large eligibility period edge case**: If the eligibility period is set to an extremely large value that exceeds the current block timestamp relative to the genesis block, all indexers (including those who have never been registered) will be considered eligible. This is an edge case; if configured with an eligibility period that includes the genesis block, all indexers are eligible.
 
 ## Key Features
 
@@ -141,13 +143,124 @@ This design ensures that:
 - Operators can disable eligibility validation entirely if needed
 - Individual indexer eligibility has time limits
 
+### Edge Case: Large Eligibility Periods
+
+The eligibility check `block.timestamp < indexerEligibilityTimestamps[indexer] + eligibilityPeriod` has specific behavior when the eligibility period is set to an extremely large value:
+
+- For indexers who have never been registered, `indexerEligibilityTimestamps[indexer]` is 0 (zero-initialized storage)
+- If `block.timestamp < eligibilityPeriod`, then `block.timestamp < 0 + eligibilityPeriod`
+- This means **all indexers are eligible**, including those who have never been explicitly approved
+
+For normal operations with reasonable eligibility periods (e.g., 14 days), indexers who have never been registered will correctly be ineligible since `block.timestamp < 0 + 14 days` will be false for any realistic block timestamp.
+
 In normal operation, the first condition is expected to be the only one that applies. The other two conditions provide fail-safes for oracle failures, or in extreme cases an operator override. For normal operational failure of oracles, the system gracefully degrades into a "allow all" mode. This mechanism is not perfect in that oracles could still be updating but allowing far fewer indexers than they should. However this is regarded as simple mechanism that is good enough to start with and provide a foundation for future improvements and decentralization.
 
-While this simple model allows the criteria for providing good service to evolve over time (which is essential for the long-term health of the network), it captures sufficient information on-chain for indexers to be able to monitor their eligibility. This is important to ensure that even in the absence of other sources of information regarding observed indexer service, indexers have a good transparency about if they are being observed to be providing good service, and for how long their current approval is valid.
+While this simple model allows the criteria for providing good service to evolve over time (which is essential for the long-term health of the network), it captures sufficient information on-chain for indexers to be able to monitor their eligibility. This is important to ensure that even in the absence of other sources of information regarding observed indexer service, indexers have good transparency about if they are being observed to be providing good service, and for how long their current approval is valid.
 
 It might initially seem safer to allow indexers by default unless an oracle explicitly denies an indexer. While that might seem safer from the perspective of the RewardsEligibilityOracle in isolation, in the absence of a more sophisticated voting system it would make the system vulnerable to a single bad oracle denying many indexers. The design of deny by default is better suited to allowing redundant oracles to be working in parallel, where only one needs to be successfully detecting indexers that are providing quality service, as well as eventually allowing different oracles to have different approval criteria and/or inputs. Therefore deny by default facilitates a more resilient and open oracle system that is less vulnerable to a single points of failure, and more open to increasing decentralization over time.
 
-In general to be rewarded for providing service on The Graph, there is expected to be proof provided of good operation (such as for proof of indexing). While proof should be required to receive rewards, the system is designed for participants to have confidence is being able to adequately prove good operation (and in the case of oracles, be seen by at least one observer) that is sufficient to allow the indexer to receive rewards. The oracle model is in general far more suited to collecting evidence of good operation, from multiple independent observers, rather than any observer being able to establish that an indexer is not providing good service.
+In general to be rewarded for providing service on The Graph, there is expected to be proof provided of good operation (such as for proof of indexing). While proof should be required to receive rewards, the system is designed for participants to have confidence in being able to adequately prove good operation (and in the case of oracles, be seen by at least one observer) that is sufficient to allow the indexer to receive rewards. The oracle model is in general far more suited to collecting evidence of good operation, from multiple independent observers, rather than any observer being able to establish that an indexer is not providing good service.
+
+## Operational Considerations
+
+### Race Conditions with Configuration Changes
+
+Configuration changes can create race conditions with in-flight reward claim transactions, potentially causing indexers to permanently lose rewards.
+
+When an indexer submits a transaction to claim rewards through the RewardsManager:
+
+1. The indexer is eligible at the time of transaction submission
+2. The transaction enters the mempool and waits for execution
+3. A configuration change occurs (e.g., reducing `eligibilityPeriod` or enabling `eligibilityValidation`)
+4. The transaction executes after the indexer is no longer eligible
+5. **The indexer is denied rewards** resulting in permanent loss for the indexer
+
+This occurs because the RewardsManager's `takeRewards()` function returns 0 rewards for ineligible indexers, but the calling contract (Staking or SubgraphService) still marks the allocation as processed.
+
+Circumstances potentially leading to this race condition:
+
+1. **Reducing eligibility period** (`setEligibilityPeriod`):
+   - Shortening the eligibility window may cause recently-approved indexers to become ineligible
+   - Indexers near the end of their eligibility period become ineligible immediately
+
+2. **Enabling eligibility validation** (`setEligibilityValidation`):
+   - Switching from disabled (all eligible) to enabled (oracle-based)
+   - Indexers without recent oracle renewals become ineligible immediately
+
+3. **Oracle update delays**:
+   - If oracles do not renew an indexer's eligibility before it expires
+   - Combined with network congestion delaying claim transactions
+
+4. **Network conditions**:
+   - High gas prices causing indexers to delay transaction submission
+   - Network congestion delaying transaction execution
+   - Multiple blocks between submission and execution
+
+#### Mitigation Strategies
+
+Operators and indexers should implement these practices:
+
+**For Operators:**
+
+1. **Announce configuration changes in advance**:
+   - Publish planned changes to eligibility period or validation state
+   - Provide sufficient notice (e.g., 24-48 hours) before executing changes
+   - Use governance forums, Discord, or official communication channels
+
+2. **Implement two-step process for critical changes**:
+   - First transaction: Announce the pending change with a delay period
+   - Second transaction: Execute the change after the delay
+   - This is a governance/operational practice, not enforced by the contract
+
+3. **Avoid sudden reductions in eligibility**:
+   - When reducing eligibility period, consider gradual reductions
+   - Monitor pending transactions in the mempool before making changes
+   - Time changes for periods of low network activity
+
+4. **Coordinate with oracle operations**:
+   - Ensure oracles are actively renewing indexer eligibility
+   - Verify oracle health before enabling eligibility validation
+   - Monitor `lastOracleUpdateTime` to detect oracle failures
+
+**For Indexers:**
+
+1. **Monitor eligibility status closely**:
+   - Regularly check `isEligible()` and `getEligibilityRenewalTime()`
+   - Calculate when eligibility will expire (`renewalTime + eligibilityPeriod`)
+   - Set up alerts for approaching expiration
+
+2. **Claim rewards with sufficient margin**:
+   - Don't wait until the last moment of eligibility period
+   - Account for network congestion and gas price volatility
+   - Consider claiming more frequently rather than in large batches
+
+3. **Watch for configuration change announcements**:
+   - Monitor governance communications and proposals
+   - Subscribe to operator announcements
+   - Plan claim transactions around announced changes
+
+4. **Use appropriate gas pricing**:
+   - During announced configuration changes, use higher gas prices
+   - Ensure transactions execute quickly during critical windows
+   - Monitor transaction status and resubmit if necessary
+
+5. **Understand the risk**:
+   - Be aware that rewards can be permanently lost due to race conditions
+   - Factor this risk into reward claiming strategies
+
+#### Monitoring and Detection
+
+Operators should monitor:
+
+- `RewardsDeniedDueToEligibility` events
+- Time between configuration changes and claim transactions
+
+Indexers should monitor:
+
+- Their own eligibility status via `isEligible()`
+- `EligibilityPeriodUpdated` events
+- `EligibilityValidationUpdated` events
+- `IndexerEligibilityRenewed` events for their address
 
 ## Events
 
@@ -181,8 +294,8 @@ The system is deployed with reasonable defaults but can be adjusted as required.
 
 ### Normal Operation
 
-1. Oracles periodically call `renewIndexerEligibility()` to renew eligibility for indexers
-2. Reward systems call `isEligible()` to check indexer eligibility
+1. Oracle nodes periodically call `renewIndexerEligibility()` to renew eligibility for indexers
+2. RewardsManager calls `isEligible()` to check indexer eligibility
 3. Operators adjust parameters as needed via configuration functions
 4. The operation of the system is monitored and adjusted as needed
 
