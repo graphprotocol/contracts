@@ -24,10 +24,12 @@ interface IIssuanceAllocationDistribution {
     /**
      * @notice Target issuance per block information
      * @param target Address of the target
-     * @return TargetIssuancePerBlock struct containing allocatorIssuanceBlockAppliedTo, selfIssuanceBlockAppliedTo, allocatorIssuancePerBlock, and selfIssuancePerBlock
+     * @return targetIssuance TargetIssuancePerBlock struct containing allocatorIssuanceBlockAppliedTo, selfIssuanceBlockAppliedTo, allocatorIssuanceRate, and selfIssuanceRate
      * @dev This function does not revert when paused, instead the caller is expected to correctly read and apply the information provided.
      * @dev Targets should check allocatorIssuanceBlockAppliedTo and selfIssuanceBlockAppliedTo - if either is not the current block, that type of issuance is paused for that target.
      * @dev Targets should not check the allocator's pause state directly, but rely on the blockAppliedTo fields to determine if issuance is paused.
      */
-    function getTargetIssuancePerBlock(address target) external view returns (TargetIssuancePerBlock memory);
+    function getTargetIssuancePerBlock(
+        address target
+    ) external view returns (TargetIssuancePerBlock memory targetIssuance);
 }

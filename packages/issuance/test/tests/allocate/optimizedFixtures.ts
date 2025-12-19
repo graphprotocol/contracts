@@ -48,16 +48,12 @@ export async function setupOptimizedAllocateSystem(customOptions: any = {}) {
   if (options.setupTargets) {
     await issuanceAllocator
       .connect(accounts.governor)
-      [
-        'setTargetAllocation(address,uint256,uint256,bool)'
-      ](addresses.target1, TestConstants.ALLOCATION_30_PERCENT, 0, false)
+      ['setTargetAllocation(address,uint256,uint256)'](addresses.target1, TestConstants.ALLOCATION_30_PERCENT, 0)
 
     if (options.targetCount >= 2) {
       await issuanceAllocator
         .connect(accounts.governor)
-        [
-          'setTargetAllocation(address,uint256,uint256,bool)'
-        ](addresses.target2, TestConstants.ALLOCATION_20_PERCENT, 0, false)
+        ['setTargetAllocation(address,uint256,uint256)'](addresses.target2, TestConstants.ALLOCATION_20_PERCENT, 0)
     }
   }
 
@@ -77,32 +73,28 @@ export async function setupOptimizedAllocateSystem(customOptions: any = {}) {
         const targets = await issuanceAllocator.getTargets()
         const defaultAddress = await issuanceAllocator.getTargetAt(0)
         for (const targetAddr of targets) {
-          // Skip the default allocation target
+          // Skip the default target target
           if (targetAddr === defaultAddress) continue
           await issuanceAllocator
             .connect(accounts.governor)
-            ['setTargetAllocation(address,uint256,uint256,bool)'](targetAddr, 0, 0, false)
+            ['setTargetAllocation(address,uint256,uint256)'](targetAddr, 0, 0)
         }
 
-        // Reset default allocation to address(0) with 100%
-        await issuanceAllocator.connect(accounts.governor).setDefaultAllocationAddress(ethers.ZeroAddress)
+        // Reset default target to address(0) with 100%
+        await issuanceAllocator.connect(accounts.governor).setDefaultTarget(ethers.ZeroAddress)
 
         // Reset issuance rate
-        await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(options.issuancePerBlock, false)
+        await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(options.issuancePerBlock)
       },
 
       // Helper to setup standard allocations
       setupStandardAllocations: async () => {
         await issuanceAllocator
           .connect(accounts.governor)
-          [
-            'setTargetAllocation(address,uint256,uint256,bool)'
-          ](addresses.target1, TestConstants.ALLOCATION_30_PERCENT, 0, false)
+          ['setTargetAllocation(address,uint256,uint256)'](addresses.target1, TestConstants.ALLOCATION_30_PERCENT, 0)
         await issuanceAllocator
           .connect(accounts.governor)
-          [
-            'setTargetAllocation(address,uint256,uint256,bool)'
-          ](addresses.target2, TestConstants.ALLOCATION_40_PERCENT, 0, false)
+          ['setTargetAllocation(address,uint256,uint256)'](addresses.target2, TestConstants.ALLOCATION_40_PERCENT, 0)
       },
 
       // Helper to verify proportional distributions
@@ -214,9 +206,7 @@ export async function applyAllocationScenario(issuanceAllocator: any, addresses:
     const targetAddress = addresses[allocation.target]
     await issuanceAllocator
       .connect(governor)
-      [
-        'setTargetAllocation(address,uint256,uint256,bool)'
-      ](targetAddress, allocation.allocatorPPM, allocation.selfPPM, false)
+      ['setTargetAllocation(address,uint256,uint256)'](targetAddress, allocation.allocatorPPM, allocation.selfPPM)
   }
 }
 

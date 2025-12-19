@@ -15,7 +15,6 @@ describe('IssuanceAllocator - Default Allocation', () => {
   let target3
   let addresses
 
-  const MILLION = 1_000_000n
   const issuancePerBlock = ethers.parseEther('100')
 
   beforeEach(async () => {
@@ -44,7 +43,7 @@ describe('IssuanceAllocator - Default Allocation', () => {
   })
 
   describe('Initialization', () => {
-    it('should initialize with default allocation at index 0', async () => {
+    it('should initialize with default target at index 0', async () => {
       const targetCount = await issuanceAllocator.getTargetCount()
       expect(targetCount).to.equal(1n)
 
@@ -56,102 +55,102 @@ describe('IssuanceAllocator - Default Allocation', () => {
       const defaultAddress = await issuanceAllocator.getTargetAt(0)
       const allocation = await issuanceAllocator.getTargetAllocation(defaultAddress)
 
-      expect(allocation.totalAllocationPPM).to.equal(MILLION)
-      expect(allocation.allocatorMintingPPM).to.equal(MILLION)
-      expect(allocation.selfMintingPPM).to.equal(0n)
+      expect(allocation.totalAllocationRate).to.equal(issuancePerBlock)
+      expect(allocation.allocatorMintingRate).to.equal(issuancePerBlock)
+      expect(allocation.selfMintingRate).to.equal(0n)
     })
 
     it('should report total allocation as 0% when default is address(0)', async () => {
       const totalAllocation = await issuanceAllocator.getTotalAllocation()
 
       // When default is address(0), it is treated as unallocated for reporting purposes
-      expect(totalAllocation.totalAllocationPPM).to.equal(0n)
-      expect(totalAllocation.allocatorMintingPPM).to.equal(0n)
-      expect(totalAllocation.selfMintingPPM).to.equal(0n)
+      expect(totalAllocation.totalAllocationRate).to.equal(0n)
+      expect(totalAllocation.allocatorMintingRate).to.equal(0n)
+      expect(totalAllocation.selfMintingRate).to.equal(0n)
     })
   })
 
   describe('100% Allocation Invariant', () => {
-    it('should auto-adjust default allocation when setting normal target allocation', async () => {
-      const allocation1PPM = 300_000n // 30%
+    it('should auto-adjust default target when setting normal target allocation', async () => {
+      const allocation1Rate = ethers.parseEther('30') // 30%
 
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256)'](addresses.target1, allocation1PPM)
+        ['setTargetAllocation(address,uint256)'](addresses.target1, allocation1Rate)
 
       // Check target1 has correct allocation
       const target1Allocation = await issuanceAllocator.getTargetAllocation(addresses.target1)
-      expect(target1Allocation.totalAllocationPPM).to.equal(allocation1PPM)
+      expect(target1Allocation.totalAllocationRate).to.equal(allocation1Rate)
 
-      // Check default allocation was auto-adjusted
+      // Check default target was auto-adjusted
       const defaultAddress = await issuanceAllocator.getTargetAt(0)
       const defaultAllocation = await issuanceAllocator.getTargetAllocation(defaultAddress)
-      expect(defaultAllocation.totalAllocationPPM).to.equal(MILLION - allocation1PPM)
+      expect(defaultAllocation.totalAllocationRate).to.equal(issuancePerBlock - allocation1Rate)
 
       // Check reported total (excludes default since it's address(0))
       const totalAllocation = await issuanceAllocator.getTotalAllocation()
-      expect(totalAllocation.totalAllocationPPM).to.equal(allocation1PPM)
+      expect(totalAllocation.totalAllocationRate).to.equal(allocation1Rate)
     })
 
     it('should maintain 100% invariant with multiple targets', async () => {
-      const allocation1PPM = 200_000n // 20%
-      const allocation2PPM = 350_000n // 35%
-      const allocation3PPM = 150_000n // 15%
+      const allocation1Rate = ethers.parseEther('20') // 20%
+      const allocation2Rate = ethers.parseEther('35') // 35%
+      const allocation3Rate = ethers.parseEther('15') // 15%
 
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256)'](addresses.target1, allocation1PPM)
+        ['setTargetAllocation(address,uint256)'](addresses.target1, allocation1Rate)
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256)'](addresses.target2, allocation2PPM)
+        ['setTargetAllocation(address,uint256)'](addresses.target2, allocation2Rate)
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256)'](addresses.target3, allocation3PPM)
+        ['setTargetAllocation(address,uint256)'](addresses.target3, allocation3Rate)
 
-      // Check default allocation is 30% (100% - 20% - 35% - 15%)
+      // Check default target is 30% (100% - 20% - 35% - 15%)
       const defaultAddress = await issuanceAllocator.getTargetAt(0)
       const defaultAllocation = await issuanceAllocator.getTargetAllocation(defaultAddress)
-      const expectedDefault = MILLION - allocation1PPM - allocation2PPM - allocation3PPM
-      expect(defaultAllocation.totalAllocationPPM).to.equal(expectedDefault)
+      const expectedDefault = issuancePerBlock - allocation1Rate - allocation2Rate - allocation3Rate
+      expect(defaultAllocation.totalAllocationRate).to.equal(expectedDefault)
 
       // Check reported total (excludes default since it's address(0))
       const totalAllocation = await issuanceAllocator.getTotalAllocation()
-      expect(totalAllocation.totalAllocationPPM).to.equal(allocation1PPM + allocation2PPM + allocation3PPM)
+      expect(totalAllocation.totalAllocationRate).to.equal(allocation1Rate + allocation2Rate + allocation3Rate)
     })
 
-    it('should allow 0% default allocation when all allocation is assigned', async () => {
-      const allocation1PPM = 600_000n // 60%
-      const allocation2PPM = 400_000n // 40%
+    it('should allow 0% default target when all allocation is assigned', async () => {
+      const allocation1Rate = ethers.parseEther('60') // 60%
+      const allocation2Rate = ethers.parseEther('40') // 40%
 
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256)'](addresses.target1, allocation1PPM)
+        ['setTargetAllocation(address,uint256)'](addresses.target1, allocation1Rate)
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256)'](addresses.target2, allocation2PPM)
+        ['setTargetAllocation(address,uint256)'](addresses.target2, allocation2Rate)
 
-      // Check default allocation is 0%
+      // Check default target is 0%
       const defaultAddress = await issuanceAllocator.getTargetAt(0)
       const defaultAllocation = await issuanceAllocator.getTargetAllocation(defaultAddress)
-      expect(defaultAllocation.totalAllocationPPM).to.equal(0n)
+      expect(defaultAllocation.totalAllocationRate).to.equal(0n)
 
       // Check reported total is 100% (default has 0%, so exclusion doesn't matter)
       const totalAllocation = await issuanceAllocator.getTotalAllocation()
-      expect(totalAllocation.totalAllocationPPM).to.equal(MILLION)
+      expect(totalAllocation.totalAllocationRate).to.equal(issuancePerBlock)
     })
 
-    it('should revert if non-default allocations exceed 100%', async () => {
-      const allocation1PPM = 600_000n // 60%
-      const allocation2PPM = 500_000n // 50% (total would be 110%)
+    it('should revert if non-default targets exceed 100%', async () => {
+      const allocation1Rate = ethers.parseEther('60') // 60%
+      const allocation2Rate = ethers.parseEther('50') // 50% (total would be 110%)
 
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256)'](addresses.target1, allocation1PPM)
+        ['setTargetAllocation(address,uint256)'](addresses.target1, allocation1Rate)
 
       await expectCustomError(
         issuanceAllocator
           .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256)'](addresses.target2, allocation2PPM),
+          ['setTargetAllocation(address,uint256)'](addresses.target2, allocation2Rate),
         issuanceAllocator,
         'InsufficientAllocationAvailable',
       )
@@ -161,36 +160,36 @@ describe('IssuanceAllocator - Default Allocation', () => {
       // Set up initial allocations
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256)'](addresses.target1, 300_000n)
+        ['setTargetAllocation(address,uint256)'](addresses.target1, ethers.parseEther('30'))
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256)'](addresses.target2, 200_000n)
+        ['setTargetAllocation(address,uint256)'](addresses.target2, ethers.parseEther('20'))
 
       // Default should be 50%
       let defaultAddress = await issuanceAllocator.getTargetAt(0)
       let defaultAllocation = await issuanceAllocator.getTargetAllocation(defaultAddress)
-      expect(defaultAllocation.totalAllocationPPM).to.equal(500_000n)
+      expect(defaultAllocation.totalAllocationRate).to.equal(ethers.parseEther('50'))
 
       // Remove target1 allocation
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 0, 0, false)
+        ['setTargetAllocation(address,uint256,uint256)'](addresses.target1, 0, 0)
 
       // Default should now be 80%
       defaultAddress = await issuanceAllocator.getTargetAt(0)
       defaultAllocation = await issuanceAllocator.getTargetAllocation(defaultAddress)
-      expect(defaultAllocation.totalAllocationPPM).to.equal(800_000n)
+      expect(defaultAllocation.totalAllocationRate).to.equal(ethers.parseEther('80'))
 
       // Reported total excludes default (only target2's 20% is reported)
       const totalAllocation = await issuanceAllocator.getTotalAllocation()
-      expect(totalAllocation.totalAllocationPPM).to.equal(200_000n)
+      expect(totalAllocation.totalAllocationRate).to.equal(ethers.parseEther('20'))
     })
 
     it('should handle self-minting allocations correctly in 100% invariant', async () => {
-      const allocator1 = 200_000n
-      const self1 = 100_000n
-      const allocator2 = 300_000n
-      const self2 = 50_000n
+      const allocator1 = ethers.parseEther('20')
+      const self1 = ethers.parseEther('10')
+      const allocator2 = ethers.parseEther('30')
+      const self2 = ethers.parseEther('5')
 
       await issuanceAllocator
         .connect(accounts.governor)
@@ -203,20 +202,20 @@ describe('IssuanceAllocator - Default Allocation', () => {
       // Default should be: 35%
       const defaultAddress = await issuanceAllocator.getTargetAt(0)
       const defaultAllocation = await issuanceAllocator.getTargetAllocation(defaultAddress)
-      expect(defaultAllocation.totalAllocationPPM).to.equal(350_000n)
+      expect(defaultAllocation.totalAllocationRate).to.equal(ethers.parseEther('35'))
 
       // Reported total excludes default (only target1+target2's 65% is reported)
       const totalAllocation = await issuanceAllocator.getTotalAllocation()
-      expect(totalAllocation.totalAllocationPPM).to.equal(allocator1 + self1 + allocator2 + self2)
-      expect(totalAllocation.selfMintingPPM).to.equal(self1 + self2)
+      expect(totalAllocation.totalAllocationRate).to.equal(allocator1 + self1 + allocator2 + self2)
+      expect(totalAllocation.selfMintingRate).to.equal(self1 + self2)
     })
   })
 
-  describe('setDefaultAllocationAddress', () => {
-    it('should allow governor to change default allocation address', async () => {
+  describe('setDefaultTarget', () => {
+    it('should allow governor to change default target address', async () => {
       const newDefaultAddress = addresses.target1
 
-      await issuanceAllocator.connect(accounts.governor).setDefaultAllocationAddress(newDefaultAddress)
+      await issuanceAllocator.connect(accounts.governor).setDefaultTarget(newDefaultAddress)
 
       const defaultAddress = await issuanceAllocator.getTargetAt(0)
       expect(defaultAddress).to.equal(newDefaultAddress)
@@ -226,45 +225,45 @@ describe('IssuanceAllocator - Default Allocation', () => {
       // Set a target allocation first
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256)'](addresses.target2, 400_000n)
+        ['setTargetAllocation(address,uint256)'](addresses.target2, ethers.parseEther('40'))
 
       // Default should be 60%
       let defaultAddress = await issuanceAllocator.getTargetAt(0)
       let defaultAllocation = await issuanceAllocator.getTargetAllocation(defaultAddress)
-      expect(defaultAllocation.totalAllocationPPM).to.equal(600_000n)
+      expect(defaultAllocation.totalAllocationRate).to.equal(ethers.parseEther('60'))
 
       // Change default address
-      await issuanceAllocator.connect(accounts.governor).setDefaultAllocationAddress(addresses.target1)
+      await issuanceAllocator.connect(accounts.governor).setDefaultTarget(addresses.target1)
 
       // Check new address has the same allocation
       defaultAddress = await issuanceAllocator.getTargetAt(0)
       expect(defaultAddress).to.equal(addresses.target1)
       defaultAllocation = await issuanceAllocator.getTargetAllocation(addresses.target1)
-      expect(defaultAllocation.totalAllocationPPM).to.equal(600_000n)
+      expect(defaultAllocation.totalAllocationRate).to.equal(ethers.parseEther('60'))
 
       // Old address should have zero allocation
       const oldAllocation = await issuanceAllocator.getTargetAllocation(ethers.ZeroAddress)
-      expect(oldAllocation.totalAllocationPPM).to.equal(0n)
+      expect(oldAllocation.totalAllocationRate).to.equal(0n)
     })
 
-    it('should emit DefaultAllocationAddressUpdated event', async () => {
+    it('should emit DefaultTargetUpdated event', async () => {
       const newDefaultAddress = addresses.target1
 
-      await expect(issuanceAllocator.connect(accounts.governor).setDefaultAllocationAddress(newDefaultAddress))
-        .to.emit(issuanceAllocator, 'DefaultAllocationAddressUpdated')
+      await expect(issuanceAllocator.connect(accounts.governor).setDefaultTarget(newDefaultAddress))
+        .to.emit(issuanceAllocator, 'DefaultTargetUpdated')
         .withArgs(ethers.ZeroAddress, newDefaultAddress)
     })
 
     it('should be no-op when setting to same address', async () => {
       const currentAddress = await issuanceAllocator.getTargetAt(0)
 
-      const tx = await issuanceAllocator.connect(accounts.governor).setDefaultAllocationAddress(currentAddress)
+      const tx = await issuanceAllocator.connect(accounts.governor).setDefaultTarget(currentAddress)
       const receipt = await tx.wait()
 
       // Should not emit event when no-op
       const events = receipt!.logs.filter((log: any) => {
         try {
-          return issuanceAllocator.interface.parseLog(log)?.name === 'DefaultAllocationAddressUpdated'
+          return issuanceAllocator.interface.parseLog(log)?.name === 'DefaultTargetUpdated'
         } catch {
           return false
         }
@@ -274,36 +273,36 @@ describe('IssuanceAllocator - Default Allocation', () => {
 
     it('should revert when non-governor tries to change default address', async () => {
       await expect(
-        issuanceAllocator.connect(accounts.user).setDefaultAllocationAddress(addresses.target1),
+        issuanceAllocator.connect(accounts.user).setDefaultTarget(addresses.target1),
       ).to.be.revertedWithCustomError(issuanceAllocator, 'AccessControlUnauthorizedAccount')
     })
 
-    it('should revert when non-governor tries to change default address with evenIfDistributionPending flag', async () => {
+    it('should revert when non-governor tries to change default address with explicit fromBlockNumber', async () => {
+      const currentBlock = await ethers.provider.getBlockNumber()
       await expect(
-        issuanceAllocator.connect(accounts.user)['setDefaultAllocationAddress(address,bool)'](addresses.target1, true),
+        issuanceAllocator.connect(accounts.user)['setDefaultTarget(address,uint256)'](addresses.target1, currentBlock),
       ).to.be.revertedWithCustomError(issuanceAllocator, 'AccessControlUnauthorizedAccount')
     })
 
-    it('should return false when trying to change default address while paused without evenIfDistributionPending', async () => {
+    it('should return false when trying to change default address while paused without explicit fromBlockNumber', async () => {
       // Grant pause role and pause
       const PAUSE_ROLE = ethers.keccak256(ethers.toUtf8Bytes('PAUSE_ROLE'))
       await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
       await issuanceAllocator.connect(accounts.governor).pause()
 
-      // Try to change default without force - should return false (checked via staticCall)
-      const result = await issuanceAllocator
-        .connect(accounts.governor)
-        .setDefaultAllocationAddress.staticCall(addresses.target3)
+      // Try to change default without explicit fromBlockNumber - should return false (checked via staticCall)
+      const result = await issuanceAllocator.connect(accounts.governor).setDefaultTarget.staticCall(addresses.target3)
       expect(result).to.equal(false)
 
       // Verify allocation didn't change
       const currentDefault = await issuanceAllocator.getTargetAt(0)
       expect(currentDefault).to.equal(ethers.ZeroAddress)
 
-      // Should succeed with evenIfDistributionPending=true
+      // Should succeed with explicit minDistributedBlock that has been reached
+      const lastDistributionBlock = (await issuanceAllocator.getDistributionState()).lastDistributionBlock
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setDefaultAllocationAddress(address,bool)'](addresses.target3, true)
+        ['setDefaultTarget(address,uint256)'](addresses.target3, lastDistributionBlock)
 
       const newDefault = await issuanceAllocator.getTargetAt(0)
       expect(newDefault).to.equal(addresses.target3)
@@ -313,11 +312,11 @@ describe('IssuanceAllocator - Default Allocation', () => {
       // Set target1 as a normal allocation
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256)'](addresses.target1, 300_000n)
+        ['setTargetAllocation(address,uint256)'](addresses.target1, ethers.parseEther('30'))
 
       // Try to set target1 as default should fail
       await expectCustomError(
-        issuanceAllocator.connect(accounts.governor).setDefaultAllocationAddress(addresses.target1),
+        issuanceAllocator.connect(accounts.governor).setDefaultTarget(addresses.target1),
         issuanceAllocator,
         'CannotSetDefaultToAllocatedTarget',
       )
@@ -325,10 +324,10 @@ describe('IssuanceAllocator - Default Allocation', () => {
 
     it('should allow changing back to zero address', async () => {
       // Change to target1
-      await issuanceAllocator.connect(accounts.governor).setDefaultAllocationAddress(addresses.target1)
+      await issuanceAllocator.connect(accounts.governor).setDefaultTarget(addresses.target1)
 
       // Change back to zero address
-      await issuanceAllocator.connect(accounts.governor).setDefaultAllocationAddress(ethers.ZeroAddress)
+      await issuanceAllocator.connect(accounts.governor).setDefaultTarget(ethers.ZeroAddress)
 
       const defaultAddress = await issuanceAllocator.getTargetAt(0)
       expect(defaultAddress).to.equal(ethers.ZeroAddress)
@@ -342,7 +341,9 @@ describe('IssuanceAllocator - Default Allocation', () => {
 
       // When default is address(0), the zero address check happens first
       await expectCustomError(
-        issuanceAllocator.connect(accounts.governor)['setTargetAllocation(address,uint256)'](defaultAddress, 500_000n),
+        issuanceAllocator
+          .connect(accounts.governor)
+          ['setTargetAllocation(address,uint256)'](defaultAddress, ethers.parseEther('50')),
         issuanceAllocator,
         'TargetAddressCannotBeZero',
       )
@@ -350,13 +351,13 @@ describe('IssuanceAllocator - Default Allocation', () => {
 
     it('should revert when trying to set allocation for changed default target', async () => {
       // Change default to target1
-      await issuanceAllocator.connect(accounts.governor).setDefaultAllocationAddress(addresses.target1)
+      await issuanceAllocator.connect(accounts.governor).setDefaultTarget(addresses.target1)
 
       // Should not be able to set allocation for target1 now
       await expectCustomError(
         issuanceAllocator
           .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256)'](addresses.target1, 500_000n),
+          ['setTargetAllocation(address,uint256)'](addresses.target1, ethers.parseEther('50')),
         issuanceAllocator,
         'CannotSetAllocationForDefaultTarget',
       )
@@ -364,48 +365,48 @@ describe('IssuanceAllocator - Default Allocation', () => {
 
     it('should allow setting allocation for previous default address after it changes', async () => {
       // Change default to target1
-      await issuanceAllocator.connect(accounts.governor).setDefaultAllocationAddress(addresses.target1)
+      await issuanceAllocator.connect(accounts.governor).setDefaultTarget(addresses.target1)
 
       // Change default to target2 (target1 is no longer the default)
-      await issuanceAllocator.connect(accounts.governor).setDefaultAllocationAddress(addresses.target2)
+      await issuanceAllocator.connect(accounts.governor).setDefaultTarget(addresses.target2)
 
       // Now target1 can receive a normal allocation since it's no longer the default
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256)'](addresses.target1, 300_000n)
+        ['setTargetAllocation(address,uint256)'](addresses.target1, ethers.parseEther('30'))
 
       const allocation = await issuanceAllocator.getTargetAllocation(addresses.target1)
-      expect(allocation.totalAllocationPPM).to.equal(300_000n)
+      expect(allocation.totalAllocationRate).to.equal(ethers.parseEther('30'))
     })
 
     it('should revert when trying to set allocation for address(0) when default is not address(0)', async () => {
       // Change default to target1
-      await issuanceAllocator.connect(accounts.governor).setDefaultAllocationAddress(addresses.target1)
+      await issuanceAllocator.connect(accounts.governor).setDefaultTarget(addresses.target1)
 
       // Try to set allocation for address(0) directly should fail
       await expectCustomError(
         issuanceAllocator
           .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256)'](ethers.ZeroAddress, 300_000n),
+          ['setTargetAllocation(address,uint256)'](ethers.ZeroAddress, ethers.parseEther('30')),
         issuanceAllocator,
         'TargetAddressCannotBeZero',
       )
     })
   })
 
-  describe('Distribution with default allocation', () => {
+  describe('Distribution with default target', () => {
     it('should not mint to zero address when default is unset', async () => {
       // Set a normal target allocation (this is block 1)
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256)'](addresses.target1, 400_000n)
+        ['setTargetAllocation(address,uint256)'](addresses.target1, ethers.parseEther('40'))
 
       // Distribute (this is block 2, so we distribute for block 1->2 = 1 block since last distribution)
       await issuanceAllocator.distributeIssuance()
 
       // Target1 should receive 40% of issuance for the block between setTargetAllocation and distributeIssuance
       const target1Balance = await graphToken.balanceOf(addresses.target1)
-      const expectedTarget1 = (issuancePerBlock * 400_000n) / MILLION
+      const expectedTarget1 = (issuancePerBlock * ethers.parseEther('40')) / issuancePerBlock
       expect(target1Balance).to.equal(expectedTarget1)
 
       // Zero address should have nothing (cannot be minted to)
@@ -417,41 +418,41 @@ describe('IssuanceAllocator - Default Allocation', () => {
 
     it('should mint to default address when it is set', async () => {
       // Change default to target3
-      await issuanceAllocator.connect(accounts.governor).setDefaultAllocationAddress(addresses.target3)
+      await issuanceAllocator.connect(accounts.governor).setDefaultTarget(addresses.target3)
 
       // Set target1 allocation
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256)'](addresses.target1, 300_000n)
+        ['setTargetAllocation(address,uint256)'](addresses.target1, ethers.parseEther('30'))
 
       // Distribute to settle issuance
       await issuanceAllocator.distributeIssuance()
 
       // Target1 should receive 30% for 1 block
       const target1Balance = await graphToken.balanceOf(addresses.target1)
-      const expectedTarget1 = (issuancePerBlock * 300_000n) / MILLION
+      const expectedTarget1 = (issuancePerBlock * ethers.parseEther('30')) / issuancePerBlock
       expect(target1Balance).to.equal(expectedTarget1)
 
       // Target3 (default) should receive:
-      // - 100% for 1 block (from setDefaultAllocationAddress to setTargetAllocation)
+      // - 100% for 1 block (from setDefaultTarget to setTargetAllocation)
       // - 70% for 1 block (from setTargetAllocation to distributeIssuance)
       const target3Balance = await graphToken.balanceOf(addresses.target3)
-      const expectedTarget3 = issuancePerBlock + (issuancePerBlock * 700_000n) / MILLION
+      const expectedTarget3 = issuancePerBlock + ethers.parseEther('70')
       expect(target3Balance).to.equal(expectedTarget3)
     })
 
     it('should distribute correctly with multiple targets and default', async () => {
       // Set default to target3
-      await issuanceAllocator.connect(accounts.governor).setDefaultAllocationAddress(addresses.target3)
+      await issuanceAllocator.connect(accounts.governor).setDefaultTarget(addresses.target3)
 
       // Set allocations (target3 gets remaining 50% as default)
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256)'](addresses.target1, 200_000n) // 20%
+        ['setTargetAllocation(address,uint256)'](addresses.target1, ethers.parseEther('20')) // 20%
 
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256)'](addresses.target2, 300_000n) // 30%
+        ['setTargetAllocation(address,uint256)'](addresses.target2, ethers.parseEther('30')) // 30%
 
       // Distribute to settle issuance
       await issuanceAllocator.distributeIssuance()
@@ -464,10 +465,9 @@ describe('IssuanceAllocator - Default Allocation', () => {
       const target2Balance = await graphToken.balanceOf(addresses.target2)
       const target3Balance = await graphToken.balanceOf(addresses.target3)
 
-      const expectedTarget1 = (issuancePerBlock * 200_000n * 2n) / MILLION
-      const expectedTarget2 = (issuancePerBlock * 300_000n) / MILLION
-      const expectedTarget3 =
-        issuancePerBlock + (issuancePerBlock * 800_000n) / MILLION + (issuancePerBlock * 500_000n) / MILLION
+      const expectedTarget1 = (issuancePerBlock * ethers.parseEther('20') * 2n) / issuancePerBlock
+      const expectedTarget2 = (issuancePerBlock * ethers.parseEther('30')) / issuancePerBlock
+      const expectedTarget3 = issuancePerBlock + ethers.parseEther('80') + ethers.parseEther('50')
 
       expect(target1Balance).to.equal(expectedTarget1)
       expect(target2Balance).to.equal(expectedTarget2)
@@ -478,15 +478,15 @@ describe('IssuanceAllocator - Default Allocation', () => {
       expect(totalMinted).to.equal(issuancePerBlock * 3n)
     })
 
-    it('should handle distribution when default allocation is 0%', async () => {
+    it('should handle distribution when default target is 0%', async () => {
       // Allocate 100% to explicit targets (default gets 0%)
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256)'](addresses.target1, 600_000n)
+        ['setTargetAllocation(address,uint256)'](addresses.target1, ethers.parseEther('60'))
       // At this point target1 has 60%, default has 40%
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256)'](addresses.target2, 400_000n)
+        ['setTargetAllocation(address,uint256)'](addresses.target2, ethers.parseEther('40'))
       // Now target1 has 60%, target2 has 40%, default has 0%
 
       // Distribute (1 block since last setTargetAllocation)
@@ -501,42 +501,42 @@ describe('IssuanceAllocator - Default Allocation', () => {
       //                 + 60% (from second setTargetAllocation to final distributeIssuance)
       // = 120% of one block = 60% * 2 blocks
       const target1Balance = await graphToken.balanceOf(addresses.target1)
-      expect(target1Balance).to.equal((issuancePerBlock * 600_000n * 2n) / MILLION)
+      expect(target1Balance).to.equal((issuancePerBlock * ethers.parseEther('60') * 2n) / issuancePerBlock)
 
       // Target2 receives: 40% (from second setTargetAllocation to final distributeIssuance)
       const target2Balance = await graphToken.balanceOf(addresses.target2)
-      expect(target2Balance).to.equal((issuancePerBlock * 400_000n) / MILLION)
+      expect(target2Balance).to.equal((issuancePerBlock * ethers.parseEther('40')) / issuancePerBlock)
 
       // Default allocation is now 0%
       const defaultAddress = await issuanceAllocator.getTargetAt(0)
       const defaultAllocation = await issuanceAllocator.getTargetAllocation(defaultAddress)
-      expect(defaultAllocation.totalAllocationPPM).to.equal(0n)
+      expect(defaultAllocation.totalAllocationRate).to.equal(0n)
     })
 
-    it('should distribute during setDefaultAllocationAddress when using default behavior', async () => {
-      // Change default to target3 WITHOUT evenIfDistributionPending flag (uses default false)
+    it('should distribute during setDefaultTarget when using default behavior', async () => {
+      // Change default to target3 using the simple variant (no explicit fromBlockNumber)
       // This should distribute issuance up to current block before changing the default
-      await issuanceAllocator.connect(accounts.governor).setDefaultAllocationAddress(addresses.target3)
+      await issuanceAllocator.connect(accounts.governor).setDefaultTarget(addresses.target3)
 
       // Set target1 allocation
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 300_000n, 0n, true)
+        ['setTargetAllocation(address,uint256,uint256,uint256)'](addresses.target1, ethers.parseEther('30'), 0n, 0)
 
       // Distribute once more
       await issuanceAllocator.distributeIssuance()
 
       // Target3 (default) should receive:
-      // - 0% for 1 block (setDefaultAllocationAddress distributes to old default (zero address) before changing)
-      // - 100% for 1 block (from setDefaultAllocationAddress to setTargetAllocation)
+      // - 0% for 1 block (setDefaultTarget distributes to old default (zero address) before changing)
+      // - 100% for 1 block (from setDefaultTarget to setTargetAllocation)
       // - 70% for 1 block (from setTargetAllocation to final distributeIssuance)
       const target3Balance = await graphToken.balanceOf(addresses.target3)
-      const expectedTarget3 = issuancePerBlock + (issuancePerBlock * 700_000n) / MILLION
+      const expectedTarget3 = issuancePerBlock + ethers.parseEther('70')
       expect(target3Balance).to.equal(expectedTarget3)
 
       // Target1 should receive 30% for 1 block
       const target1Balance = await graphToken.balanceOf(addresses.target1)
-      const expectedTarget1 = (issuancePerBlock * 300_000n) / MILLION
+      const expectedTarget1 = (issuancePerBlock * ethers.parseEther('30')) / issuancePerBlock
       expect(target1Balance).to.equal(expectedTarget1)
     })
 
@@ -547,10 +547,10 @@ describe('IssuanceAllocator - Default Allocation', () => {
       // Set target1 as normal allocation with 30%
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256)'](addresses.target1, 300_000n)
+        ['setTargetAllocation(address,uint256)'](addresses.target1, ethers.parseEther('30'))
 
       let allocation = await issuanceAllocator.getTargetAllocation(addresses.target1)
-      expect(allocation.totalAllocationPPM).to.equal(300_000n)
+      expect(allocation.totalAllocationRate).to.equal(ethers.parseEther('30'))
 
       // Remove target1's allocation (set to 0%)
       await issuanceAllocator.connect(accounts.governor)['setTargetAllocation(address,uint256)'](addresses.target1, 0n)
@@ -564,46 +564,46 @@ describe('IssuanceAllocator - Default Allocation', () => {
       expect(targets).to.not.include(addresses.target1) // Should not be in list anymore
 
       // Now set target1 as default - should work and not have stale allocation data
-      await issuanceAllocator.connect(accounts.governor).setDefaultAllocationAddress(addresses.target1)
+      await issuanceAllocator.connect(accounts.governor).setDefaultTarget(addresses.target1)
 
       // Verify target1 is now default with 100% allocation (since no other targets)
       const defaultAddress = await issuanceAllocator.getTargetAt(0)
       expect(defaultAddress).to.equal(addresses.target1)
 
       allocation = await issuanceAllocator.getTargetAllocation(addresses.target1)
-      expect(allocation.totalAllocationPPM).to.equal(MILLION) // Should have full allocation as default
+      expect(allocation.totalAllocationRate).to.equal(issuancePerBlock) // Should have full allocation as default
     })
 
     it('should handle changing default when default has 0% allocation', async () => {
       // Allocate 100% to other targets so default has 0%
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256)'](addresses.target1, 600_000n)
+        ['setTargetAllocation(address,uint256)'](addresses.target1, ethers.parseEther('60'))
 
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256)'](addresses.target2, 400_000n)
+        ['setTargetAllocation(address,uint256)'](addresses.target2, ethers.parseEther('40'))
 
       // Default should now have 0%
       const defaultAddress = await issuanceAllocator.getTargetAt(0)
       const defaultAllocation = await issuanceAllocator.getTargetAllocation(defaultAddress)
-      expect(defaultAllocation.totalAllocationPPM).to.equal(0n)
+      expect(defaultAllocation.totalAllocationRate).to.equal(0n)
 
       // Change default to target3
-      await issuanceAllocator.connect(accounts.governor).setDefaultAllocationAddress(addresses.target3)
+      await issuanceAllocator.connect(accounts.governor).setDefaultTarget(addresses.target3)
 
       // New default should have 0% (same as old default)
       const newDefaultAddress = await issuanceAllocator.getTargetAt(0)
       expect(newDefaultAddress).to.equal(addresses.target3)
 
       const newDefaultAllocation = await issuanceAllocator.getTargetAllocation(addresses.target3)
-      expect(newDefaultAllocation.totalAllocationPPM).to.equal(0n)
+      expect(newDefaultAllocation.totalAllocationRate).to.equal(0n)
 
       // Other allocations should be maintained
       const target1Allocation = await issuanceAllocator.getTargetAllocation(addresses.target1)
       const target2Allocation = await issuanceAllocator.getTargetAllocation(addresses.target2)
-      expect(target1Allocation.totalAllocationPPM).to.equal(600_000n)
-      expect(target2Allocation.totalAllocationPPM).to.equal(400_000n)
+      expect(target1Allocation.totalAllocationRate).to.equal(ethers.parseEther('60'))
+      expect(target2Allocation.totalAllocationRate).to.equal(ethers.parseEther('40'))
     })
 
     it('should handle changing from initial address(0) default without errors', async () => {
@@ -614,7 +614,7 @@ describe('IssuanceAllocator - Default Allocation', () => {
       // Add a normal allocation so there's pending issuance to distribute
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256)'](addresses.target1, 400_000n)
+        ['setTargetAllocation(address,uint256)'](addresses.target1, ethers.parseEther('40'))
 
       // Mine a few blocks to accumulate issuance
       await ethers.provider.send('evm_mine', [])
@@ -625,7 +625,7 @@ describe('IssuanceAllocator - Default Allocation', () => {
       // 1. Call _handleDistributionBeforeAllocation(address(0), ...) - should not revert
       // 2. Call _notifyTarget(address(0)) - should return early safely
       // 3. Delete allocationTargets[address(0)] - should not cause issues
-      await issuanceAllocator.connect(accounts.governor).setDefaultAllocationAddress(addresses.target2)
+      await issuanceAllocator.connect(accounts.governor).setDefaultTarget(addresses.target2)
 
       // Verify the change succeeded
       const newDefault = await issuanceAllocator.getTargetAt(0)
@@ -638,9 +638,9 @@ describe('IssuanceAllocator - Default Allocation', () => {
       // Distribute and verify target2 (new default) receives correct allocation
       await issuanceAllocator.distributeIssuance()
 
-      // Target2 should have received 60% for 1 block (from setDefaultAllocationAddress to distributeIssuance)
+      // Target2 should have received 60% for 1 block (from setDefaultTarget to distributeIssuance)
       const target2Balance = await graphToken.balanceOf(addresses.target2)
-      const expectedTarget2 = (issuancePerBlock * 600_000n) / MILLION
+      const expectedTarget2 = (issuancePerBlock * ethers.parseEther('60')) / issuancePerBlock
       expect(target2Balance).to.equal(expectedTarget2)
 
       // Target1 should have accumulated tokens across multiple blocks
@@ -656,7 +656,7 @@ describe('IssuanceAllocator - Default Allocation', () => {
 
     it('should not transfer future notification block from old default to new default', async () => {
       // Set initial default to target1
-      await issuanceAllocator.connect(accounts.governor).setDefaultAllocationAddress(addresses.target1)
+      await issuanceAllocator.connect(accounts.governor).setDefaultTarget(addresses.target1)
 
       // Force a future notification block on target1 (the current default)
       const currentBlock = await ethers.provider.getBlockNumber()
@@ -670,7 +670,7 @@ describe('IssuanceAllocator - Default Allocation', () => {
       expect(target1DataBefore.lastChangeNotifiedBlock).to.equal(futureBlock)
 
       // Change default from target1 to target2
-      await issuanceAllocator.connect(accounts.governor).setDefaultAllocationAddress(addresses.target2)
+      await issuanceAllocator.connect(accounts.governor).setDefaultTarget(addresses.target2)
 
       // Verify target2 (new default) has its own notification block (current block), not the future block from target1
       const target2Data = await issuanceAllocator.getTargetData(addresses.target2)
@@ -694,14 +694,14 @@ describe('IssuanceAllocator - Default Allocation', () => {
 
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256)'](addresses.target1, 300_000n)
+        ['setTargetAllocation(address,uint256)'](addresses.target1, ethers.parseEther('30'))
 
       count = await issuanceAllocator.getTargetCount()
       expect(count).to.equal(2n) // Default + target1
 
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256)'](addresses.target2, 200_000n)
+        ['setTargetAllocation(address,uint256)'](addresses.target2, ethers.parseEther('20'))
 
       count = await issuanceAllocator.getTargetCount()
       expect(count).to.equal(3n) // Default + target1 + target2
@@ -710,7 +710,7 @@ describe('IssuanceAllocator - Default Allocation', () => {
     it('should include default in getTargets array', async () => {
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256)'](addresses.target1, 300_000n)
+        ['setTargetAllocation(address,uint256)'](addresses.target1, ethers.parseEther('30'))
 
       const targets = await issuanceAllocator.getTargets()
       expect(targets.length).to.equal(2)
@@ -721,29 +721,29 @@ describe('IssuanceAllocator - Default Allocation', () => {
     it('should return correct data for default target', async () => {
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256)'](addresses.target1, 400_000n)
+        ['setTargetAllocation(address,uint256)'](addresses.target1, ethers.parseEther('40'))
 
       const defaultAddress = await issuanceAllocator.getTargetAt(0)
       const data = await issuanceAllocator.getTargetData(defaultAddress)
 
-      expect(data.allocatorMintingPPM).to.equal(600_000n)
-      expect(data.selfMintingPPM).to.equal(0n)
+      expect(data.allocatorMintingRate).to.equal(ethers.parseEther('60'))
+      expect(data.selfMintingRate).to.equal(0n)
     })
 
     it('should report 100% total allocation when default is a real address', async () => {
       // Set target1 allocation first
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256)'](addresses.target1, 300_000n)
+        ['setTargetAllocation(address,uint256)'](addresses.target1, ethers.parseEther('30'))
 
       // Change default to target2 (a real address, not address(0))
-      await issuanceAllocator.connect(accounts.governor).setDefaultAllocationAddress(addresses.target2)
+      await issuanceAllocator.connect(accounts.governor).setDefaultTarget(addresses.target2)
 
       // When default is a real address, it should report 100% total allocation
       const totalAllocation = await issuanceAllocator.getTotalAllocation()
-      expect(totalAllocation.totalAllocationPPM).to.equal(MILLION)
-      expect(totalAllocation.allocatorMintingPPM).to.equal(MILLION) // target1=30% + target2=70% = 100%
-      expect(totalAllocation.selfMintingPPM).to.equal(0n)
+      expect(totalAllocation.totalAllocationRate).to.equal(issuancePerBlock)
+      expect(totalAllocation.allocatorMintingRate).to.equal(issuancePerBlock) // target1=30% + target2=70% = 100%
+      expect(totalAllocation.selfMintingRate).to.equal(0n)
     })
   })
 })

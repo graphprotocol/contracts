@@ -340,10 +340,10 @@ contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, IERC165, I
      * @dev Gets the effective issuance per block, taking into account the IssuanceAllocator if set
      */
     function getRewardsIssuancePerBlock() public view override returns (uint256) {
-        if (address(issuanceAllocator) != address(0)) {
-            return issuanceAllocator.getTargetIssuancePerBlock(address(this)).selfIssuancePerBlock;
-        }
-        return issuancePerBlock;
+        return
+            address(issuanceAllocator) != address(0)
+                ? issuanceAllocator.getTargetIssuancePerBlock(address(this)).selfIssuanceRate
+                : issuancePerBlock;
     }
 
     /**

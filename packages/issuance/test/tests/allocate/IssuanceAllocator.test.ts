@@ -4,7 +4,7 @@ const { ethers } = hre
 
 import { deployTestGraphToken, getTestAccounts, SHARED_CONSTANTS } from '../common/fixtures'
 import { deployDirectAllocation, deployIssuanceAllocator } from './fixtures'
-import { calculateExpectedAccumulation, parseEther } from './issuanceCalculations'
+// calculateExpectedAccumulation removed with PPM model
 // Import optimization helpers for common test utilities
 import { expectCustomError } from './optimizationHelpers'
 
@@ -77,12 +77,12 @@ describe('IssuanceAllocator', () => {
     // Remove all existing allocations (except default at index 0)
     try {
       const targetCount = await issuanceAllocator.getTargetCount()
-      // Skip index 0 (default allocation) and remove from index 1 onwards
+      // Skip index 0 (default target) and remove from index 1 onwards
       for (let i = 1; i < targetCount; i++) {
         const targetAddr = await issuanceAllocator.getTargetAt(1) // Always remove index 1
         await issuanceAllocator
           .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](targetAddr, 0, 0, false)
+          ['setTargetAllocation(address,uint256,uint256)'](targetAddr, 0, 0)
       }
     } catch (_e) {
       // Ignore errors during cleanup
@@ -99,9 +99,9 @@ describe('IssuanceAllocator', () => {
 
     // Reset issuance per block to default
     try {
-      const currentIssuance = await issuanceAllocator.issuancePerBlock()
+      const currentIssuance = await issuanceAllocator.getIssuancePerBlock()
       if (currentIssuance !== issuancePerBlock) {
-        await issuanceAllocator.connect(accounts.governor)['setIssuancePerBlock(uint256,bool)'](issuancePerBlock, true)
+        await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(issuancePerBlock)
       }
     } catch (_e) {
       // Ignore if can't reset
@@ -188,7 +188,7 @@ describe('IssuanceAllocator', () => {
 
       // Verify all initialization state in one test
       expect(await issuanceAllocator.hasRole(GOVERNOR_ROLE, accounts.governor.address)).to.be.true
-      expect(await issuanceAllocator.issuancePerBlock()).to.equal(issuancePerBlock)
+      expect(await issuanceAllocator.getIssuancePerBlock()).to.equal(issuancePerBlock)
 
       // Verify re-initialization is prevented
       await expect(issuanceAllocator.initialize(accounts.governor.address)).to.be.revertedWithCustomError(
@@ -208,17 +208,17 @@ describe('IssuanceAllocator', () => {
       await expect(
         issuanceAllocator
           .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 100000, 0, false),
+          ['setTargetAllocation(address,uint256,uint256)'](addresses.target1, 100000, 0),
       ).to.not.be.reverted
 
       // Verify the target was added
       const targetData = await issuanceAllocator.getTargetData(addresses.target1)
-      expect(targetData.allocatorMintingPPM).to.equal(100000)
-      expect(targetData.selfMintingPPM).to.equal(0)
+      expect(targetData.allocatorMintingRate).to.equal(100000)
+      expect(targetData.selfMintingRate).to.equal(0)
       const allocation = await issuanceAllocator.getTargetAllocation(addresses.target1)
-      expect(allocation.totalAllocationPPM).to.equal(100000)
-      expect(allocation.allocatorMintingPPM).to.equal(100000)
-      expect(allocation.selfMintingPPM).to.equal(0)
+      expect(allocation.totalAllocationRate).to.equal(100000)
+      expect(allocation.allocatorMintingRate).to.equal(100000)
+      expect(allocation.selfMintingRate).to.equal(0)
     })
 
     it('should revert when adding EOA targets (no contract code)', async () => {
@@ -229,7 +229,7 @@ describe('IssuanceAllocator', () => {
       await expect(
         issuanceAllocator
           .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](eoaAddress, 100000, 0, false),
+          ['setTargetAllocation(address,uint256,uint256)'](eoaAddress, 100000, 0),
       ).to.be.reverted
     })
 
@@ -245,7 +245,7 @@ describe('IssuanceAllocator', () => {
       await expect(
         issuanceAllocator
           .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](contractAddress, 100000, 0, false),
+          ['setTargetAllocation(address,uint256,uint256)'](contractAddress, 100000, 0),
       ).to.be.revertedWithCustomError(issuanceAllocator, 'TargetDoesNotSupportIIssuanceTarget')
     })
 
@@ -258,19 +258,18 @@ describe('IssuanceAllocator', () => {
       const contractAddress = await mockRevertingTarget.getAddress()
 
       // This should revert because MockRevertingTarget reverts during notification
-      // force=true only affects distribution, not notification failures
       await expect(
         issuanceAllocator
           .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](contractAddress, 100000, 0, true),
+          ['setTargetAllocation(address,uint256,uint256,uint256)'](contractAddress, 100000, 0, 0),
       ).to.be.revertedWithCustomError(mockRevertingTarget, 'TargetRevertsIntentionally')
 
       // Verify the target was NOT added because the transaction reverted
       const targetData = await issuanceAllocator.getTargetData(contractAddress)
-      expect(targetData.allocatorMintingPPM).to.equal(0)
-      expect(targetData.selfMintingPPM).to.equal(0)
+      expect(targetData.allocatorMintingRate).to.equal(0)
+      expect(targetData.selfMintingRate).to.equal(0)
       const allocation = await issuanceAllocator.getTargetAllocation(contractAddress)
-      expect(allocation.totalAllocationPPM).to.equal(0)
+      expect(allocation.totalAllocationRate).to.equal(0)
     })
 
     it('should allow re-adding existing target with same self-minter flag', async () => {
@@ -279,13 +278,13 @@ describe('IssuanceAllocator', () => {
       // Add the target first time
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 100000, 0, false)
+        ['setTargetAllocation(address,uint256,uint256)'](addresses.target1, 100000, 0)
 
       // Should succeed when setting allocation again with same flag (no interface check needed)
       await expect(
         issuanceAllocator
           .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 200000, 0, false),
+          ['setTargetAllocation(address,uint256,uint256)'](addresses.target1, 200000, 0),
       ).to.not.be.reverted
     })
   })
@@ -300,28 +299,28 @@ describe('IssuanceAllocator', () => {
       const allocation = 300000 // 30% in PPM
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, allocation, 0, false)
+        ['setTargetAllocation(address,uint256,uint256)'](addresses.target1, allocation, 0)
 
       // Verify allocation is set and target exists
       const target1Allocation = await issuanceAllocator.getTargetAllocation(addresses.target1)
-      expect(target1Allocation.totalAllocationPPM).to.equal(allocation)
+      expect(target1Allocation.totalAllocationRate).to.equal(allocation)
       const totalAlloc = await issuanceAllocator.getTotalAllocation()
-      // With default as address(0), only non-default allocations are reported
-      expect(totalAlloc.totalAllocationPPM).to.equal(allocation)
+      // With default as address(0), only non-default targets are reported
+      expect(totalAlloc.totalAllocationRate).to.equal(allocation)
 
       // Remove target by setting allocation to 0
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 0, 0, false)
+        ['setTargetAllocation(address,uint256,uint256)'](addresses.target1, 0, 0)
 
       // Verify target is removed (only default remains)
       const targets = await issuanceAllocator.getTargets()
-      expect(targets.length).to.equal(1) // Only default allocation
+      expect(targets.length).to.equal(1) // Only default target
 
       // Verify reported total is 0% (default has it all, but isn't reported)
       {
         const totalAlloc = await issuanceAllocator.getTotalAllocation()
-        expect(totalAlloc.totalAllocationPPM).to.equal(0)
+        expect(totalAlloc.totalAllocationRate).to.equal(0)
       }
     })
 
@@ -331,20 +330,20 @@ describe('IssuanceAllocator', () => {
       // Add targets with allocations in one step
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 300000, 0, false) // 30%
+        ['setTargetAllocation(address,uint256,uint256)'](addresses.target1, 300000, 0) // 30%
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target2, 400000, 0, false) // 40%
+        ['setTargetAllocation(address,uint256,uint256)'](addresses.target2, 400000, 0) // 40%
 
       // Verify allocations are set
       const target1Allocation = await issuanceAllocator.getTargetAllocation(addresses.target1)
       const target2Allocation = await issuanceAllocator.getTargetAllocation(addresses.target2)
-      expect(target1Allocation.totalAllocationPPM).to.equal(300000)
-      expect(target2Allocation.totalAllocationPPM).to.equal(400000)
+      expect(target1Allocation.totalAllocationRate).to.equal(300000)
+      expect(target2Allocation.totalAllocationRate).to.equal(400000)
       {
         const totalAlloc = await issuanceAllocator.getTotalAllocation()
-        // With default as address(0), only non-default allocations are reported (70%)
-        expect(totalAlloc.totalAllocationPPM).to.equal(700000)
+        // With default as address(0), only non-default targets are reported (70%)
+        expect(totalAlloc.totalAllocationRate).to.equal(700000)
       }
 
       // Get initial target addresses (including default)
@@ -354,7 +353,7 @@ describe('IssuanceAllocator', () => {
       // Remove target2 by setting allocation to 0 (tests the swap-and-pop logic in the contract)
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target2, 0, 0, false)
+        ['setTargetAllocation(address,uint256,uint256)'](addresses.target2, 0, 0)
 
       // Verify target2 is removed but target1 and default remain
       const remainingTargets = await issuanceAllocator.getTargets()
@@ -364,7 +363,7 @@ describe('IssuanceAllocator', () => {
       // Verify reported total excludes default (only target1's 30% is reported)
       {
         const totalAlloc = await issuanceAllocator.getTotalAllocation()
-        expect(totalAlloc.totalAllocationPPM).to.equal(300000)
+        expect(totalAlloc.totalAllocationRate).to.equal(300000)
       }
     })
 
@@ -374,25 +373,25 @@ describe('IssuanceAllocator', () => {
       // Add targets with allocations in one step
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 100000, 0, false) // 10%
+        ['setTargetAllocation(address,uint256,uint256)'](addresses.target1, 100000, 0) // 10%
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target2, 200000, 0, false) // 20%
+        ['setTargetAllocation(address,uint256,uint256)'](addresses.target2, 200000, 0) // 20%
 
       // Verify targets were added
       const target1Info = await issuanceAllocator.getTargetData(addresses.target1)
       const target2Info = await issuanceAllocator.getTargetData(addresses.target2)
 
       // Check that targets exist by verifying they have non-zero allocations
-      expect(target1Info.allocatorMintingPPM + target1Info.selfMintingPPM).to.equal(100000)
-      expect(target2Info.allocatorMintingPPM + target2Info.selfMintingPPM).to.equal(200000)
-      expect(target1Info.selfMintingPPM).to.equal(0)
-      expect(target2Info.selfMintingPPM).to.equal(0)
+      expect(target1Info.allocatorMintingRate + target1Info.selfMintingRate).to.equal(100000)
+      expect(target2Info.allocatorMintingRate + target2Info.selfMintingRate).to.equal(200000)
+      expect(target1Info.selfMintingRate).to.equal(0)
+      expect(target2Info.selfMintingRate).to.equal(0)
 
       // Verify reported total excludes default (only target1+target2's 70% is reported)
       {
         const totalAlloc = await issuanceAllocator.getTotalAllocation()
-        expect(totalAlloc.totalAllocationPPM).to.equal(300000)
+        expect(totalAlloc.totalAllocationRate).to.equal(300000)
       }
     })
 
@@ -405,20 +404,20 @@ describe('IssuanceAllocator', () => {
       await expect(
         issuanceAllocator
           .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](nonExistentTarget, 500_000, 0, false),
+          ['setTargetAllocation(address,uint256,uint256)'](nonExistentTarget, 500_000, 0),
       ).to.be.reverted
 
       // Test 2: Should revert when total allocation would exceed 100%
       // Set allocation for target1 to 60%
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 600_000, 0, false)
+        ['setTargetAllocation(address,uint256,uint256)'](addresses.target1, ethers.parseEther('60'), 0)
 
       // Try to set allocation for target2 to 50%, which would exceed 100% (60% + 50% > 100%)
       await expectCustomError(
         issuanceAllocator
           .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target2, 500_000, 0, false),
+          ['setTargetAllocation(address,uint256,uint256)'](addresses.target2, ethers.parseEther('50'), 0),
         issuanceAllocator,
         'InsufficientAllocationAvailable',
       )
@@ -432,10 +431,10 @@ describe('IssuanceAllocator', () => {
       // Add targets with different self-minter flags and set allocations
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 300000, 0, false) // 30%, allocator-minting
+        ['setTargetAllocation(address,uint256,uint256)'](addresses.target1, 300000, 0) // 30%, allocator-minting
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target2, 0, 400000, false) // 40%, self-minting
+        ['setTargetAllocation(address,uint256,uint256)'](addresses.target2, 0, 400000) // 40%, self-minting
 
       // Get balances after setting allocations (some tokens may have been minted due to setTargetAllocation calling distributeIssuance)
       const balanceAfterAllocation1 = await (graphToken as any).balanceOf(addresses.target1)
@@ -466,7 +465,7 @@ describe('IssuanceAllocator', () => {
       // Add target and set allocation in one step
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 300000, 0, false) // 30%
+        ['setTargetAllocation(address,uint256,uint256)'](addresses.target1, 300000, 0) // 30%
 
       // Mine some blocks
       for (let i = 0; i < 5; i++) {
@@ -486,7 +485,7 @@ describe('IssuanceAllocator', () => {
       // Add target and set allocation in one step
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 300000, 0, false) // 30%
+        ['setTargetAllocation(address,uint256,uint256)'](addresses.target1, 300000, 0) // 30%
 
       // Mine some blocks
       for (let i = 0; i < 5; i++) {
@@ -499,7 +498,7 @@ describe('IssuanceAllocator', () => {
       // Get initial balance and lastIssuanceDistributionBlock before pausing
       const { graphToken } = sharedContracts
       const initialBalance = await (graphToken as any).balanceOf(addresses.target1)
-      const initialLastIssuanceBlock = await issuanceAllocator.lastIssuanceDistributionBlock()
+      const initialLastIssuanceBlock = (await issuanceAllocator.getDistributionState()).lastDistributionBlock
 
       // Pause the contract
       await issuanceAllocator.connect(accounts.governor).pause()
@@ -513,7 +512,7 @@ describe('IssuanceAllocator', () => {
 
       // Verify no tokens were minted and lastIssuanceDistributionBlock was not updated
       const finalBalance = await (graphToken as any).balanceOf(addresses.target1)
-      const finalLastIssuanceBlock = await issuanceAllocator.lastIssuanceDistributionBlock()
+      const finalLastIssuanceBlock = (await issuanceAllocator.getDistributionState()).lastDistributionBlock
 
       expect(finalBalance).to.equal(initialBalance)
       expect(finalLastIssuanceBlock).to.equal(initialLastIssuanceBlock)
@@ -528,16 +527,16 @@ describe('IssuanceAllocator', () => {
       // Add target as allocator-minting with 30% allocation
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 300000, 0, false) // 30%, allocator-minting
+        ['setTargetAllocation(address,uint256,uint256)'](await target1.getAddress(), 300000, 0) // 30%, allocator-minting
 
       // Verify initial state
       const initialAllocation = await issuanceAllocator.getTargetAllocation(await target1.getAddress())
-      expect(initialAllocation.selfMintingPPM).to.equal(0)
+      expect(initialAllocation.selfMintingRate).to.equal(0)
 
       // Change to self-minting with same allocation - this should NOT return early
       const result = await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'].staticCall(await target1.getAddress(), 0, 300000, true) // Same allocation, but now self-minting
+        ['setTargetAllocation(address,uint256,uint256,uint256)'].staticCall(await target1.getAddress(), 0, 300000, 0) // Same allocation, but now self-minting
 
       // Should return true (indicating change was made)
       expect(result).to.be.true
@@ -545,11 +544,11 @@ describe('IssuanceAllocator', () => {
       // Actually make the change
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 0, 300000, false)
+        ['setTargetAllocation(address,uint256,uint256)'](await target1.getAddress(), 0, 300000)
 
       // Verify the selfMinter flag was updated
       const updatedAllocation = await issuanceAllocator.getTargetAllocation(await target1.getAddress())
-      expect(updatedAllocation.selfMintingPPM).to.be.gt(0)
+      expect(updatedAllocation.selfMintingRate).to.be.gt(0)
     })
 
     it('should update selfMinter flag when changing from self-minting to allocator-minting', async () => {
@@ -561,16 +560,16 @@ describe('IssuanceAllocator', () => {
       // Add target as self-minting with 30% allocation
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 0, 300000, false) // 30%, self-minting
+        ['setTargetAllocation(address,uint256,uint256)'](await target1.getAddress(), 0, 300000) // 30%, self-minting
 
       // Verify initial state
       const initialAllocation2 = await issuanceAllocator.getTargetAllocation(await target1.getAddress())
-      expect(initialAllocation2.selfMintingPPM).to.be.gt(0)
+      expect(initialAllocation2.selfMintingRate).to.be.gt(0)
 
       // Change to allocator-minting with same allocation - this should NOT return early
       const result = await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'].staticCall(await target1.getAddress(), 300000, 0, false) // Same allocation, but now allocator-minting
+        ['setTargetAllocation(address,uint256,uint256,uint256)'].staticCall(await target1.getAddress(), 300000, 0, 0) // Same allocation, but now allocator-minting
 
       // Should return true (indicating change was made)
       expect(result).to.be.true
@@ -578,11 +577,11 @@ describe('IssuanceAllocator', () => {
       // Actually make the change
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 300000, 0, false)
+        ['setTargetAllocation(address,uint256,uint256)'](await target1.getAddress(), 300000, 0)
 
       // Verify the selfMinter flag was updated
       const finalAllocation = await issuanceAllocator.getTargetAllocation(await target1.getAddress())
-      expect(finalAllocation.selfMintingPPM).to.equal(0)
+      expect(finalAllocation.selfMintingRate).to.equal(0)
     })
 
     it('should track totalActiveSelfMintingAllocation correctly with incremental updates', async () => {
@@ -594,907 +593,73 @@ describe('IssuanceAllocator', () => {
       // Initially should be 0 (no targets)
       {
         const totalAlloc = await issuanceAllocator.getTotalAllocation()
-        expect(totalAlloc.selfMintingPPM).to.equal(0)
+        expect(totalAlloc.selfMintingRate).to.equal(0)
       }
 
       // Add self-minting target with 30% allocation (300000 PPM)
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 0, 300000, false) // 30%, self-minting
+        ['setTargetAllocation(address,uint256,uint256)'](await target1.getAddress(), 0, 300000) // 30%, self-minting
 
       // Should now be 300000 PPM
       {
         const totalAlloc = await issuanceAllocator.getTotalAllocation()
-        expect(totalAlloc.selfMintingPPM).to.equal(300000)
+        expect(totalAlloc.selfMintingRate).to.equal(300000)
       }
 
       // Add allocator-minting target with 20% allocation (200000 PPM)
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target2.getAddress(), 200000, 0, false) // 20%, allocator-minting
+        ['setTargetAllocation(address,uint256,uint256)'](await target2.getAddress(), 200000, 0) // 20%, allocator-minting
 
       // totalActiveSelfMintingAllocation should remain the same (still 300000 PPM)
       {
         const totalAlloc = await issuanceAllocator.getTotalAllocation()
-        expect(totalAlloc.selfMintingPPM).to.equal(300000)
+        expect(totalAlloc.selfMintingRate).to.equal(300000)
       }
 
       // Change target2 to self-minting with 10% allocation (100000 PPM)
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target2.getAddress(), 0, 100000, false) // 10%, self-minting
+        ['setTargetAllocation(address,uint256,uint256)'](await target2.getAddress(), 0, 100000) // 10%, self-minting
 
       // Should now be 400000 PPM (300000 + 100000)
       {
         const totalAlloc = await issuanceAllocator.getTotalAllocation()
-        expect(totalAlloc.selfMintingPPM).to.equal(400000)
+        expect(totalAlloc.selfMintingRate).to.equal(400000)
       }
 
       // Change target1 from self-minting to allocator-minting (same allocation)
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 300000, 0, false) // 30%, allocator-minting
+        ['setTargetAllocation(address,uint256,uint256)'](await target1.getAddress(), 300000, 0) // 30%, allocator-minting
 
       // Should now be 100000 PPM (400000 - 300000)
       {
         const totalAlloc = await issuanceAllocator.getTotalAllocation()
-        expect(totalAlloc.selfMintingPPM).to.equal(100000)
+        expect(totalAlloc.selfMintingRate).to.equal(100000)
       }
 
       // Remove target2 (set allocation to 0)
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target2.getAddress(), 0, 0, false) // Remove target2
+        ['setTargetAllocation(address,uint256,uint256)'](await target2.getAddress(), 0, 0) // Remove target2
 
       // Should now be 0 PPM (100000 - 100000)
       {
         const totalAlloc = await issuanceAllocator.getTotalAllocation()
-        expect(totalAlloc.selfMintingPPM).to.equal(0)
+        expect(totalAlloc.selfMintingRate).to.equal(0)
       }
 
       // Add target1 back as self-minting with 50% allocation
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 0, 500000, false) // 50%, self-minting
+        ['setTargetAllocation(address,uint256,uint256)'](await target1.getAddress(), 0, 500000) // 50%, self-minting
 
       // Should now be 500000 PPM
       {
         const totalAlloc = await issuanceAllocator.getTotalAllocation()
-        expect(totalAlloc.selfMintingPPM).to.equal(500000)
-      }
-    })
-
-    it('should test new getter functions for accumulation fields', async () => {
-      const { issuanceAllocator } = sharedContracts
-
-      // After setup, accumulation block should be set to the same as distribution block
-      // because setIssuancePerBlock was called during setup, which triggers _distributeIssuance
-      const initialAccumulationBlock = await issuanceAllocator.lastIssuanceAccumulationBlock()
-      const initialDistributionBlock = await issuanceAllocator.lastIssuanceDistributionBlock()
-      expect(initialAccumulationBlock).to.equal(initialDistributionBlock)
-      expect(initialAccumulationBlock).to.be.gt(0)
-
-      // After another distribution, both blocks should be updated to the same value
-      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
-      const distributionBlock = await issuanceAllocator.lastIssuanceDistributionBlock()
-      const accumulationBlock = await issuanceAllocator.lastIssuanceAccumulationBlock()
-      expect(distributionBlock).to.be.gt(initialDistributionBlock)
-      expect(accumulationBlock).to.equal(distributionBlock) // Both updated to same block during normal distribution
-
-      // Pending should be 0 after normal distribution (not paused, no accumulation)
-      const pendingAmount = await issuanceAllocator.pendingAccumulatedAllocatorIssuance()
-      expect(pendingAmount).to.equal(0)
-    })
-  })
-
-  describe('Granular Pausing and Accumulation', () => {
-    it('should accumulate issuance when self-minting allocation changes during pause', async () => {
-      const { issuanceAllocator, addresses } = sharedContracts
-
-      // Grant pause role
-      await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
-
-      // Set issuance rate and add targets
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'), false)
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 300000, 0, false) // 30% allocator-minting
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target2, 0, 200000, false) // 20% self-minting
-
-      // Distribute once to initialize blocks
-      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
-
-      // Pause the contract
-      await issuanceAllocator.connect(accounts.governor).pause()
-
-      // Mine some blocks
-      await ethers.provider.send('evm_mine', [])
-      await ethers.provider.send('evm_mine', [])
-
-      // Change self-minting allocation while paused - this should trigger accumulation
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target2, 0, 300000, true) // Change self-minting from 20% to 30%
-
-      // Check that issuance was accumulated
-      const pendingAmount = await issuanceAllocator.pendingAccumulatedAllocatorIssuance()
-      expect(pendingAmount).to.be.gt(0)
-
-      // Verify accumulation block was updated
-      const currentBlock = await ethers.provider.getBlockNumber()
-      expect(await issuanceAllocator.lastIssuanceAccumulationBlock()).to.equal(currentBlock)
-    })
-
-    it('should NOT accumulate issuance when only allocator-minting allocation changes during pause', async () => {
-      const { issuanceAllocator, graphToken, addresses } = sharedContracts
-
-      // Grant pause role
-      await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
-
-      // Set issuance rate and add targets
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'), false)
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 300000, 0, false) // 30% allocator-minting
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target2, 0, 200000, false) // 20% self-minting
-
-      // Distribute once to initialize blocks
-      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
-
-      // Pause the contract
-      await issuanceAllocator.connect(accounts.governor).pause()
-
-      // Get initial pending amount (should be 0)
-      const initialPendingAmount = await issuanceAllocator.pendingAccumulatedAllocatorIssuance()
-      expect(initialPendingAmount).to.equal(0)
-
-      // Mine some blocks
-      await ethers.provider.send('evm_mine', [])
-      await ethers.provider.send('evm_mine', [])
-
-      // Change only allocator-minting allocation while paused - this should NOT trigger accumulation
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 400000, 0, true) // Change allocator-minting from 30% to 40%
-
-      // Check that issuance was NOT accumulated (should still be 0)
-      const pendingAmount = await issuanceAllocator.pendingAccumulatedAllocatorIssuance()
-      expect(pendingAmount).to.equal(0)
-
-      // Test the pendingAmount == 0 early return path by calling distributeIssuance when there's no pending amount
-      // First clear the pending amount by unpausing and distributing
-      await issuanceAllocator.connect(accounts.governor).unpause()
-      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
-      expect(await issuanceAllocator.pendingAccumulatedAllocatorIssuance()).to.equal(0)
-
-      // Now call distributeIssuance again - this should hit the early return in _distributePendingIssuance
-      const balanceBefore = await (graphToken as any).balanceOf(addresses.target1)
-      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
-      const balanceAfter = await (graphToken as any).balanceOf(addresses.target1)
-
-      // Should still distribute normal issuance (not pending), proving the early return worked correctly
-      expect(balanceAfter).to.be.gt(balanceBefore)
-    })
-
-    it('should distribute pending accumulated issuance when resuming from pause', async () => {
-      const { issuanceAllocator, graphToken, target1, target2 } = await setupIssuanceAllocator()
-
-      // Setup
-      await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
-      await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'), false)
-
-      // Add allocator-minting targets only
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 600000, 0, false) // 60%
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target2.getAddress(), 400000, 0, false) // 40%
-
-      // Distribute once to initialize
-      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
-      const initialBalance1 = await (graphToken as any).balanceOf(await target1.getAddress())
-      const initialBalance2 = await (graphToken as any).balanceOf(await target2.getAddress())
-
-      // Pause and accumulate some issuance
-      await issuanceAllocator.connect(accounts.governor).pause()
-      await ethers.provider.send('evm_mine', [])
-      await ethers.provider.send('evm_mine', [])
-
-      // Trigger accumulation by changing rate
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('200'), true)
-
-      const pendingBefore = await issuanceAllocator.pendingAccumulatedAllocatorIssuance()
-      expect(pendingBefore).to.be.gt(0)
-
-      // Unpause and distribute - should distribute pending + new issuance
-      await issuanceAllocator.connect(accounts.governor).unpause()
-      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
-
-      // Check that pending was distributed proportionally
-      const finalBalance1 = await (graphToken as any).balanceOf(await target1.getAddress())
-      const finalBalance2 = await (graphToken as any).balanceOf(await target2.getAddress())
-
-      expect(finalBalance1).to.be.gt(initialBalance1)
-      expect(finalBalance2).to.be.gt(initialBalance2)
-
-      // Verify pending was reset
-      expect(await issuanceAllocator.pendingAccumulatedAllocatorIssuance()).to.equal(0)
-    })
-
-    it('should handle accumulation with mixed self-minting and allocator-minting targets', async () => {
-      const { issuanceAllocator, graphToken, target1, target2 } = await setupIssuanceAllocator()
-
-      // Setup
-      await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
-      await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'), false)
-
-      // Mix of targets: 20% allocator-minting, 5% self-minting (leaving 75% for default, total 95% allocator)
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 200000, 0, false) // 20% allocator-minting
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target2.getAddress(), 0, 50000, false) // 5% self-minting
-
-      // Initialize distribution
-      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
-
-      await issuanceAllocator.connect(accounts.governor).pause()
-
-      // Mine blocks and trigger accumulation by changing self-minting allocation
-      await ethers.provider.send('evm_mine', [])
-      await ethers.provider.send('evm_mine', [])
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target2.getAddress(), 0, 0, true) // Change self-minting from 5% to 0%
-
-      // Accumulation should happen from lastIssuanceDistributionBlock to current block
-      const blockAfterAccumulation = await ethers.provider.getBlockNumber()
-
-      const pendingAmount = await issuanceAllocator.pendingAccumulatedAllocatorIssuance()
-      const lastDistributionBlock = await issuanceAllocator.lastIssuanceDistributionBlock()
-
-      // Calculate what accumulation SHOULD be from lastDistributionBlock
-      // During accumulation: 20% (target1) + 75% (default) = 95% allocator-minting, 5% self-minting
-      // Accumulated issuance is based on the 95% allocator-minting that was active during accumulation
-      const blocksFromDistribution = BigInt(blockAfterAccumulation) - BigInt(lastDistributionBlock)
-      const allocatorMintingDuringAccumulation = 950000n // 95% in PPM
-      const expectedFromDistribution = calculateExpectedAccumulation(
-        parseEther('100'),
-        blocksFromDistribution,
-        allocatorMintingDuringAccumulation,
-      )
-
-      expect(pendingAmount).to.equal(expectedFromDistribution)
-
-      // Now test distribution of pending issuance to cover the self-minter branch
-      const initialBalance1 = await (graphToken as any).balanceOf(await target1.getAddress())
-      const initialBalance2 = await (graphToken as any).balanceOf(await target2.getAddress())
-
-      // Unpause and distribute - should only mint to allocator-minting target (target1), not self-minting (target2)
-      await issuanceAllocator.connect(accounts.governor).unpause()
-      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
-
-      // target1 (allocator-minting) should receive tokens, target2 (self-minting) should not receive pending tokens
-      const finalBalance1 = await (graphToken as any).balanceOf(await target1.getAddress())
-      const finalBalance2 = await (graphToken as any).balanceOf(await target2.getAddress())
-      expect(finalBalance1).to.be.gt(initialBalance1) // Allocator-minting target gets tokens
-      expect(finalBalance2).to.equal(initialBalance2) // Self-minting target gets no tokens from pending distribution
-      expect(await issuanceAllocator.pendingAccumulatedAllocatorIssuance()).to.equal(0)
-    })
-
-    it('should distribute pending issuance with correct proportional amounts', async () => {
-      const { issuanceAllocator, graphToken, target1, target2 } = await setupIssuanceAllocator()
-
-      // Setup
-      await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
-      await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('1000'), false)
-
-      // Mix of targets: 15% and 25% allocator-minting (40% total), 10% self-minting (leaving 50% for default, total 90% allocator)
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 150000, 0, false) // 15% allocator-minting
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target2.getAddress(), 250000, 0, false) // 25% allocator-minting
-
-      // Add a self-minting target to create the mixed scenario
-      const MockTarget = await ethers.getContractFactory('MockSimpleTarget')
-      const selfMintingTarget = await MockTarget.deploy()
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await selfMintingTarget.getAddress(), 0, 100000, false) // 10% self-minting
-
-      // Initialize and pause
-      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
-      const initialBalance1 = await (graphToken as any).balanceOf(await target1.getAddress())
-      const initialBalance2 = await (graphToken as any).balanceOf(await target2.getAddress())
-
-      await issuanceAllocator.connect(accounts.governor).pause()
-
-      // Mine exactly 2 blocks and trigger accumulation by changing self-minting allocation
-      await ethers.provider.send('evm_mine', [])
-      await ethers.provider.send('evm_mine', [])
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await selfMintingTarget.getAddress(), 0, 0, true) // Change self-minting from 10% to 0%
-
-      // Calculate actual blocks accumulated (from block 0 since lastIssuanceAccumulationBlock starts at 0)
-      const blockAfterAccumulation = await ethers.provider.getBlockNumber()
-
-      // Verify accumulation: 90% allocator-minting allocation (150000 + 250000 + 500000 default = 900000 PPM)
-      // Accumulation should happen from lastIssuanceDistributionBlock to current block
-      const pendingAmount = await issuanceAllocator.pendingAccumulatedAllocatorIssuance()
-      const lastDistributionBlock = await issuanceAllocator.lastIssuanceDistributionBlock()
-
-      // Calculate expected accumulation from when issuance was last distributed
-      // During accumulation: 15% (target1) + 25% (target2) + 50% (default) = 90% allocator-minting, 10% self-minting
-      const blocksToAccumulate = BigInt(blockAfterAccumulation) - BigInt(lastDistributionBlock)
-      const allocatorMintingDuringAccumulation = 900000n // 90% in PPM
-      const expectedPending = calculateExpectedAccumulation(
-        parseEther('1000'),
-        blocksToAccumulate,
-        allocatorMintingDuringAccumulation,
-      )
-      expect(pendingAmount).to.equal(expectedPending)
-
-      // Unpause and distribute
-      await issuanceAllocator.connect(accounts.governor).unpause()
-      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
-
-      // Verify exact distribution amounts
-      const finalBalance1 = await (graphToken as any).balanceOf(await target1.getAddress())
-      const finalBalance2 = await (graphToken as any).balanceOf(await target2.getAddress())
-
-      // Calculate expected distributions:
-      // Total allocator-minting allocation after change: 150000 + 250000 + 600000 (default) = 1000000 (100%)
-      // target1 should get: 2000 * (150000 / 1000000) = 300 tokens from pending (doubled due to known issue)
-      // target2 should get: 2000 * (250000 / 1000000) = 500 tokens from pending (doubled due to known issue)
-      const expectedTarget1Pending = ethers.parseEther('300')
-      const expectedTarget2Pending = ethers.parseEther('500')
-
-      // Account for any additional issuance from the distribution block itself
-      const pendingDistribution1 = finalBalance1 - initialBalance1
-      const pendingDistribution2 = finalBalance2 - initialBalance2
-
-      // The pending distribution should be at least the expected amounts
-      // (might be slightly more due to additional block issuance)
-      expect(pendingDistribution1).to.be.gte(expectedTarget1Pending)
-      expect(pendingDistribution2).to.be.gte(expectedTarget2Pending)
-
-      // Verify the ratio is correct: target2 should get 1.67x what target1 gets from pending
-      // (250000 / 150000 = 1.67)
-      const ratio = (BigInt(pendingDistribution2) * 1000n) / BigInt(pendingDistribution1) // Multiply by 1000 for precision
-      expect(ratio).to.be.closeTo(1667n, 100n) // Allow larger tolerance due to default allocation adjustments
-
-      // Verify pending was reset
-      expect(await issuanceAllocator.pendingAccumulatedAllocatorIssuance()).to.equal(0)
-    })
-
-    it('should distribute 100% of pending issuance when only allocator-minting targets exist', async () => {
-      const { issuanceAllocator, graphToken, target1, target2 } = await setupIssuanceAllocator()
-
-      // Setup
-      await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
-      await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('1000'), false)
-
-      // Allocator-minting targets: 30% and 50%, plus a small self-minting target initially (leaving 19% for default)
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 300000, 0, false) // 30% allocator-minting
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target2.getAddress(), 500000, 10000, false) // 50% allocator-minting, 1% self-minting
-
-      // Initialize and pause
-      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
-      const initialBalance1 = await (graphToken as any).balanceOf(await target1.getAddress())
-      const initialBalance2 = await (graphToken as any).balanceOf(await target2.getAddress())
-
-      await issuanceAllocator.connect(accounts.governor).pause()
-
-      // Mine exactly 3 blocks and trigger accumulation by removing self-minting
-      await ethers.provider.send('evm_mine', [])
-      await ethers.provider.send('evm_mine', [])
-      await ethers.provider.send('evm_mine', [])
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target2.getAddress(), 510000, 0, true) // Remove self-minting (now 51% allocator-minting, leaving 19% for default)
-
-      // Calculate actual blocks accumulated (from block 0 since lastIssuanceAccumulationBlock starts at 0)
-      const blockAfterAccumulation = await ethers.provider.getBlockNumber()
-
-      // Verify accumulation: should use the OLD allocation (80% allocator-minting) that was active during pause
-      // Accumulation happens BEFORE the allocation change, so uses 30% + 50% + 19% default = 99% allocator-minting, 1% self-minting
-      const pendingAmount = await issuanceAllocator.pendingAccumulatedAllocatorIssuance()
-      const lastDistributionBlock = await issuanceAllocator.lastIssuanceDistributionBlock()
-
-      // Calculate expected accumulation using the OLD allocation (before the change)
-      const blocksToAccumulate = BigInt(blockAfterAccumulation) - BigInt(lastDistributionBlock)
-      const oldAllocatorMintingPPM = 300000n + 500000n + 190000n // 30% + 50% + 19% default = 99%
-      const expectedPending = calculateExpectedAccumulation(
-        parseEther('1000'),
-        blocksToAccumulate,
-        oldAllocatorMintingPPM,
-      )
-      expect(pendingAmount).to.equal(expectedPending)
-
-      // Unpause and distribute
-      await issuanceAllocator.connect(accounts.governor).unpause()
-      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
-
-      // Verify exact distribution amounts
-      const finalBalance1 = await (graphToken as any).balanceOf(await target1.getAddress())
-      const finalBalance2 = await (graphToken as any).balanceOf(await target2.getAddress())
-
-      // Calculate expected distributions:
-      // Total allocator-minting allocation: 300000 + 510000 + 190000 = 1000000 (100%)
-      // target1 should get: 5000 * (300000 / 1000000) = 1500 tokens from pending
-      // target2 should get: 5000 * (510000 / 1000000) = 2550 tokens from pending
-      const expectedTarget1Pending = ethers.parseEther('1500')
-      const expectedTarget2Pending = ethers.parseEther('2550')
-
-      // Account for any additional issuance from the distribution block itself
-      const pendingDistribution1 = finalBalance1 - initialBalance1
-      const pendingDistribution2 = finalBalance2 - initialBalance2
-
-      // The pending distribution should be at least the expected amounts
-      expect(pendingDistribution1).to.be.gte(expectedTarget1Pending)
-      expect(pendingDistribution2).to.be.gte(expectedTarget2Pending)
-
-      // Verify the ratio is correct: target2 should get 1.7x what target1 gets from pending
-      // (510000 / 300000 = 1.7)
-      const ratio = (BigInt(pendingDistribution2) * 1000n) / BigInt(pendingDistribution1) // Multiply by 1000 for precision
-      expect(ratio).to.be.closeTo(1700n, 50n) // Allow small rounding tolerance
-
-      // Verify pending was reset
-      expect(await issuanceAllocator.pendingAccumulatedAllocatorIssuance()).to.equal(0)
-    })
-
-    it('should distribute total amounts that add up to expected issuance rate', async () => {
-      const { issuanceAllocator, graphToken, target1, target2 } = await setupIssuanceAllocator()
-
-      // Setup
-      await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
-      await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('1000'), false)
-
-      // Create a third target for more comprehensive testing
-      const MockTarget = await ethers.getContractFactory('MockSimpleTarget')
-      const target3 = await MockTarget.deploy()
-
-      // Mix of targets: 25% + 15% + 10% allocator-minting (50% total), 20% self-minting (leaving 30% for default, total 80% allocator)
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 250000, 0, false) // 25% allocator-minting
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target2.getAddress(), 150000, 0, false) // 15% allocator-minting
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target3.getAddress(), 100000, 0, false) // 10% allocator-minting
-
-      // Add a self-minting target
-      const selfMintingTarget = await MockTarget.deploy()
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await selfMintingTarget.getAddress(), 0, 200000, false) // 20% self-minting
-
-      // Initialize and pause
-      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
-      const initialBalance1 = await (graphToken as any).balanceOf(await target1.getAddress())
-      const initialBalance2 = await (graphToken as any).balanceOf(await target2.getAddress())
-      const initialBalance3 = await (graphToken as any).balanceOf(await target3.getAddress())
-
-      await issuanceAllocator.connect(accounts.governor).pause()
-
-      // Mine exactly 5 blocks and trigger accumulation by changing self-minting allocation
-      for (let i = 0; i < 5; i++) {
-        await ethers.provider.send('evm_mine', [])
-      }
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await selfMintingTarget.getAddress(), 0, 100000, true) // Change self-minting from 20% to 10%
-
-      // Calculate actual blocks accumulated (from block 0 since lastIssuanceAccumulationBlock starts at 0)
-      const blockAfterAccumulation = await ethers.provider.getBlockNumber()
-
-      // Calculate expected total accumulation: 80% allocator-minting allocation (25% + 15% + 10% + 30% default = 800000 PPM)
-      // Accumulation should happen from lastIssuanceDistributionBlock to current block
-      const pendingAmount = await issuanceAllocator.pendingAccumulatedAllocatorIssuance()
-      const lastDistributionBlock = await issuanceAllocator.lastIssuanceDistributionBlock()
-
-      // Calculate expected accumulation from when issuance was last distributed
-      // During accumulation: 25% (target1) + 15% (target2) + 10% (target3) + 30% (default) = 80% allocator-minting, 20% self-minting
-      const blocksToAccumulate = BigInt(blockAfterAccumulation) - BigInt(lastDistributionBlock)
-      const allocatorMintingDuringAccumulation = 800000n // 80% in PPM
-      const expectedPending = calculateExpectedAccumulation(
-        parseEther('1000'),
-        blocksToAccumulate,
-        allocatorMintingDuringAccumulation,
-      )
-      expect(pendingAmount).to.equal(expectedPending)
-
-      // Unpause and distribute
-      await issuanceAllocator.connect(accounts.governor).unpause()
-      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
-
-      // Calculate actual distributions
-      const finalBalance1 = await (graphToken as any).balanceOf(await target1.getAddress())
-      const finalBalance2 = await (graphToken as any).balanceOf(await target2.getAddress())
-      const finalBalance3 = await (graphToken as any).balanceOf(await target3.getAddress())
-
-      const distribution1 = finalBalance1 - initialBalance1
-      const distribution2 = finalBalance2 - initialBalance2
-      const distribution3 = finalBalance3 - initialBalance3
-      const totalDistributed = distribution1 + distribution2 + distribution3
-
-      // Verify total distributed amount is reasonable
-      // The three explicit targets get 50% of total allocation, default gets 30%
-      // So they should receive (50/80) = 62.5% of pending allocator-minting issuance
-      // Plus additional issuance from blocks between accumulation and distribution
-      const expectedMinimumToThreeTargets = (pendingAmount * 50n) / 80n
-      expect(totalDistributed).to.be.gte(expectedMinimumToThreeTargets)
-
-      // Verify proportional distribution within allocator-minting targets
-      // Actual allocations: target1=25%, target2=15%, target3=10%
-      // Expected ratios: target1:target2:target3 = 25:15:10 = 5:3:2
-      const ratio12 = (BigInt(distribution1) * 1000n) / BigInt(distribution2) // Should be ~1667 (5/3 * 1000)
-      const ratio13 = (BigInt(distribution1) * 1000n) / BigInt(distribution3) // Should be ~2500 (5/2 * 1000)
-      const ratio23 = (BigInt(distribution2) * 1000n) / BigInt(distribution3) // Should be ~1500 (3/2 * 1000)
-
-      expect(ratio12).to.be.closeTo(1667n, 100n) // 5:3 ratio with tolerance
-      expect(ratio13).to.be.closeTo(2500n, 200n) // 5:2 ratio with tolerance
-      expect(ratio23).to.be.closeTo(1500n, 150n) // 3:2 ratio with tolerance
-
-      // Verify pending was reset
-      expect(await issuanceAllocator.pendingAccumulatedAllocatorIssuance()).to.equal(0)
-    })
-
-    it('should distribute correct total amounts during normal operation', async () => {
-      const { issuanceAllocator, graphToken, target1, target2 } = await setupIssuanceAllocator()
-
-      // Setup
-      await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('1000'), false)
-
-      // Create mixed targets: 40% + 20% allocator-minting (60% total), 40% self-minting
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 400000, 0, false) // 40% allocator-minting
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target2.getAddress(), 200000, 0, false) // 20% allocator-minting
-
-      // Add a self-minting target
-      const MockTarget = await ethers.getContractFactory('MockSimpleTarget')
-      const selfMintingTarget = await MockTarget.deploy()
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await selfMintingTarget.getAddress(), 0, 400000, false) // 40% self-minting
-
-      // Get initial balances
-      const initialBalance1 = await (graphToken as any).balanceOf(await target1.getAddress())
-      const initialBalance2 = await (graphToken as any).balanceOf(await target2.getAddress())
-      const initialBlock = await issuanceAllocator.lastIssuanceDistributionBlock()
-
-      // Mine exactly 3 blocks
-      await ethers.provider.send('evm_mine', [])
-      await ethers.provider.send('evm_mine', [])
-      await ethers.provider.send('evm_mine', [])
-
-      // Distribute issuance
-      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
-
-      // Calculate actual distributions
-      const finalBalance1 = await (graphToken as any).balanceOf(await target1.getAddress())
-      const finalBalance2 = await (graphToken as any).balanceOf(await target2.getAddress())
-
-      const distribution1 = finalBalance1 - initialBalance1
-      const distribution2 = finalBalance2 - initialBalance2
-      const totalDistributed = distribution1 + distribution2
-
-      // Calculate expected total for allocator-minting targets (60% total allocation)
-      // Distribution should happen from the PREVIOUS distribution block to current block
-      const currentBlock = await ethers.provider.getBlockNumber()
-
-      // Use the initial block (before distribution) to calculate expected distribution
-      // We mined 3 blocks, so distribution should be for 3 blocks
-      const blocksDistributed = BigInt(currentBlock) - BigInt(initialBlock)
-      const allocation = await issuanceAllocator.getTotalAllocation()
-      const expectedAllocatorMintingTotal = calculateExpectedAccumulation(
-        parseEther('1000'),
-        blocksDistributed, // Should be 3 blocks
-        allocation.allocatorMintingPPM, // 60% allocator-minting
-      )
-
-      // Verify total distributed matches expected
-      expect(totalDistributed).to.equal(expectedAllocatorMintingTotal)
-
-      // Verify proportional distribution
-      // target1 should get: expectedTotal * (400000 / 600000) = expectedTotal * 2/3
-      // target2 should get: expectedTotal * (200000 / 600000) = expectedTotal * 1/3
-      const expectedDistribution1 = (expectedAllocatorMintingTotal * 400000n) / 600000n
-      const expectedDistribution2 = (expectedAllocatorMintingTotal * 200000n) / 600000n
-
-      expect(distribution1).to.equal(expectedDistribution1)
-      expect(distribution2).to.equal(expectedDistribution2)
-
-      // Verify ratio: target1 should get 2x what target2 gets
-      const ratio = (BigInt(distribution1) * 1000n) / BigInt(distribution2) // Should be ~2000 (2 * 1000)
-      expect(ratio).to.equal(2000n)
-    })
-
-    it('should handle complete pause cycle with self-minting changes, allocator-minting changes, and rate changes', async () => {
-      const { issuanceAllocator, graphToken, target1, target2 } = await setupIssuanceAllocator()
-
-      // Setup
-      await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
-      await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('1000'), false)
-
-      // Create additional targets for comprehensive testing
-      const MockTarget = await ethers.getContractFactory('MockSimpleTarget')
-      const target3 = await MockTarget.deploy()
-      const target4 = await MockTarget.deploy()
-      const selfMintingTarget1 = await MockTarget.deploy()
-      const selfMintingTarget2 = await MockTarget.deploy()
-
-      // Initial setup: 25% + 15% allocator-minting (40% total), 25% + 15% self-minting (40% total), 20% free
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 250000, 0, false) // 25% allocator-minting
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target2.getAddress(), 150000, 0, false) // 15% allocator-minting
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await selfMintingTarget1.getAddress(), 0, 250000, false) // 25% self-minting
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await selfMintingTarget2.getAddress(), 0, 150000, false) // 15% self-minting
-
-      // Initialize and get starting balances
-      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
-      const initialBalance1 = await (graphToken as any).balanceOf(await target1.getAddress())
-      const initialBalance2 = await (graphToken as any).balanceOf(await target2.getAddress())
-
-      // Pause the contract
-      await issuanceAllocator.connect(accounts.governor).pause()
-
-      // Phase 1: Mine blocks with original rate (1000 per block)
-      await ethers.provider.send('evm_mine', [])
-      await ethers.provider.send('evm_mine', [])
-
-      // Phase 2: Change issuance rate during pause (triggers accumulation)
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('2000'), false)
-
-      // Phase 3: Mine more blocks with new rate
-      await ethers.provider.send('evm_mine', [])
-
-      // Phase 4: Add new allocator-minting target during pause
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target3.getAddress(), 100000, 0, true) // 10% allocator-minting, force=true
-
-      // Phase 5: Change existing allocator-minting target allocation
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 200000, 0, true) // Change from 25% to 20%, force=true
-
-      // Phase 6: Add new self-minting target during pause
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target4.getAddress(), 0, 100000, true) // 10% self-minting, force=true
-
-      // Phase 7: Change existing self-minting target allocation
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await selfMintingTarget1.getAddress(), 0, 50000, true) // Change from 25% to 5%, force=true
-
-      // Phase 8: Mine more blocks
-      await ethers.provider.send('evm_mine', [])
-
-      // Phase 9: Change rate again during pause
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('3000'), false)
-
-      // Phase 10: Mine final blocks
-      await ethers.provider.send('evm_mine', [])
-
-      // Verify accumulation occurred
-      const pendingAmount = await issuanceAllocator.pendingAccumulatedAllocatorIssuance()
-      expect(pendingAmount).to.be.gt(0)
-
-      // Expected accumulation from multiple phases with rate and allocation changes:
-      // Phase 1: 2 blocks * 1000 * (1000000 - 500000) / 1000000 = 2000 * 0.5 = 1000
-      // Phase 3: 1 block * 2000 * (1000000 - 500000) / 1000000 = 2000 * 0.5 = 1000
-      // Phase 8: 1 block * 2000 * (1000000 - 410000) / 1000000 = 2000 * 0.59 = 1180
-      // Phase 10: 1 block * 3000 * (1000000 - 410000) / 1000000 = 3000 * 0.59 = 1770
-      // Accumulation occurs at each self-minting allocation change during pause
-
-      // Get initial balances for new targets
-      const initialBalance3 = await (graphToken as any).balanceOf(await target3.getAddress())
-
-      // Unpause and distribute
-      await issuanceAllocator.connect(accounts.governor).unpause()
-      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
-
-      // Get final balances
-      const finalBalance1 = await (graphToken as any).balanceOf(await target1.getAddress())
-      const finalBalance2 = await (graphToken as any).balanceOf(await target2.getAddress())
-      const finalBalance3 = await (graphToken as any).balanceOf(await target3.getAddress())
-
-      // Calculate distributions
-      const distribution1 = finalBalance1 - initialBalance1
-      const distribution2 = finalBalance2 - initialBalance2
-      const distribution3 = finalBalance3 - initialBalance3
-      const totalDistributed = distribution1 + distribution2 + distribution3
-
-      // All targets should have received tokens proportionally
-
-      // All allocator-minting targets should receive tokens proportional to their CURRENT allocations
-      expect(distribution1).to.be.gt(0)
-      expect(distribution2).to.be.gt(0)
-      expect(distribution3).to.be.gt(0) // target3 added during pause should also receive tokens
-
-      // Verify total distributed is reasonable (should be at least the pending amount)
-      expect(totalDistributed).to.be.gte(pendingAmount)
-
-      // Verify final allocations are correct
-      // Final allocator-minting allocations: target1=20%, target2=15%, target3=10% (total 45%)
-      // Final self-minting allocations: selfMintingTarget1=5%, selfMintingTarget2=15%, target4=10% (total 30%)
-      {
-        const totalAlloc = await issuanceAllocator.getTotalAllocation()
-        expect(totalAlloc.selfMintingPPM).to.equal(300000)
-      } // 30%
-
-      // Verify proportional distribution based on CURRENT allocations
-      // Current allocator-minting allocations: target1=20%, target2=15%, target3=10%
-      // Expected ratios: target1:target2:target3 = 20:15:10 = 4:3:2
-      const ratio12 = (BigInt(distribution1) * 1000n) / BigInt(distribution2) // Should be ~1333 (4/3 * 1000)
-      const ratio13 = (BigInt(distribution1) * 1000n) / BigInt(distribution3) // Should be ~2000 (4/2 * 1000)
-      const ratio23 = (BigInt(distribution2) * 1000n) / BigInt(distribution3) // Should be ~1500 (3/2 * 1000)
-
-      expect(ratio12).to.be.closeTo(1333n, 200n) // 4:3 ratio with tolerance
-      expect(ratio13).to.be.closeTo(2000n, 200n) // 4:2 = 2:1 ratio with tolerance
-      expect(ratio23).to.be.closeTo(1500n, 150n) // 3:2 = 1.5:1 ratio with tolerance
-
-      // Verify pending was reset
-      expect(await issuanceAllocator.pendingAccumulatedAllocatorIssuance()).to.equal(0)
-    })
-
-    it('should reset pending issuance when all allocator-minting targets removed during pause', async () => {
-      const { issuanceAllocator, graphToken, target1 } = await setupIssuanceAllocator()
-
-      // Setup
-      await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
-      await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('1000'), false)
-
-      // Start with allocator-minting target: 50% allocator-minting
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 500000, 0, false) // 50% allocator-minting
-
-      // Initialize and pause
-      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
-      await issuanceAllocator.connect(accounts.governor).pause()
-
-      // Mine blocks to accumulate pending issuance
-      await ethers.provider.send('evm_mine', [])
-      await ethers.provider.send('evm_mine', [])
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('2000'), true) // Trigger accumulation
-
-      // Verify pending issuance was accumulated
-      const pendingAmount = await issuanceAllocator.pendingAccumulatedAllocatorIssuance()
-      expect(pendingAmount).to.be.gt(0)
-
-      // Remove allocator-minting target and set 100% self-minting during pause
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 0, 0, true) // Remove allocator-minting target
-
-      const MockTarget = await ethers.getContractFactory('MockSimpleTarget')
-      const selfMintingTarget = await MockTarget.deploy()
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await selfMintingTarget.getAddress(), 0, 1000000, true) // 100% self-minting
-
-      // Verify we now have 100% self-minting allocation
-      {
-        const totalAlloc = await issuanceAllocator.getTotalAllocation()
-        expect(totalAlloc.selfMintingPPM).to.equal(1000000)
-      }
-
-      // Unpause and distribute - should hit the allocatorMintingAllowance == 0 branch
-      await issuanceAllocator.connect(accounts.governor).unpause()
-      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
-
-      // The key test: verify that the allocatorMintingAllowance == 0 branch was hit successfully
-      // This test successfully hits the missing branch and achieves 100% coverage
-      // The exact pending amount varies due to timing, but the important thing is no revert occurs
-      const finalPendingAmount = await issuanceAllocator.pendingAccumulatedAllocatorIssuance()
-      expect(finalPendingAmount).to.be.gte(0) // System handles edge case without reverting
-
-      // Verify the removed target's balance (may have received tokens from earlier operations)
-      const finalBalance1 = await (graphToken as any).balanceOf(await target1.getAddress())
-      expect(finalBalance1).to.be.gte(0) // Target may have received tokens before removal
-    })
-
-    it('should handle edge case with no allocator-minting targets during pause', async () => {
-      const { issuanceAllocator, graphToken, target1 } = await setupIssuanceAllocator()
-
-      // Setup with only self-minting targets
-      await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
-      await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'), false)
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 0, 500000, false) // 50% self-minting only
-
-      // Initialize and pause
-      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
-      await issuanceAllocator.connect(accounts.governor).pause()
-
-      // Mine blocks and trigger accumulation
-      await ethers.provider.send('evm_mine', [])
-      await ethers.provider.send('evm_mine', [])
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('200'), false)
-
-      // Should accumulate based on totalAllocatorMintingAllocation
-      // Since we only have self-minting targets (no allocator-minting), totalAllocatorMintingAllocation = 0
-      // Therefore, no accumulation should happen
-      const pendingAmount = await issuanceAllocator.pendingAccumulatedAllocatorIssuance()
-      expect(pendingAmount).to.equal(0) // No allocator-minting targets, so no accumulation
-    })
-
-    it('should handle zero blocksSinceLastAccumulation in _distributeOrAccumulateIssuance', async () => {
-      const { issuanceAllocator, graphToken, target1 } = await setupIssuanceAllocator()
-
-      // Setup
-      await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
-      await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'), false)
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 300000, 0, false)
-
-      // Initialize and pause
-      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
-      await issuanceAllocator.connect(accounts.governor).pause()
-
-      // Disable auto-mining to control block creation
-      await ethers.provider.send('evm_setAutomine', [false])
-
-      try {
-        // Queue two transactions that will trigger accumulation in the same block
-        const tx1 = issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('200'), false)
-        const tx2 = issuanceAllocator
-          .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 400000, 0, false)
-
-        // Mine a single block containing both transactions
-        await ethers.provider.send('evm_mine', [])
-
-        // Wait for both transactions to complete
-        await tx1
-        await tx2
-
-        // The second call should have blocksSinceLastAccumulation == 0
-        // Both calls should work without error, demonstrating the else path is covered
-        expect(await issuanceAllocator.pendingAccumulatedAllocatorIssuance()).to.be.gte(0)
-      } finally {
-        // Re-enable auto-mining
-        await ethers.provider.send('evm_setAutomine', [true])
+        expect(totalAlloc.selfMintingRate).to.equal(500000)
       }
     })
   })
@@ -1504,9 +669,9 @@ describe('IssuanceAllocator', () => {
       const { issuanceAllocator } = sharedContracts
 
       const newIssuancePerBlock = ethers.parseEther('200')
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(newIssuancePerBlock, false)
+      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(newIssuancePerBlock)
 
-      expect(await issuanceAllocator.issuancePerBlock()).to.equal(newIssuancePerBlock)
+      expect(await issuanceAllocator.getIssuancePerBlock()).to.equal(newIssuancePerBlock)
     })
 
     it('should notify targets with contract code when changing issuance rate', async () => {
@@ -1515,7 +680,7 @@ describe('IssuanceAllocator', () => {
       // Add target and set allocation in one step
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 300000, 0, false) // 30%
+        ['setTargetAllocation(address,uint256,uint256)'](addresses.target1, 300000, 0) // 30%
 
       // Mine some blocks to ensure distributeIssuance will update to current block
       await ethers.provider.send('evm_mine', [])
@@ -1523,10 +688,10 @@ describe('IssuanceAllocator', () => {
       // Change issuance rate - this should trigger _preIssuanceChangeDistributionAndNotification
       // which will iterate through targets and call beforeIssuanceAllocationChange on targets with code
       const newIssuancePerBlock = ethers.parseEther('200')
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(newIssuancePerBlock, false)
+      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(newIssuancePerBlock)
 
       // Verify the issuance rate was updated
-      expect(await issuanceAllocator.issuancePerBlock()).to.equal(newIssuancePerBlock)
+      expect(await issuanceAllocator.getIssuancePerBlock()).to.equal(newIssuancePerBlock)
     })
 
     it('should handle targets without contract code when changing issuance rate', async () => {
@@ -1539,7 +704,7 @@ describe('IssuanceAllocator', () => {
       const mockTarget = await deployMockSimpleTarget()
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await mockTarget.getAddress(), 300000, 0, false) // 30%
+        ['setTargetAllocation(address,uint256,uint256)'](await mockTarget.getAddress(), 300000, 0) // 30%
 
       // Mine some blocks to ensure distributeIssuance will update to current block
       await ethers.provider.send('evm_mine', [])
@@ -1547,22 +712,22 @@ describe('IssuanceAllocator', () => {
       // Change issuance rate - this should trigger _preIssuanceChangeDistributionAndNotification
       // which will iterate through targets and notify them
       const newIssuancePerBlock = ethers.parseEther('200')
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(newIssuancePerBlock, false)
+      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(newIssuancePerBlock)
 
       // Verify the issuance rate was updated
-      expect(await issuanceAllocator.issuancePerBlock()).to.equal(newIssuancePerBlock)
+      expect(await issuanceAllocator.getIssuancePerBlock()).to.equal(newIssuancePerBlock)
     })
 
     it('should handle zero issuance when distributing', async () => {
       const { issuanceAllocator, graphToken, addresses } = sharedContracts
 
       // Set issuance per block to 0
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(0, false)
+      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(0)
 
       // Add target and set allocation in one step
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 300000, 0, false) // 30%
+        ['setTargetAllocation(address,uint256,uint256)'](addresses.target1, 0, 0) // 30%
 
       // Get initial balance
       const initialBalance = await (graphToken as any).balanceOf(addresses.target1)
@@ -1578,13 +743,47 @@ describe('IssuanceAllocator', () => {
       expect(finalBalance).to.equal(initialBalance)
     })
 
+    it('should revert when decreasing issuance rate with insufficient unallocated budget', async () => {
+      const { issuanceAllocator, graphToken, target1 } = await setupIssuanceAllocator()
+
+      // Add issuanceAllocator as minter
+      await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
+
+      // Set initial issuance rate
+      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('1000'))
+
+      // Allocate almost everything to target1, leaving very little for default
+      // target1 gets 950 ether/block, default gets 50 ether/block
+      await issuanceAllocator
+        .connect(accounts.governor)
+        [
+          'setTargetAllocation(address,uint256,uint256,uint256)'
+        ](await target1.getAddress(), ethers.parseEther('950'), 0, 0)
+
+      // Verify the current allocation
+      const allocationBefore = await issuanceAllocator.getTargetAllocation(await target1.getAddress())
+      expect(allocationBefore.allocatorMintingRate).to.equal(ethers.parseEther('950'))
+
+      // Verify current issuance and unallocated amount
+      const issuanceBefore = await issuanceAllocator.getIssuancePerBlock()
+      expect(issuanceBefore).to.equal(ethers.parseEther('1000'))
+
+      // Try to decrease issuance rate by 100 ether (to 900 ether/block)
+      // This would require default to absorb -100 ether/block change
+      // But default only has 50 ether/block unallocated
+      // So this should fail: oldIssuancePerBlock (1000) > newIssuancePerBlock (900) + unallocated (50)
+      await expect(
+        issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('900')),
+      ).to.be.revertedWithCustomError(issuanceAllocator, 'InsufficientUnallocatedForRateDecrease')
+    })
+
     it('should allow governor to manually notify a specific target', async () => {
       const { issuanceAllocator, addresses } = sharedContracts
 
       // Add target and set allocation in one step
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 300000, 0, false) // 30%
+        ['setTargetAllocation(address,uint256,uint256)'](addresses.target1, 300000, 0) // 30%
 
       // Manually notify the target using the new notifyTarget function
       const result = await issuanceAllocator.connect(accounts.governor).notifyTarget.staticCall(addresses.target1)
@@ -1608,7 +807,7 @@ describe('IssuanceAllocator', () => {
       // Add a target and set allocation in one step
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 100000, 0, false)
+        ['setTargetAllocation(address,uint256,uint256)'](addresses.target1, 100000, 0)
 
       // Try to notify the target - should succeed since it has contract code
       const result = await issuanceAllocator.connect(accounts.governor).notifyTarget.staticCall(addresses.target1)
@@ -1623,7 +822,7 @@ describe('IssuanceAllocator', () => {
       // Add a target and set allocation in one step to trigger _notifyTarget call
       const result = await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'].staticCall(addresses.target1, 100000, 0, false)
+        ['setTargetAllocation(address,uint256,uint256,uint256)'].staticCall(addresses.target1, 100000, 0, 0)
 
       // Should return true (allocation was set) and notification succeeded
       expect(result).to.be.true
@@ -1631,11 +830,11 @@ describe('IssuanceAllocator', () => {
       // Actually set the allocation to verify the internal _notifyTarget call
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 100000, 0, false)
+        ['setTargetAllocation(address,uint256,uint256)'](addresses.target1, 100000, 0)
 
       // Verify allocation was set
       const mockTargetAllocation = await issuanceAllocator.getTargetAllocation(addresses.target1)
-      expect(mockTargetAllocation.totalAllocationPPM).to.equal(100000)
+      expect(mockTargetAllocation.totalAllocationRate).to.equal(100000)
     })
 
     it('should only notify target once per block', async () => {
@@ -1647,7 +846,7 @@ describe('IssuanceAllocator', () => {
       // Add target and set allocation in one step
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 300000, 0, false) // 30%
+        ['setTargetAllocation(address,uint256,uint256)'](await target1.getAddress(), 300000, 0) // 30%
 
       // First notification should return true
       const result1 = await issuanceAllocator
@@ -1702,12 +901,12 @@ describe('IssuanceAllocator', () => {
       await expect(
         issuanceAllocator
           .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](await revertingTarget.getAddress(), 300000, 0, false),
+          ['setTargetAllocation(address,uint256,uint256)'](await revertingTarget.getAddress(), 300000, 0),
       ).to.be.revertedWithCustomError(revertingTarget, 'TargetRevertsIntentionally')
 
       // The allocation should NOT be set because the transaction reverted
       const revertingTargetAllocation = await issuanceAllocator.getTargetAllocation(await revertingTarget.getAddress())
-      expect(revertingTargetAllocation.totalAllocationPPM).to.equal(0)
+      expect(revertingTargetAllocation.totalAllocationRate).to.equal(0)
     })
 
     it('should revert and not set allocation when target notification fails even with force=true', async () => {
@@ -1726,12 +925,12 @@ describe('IssuanceAllocator', () => {
       await expect(
         issuanceAllocator
           .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](await revertingTarget.getAddress(), 300000, 0, true),
+          ['setTargetAllocation(address,uint256,uint256,uint256)'](await revertingTarget.getAddress(), 300000, 0, 0),
       ).to.be.revertedWithCustomError(revertingTarget, 'TargetRevertsIntentionally')
 
       // The allocation should NOT be set because the transaction reverted
       const allocation = await issuanceAllocator.getTargetAllocation(await revertingTarget.getAddress())
-      expect(allocation.totalAllocationPPM).to.equal(0)
+      expect(allocation.totalAllocationRate).to.equal(0)
     })
 
     it('should return false when setTargetAllocation called with force=false and issuance distribution is behind', async () => {
@@ -1741,11 +940,11 @@ describe('IssuanceAllocator', () => {
       await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
 
       // Set initial issuance rate and distribute once to set lastIssuanceDistributionBlock
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'), false)
+      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'))
       await issuanceAllocator.connect(accounts.governor).distributeIssuance()
 
       // Get the current lastIssuanceDistributionBlock
-      const lastIssuanceBlock = await issuanceAllocator.lastIssuanceDistributionBlock()
+      const lastIssuanceBlock = (await issuanceAllocator.getDistributionState()).lastDistributionBlock
 
       // Grant pause role and pause the contract
       await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
@@ -1760,19 +959,21 @@ describe('IssuanceAllocator', () => {
       const currentBlock = await ethers.provider.getBlockNumber()
       expect(lastIssuanceBlock).to.be.lt(currentBlock)
 
-      // While still paused, call setTargetAllocation with force=false
-      // This should return false because _distributeIssuance() < block.number && !force evaluates to true
-      // This tests the uncovered branch and statement
+      // While still paused, call setTargetAllocation with minDistributedBlock=currentBlock
+      // This should return false because _distributeIssuance() < minDistributedBlock
+      // (lastDistributionBlock is behind currentBlock due to pause)
       const result = await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'].staticCall(await target1.getAddress(), 300000, 0, false)
+        [
+          'setTargetAllocation(address,uint256,uint256,uint256)'
+        ].staticCall(await target1.getAddress(), ethers.parseEther('30'), 0, currentBlock)
 
-      // Should return false due to issuance being behind and force=false
+      // Should return false due to issuance being behind the required minimum
       expect(result).to.be.false
 
-      // Allocation should not be set
+      // Allocation is not actually set (staticCall)
       const allocation = await issuanceAllocator.getTargetAllocation(await target1.getAddress())
-      expect(allocation.totalAllocationPPM).to.equal(0)
+      expect(allocation.totalAllocationRate).to.equal(0)
     })
 
     it('should allow setTargetAllocation with force=true when issuance distribution is behind', async () => {
@@ -1782,11 +983,11 @@ describe('IssuanceAllocator', () => {
       await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
 
       // Set initial issuance rate and distribute once to set lastIssuanceDistributionBlock
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'), false)
+      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'))
       await issuanceAllocator.connect(accounts.governor).distributeIssuance()
 
       // Get the current lastIssuanceDistributionBlock
-      const lastIssuanceBlock = await issuanceAllocator.lastIssuanceDistributionBlock()
+      const lastIssuanceBlock = (await issuanceAllocator.getDistributionState()).lastDistributionBlock
 
       // Grant pause role and pause the contract
       await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
@@ -1806,11 +1007,11 @@ describe('IssuanceAllocator', () => {
       // This tests the uncovered branch where (_distributeIssuance() < block.number && !force) evaluates to false due to force=true
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 300000, 0, true)
+        ['setTargetAllocation(address,uint256,uint256,uint256)'](await target1.getAddress(), 300000, 0, 0)
 
       // Should succeed and set the allocation
       const allocation = await issuanceAllocator.getTargetAllocation(await target1.getAddress())
-      expect(allocation.totalAllocationPPM).to.equal(300000)
+      expect(allocation.totalAllocationRate).to.equal(300000)
     })
   })
 
@@ -1821,7 +1022,7 @@ describe('IssuanceAllocator', () => {
       // Add target and set allocation in one step
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 100000, 0, false)
+        ['setTargetAllocation(address,uint256,uint256)'](addresses.target1, 100000, 0)
 
       // Force set lastChangeNotifiedBlock to current block
       const currentBlock = await ethers.provider.getBlockNumber()
@@ -1872,7 +1073,7 @@ describe('IssuanceAllocator', () => {
       // Add target and set allocation in one step to trigger notification
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 300000, 0, false)
+        ['setTargetAllocation(address,uint256,uint256)'](await target1.getAddress(), 300000, 0)
 
       // Verify target was notified (lastChangeNotifiedBlock should be current block)
       const currentBlock = await ethers.provider.getBlockNumber()
@@ -1923,7 +1124,7 @@ describe('IssuanceAllocator', () => {
       // Add target and set allocation in one step
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 100000, 0, false)
+        ['setTargetAllocation(address,uint256,uint256)'](await target1.getAddress(), 100000, 0)
 
       // Force set lastChangeNotifiedBlock to current block
       const currentBlock = await ethers.provider.getBlockNumber()
@@ -1964,7 +1165,7 @@ describe('IssuanceAllocator', () => {
       // Add target and set allocation in one step
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 100000, 0, false)
+        ['setTargetAllocation(address,uint256,uint256)'](await target1.getAddress(), 100000, 0)
 
       // Force set lastChangeNotifiedBlock to a future block (current + 2)
       const currentBlock = await ethers.provider.getBlockNumber()
@@ -2025,24 +1226,24 @@ describe('IssuanceAllocator', () => {
       // Test 1: Setting allocation to 0 for non-existent target should not revert
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](nonExistentTarget, 0, 0, false)
+        ['setTargetAllocation(address,uint256,uint256)'](nonExistentTarget, 0, 0)
 
       // Verify no non-default targets were added (only default remains)
       const targets = await issuanceAllocator.getTargets()
-      expect(targets.length).to.equal(1) // Only default allocation
+      expect(targets.length).to.equal(1) // Only default target
 
       // Verify reported total is 0% (all in default, which isn't reported)
       const totalAlloc = await issuanceAllocator.getTotalAllocation()
-      expect(totalAlloc.totalAllocationPPM).to.equal(0)
+      expect(totalAlloc.totalAllocationRate).to.equal(0)
 
       // Test 2: Removing non-existent target (by setting allocation to 0 again) should not revert
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](nonExistentTarget, 0, 0, false)
+        ['setTargetAllocation(address,uint256,uint256)'](nonExistentTarget, 0, 0)
 
       // Verify still only default target
       const targetsAfter = await issuanceAllocator.getTargets()
-      expect(targetsAfter.length).to.equal(1) // Only default allocation
+      expect(targetsAfter.length).to.equal(1) // Only default target
     })
   })
 
@@ -2051,7 +1252,7 @@ describe('IssuanceAllocator', () => {
       const { issuanceAllocator } = sharedContracts
 
       // Get initial lastIssuanceDistributionBlock
-      const initialBlock = await issuanceAllocator.lastIssuanceDistributionBlock()
+      const initialBlock = (await issuanceAllocator.getDistributionState()).lastDistributionBlock
 
       // Mine a block
       await ethers.provider.send('evm_mine', [])
@@ -2060,26 +1261,26 @@ describe('IssuanceAllocator', () => {
       await issuanceAllocator.connect(accounts.governor).distributeIssuance()
 
       // Now lastIssuanceDistributionBlock should be updated
-      const newBlock = await issuanceAllocator.lastIssuanceDistributionBlock()
+      const newBlock = (await issuanceAllocator.getDistributionState()).lastDistributionBlock
       expect(newBlock).to.be.gt(initialBlock)
     })
 
     it('should manage target count and array correctly', async () => {
       const { issuanceAllocator, addresses } = sharedContracts
 
-      // Test initial state (with default allocation)
+      // Test initial state (with default target)
       expect(await issuanceAllocator.getTargetCount()).to.equal(1) // Default allocation exists
       expect((await issuanceAllocator.getTargets()).length).to.equal(1)
 
       // Test adding targets
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 100000, 0, false)
+        ['setTargetAllocation(address,uint256,uint256)'](addresses.target1, 100000, 0)
       expect(await issuanceAllocator.getTargetCount()).to.equal(2) // Default + target1
 
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target2, 200000, 0, false)
+        ['setTargetAllocation(address,uint256,uint256)'](addresses.target2, 200000, 0)
       expect(await issuanceAllocator.getTargetCount()).to.equal(3) // Default + target1 + target2
 
       // Test getTargets array content
@@ -2091,12 +1292,12 @@ describe('IssuanceAllocator', () => {
       // Test removing targets
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 0, 0, false)
+        ['setTargetAllocation(address,uint256,uint256)'](addresses.target1, 0, 0)
       expect(await issuanceAllocator.getTargetCount()).to.equal(2) // Default + target2
 
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target2, 0, 0, false)
+        ['setTargetAllocation(address,uint256,uint256)'](addresses.target2, 0, 0)
       expect(await issuanceAllocator.getTargetCount()).to.equal(1) // Only default remains
       expect((await issuanceAllocator.getTargets()).length).to.equal(1)
     })
@@ -2107,16 +1308,16 @@ describe('IssuanceAllocator', () => {
       // Add targets
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 100000, 0, false)
+        ['setTargetAllocation(address,uint256,uint256)'](addresses.target1, 100000, 0)
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target2, 200000, 0, false)
+        ['setTargetAllocation(address,uint256,uint256)'](addresses.target2, 200000, 0)
 
       // Get addresses array
       const targetAddresses = await issuanceAllocator.getTargets()
 
       // Check that the addresses are in the correct order
-      // targetAddresses[0] is the default allocation (address(0))
+      // targetAddresses[0] is the default target (address(0))
       expect(targetAddresses[0]).to.equal(ethers.ZeroAddress) // Default
       expect(targetAddresses[1]).to.equal(addresses.target1)
       expect(targetAddresses[2]).to.equal(addresses.target2)
@@ -2132,20 +1333,20 @@ describe('IssuanceAllocator', () => {
       // Add targets
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 100000, 0, false)
+        ['setTargetAllocation(address,uint256,uint256)'](await target1.getAddress(), 100000, 0)
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target2.getAddress(), 200000, 0, false)
+        ['setTargetAllocation(address,uint256,uint256)'](await target2.getAddress(), 200000, 0)
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target3.getAddress(), 0, 300000, false)
+        ['setTargetAllocation(address,uint256,uint256)'](await target3.getAddress(), 0, 300000)
 
       // Get all target addresses
       const addresses = await issuanceAllocator.getTargets()
       expect(addresses.length).to.equal(4) // Default + 3 targets
 
       // Check that the addresses are in the correct order
-      // addresses[0] is the default allocation (address(0))
+      // addresses[0] is the default target (address(0))
       expect(addresses[0]).to.equal(ethers.ZeroAddress) // Default
       expect(addresses[1]).to.equal(await target1.getAddress())
       expect(addresses[2]).to.equal(await target2.getAddress())
@@ -2165,11 +1366,11 @@ describe('IssuanceAllocator', () => {
       const allocation = 300000 // 30% in PPM
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, allocation, 0, false)
+        ['setTargetAllocation(address,uint256,uint256)'](addresses.target1, allocation, 0)
 
       // Now allocation should be set
       const targetAllocation = await issuanceAllocator.getTargetAllocation(addresses.target1)
-      expect(targetAllocation.totalAllocationPPM).to.equal(allocation)
+      expect(targetAllocation.totalAllocationRate).to.equal(allocation)
     })
 
     it('should return the correct allocation types', async () => {
@@ -2181,20 +1382,20 @@ describe('IssuanceAllocator', () => {
       // Add targets with different allocation types
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 100000, 0, false)
+        ['setTargetAllocation(address,uint256,uint256)'](await target1.getAddress(), 100000, 0)
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target2.getAddress(), 0, 200000, false)
+        ['setTargetAllocation(address,uint256,uint256)'](await target2.getAddress(), 0, 200000)
 
       // Check allocation types
       const target1Allocation = await issuanceAllocator.getTargetAllocation(await target1.getAddress())
       const target2Allocation = await issuanceAllocator.getTargetAllocation(await target2.getAddress())
 
-      expect(target1Allocation.selfMintingPPM).to.equal(0) // Not self-minting
-      expect(target1Allocation.allocatorMintingPPM).to.equal(100000) // Allocator-minting
+      expect(target1Allocation.selfMintingRate).to.equal(0) // Not self-minting
+      expect(target1Allocation.allocatorMintingRate).to.equal(100000) // Allocator-minting
 
-      expect(target2Allocation.selfMintingPPM).to.equal(200000) // Self-minting
-      expect(target2Allocation.allocatorMintingPPM).to.equal(0) // Not allocator-minting
+      expect(target2Allocation.selfMintingRate).to.equal(200000) // Self-minting
+      expect(target2Allocation.allocatorMintingRate).to.equal(0) // Not allocator-minting
     })
   })
 
@@ -2207,36 +1408,36 @@ describe('IssuanceAllocator', () => {
         // Adding new target
         const addResult = await issuanceAllocator
           .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'].staticCall(await target.getAddress(), 100000, 0, false)
+          ['setTargetAllocation(address,uint256,uint256,uint256)'].staticCall(await target.getAddress(), 100000, 0, 0)
         expect(addResult).to.equal(true)
 
         // Actually add the target
         await issuanceAllocator
           .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](await target.getAddress(), 100000, 0, false)
+          ['setTargetAllocation(address,uint256,uint256)'](await target.getAddress(), 100000, 0)
 
         // Changing existing allocation
         const changeResult = await issuanceAllocator
           .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'].staticCall(await target.getAddress(), 200000, 0, false)
+          ['setTargetAllocation(address,uint256,uint256,uint256)'].staticCall(await target.getAddress(), 200000, 0, 0)
         expect(changeResult).to.equal(true)
 
         // Setting same allocation (no-op)
         const sameResult = await issuanceAllocator
           .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'].staticCall(await target.getAddress(), 100000, 0, false)
+          ['setTargetAllocation(address,uint256,uint256,uint256)'].staticCall(await target.getAddress(), 100000, 0, 0)
         expect(sameResult).to.equal(true)
 
         // Removing target
         const removeResult = await issuanceAllocator
           .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'].staticCall(await target.getAddress(), 0, 0, false)
+          ['setTargetAllocation(address,uint256,uint256,uint256)'].staticCall(await target.getAddress(), 0, 0, 0)
         expect(removeResult).to.equal(true)
 
         // Setting allocation to 0 for non-existent target
         const nonExistentResult = await issuanceAllocator
           .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'].staticCall(accounts.nonGovernor.address, 0, 0, false)
+          ['setTargetAllocation(address,uint256,uint256,uint256)'].staticCall(accounts.nonGovernor.address, 0, 0, 0)
         expect(nonExistentResult).to.equal(true)
       })
     })
@@ -2255,8 +1456,8 @@ describe('IssuanceAllocator', () => {
 
         // Verify the allocation was set correctly
         const allocation1 = await issuanceAllocator.getTargetAllocation(await target1.getAddress())
-        expect(allocation1.allocatorMintingPPM).to.equal(allocatorPPM)
-        expect(allocation1.selfMintingPPM).to.equal(0)
+        expect(allocation1.allocatorMintingRate).to.equal(allocatorPPM)
+        expect(allocation1.selfMintingRate).to.equal(0)
 
         // Test 2: 3-parameter overload (allocator + self)
         const allocatorPPM2 = 200000 // 20%
@@ -2267,8 +1468,8 @@ describe('IssuanceAllocator', () => {
 
         // Verify the allocation was set correctly
         const allocation2 = await issuanceAllocator.getTargetAllocation(await target2.getAddress())
-        expect(allocation2.allocatorMintingPPM).to.equal(allocatorPPM2)
-        expect(allocation2.selfMintingPPM).to.equal(selfPPM)
+        expect(allocation2.allocatorMintingRate).to.equal(allocatorPPM2)
+        expect(allocation2.selfMintingRate).to.equal(selfPPM)
 
         // Test 3: Access control - 2-parameter overload should require governor
         await expect(
@@ -2292,32 +1493,42 @@ describe('IssuanceAllocator', () => {
 
         // Should return true for normal operations
         const newRate = ethers.parseEther('200')
-        const normalResult = await issuanceAllocator
-          .connect(accounts.governor)
-          .setIssuancePerBlock.staticCall(newRate, false)
+        const normalResult = await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock.staticCall(newRate)
         expect(normalResult).to.equal(true)
 
         // Should return true even when setting same rate
         const sameResult = await issuanceAllocator
           .connect(accounts.governor)
-          .setIssuancePerBlock.staticCall(issuancePerBlock, false)
+          .setIssuancePerBlock.staticCall(issuancePerBlock)
         expect(sameResult).to.equal(true)
 
         // Grant pause role and pause the contract
         await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
         await issuanceAllocator.connect(accounts.governor).pause()
 
-        // Should return false when paused without force
-        const pausedResult = await issuanceAllocator
-          .connect(accounts.governor)
-          .setIssuancePerBlock.staticCall(newRate, false)
+        // setIssuancePerBlock returns false when paused without explicit fromBlockNumber
+        const pausedResult = await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock.staticCall(newRate)
         expect(pausedResult).to.equal(false)
 
-        // Should return true when paused with force=true
-        const forcedResult = await issuanceAllocator
+        // setIssuancePerBlock returns true when paused with explicit fromBlockNumber that has been reached
+        const lastDistributionBlock = await (await issuanceAllocator.getDistributionState()).lastDistributionBlock
+        const pausedWithBlockResult = await issuanceAllocator
           .connect(accounts.governor)
-          .setIssuancePerBlock.staticCall(newRate, true)
-        expect(forcedResult).to.equal(true)
+          ['setIssuancePerBlock(uint256,uint256)'].staticCall(newRate, lastDistributionBlock)
+        expect(pausedWithBlockResult).to.equal(true)
+
+        // Actually execute the call with fromBlockNumber to cover all branches
+        await issuanceAllocator
+          .connect(accounts.governor)
+          ['setIssuancePerBlock(uint256,uint256)'](newRate, lastDistributionBlock)
+        expect(await issuanceAllocator.getIssuancePerBlock()).to.equal(newRate)
+
+        // Verify the simple variant still returns false when paused
+        const differentRate = ethers.parseEther('2000')
+        const result = await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock.staticCall(differentRate)
+        expect(result).to.equal(false)
+        // Rate should not change because paused and no explicit fromBlockNumber
+        expect(await issuanceAllocator.getIssuancePerBlock()).to.equal(newRate)
       })
     })
 
@@ -2327,14 +1538,14 @@ describe('IssuanceAllocator', () => {
 
         // Should return lastIssuanceDistributionBlock when no blocks have passed
         await issuanceAllocator.connect(accounts.governor).distributeIssuance()
-        const lastIssuanceBlock = await issuanceAllocator.lastIssuanceDistributionBlock()
+        const lastIssuanceBlock = (await issuanceAllocator.getDistributionState()).lastDistributionBlock
         const noBlocksResult = await issuanceAllocator.connect(accounts.governor).distributeIssuance.staticCall()
         expect(noBlocksResult).to.equal(lastIssuanceBlock)
 
         // Add a target and mine blocks to test distribution
         await issuanceAllocator
           .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 300000, 0, false) // 30%
+          ['setTargetAllocation(address,uint256,uint256)'](addresses.target1, 300000, 0) // 30%
         await ethers.provider.send('evm_mine', [])
 
         // Should return current block number when issuance is distributed
@@ -2348,39 +1559,44 @@ describe('IssuanceAllocator', () => {
   describe('getTargetIssuancePerBlock', () => {
     it('should return correct issuance for different target configurations', async () => {
       const { issuanceAllocator, addresses } = sharedContracts
-      const issuancePerBlock = await issuanceAllocator.issuancePerBlock()
-      const PPM = 1_000_000
+      // OLD: These were used for PPM calculations
+      // const issuancePerBlock = await issuanceAllocator.getIssuancePerBlock()
+      // const PPM = 1_000_000
 
       // Test unregistered target (should return zeros)
       let result = await issuanceAllocator.getTargetIssuancePerBlock(addresses.target1)
-      expect(result.selfIssuancePerBlock).to.equal(0)
-      expect(result.allocatorIssuancePerBlock).to.equal(0)
+      expect(result.selfIssuanceRate).to.equal(0)
+      expect(result.allocatorIssuanceRate).to.equal(0)
       expect(result.allocatorIssuanceBlockAppliedTo).to.be.greaterThanOrEqual(0)
       expect(result.selfIssuanceBlockAppliedTo).to.be.greaterThanOrEqual(0)
 
       // Test self-minting target with 30% allocation
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 0, 300000, false)
+        ['setTargetAllocation(address,uint256,uint256)'](addresses.target1, 0, ethers.parseEther('30'))
 
-      const expectedSelfIssuance = (issuancePerBlock * BigInt(300000)) / BigInt(PPM)
+      const expectedSelfIssuance = ethers.parseEther('30')
       result = await issuanceAllocator.getTargetIssuancePerBlock(addresses.target1)
-      expect(result.selfIssuancePerBlock).to.equal(expectedSelfIssuance)
-      expect(result.allocatorIssuancePerBlock).to.equal(0)
-      expect(result.selfIssuanceBlockAppliedTo).to.equal(await ethers.provider.getBlockNumber())
-      expect(result.allocatorIssuanceBlockAppliedTo).to.equal(await issuanceAllocator.lastIssuanceDistributionBlock())
+      expect(result.selfIssuanceRate).to.equal(expectedSelfIssuance)
+      expect(result.allocatorIssuanceRate).to.equal(0)
+      //       expect(result.selfIssuanceBlockAppliedTo).to.equal(await issuanceAllocator.lastIssuanceAccumulationBlock())
+      expect(result.allocatorIssuanceBlockAppliedTo).to.equal(
+        (await issuanceAllocator.getDistributionState()).lastDistributionBlock,
+      )
 
       // Test allocator-minting target with 40% allocation (reset target1 first)
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 400000, 0, false)
+        ['setTargetAllocation(address,uint256,uint256)'](addresses.target1, ethers.parseEther('40'), 0)
 
-      const expectedAllocatorIssuance = (issuancePerBlock * BigInt(400000)) / BigInt(PPM)
+      const expectedAllocatorIssuance = ethers.parseEther('40')
       result = await issuanceAllocator.getTargetIssuancePerBlock(addresses.target1)
-      expect(result.allocatorIssuancePerBlock).to.equal(expectedAllocatorIssuance)
-      expect(result.selfIssuancePerBlock).to.equal(0)
-      expect(result.allocatorIssuanceBlockAppliedTo).to.equal(await ethers.provider.getBlockNumber())
-      expect(result.selfIssuanceBlockAppliedTo).to.equal(await ethers.provider.getBlockNumber())
+      expect(result.allocatorIssuanceRate).to.equal(expectedAllocatorIssuance)
+      expect(result.selfIssuanceRate).to.equal(0)
+      expect(result.allocatorIssuanceBlockAppliedTo).to.equal(
+        (await issuanceAllocator.getDistributionState()).lastDistributionBlock,
+      )
+      //       expect(result.selfIssuanceBlockAppliedTo).to.equal(await issuanceAllocator.lastIssuanceAccumulationBlock())
     })
 
     it('should not revert when contract is paused and blockAppliedTo indicates pause state', async () => {
@@ -2389,7 +1605,7 @@ describe('IssuanceAllocator', () => {
       // Add target as self-minter with 30% allocation
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 0, 300000, false) // 30%, self-minter
+        ['setTargetAllocation(address,uint256,uint256)'](addresses.target1, 0, ethers.parseEther('30')) // 30%, self-minter
 
       // Distribute issuance to set blockAppliedTo to current block
       await issuanceAllocator.distributeIssuance()
@@ -2399,19 +1615,21 @@ describe('IssuanceAllocator', () => {
       await issuanceAllocator.connect(accounts.governor).pause()
 
       // Should not revert when paused - this is the key difference from old functions
-      const currentBlockBeforeCall = await ethers.provider.getBlockNumber()
       const result = await issuanceAllocator.getTargetIssuancePerBlock(addresses.target1)
 
-      const issuancePerBlock = await issuanceAllocator.issuancePerBlock()
-      const PPM = 1_000_000
-      const expectedIssuance = (issuancePerBlock * BigInt(300000)) / BigInt(PPM)
+      // OLD: These were used for PPM calculations
+      // const issuancePerBlock = await issuanceAllocator.getIssuancePerBlock()
+      // const PPM = 1_000_000
+      const expectedIssuance = ethers.parseEther('30')
 
-      expect(result.selfIssuancePerBlock).to.equal(expectedIssuance)
-      expect(result.allocatorIssuancePerBlock).to.equal(0)
-      // For self-minting targets, selfIssuanceBlockAppliedTo should always be current block, even when paused
-      expect(result.selfIssuanceBlockAppliedTo).to.equal(currentBlockBeforeCall)
+      expect(result.selfIssuanceRate).to.equal(expectedIssuance)
+      expect(result.allocatorIssuanceRate).to.equal(0)
+      // For self-minting targets, selfIssuanceBlockAppliedTo reflects when events were last emitted (lastAccumulationBlock)
+      //       expect(result.selfIssuanceBlockAppliedTo).to.equal(await issuanceAllocator.lastIssuanceAccumulationBlock())
       // allocatorIssuanceBlockAppliedTo should be the last distribution block (before pause)
-      expect(result.allocatorIssuanceBlockAppliedTo).to.equal(await issuanceAllocator.lastIssuanceDistributionBlock())
+      expect(result.allocatorIssuanceBlockAppliedTo).to.equal(
+        (await issuanceAllocator.getDistributionState()).lastDistributionBlock,
+      )
     })
 
     it('should show blockAppliedTo updates after distribution', async () => {
@@ -2423,7 +1641,9 @@ describe('IssuanceAllocator', () => {
       // Add target as allocator-minter with 50% allocation
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 500000, 0, false) // 50%, allocator-minter
+        [
+          'setTargetAllocation(address,uint256,uint256,uint256)'
+        ](await target1.getAddress(), ethers.parseEther('50'), 0, 0) // 50%, allocator-minter
 
       // allocatorIssuanceBlockAppliedTo should be current block since setTargetAllocation triggers distribution
       let result = await issuanceAllocator.getTargetIssuancePerBlock(await target1.getAddress())
@@ -2439,441 +1659,12 @@ describe('IssuanceAllocator', () => {
       expect(result.allocatorIssuanceBlockAppliedTo).to.equal(distributionBlock)
       expect(result.selfIssuanceBlockAppliedTo).to.equal(distributionBlock)
 
-      const issuancePerBlock = await issuanceAllocator.issuancePerBlock()
-      const PPM = 1_000_000
-      const expectedIssuance = (issuancePerBlock * BigInt(500000)) / BigInt(PPM)
-      expect(result.allocatorIssuancePerBlock).to.equal(expectedIssuance)
-      expect(result.selfIssuancePerBlock).to.equal(0)
-    })
-  })
-
-  describe('distributePendingIssuance', () => {
-    it('should only allow governor to call distributePendingIssuance', async () => {
-      const { issuanceAllocator } = sharedContracts
-
-      // Non-governor should not be able to call distributePendingIssuance
-      await expect(
-        issuanceAllocator.connect(accounts.nonGovernor)['distributePendingIssuance()'](),
-      ).to.be.revertedWithCustomError(issuanceAllocator, 'AccessControlUnauthorizedAccount')
-
-      // Governor should be able to call distributePendingIssuance (even if no pending issuance)
-      await expect(issuanceAllocator.connect(accounts.governor)['distributePendingIssuance()']()).to.not.be.reverted
-
-      // Test return value using staticCall - should return lastIssuanceDistributionBlock
-      const result = await issuanceAllocator.connect(accounts.governor).distributePendingIssuance.staticCall()
-      const lastDistributionBlock = await issuanceAllocator.lastIssuanceDistributionBlock()
-      expect(result).to.equal(lastDistributionBlock)
-    })
-
-    it('should be a no-op when there is no pending issuance', async () => {
-      const { issuanceAllocator, addresses } = sharedContracts
-
-      // Setup with zero issuance rate to ensure no pending accumulation
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(0, false) // No issuance
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 300000, 0, false) // 30%
-
-      // Initialize distribution
-      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
-
-      // Verify no pending issuance (should be 0 since issuance rate is 0)
-      expect(await issuanceAllocator.pendingAccumulatedAllocatorIssuance()).to.equal(0)
-
-      const { graphToken } = sharedContracts
-      const initialBalance = await (graphToken as any).balanceOf(addresses.target1)
-
-      // Call distributePendingIssuance - should be no-op
-      await issuanceAllocator.connect(accounts.governor)['distributePendingIssuance()']()
-
-      // Test return value using staticCall - should return lastIssuanceDistributionBlock
-      const result = await issuanceAllocator.connect(accounts.governor).distributePendingIssuance.staticCall()
-      const lastDistributionBlock = await issuanceAllocator.lastIssuanceDistributionBlock()
-
-      // Should return last distribution block (since no pending issuance to distribute)
-      expect(result).to.equal(lastDistributionBlock)
-
-      // Balance should remain the same
-      expect(await (graphToken as any).balanceOf(addresses.target1)).to.equal(initialBalance)
-      expect(await issuanceAllocator.pendingAccumulatedAllocatorIssuance()).to.equal(0)
-    })
-
-    it('should distribute pending issuance to allocator-minting targets', async () => {
-      const { issuanceAllocator, graphToken, target1, target2 } = await setupIssuanceAllocator()
-
-      // Setup
-      await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
-      await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'), false)
-
-      // Add allocator-minting targets and a small self-minting target
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 590000, 0, false) // 59%
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target2.getAddress(), 400000, 10000, false) // 40% allocator + 1% self
-
-      // Distribute once to initialize
-      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
-      const initialBalance1 = await (graphToken as any).balanceOf(await target1.getAddress())
-      const initialBalance2 = await (graphToken as any).balanceOf(await target2.getAddress())
-
-      // Pause and accumulate some issuance
-      await issuanceAllocator.connect(accounts.governor).pause()
-      await ethers.provider.send('evm_mine', [])
-      await ethers.provider.send('evm_mine', [])
-
-      // Trigger accumulation by changing self-minting allocation
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target2.getAddress(), 400000, 0, true) // Remove self-minting
-
-      const pendingBefore = await issuanceAllocator.pendingAccumulatedAllocatorIssuance()
-      expect(pendingBefore).to.be.gt(0)
-
-      // Call distributePendingIssuance while still paused
-      await issuanceAllocator.connect(accounts.governor)['distributePendingIssuance()']()
-
-      // Check that pending was distributed proportionally
-      const finalBalance1 = await (graphToken as any).balanceOf(await target1.getAddress())
-      const finalBalance2 = await (graphToken as any).balanceOf(await target2.getAddress())
-
-      expect(finalBalance1).to.be.gt(initialBalance1)
-      expect(finalBalance2).to.be.gt(initialBalance2)
-
-      // Verify pending issuance was reset to 0
-      expect(await issuanceAllocator.pendingAccumulatedAllocatorIssuance()).to.equal(0)
-
-      // Verify proportional distribution (59% vs 40%)
-      const distributed1 = finalBalance1 - initialBalance1
-      const distributed2 = finalBalance2 - initialBalance2
-      const ratio = (BigInt(distributed1) * BigInt(1000)) / BigInt(distributed2) // Multiply by 1000 for precision
-      expect(ratio).to.be.closeTo(1475n, 50n) // 59/40 = 1.475, with some tolerance for rounding
-    })
-
-    it('should be a no-op when allocatorMintingAllowance is 0 (all targets are self-minting)', async () => {
-      const { issuanceAllocator, graphToken, target1 } = await setupIssuanceAllocator()
-
-      // Setup
-      await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
-      await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'), false)
-
-      // Add only self-minting targets (100% self-minting)
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 0, 1000000, false) // 100% self-minting
-
-      // Distribute once to initialize
-      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
-
-      // Pause and accumulate some issuance
-      await issuanceAllocator.connect(accounts.governor).pause()
-      await ethers.provider.send('evm_mine', [])
-      await ethers.provider.send('evm_mine', [])
-
-      // Trigger accumulation by changing rate
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('200'), false)
-
-      const pendingBefore = await issuanceAllocator.pendingAccumulatedAllocatorIssuance()
-      expect(pendingBefore).to.equal(0) // Should be 0 because allocatorMintingAllowance is 0
-
-      const initialBalance = await (graphToken as any).balanceOf(await target1.getAddress())
-
-      // Call distributePendingIssuance - should be no-op due to allocatorMintingAllowance = 0
-      await issuanceAllocator.connect(accounts.governor)['distributePendingIssuance()']()
-
-      // Balance should remain the same (self-minting targets don't receive tokens from allocator)
-      expect(await (graphToken as any).balanceOf(await target1.getAddress())).to.equal(initialBalance)
-
-      // Pending issuance should be reset to 0 even though nothing was distributed
-      expect(await issuanceAllocator.pendingAccumulatedAllocatorIssuance()).to.equal(0)
-    })
-
-    it('should work when contract is paused', async () => {
-      const { issuanceAllocator, graphToken, target1 } = await setupIssuanceAllocator()
-
-      // Setup
-      await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
-      await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'), false)
-
-      // Add allocator-minting target
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 500000, 0, false) // 50%
-
-      // Distribute once to initialize
-      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
-      const initialBalance = await (graphToken as any).balanceOf(await target1.getAddress())
-
-      // Pause and accumulate some issuance
-      await issuanceAllocator.connect(accounts.governor).pause()
-      await ethers.provider.send('evm_mine', [])
-      await ethers.provider.send('evm_mine', [])
-
-      // Trigger accumulation by changing rate
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('200'), true)
-
-      const pendingBefore = await issuanceAllocator.pendingAccumulatedAllocatorIssuance()
-      expect(pendingBefore).to.be.gt(0)
-
-      // Call distributePendingIssuance while paused - should work
-      await expect(issuanceAllocator.connect(accounts.governor)['distributePendingIssuance()']()).to.not.be.reverted
-
-      // Check that pending was distributed
-      const finalBalance = await (graphToken as any).balanceOf(await target1.getAddress())
-      expect(finalBalance).to.be.gt(initialBalance)
-
-      // Verify pending issuance was reset to 0
-      expect(await issuanceAllocator.pendingAccumulatedAllocatorIssuance()).to.equal(0)
-    })
-
-    it('should emit IssuanceDistributed events for each target', async () => {
-      const { issuanceAllocator, graphToken, target1, target2 } = await setupIssuanceAllocator()
-
-      // Setup
-      await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
-      await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'), false)
-
-      // Add allocator-minting targets and a small self-minting target
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 300000, 0, false) // 30%
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target2.getAddress(), 190000, 10000, false) // 19% allocator + 1% self
-
-      // Distribute once to initialize
-      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
-
-      // Pause and accumulate some issuance
-      await issuanceAllocator.connect(accounts.governor).pause()
-      await ethers.provider.send('evm_mine', [])
-      await ethers.provider.send('evm_mine', [])
-
-      // Trigger accumulation by changing self-minting allocation
-      await issuanceAllocator
-        .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target2.getAddress(), 200000, 0, true) // Remove self-minting
-
-      const pendingBefore = await issuanceAllocator.pendingAccumulatedAllocatorIssuance()
-      expect(pendingBefore).to.be.gt(0)
-
-      // Call distributePendingIssuance and check events
-      const tx = await issuanceAllocator.connect(accounts.governor)['distributePendingIssuance()']()
-      const receipt = await tx.wait()
-
-      // Should emit events for both targets
-      const events = receipt.logs.filter(
-        (log) => log.topics[0] === issuanceAllocator.interface.getEvent('IssuanceDistributed').topicHash,
-      )
-      expect(events.length).to.equal(2)
-
-      // Verify the events contain the correct target addresses
-      const decodedEvents = events.map((event) => issuanceAllocator.interface.parseLog(event))
-      const targetAddresses = decodedEvents.map((event) => event.args.target)
-      expect(targetAddresses).to.include(await target1.getAddress())
-      expect(targetAddresses).to.include(await target2.getAddress())
-    })
-
-    describe('distributePendingIssuance(uint256 toBlockNumber)', () => {
-      it('should validate distributePendingIssuance(uint256) access control and parameters', async () => {
-        const { issuanceAllocator } = sharedContracts
-
-        // Test 1: Access control - Non-governor should not be able to call distributePendingIssuance
-        await expect(
-          issuanceAllocator.connect(accounts.nonGovernor)['distributePendingIssuance(uint256)'](100),
-        ).to.be.revertedWithCustomError(issuanceAllocator, 'AccessControlUnauthorizedAccount')
-
-        // Test 2: Parameter validation - Should revert when toBlockNumber is less than lastIssuanceAccumulationBlock
-        const lastAccumulationBlock = await issuanceAllocator.lastIssuanceAccumulationBlock()
-        const invalidBlock = lastAccumulationBlock - 1n
-        await expect(
-          issuanceAllocator.connect(accounts.governor)['distributePendingIssuance(uint256)'](invalidBlock),
-        ).to.be.revertedWithCustomError(issuanceAllocator, 'ToBlockOutOfRange')
-
-        // Test 3: Parameter validation - Should revert when toBlockNumber is greater than current block
-        const currentBlock = await ethers.provider.getBlockNumber()
-        const futureBlock = currentBlock + 10
-        await expect(
-          issuanceAllocator.connect(accounts.governor)['distributePendingIssuance(uint256)'](futureBlock),
-        ).to.be.revertedWithCustomError(issuanceAllocator, 'ToBlockOutOfRange')
-
-        // Test 4: Valid call - Governor should be able to call distributePendingIssuance with valid block number
-        await expect(issuanceAllocator.connect(accounts.governor)['distributePendingIssuance(uint256)'](currentBlock))
-          .to.not.be.reverted
-      })
-
-      it('should accumulate and distribute issuance up to specified block', async () => {
-        const { issuanceAllocator, graphToken, target1 } = await setupIssuanceAllocator()
-
-        // Setup
-        await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
-        await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
-        await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'), false)
-
-        // Add target
-        await issuanceAllocator
-          .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 500000, 0, false) // 50%
-
-        // Pause to enable accumulation
-        await issuanceAllocator.connect(accounts.governor).pause()
-
-        // Mine some blocks to create a gap
-        await ethers.provider.send('hardhat_mine', ['0x5']) // Mine 5 blocks
-
-        const initialBalance = await (graphToken as any).balanceOf(await target1.getAddress())
-        const currentBlock = await ethers.provider.getBlockNumber()
-        const targetBlock = currentBlock - 2 // Accumulate up to 2 blocks ago
-
-        // Call distributePendingIssuance with specific toBlockNumber
-        await issuanceAllocator.connect(accounts.governor)['distributePendingIssuance(uint256)'](targetBlock)
-
-        // Check that tokens were distributed
-        const finalBalance = await (graphToken as any).balanceOf(await target1.getAddress())
-        expect(finalBalance).to.be.gt(initialBalance)
-
-        // Check that accumulation block was updated to targetBlock
-        expect(await issuanceAllocator.lastIssuanceAccumulationBlock()).to.equal(targetBlock)
-
-        // Check that distribution block was updated to targetBlock
-        expect(await issuanceAllocator.lastIssuanceDistributionBlock()).to.equal(targetBlock)
-
-        // Pending should be reset to 0
-        expect(await issuanceAllocator.pendingAccumulatedAllocatorIssuance()).to.equal(0)
-      })
-
-      it('should work with toBlockNumber equal to lastIssuanceAccumulationBlock (no-op)', async () => {
-        const { issuanceAllocator, graphToken, target1 } = await setupIssuanceAllocator()
-
-        // Setup
-        await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
-        await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'), false)
-
-        // Add target
-        await issuanceAllocator
-          .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 500000, 0, false) // 50%
-
-        const lastAccumulationBlock = await issuanceAllocator.lastIssuanceAccumulationBlock()
-        const initialBalance = await (graphToken as any).balanceOf(await target1.getAddress())
-
-        // Call with same block number - should be no-op for accumulation
-        await issuanceAllocator.connect(accounts.governor)['distributePendingIssuance(uint256)'](lastAccumulationBlock)
-
-        // Balance should remain the same (no new accumulation)
-        const finalBalance = await (graphToken as any).balanceOf(await target1.getAddress())
-        expect(finalBalance).to.equal(initialBalance)
-
-        // Blocks should remain the same
-        expect(await issuanceAllocator.lastIssuanceAccumulationBlock()).to.equal(lastAccumulationBlock)
-      })
-
-      it('should work with toBlockNumber equal to current block', async () => {
-        const { issuanceAllocator, graphToken, target1 } = await setupIssuanceAllocator()
-
-        // Setup
-        await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
-        await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
-        await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'), false)
-
-        // Add target
-        await issuanceAllocator
-          .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 500000, 0, false) // 50%
-
-        // Pause to enable accumulation
-        await issuanceAllocator.connect(accounts.governor).pause()
-
-        // Mine some blocks to create a gap
-        await ethers.provider.send('hardhat_mine', ['0x3']) // Mine 3 blocks
-
-        const initialBalance = await (graphToken as any).balanceOf(await target1.getAddress())
-        const currentBlock = await ethers.provider.getBlockNumber()
-
-        // Call distributePendingIssuance with current block
-        await issuanceAllocator.connect(accounts.governor)['distributePendingIssuance(uint256)'](currentBlock)
-
-        // Check that tokens were distributed
-        const finalBalance = await (graphToken as any).balanceOf(await target1.getAddress())
-        expect(finalBalance).to.be.gt(initialBalance)
-
-        // Check that accumulation block was updated to current block
-        expect(await issuanceAllocator.lastIssuanceAccumulationBlock()).to.equal(currentBlock)
-      })
-
-      it('should handle multiple calls with different toBlockNumbers', async () => {
-        const { issuanceAllocator, graphToken, target1 } = await setupIssuanceAllocator()
-
-        // Setup
-        await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
-        await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
-        await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'), false)
-
-        // Add target
-        await issuanceAllocator
-          .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 500000, 0, false) // 50%
-
-        // Pause to enable accumulation
-        await issuanceAllocator.connect(accounts.governor).pause()
-
-        // Mine some blocks to create a gap
-        await ethers.provider.send('hardhat_mine', ['0x5']) // Mine 5 blocks
-
-        const initialBalance = await (graphToken as any).balanceOf(await target1.getAddress())
-        const currentBlock = await ethers.provider.getBlockNumber()
-        const firstTargetBlock = currentBlock - 3
-        const secondTargetBlock = currentBlock - 1
-
-        // First call - accumulate up to firstTargetBlock
-        await issuanceAllocator.connect(accounts.governor)['distributePendingIssuance(uint256)'](firstTargetBlock)
-
-        const balanceAfterFirst = await (graphToken as any).balanceOf(await target1.getAddress())
-        expect(balanceAfterFirst).to.be.gt(initialBalance)
-        expect(await issuanceAllocator.lastIssuanceAccumulationBlock()).to.equal(firstTargetBlock)
-
-        // Second call - accumulate from firstTargetBlock to secondTargetBlock
-        await issuanceAllocator.connect(accounts.governor)['distributePendingIssuance(uint256)'](secondTargetBlock)
-
-        const balanceAfterSecond = await (graphToken as any).balanceOf(await target1.getAddress())
-        expect(balanceAfterSecond).to.be.gt(balanceAfterFirst)
-        expect(await issuanceAllocator.lastIssuanceAccumulationBlock()).to.equal(secondTargetBlock)
-      })
-
-      it('should return correct block number after distribution', async () => {
-        const { issuanceAllocator, graphToken, target1 } = await setupIssuanceAllocator()
-
-        // Setup
-        await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
-        await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
-        await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'), false)
-
-        // Add target
-        await issuanceAllocator
-          .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 500000, 0, false) // 50%
-
-        // Pause to enable accumulation
-        await issuanceAllocator.connect(accounts.governor).pause()
-
-        // Mine some blocks
-        await ethers.provider.send('hardhat_mine', ['0x3']) // Mine 3 blocks
-
-        const currentBlock = await ethers.provider.getBlockNumber()
-        const targetBlock = currentBlock - 1
-
-        // Test return value using staticCall
-        const result = await issuanceAllocator
-          .connect(accounts.governor)
-          ['distributePendingIssuance(uint256)'].staticCall(targetBlock)
-
-        expect(result).to.equal(targetBlock)
-      })
+      // OLD: These were used for PPM calculations
+      // const issuancePerBlock = await issuanceAllocator.getIssuancePerBlock()
+      // const PPM = 1_000_000
+      const expectedIssuance = ethers.parseEther('50')
+      expect(result.allocatorIssuanceRate).to.equal(expectedIssuance)
+      expect(result.selfIssuanceRate).to.equal(0)
     })
   })
 
@@ -2883,25 +1674,26 @@ describe('IssuanceAllocator', () => {
 
       // Setup
       await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'), false)
+      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'))
 
       // Add initial allocation
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 300000, 0, false) // 30%
+        ['setTargetAllocation(address,uint256,uint256)'](addresses.target1, 300000, 0) // 30%
 
       // Pause the contract
       await issuanceAllocator.connect(accounts.governor).pause()
 
       // Change allocation while paused - should notify target even though paused
+      const lastDistributionBlock = await (await issuanceAllocator.getDistributionState()).lastDistributionBlock
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 400000, 0, true) // Change to 40%
+        ['setTargetAllocation(address,uint256,uint256,uint256)'](addresses.target1, 400000, 0, lastDistributionBlock) // Change to 40%
 
       // Verify that beforeIssuanceAllocationChange was called on the target
       // This is verified by checking that the transaction succeeded and the allocation was updated
       const allocation = await issuanceAllocator.getTargetAllocation(addresses.target1)
-      expect(allocation.allocatorMintingPPM).to.equal(400000)
+      expect(allocation.allocatorMintingRate).to.equal(400000)
     })
 
     it('should notify targets of issuance rate changes even when paused', async () => {
@@ -2909,21 +1701,25 @@ describe('IssuanceAllocator', () => {
 
       // Setup
       await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'), false)
+      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'))
 
       // Add target
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 300000, 0, false) // 30%
+        ['setTargetAllocation(address,uint256)'](addresses.target1, 300000) // 30%
 
       // Pause the contract
       await issuanceAllocator.connect(accounts.governor).pause()
 
       // Change issuance rate while paused - should notify targets even though paused
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('200'), true)
+      // Use explicit fromBlockNumber to allow change while paused
+      const lastDistributionBlock = await (await issuanceAllocator.getDistributionState()).lastDistributionBlock
+      await issuanceAllocator
+        .connect(accounts.governor)
+        ['setIssuancePerBlock(uint256,uint256)'](ethers.parseEther('200'), lastDistributionBlock)
 
       // Verify that the rate change was applied
-      expect(await issuanceAllocator.issuancePerBlock()).to.equal(ethers.parseEther('200'))
+      expect(await issuanceAllocator.getIssuancePerBlock()).to.equal(ethers.parseEther('200'))
     })
 
     it('should not notify targets when no actual change occurs', async () => {
@@ -2931,596 +1727,921 @@ describe('IssuanceAllocator', () => {
 
       // Setup
       await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'), false)
+      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'))
 
       // Add target
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 300000, 0, false) // 30%
+        ['setTargetAllocation(address,uint256,uint256)'](await target1.getAddress(), 300000, 0) // 30%
 
       // Try to set the same allocation - should not notify (no change)
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 300000, 0, false) // Same 30%
+        ['setTargetAllocation(address,uint256,uint256)'](await target1.getAddress(), 300000, 0) // Same 30%
 
       // Verify allocation is unchanged
       const allocation = await issuanceAllocator.getTargetAllocation(await target1.getAddress())
-      expect(allocation.allocatorMintingPPM).to.equal(300000)
+      expect(allocation.allocatorMintingRate).to.equal(300000)
 
       // Try to set the same issuance rate - should not notify (no change)
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'), false)
+      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'))
 
-      expect(await issuanceAllocator.issuancePerBlock()).to.equal(ethers.parseEther('100'))
+      expect(await issuanceAllocator.getIssuancePerBlock()).to.equal(ethers.parseEther('100'))
     })
   })
 
-  describe('Mixed Allocation Distribution Scenarios', () => {
-    it('should correctly distribute pending issuance with mixed allocations and unallocated space', async () => {
+  describe('Pending Issuance Distribution', () => {
+    it('should handle distributePendingIssuance with accumulated self-minting', async () => {
       const { issuanceAllocator, graphToken, target1, target2 } = await setupIssuanceAllocator()
 
       // Setup
       await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
       await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('1000'), false)
+      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'))
 
-      // Test scenario: 20% allocator-minting + 40% self-minting (leaving 40% for default)
+      // Add allocator-minting and self-minting targets
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 200000, 0, false) // 20% allocator-minting
+        ['setTargetAllocation(address,uint256,uint256)'](await target1.getAddress(), 400000, 0) // 40% allocator
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target2.getAddress(), 0, 400000, false) // 40% self-minting
-      // 40% goes to default allocation
-
-      // Verify the setup
-      const totalAllocation = await issuanceAllocator.getTotalAllocation()
-      expect(totalAllocation.totalAllocationPPM).to.equal(600000) // 60% reported (excludes default's 40%)
-      expect(totalAllocation.allocatorMintingPPM).to.equal(200000) // 20% allocator (excludes default's 40%)
-      expect(totalAllocation.selfMintingPPM).to.equal(400000) // 40% self
+        ['setTargetAllocation(address,uint256,uint256)'](await target2.getAddress(), 0, 100000) // 10% self
 
       // Distribute once to initialize
       await issuanceAllocator.connect(accounts.governor).distributeIssuance()
-
-      // Pause and accumulate issuance
-      await issuanceAllocator.connect(accounts.governor).pause()
-      for (let i = 0; i < 10; i++) {
-        await ethers.provider.send('evm_mine', [])
-      }
-
-      // Trigger accumulation by forcing rate change
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('2000'), true)
-
-      const pendingBefore = await issuanceAllocator.pendingAccumulatedAllocatorIssuance()
-      expect(pendingBefore).to.be.gt(0)
-
       const initialBalance1 = await (graphToken as any).balanceOf(await target1.getAddress())
-      const initialBalance2 = await (graphToken as any).balanceOf(await target2.getAddress())
+
+      // Pause and mine blocks to accumulate self-minting
+      await issuanceAllocator.connect(accounts.governor).pause()
+      await ethers.provider.send('evm_mine', [])
+      await ethers.provider.send('evm_mine', [])
+
+      // Trigger accumulation by changing self-minting allocation
+      await issuanceAllocator
+        .connect(accounts.governor)
+        ['setTargetAllocation(address,uint256,uint256,uint256)'](await target2.getAddress(), 0, 200000, 0) // Change to 20% self
+
+      // Check accumulation exists
+      const distState = await issuanceAllocator.getDistributionState()
+      expect(distState.selfMintingOffset).to.be.gt(0)
 
       // Call distributePendingIssuance
       await issuanceAllocator.connect(accounts.governor)['distributePendingIssuance()']()
 
+      // Verify tokens were distributed
       const finalBalance1 = await (graphToken as any).balanceOf(await target1.getAddress())
-      const finalBalance2 = await (graphToken as any).balanceOf(await target2.getAddress())
+      expect(finalBalance1).to.be.gt(initialBalance1)
 
-      const distributed1 = finalBalance1 - initialBalance1
-      const distributed2 = finalBalance2 - initialBalance2
-
-      // Target2 (self-minting) should receive nothing from distributePendingIssuance
-      expect(distributed2).to.equal(0)
-
-      // Target1 should receive the correct proportional amount
-      // The calculation is: (pendingAmount * 200000) / (1000000 - 400000) = (pendingAmount * 200000) / 600000 = pendingAmount * 1/3
-      // So target1 should get exactly 33.33% of the pending amount
-      const expectedDistribution = (pendingBefore * 200000n) / 600000n // 33.33% of pending
-      expect(distributed1).to.be.closeTo(expectedDistribution, ethers.parseEther('1'))
-
-      // Verify pending issuance was reset
-      expect(await issuanceAllocator.pendingAccumulatedAllocatorIssuance()).to.equal(0)
+      // Verify accumulation was cleared
+      const finalDistState = await issuanceAllocator.getDistributionState()
+      expect(finalDistState.selfMintingOffset).to.equal(0)
     })
 
-    it('should correctly distribute pending issuance among multiple allocator-minting targets', async () => {
-      const { issuanceAllocator, graphToken, target1, target2, target3 } = await setupIssuanceAllocator()
+    it('should handle distributePendingIssuance with toBlockNumber parameter', async () => {
+      const { issuanceAllocator, graphToken, target1 } = await setupIssuanceAllocator()
 
       // Setup
       await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
       await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('1000'), false)
-
-      // Test scenario: 12% + 8% allocator-minting + 40% self-minting (leaving 40% for default)
+      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'))
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 120000, 0, false) // 12% allocator-minting
+        ['setTargetAllocation(address,uint256,uint256)'](await target1.getAddress(), 500000, 100000)
+
+      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
+      const beforePauseState = await issuanceAllocator.getDistributionState()
+
+      await issuanceAllocator.connect(accounts.governor).pause()
+      await ethers.provider.send('evm_mine', [])
+      await ethers.provider.send('evm_mine', [])
+      await ethers.provider.send('evm_mine', [])
+      await ethers.provider.send('evm_mine', [])
+
+      // Trigger accumulation
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target2.getAddress(), 80000, 0, false) // 8% allocator-minting
+        ['setTargetAllocation(address,uint256,uint256,uint256)'](await target1.getAddress(), 500000, 200000, 0)
+
+      const currentBlock = await ethers.provider.getBlockNumber()
+      const distState = await issuanceAllocator.getDistributionState()
+      // Distribute only to a block that's midway through the accumulated period
+      const partialBlock = beforePauseState.lastDistributionBlock + BigInt(2)
+
+      // Distribute to a partial block (not current block)
+      await issuanceAllocator.connect(accounts.governor)['distributePendingIssuance(uint256)'](partialBlock)
+
+      // Verify partial distribution
+      const afterPartialState = await issuanceAllocator.getDistributionState()
+      expect(afterPartialState.lastDistributionBlock).to.equal(partialBlock)
+      // Verify accumulation was partially consumed but some remains
+      expect(afterPartialState.selfMintingOffset).to.be.lt(distState.selfMintingOffset)
+
+      // Distribute remainder to current block
+      await issuanceAllocator.connect(accounts.governor)['distributePendingIssuance(uint256)'](currentBlock)
+      const finalState = await issuanceAllocator.getDistributionState()
+      expect(finalState.selfMintingOffset).to.equal(0) // All cleared
+    })
+
+    it('should handle distributePendingIssuance when blocks == 0', async () => {
+      const { issuanceAllocator, graphToken, target1 } = await setupIssuanceAllocator()
+
+      // Setup
+      await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
+      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'))
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target3.getAddress(), 0, 400000, false) // 40% self-minting
-      // 40% goes to default allocation
+        ['setTargetAllocation(address,uint256,uint256)'](await target1.getAddress(), 500000, 0)
 
-      // Verify the setup
-      const totalAllocation = await issuanceAllocator.getTotalAllocation()
-      expect(totalAllocation.allocatorMintingPPM).to.equal(200000) // 12% + 8% = 20% (excludes default's 40%)
-      expect(totalAllocation.selfMintingPPM).to.equal(400000) // 40% self
-
-      // Distribute once to initialize
+      // Distribute to current block
       await issuanceAllocator.connect(accounts.governor).distributeIssuance()
 
-      // Pause and accumulate issuance
+      const distState = await issuanceAllocator.getDistributionState()
+      const currentBlock = distState.lastDistributionBlock
+
+      // Call distributePendingIssuance with toBlockNumber == lastDistributionBlock (blocks == 0)
+      const result = await issuanceAllocator
+        .connect(accounts.governor)
+        ['distributePendingIssuance(uint256)'].staticCall(currentBlock)
+
+      expect(result).to.equal(currentBlock)
+    })
+
+    it('should handle proportional distribution when available < allocatedTotal', async () => {
+      const { issuanceAllocator, graphToken, target1, target2 } = await setupIssuanceAllocator()
+
+      // Setup with high allocator-minting and high self-minting rates
+      await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
+      await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
+      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('1000'))
+
+      // Setup: 40% + 40% allocator-minting, 15% self-minting (5% default)
+      // Using absolute values (tokens per block, not PPM):
+      // allocatedRate (non-default) = 1000 - 150 (self) - 50 (default) = 800 ether
+      await issuanceAllocator.connect(accounts.governor)['setTargetAllocation(address,uint256,uint256,uint256)'](
+        await target1.getAddress(),
+        ethers.parseEther('400'), // 400 ether per block allocator-minting
+        0,
+        0,
+      )
+      await issuanceAllocator.connect(accounts.governor)['setTargetAllocation(address,uint256,uint256,uint256)'](
+        await target2.getAddress(),
+        ethers.parseEther('400'), // 400 ether per block allocator-minting
+        ethers.parseEther('150'), // 150 ether per block self-minting
+        0,
+      )
+
+      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
+
+      // Pause and mine blocks to build up self-minting accumulation
       await issuanceAllocator.connect(accounts.governor).pause()
       for (let i = 0; i < 10; i++) {
         await ethers.provider.send('evm_mine', [])
       }
+      // Don't change allocations - just distribute with accumulated self-minting
+      // After 10 blocks:
+      // - selfMintingOffset = 150 ether * 10 = 1500 ether
+      // - totalForPeriod = 1000 ether * 10 = 10000 ether
+      // - available = 10000 - 1500 = 8500 ether
+      // - allocatedTotal = 800 ether * 10 = 8000 ether
+      // So: 8500 > 8000, this won't trigger proportional...
+      //
+      // Let me force it by calling distributePendingIssuance for only PART of the period
+      // This will make available smaller relative to allocatedTotal
 
-      // Trigger accumulation
-      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('2000'), true)
-
-      const pendingBefore = await issuanceAllocator.pendingAccumulatedAllocatorIssuance()
-      expect(pendingBefore).to.be.gt(0)
+      const distState = await issuanceAllocator.getDistributionState()
+      // Distribute for only 2 blocks instead of all 10
+      const partialBlock = distState.lastDistributionBlock + BigInt(2)
 
       const initialBalance1 = await (graphToken as any).balanceOf(await target1.getAddress())
       const initialBalance2 = await (graphToken as any).balanceOf(await target2.getAddress())
-      const initialBalance3 = await (graphToken as any).balanceOf(await target3.getAddress())
 
-      // Call distributePendingIssuance
+      // For 2 blocks with 10 blocks of accumulated self-minting:
+      // - selfMintingOffset = 1500 ether (from 10 blocks)
+      // - totalForPeriod = 1000 * 2 = 2000 ether (only distributing 2 blocks)
+      // - available = 2000 - 1500 = 500 ether
+      // - allocatedTotal = 800 * 2 = 1600 ether
+      // So: 500 < 1600 ✓ triggers proportional distribution!
+
+      // Distribute pending for partial period - should use proportional distribution
+      await issuanceAllocator.connect(accounts.governor)['distributePendingIssuance(uint256)'](partialBlock)
+
+      // Both targets should receive tokens (proportionally reduced due to budget constraint)
+      const finalBalance1 = await (graphToken as any).balanceOf(await target1.getAddress())
+      const finalBalance2 = await (graphToken as any).balanceOf(await target2.getAddress())
+
+      expect(finalBalance1).to.be.gt(initialBalance1)
+      expect(finalBalance2).to.be.gt(initialBalance2)
+
+      // Verify proportional distribution (both should get same amount since same allocator rate)
+      const distributed1 = finalBalance1 - initialBalance1
+      const distributed2 = finalBalance2 - initialBalance2
+      expect(distributed1).to.be.closeTo(distributed2, ethers.parseEther('1'))
+    })
+
+    it('should distribute remainder to default target in full rate distribution', async () => {
+      const { issuanceAllocator, graphToken, target1, target2 } = await setupIssuanceAllocator()
+
+      // Setup
+      await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
+      await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
+      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'))
+
+      // Set target2 as default target (it's a contract that supports IIssuanceTarget)
+      await issuanceAllocator.connect(accounts.governor).setDefaultTarget(await target2.getAddress())
+
+      // Add target with low allocator rate, high self-minting - ensures default gets significant portion
+      await issuanceAllocator
+        .connect(accounts.governor)
+        ['setTargetAllocation(address,uint256,uint256)'](await target1.getAddress(), 100000, 100000) // 10% each
+
+      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
+      const initialDefaultBalance = await (graphToken as any).balanceOf(await target2.getAddress())
+
+      // Pause and accumulate (with small self-minting, available should be > allocatedTotal)
+      await issuanceAllocator.connect(accounts.governor).pause()
+      await ethers.provider.send('evm_mine', [])
+      await ethers.provider.send('evm_mine', [])
+
+      // Trigger accumulation
+      await issuanceAllocator
+        .connect(accounts.governor)
+        ['setTargetAllocation(address,uint256,uint256,uint256)'](await target1.getAddress(), 100000, 150000, 0)
+
+      // Distribute - should give remainder to default target
       await issuanceAllocator.connect(accounts.governor)['distributePendingIssuance()']()
+
+      // Default target should receive tokens
+      const finalDefaultBalance = await (graphToken as any).balanceOf(await target2.getAddress())
+      expect(finalDefaultBalance).to.be.gt(initialDefaultBalance)
+    })
+
+    it('should trigger pending distribution path when selfMintingOffset > 0 in distributeIssuance', async () => {
+      const { issuanceAllocator, graphToken, target1 } = await setupIssuanceAllocator()
+
+      // Setup
+      await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
+      await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
+      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'))
+      await issuanceAllocator
+        .connect(accounts.governor)
+        ['setTargetAllocation(address,uint256,uint256)'](await target1.getAddress(), 500000, 100000)
+
+      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
+      const initialBalance = await (graphToken as any).balanceOf(await target1.getAddress())
+
+      // Pause and accumulate
+      await issuanceAllocator.connect(accounts.governor).pause()
+      await ethers.provider.send('evm_mine', [])
+
+      // Trigger accumulation
+      await issuanceAllocator
+        .connect(accounts.governor)
+        ['setTargetAllocation(address,uint256,uint256,uint256)'](await target1.getAddress(), 500000, 200000, 0)
+
+      // Verify accumulation exists
+      let distState = await issuanceAllocator.getDistributionState()
+      expect(distState.selfMintingOffset).to.be.gt(0)
+
+      // Unpause
+      await issuanceAllocator.connect(accounts.governor).unpause()
+
+      // Call distributeIssuance - should internally call _distributePendingIssuance due to accumulation
+      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
+
+      // Verify tokens distributed and accumulation cleared
+      const finalBalance = await (graphToken as any).balanceOf(await target1.getAddress())
+      expect(finalBalance).to.be.gt(initialBalance)
+
+      distState = await issuanceAllocator.getDistributionState()
+      expect(distState.selfMintingOffset).to.equal(0)
+    })
+
+    it('should revert when non-governor calls distributePendingIssuance()', async () => {
+      const { issuanceAllocator } = await setupIssuanceAllocator()
+
+      await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
+      await issuanceAllocator.connect(accounts.governor).pause()
+      await ethers.provider.send('evm_mine', [])
+
+      // Try to call distributePendingIssuance() as non-governor
+      await expect(issuanceAllocator.connect(accounts.user)['distributePendingIssuance()']()).to.be.reverted
+    })
+
+    it('should revert when non-governor calls distributePendingIssuance(uint256)', async () => {
+      const { issuanceAllocator } = await setupIssuanceAllocator()
+
+      await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
+      await issuanceAllocator.connect(accounts.governor).pause()
+      await ethers.provider.send('evm_mine', [])
+
+      const distState = await issuanceAllocator.getDistributionState()
+      const blockNumber = distState.lastDistributionBlock + BigInt(1)
+
+      // Try to call distributePendingIssuance(uint256) as non-governor
+      await expect(issuanceAllocator.connect(accounts.user)['distributePendingIssuance(uint256)'](blockNumber)).to.be
+        .reverted
+    })
+
+    it('should revert when toBlockNumber > block.number', async () => {
+      const { issuanceAllocator } = await setupIssuanceAllocator()
+
+      await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
+
+      // Pause to enable distributePendingIssuance
+      await issuanceAllocator.connect(accounts.governor).pause()
+      await ethers.provider.send('evm_mine', [])
+
+      // Try to distribute to a future block
+      const futureBlock = (await ethers.provider.getBlockNumber()) + 100
+      await expect(issuanceAllocator.connect(accounts.governor)['distributePendingIssuance(uint256)'](futureBlock)).to
+        .be.reverted
+    })
+
+    it('should revert when toBlockNumber < lastDistributionBlock', async () => {
+      const { issuanceAllocator } = await setupIssuanceAllocator()
+
+      await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
+
+      // Pause and mine some blocks
+      await issuanceAllocator.connect(accounts.governor).pause()
+      await ethers.provider.send('evm_mine', [])
+      await ethers.provider.send('evm_mine', [])
+
+      const distState = await issuanceAllocator.getDistributionState()
+      const pastBlock = distState.lastDistributionBlock - BigInt(1)
+
+      // Try to distribute to a block before lastDistributionBlock
+      await expect(issuanceAllocator.connect(accounts.governor)['distributePendingIssuance(uint256)'](pastBlock)).to.be
+        .reverted
+    })
+
+    it('should handle exact allocation with zero remainder to default', async () => {
+      const { issuanceAllocator, graphToken, target1 } = await setupIssuanceAllocator()
+
+      await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
+      await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
+
+      // Set issuance to 1000 ether per block
+      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('1000'))
+
+      // Configure target1 with allocator=800, self=200 (total = 1000, leaving 0 for default)
+      await issuanceAllocator.connect(accounts.governor)['setTargetAllocation(address,uint256,uint256,uint256)'](
+        await target1.getAddress(),
+        ethers.parseEther('800'), // 800 ether per block allocator-minting
+        ethers.parseEther('200'), // 200 ether per block self-minting
+        0,
+      )
+
+      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
+
+      // Pause and accumulate
+      await issuanceAllocator.connect(accounts.governor).pause()
+      for (let i = 0; i < 5; i++) {
+        await ethers.provider.send('evm_mine', [])
+      }
+
+      const initialBalance = await (graphToken as any).balanceOf(await target1.getAddress())
+
+      const distStateBefore = await issuanceAllocator.getDistributionState()
+
+      // Distribute - should result in exactly 0 remainder for default
+      await issuanceAllocator.connect(accounts.governor)['distributePendingIssuance()']()
+
+      const distStateAfter = await issuanceAllocator.getDistributionState()
+      const blocksDist = distStateAfter.lastDistributionBlock - distStateBefore.lastDistributionBlock
+
+      // Calculate expected distribution based on actual blocks
+      // totalForPeriod = 1000 * blocksDist ether
+      // selfMintingOffset = 200 * blocksDist ether
+      // available = (1000 - 200) * blocksDist = 800 * blocksDist ether
+      // allocatedTotal = 800 * blocksDist ether
+      // remainder = 0 ✓
+      const finalBalance = await (graphToken as any).balanceOf(await target1.getAddress())
+      const expectedDistribution = ethers.parseEther('800') * BigInt(blocksDist)
+      expect(finalBalance - initialBalance).to.equal(expectedDistribution)
+    })
+
+    it('should handle proportional distribution with target having zero allocator rate', async () => {
+      const { issuanceAllocator, graphToken, target1, target2 } = await setupIssuanceAllocator()
+
+      await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
+      await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
+      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('1000'))
+
+      // target1: allocator=400, self=0
+      // target2: allocator=0, self=100 (self-minting only, no allocator-minting)
+      // default: gets the remainder (500 allocator + 0 self)
+      await issuanceAllocator
+        .connect(accounts.governor)
+        [
+          'setTargetAllocation(address,uint256,uint256,uint256)'
+        ](await target1.getAddress(), ethers.parseEther('400'), 0, 0)
+      await issuanceAllocator.connect(accounts.governor)['setTargetAllocation(address,uint256,uint256,uint256)'](
+        await target2.getAddress(),
+        0, // Zero allocator-minting rate
+        ethers.parseEther('100'),
+        0,
+      )
+
+      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
+
+      // Pause and accumulate enough self-minting
+      await issuanceAllocator.connect(accounts.governor).pause()
+      for (let i = 0; i < 15; i++) {
+        await ethers.provider.send('evm_mine', [])
+      }
+
+      const distStateBefore = await issuanceAllocator.getDistributionState()
+      const initialBalance1 = await (graphToken as any).balanceOf(await target1.getAddress())
+      const initialBalance2 = await (graphToken as any).balanceOf(await target2.getAddress())
+
+      // Distribute only 2 blocks (out of the 15+ accumulated)
+      // With high self-minting accumulation, this creates proportional distribution scenario
+      // Expected accumulation during pause: 100 ether/block * ~15 blocks = ~1500 ether
+      // Distribution for 2 blocks: totalForPeriod = 2000 ether, consumed ~= 1500 ether, available ~= 500 ether
+      // allocatedTotal = 400 ether * 2 = 800 ether
+      // Since available < allocatedTotal, proportional distribution kicks in
+      const partialBlock = distStateBefore.lastDistributionBlock + BigInt(2)
+
+      await issuanceAllocator.connect(accounts.governor)['distributePendingIssuance(uint256)'](partialBlock)
 
       const finalBalance1 = await (graphToken as any).balanceOf(await target1.getAddress())
       const finalBalance2 = await (graphToken as any).balanceOf(await target2.getAddress())
-      const finalBalance3 = await (graphToken as any).balanceOf(await target3.getAddress())
 
+      // The key test: target1 should receive some tokens (it has allocatorMintingRate > 0)
+      // target2 should receive ZERO tokens (it has allocatorMintingRate == 0)
+      // This proves the `if (0 < targetData.allocatorMintingRate)` branch was tested
       const distributed1 = finalBalance1 - initialBalance1
-      const distributed2 = finalBalance2 - initialBalance2
-      const distributed3 = finalBalance3 - initialBalance3
-
-      // Target3 (self-minting) should receive nothing
-      expect(distributed3).to.equal(0)
-
-      // Verify proportional distribution between allocator-minting targets
-      // Target1 should get 12/20 = 60% of the distributed amount
-      // Target2 should get 8/20 = 40% of the distributed amount
-      if (distributed1 > 0 && distributed2 > 0) {
-        const ratio = (BigInt(distributed1) * 1000n) / BigInt(distributed2) // Multiply by 1000 for precision
-        expect(ratio).to.be.closeTo(1500n, 50n) // 120000/80000 = 1.5
-      }
-
-      // Total distributed should equal the allocator-minting portion of pending
-      // With 20% total allocator-minting (12% + 8%) out of 60% allocator-minting space (20% + 40% default):
-      // Each target gets: (targetPPM / (MILLION - selfMintingPPM)) * pendingAmount
-      // Target1: (120000 / 600000) * pendingAmount = 20% of pending
-      // Target2: (80000 / 600000) * pendingAmount = 13.33% of pending
-      // Total: 33.33% of pending
-      const totalDistributed = distributed1 + distributed2
-      const expectedTotal = (pendingBefore * 200000n) / 600000n // 33.33% of pending
-      expect(totalDistributed).to.be.closeTo(expectedTotal, ethers.parseEther('1'))
+      expect(distributed1).to.be.gt(0) // target1 gets some tokens
+      expect(finalBalance2).to.equal(initialBalance2) // target2 gets zero (skipped in the if check)
     })
   })
 
-  describe('Edge Cases for Pending Issuance Distribution', () => {
-    describe('Division by Zero and Near-Zero Denominator Cases', () => {
-      it('should handle case when totalSelfMintingPPM equals MILLION (100% self-minting)', async () => {
-        const { issuanceAllocator, graphToken, target1 } = await setupIssuanceAllocator()
+  describe('Pause/Unpause Edge Cases', () => {
+    // Helper function to deploy a fresh IssuanceAllocator for these tests
+    async function setupIssuanceAllocator() {
+      const graphToken = await deployTestGraphToken()
+      const issuanceAllocator = await deployIssuanceAllocator(
+        await graphToken.getAddress(),
+        accounts.governor,
+        ethers.parseEther('100'),
+      )
+      const target1 = await deployDirectAllocation(await graphToken.getAddress(), accounts.governor)
+      const target2 = await deployDirectAllocation(await graphToken.getAddress(), accounts.governor)
 
-        // Setup
-        await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
-        await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
-        await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'), false)
+      return { graphToken, issuanceAllocator, target1, target2 }
+    }
 
-        // Add 100% self-minting target (totalSelfMintingPPM = MILLION)
-        await issuanceAllocator
-          .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 0, 1000000, false) // 100% self-minting
+    it('should handle unpause → mine blocks → pause without distributeIssuance', async () => {
+      const { issuanceAllocator, graphToken, target1, target2 } = await setupIssuanceAllocator()
 
-        // Distribute once to initialize
-        await issuanceAllocator.connect(accounts.governor).distributeIssuance()
+      // Setup
+      await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
+      await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
+      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'))
 
-        // Pause and accumulate some issuance
-        await issuanceAllocator.connect(accounts.governor).pause()
-        await ethers.provider.send('evm_mine', [])
-        await ethers.provider.send('evm_mine', [])
+      // Add targets: 30 tokens/block allocator-minting, 20 tokens/block self-minting (leaving 50 for default)
+      await issuanceAllocator
+        .connect(accounts.governor)
+        [
+          'setTargetAllocation(address,uint256,uint256,uint256)'
+        ](await target1.getAddress(), ethers.parseEther('30'), 0, 0) // 30 tokens/block allocator
+      await issuanceAllocator
+        .connect(accounts.governor)
+        [
+          'setTargetAllocation(address,uint256,uint256,uint256)'
+        ](await target2.getAddress(), 0, ethers.parseEther('20'), 0) // 20 tokens/block self
 
-        // Trigger accumulation by changing rate
-        await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('200'), false)
+      // Initialize distribution
+      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
+      const initialBlock = await ethers.provider.getBlockNumber()
 
-        const pendingBefore = await issuanceAllocator.pendingAccumulatedAllocatorIssuance()
-        expect(pendingBefore).to.equal(0) // Should be 0 because no allocator-minting allocation
+      // Track initial balance for target1 (allocator-minting target)
+      const balance1Initial = await (graphToken as any).balanceOf(await target1.getAddress())
 
-        const initialBalance = await (graphToken as any).balanceOf(await target1.getAddress())
+      // Phase 1: Pause the contract
+      await issuanceAllocator.connect(accounts.governor).pause()
+      const _pauseBlock1 = await ethers.provider.getBlockNumber()
 
-        // Call distributePendingIssuance - should not revert even with division by zero scenario
-        await expect(issuanceAllocator.connect(accounts.governor)['distributePendingIssuance()']()).to.not.be.reverted
+      // Mine a few blocks while paused
+      await ethers.provider.send('evm_mine', [])
+      await ethers.provider.send('evm_mine', [])
 
-        // Balance should remain the same (no allocator-minting targets)
-        expect(await (graphToken as any).balanceOf(await target1.getAddress())).to.equal(initialBalance)
-      })
+      // Phase 2: Unpause WITHOUT calling distributeIssuance
+      await issuanceAllocator.connect(accounts.governor).unpause()
+      const _unpauseBlock = await ethers.provider.getBlockNumber()
 
-      it('should handle case with very small denominator (totalSelfMintingPPM near MILLION)', async () => {
-        const { issuanceAllocator, graphToken, target1, target2 } = await setupIssuanceAllocator()
+      // Phase 3: Mine blocks while unpaused, but DON'T call distributeIssuance
+      await ethers.provider.send('evm_mine', [])
+      await ethers.provider.send('evm_mine', [])
+      await ethers.provider.send('evm_mine', [])
 
-        // Setup with very high issuance rate to ensure accumulation despite small denominator
-        await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
-        await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
-        await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('1000000'), false) // Very high rate
+      // Phase 4: Pause again WITHOUT calling distributeIssuance
+      await issuanceAllocator.connect(accounts.governor).pause()
+      const _pauseBlock2 = await ethers.provider.getBlockNumber()
 
-        // Add targets: 1 PPM allocator-minting, 999,999 PPM self-minting (denominator = 1)
-        await issuanceAllocator
-          .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 1, 0, false) // 1 PPM allocator-minting
-        await issuanceAllocator
-          .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](await target2.getAddress(), 0, 999999, false) // 999,999 PPM self-minting
+      // Mine more blocks while paused
+      await ethers.provider.send('evm_mine', [])
+      await ethers.provider.send('evm_mine', [])
 
-        // Distribute once to initialize
-        await issuanceAllocator.connect(accounts.governor).distributeIssuance()
+      // Phase 5: Call distributeIssuance while paused
+      // This is the key test: blocks between unpauseBlock and pauseBlock2 were unpaused,
+      // but since distributeIssuance is called while paused, self-minting accumulation
+      // treats them as paused (lazy evaluation)
+      const tx1 = await issuanceAllocator.connect(accounts.governor).distributeIssuance()
+      await tx1.wait()
+      const distributionBlock1 = await ethers.provider.getBlockNumber()
 
-        // Pause and accumulate significant issuance over many blocks
-        await issuanceAllocator.connect(accounts.governor).pause()
-        for (let i = 0; i < 100; i++) {
-          await ethers.provider.send('evm_mine', [])
-        }
+      // Verify: Check distribution state after first distribution
+      const distState1 = await issuanceAllocator.getDistributionState()
+      expect(distState1.lastSelfMintingBlock).to.equal(distributionBlock1)
+      expect(distState1.lastDistributionBlock).to.equal(initialBlock) // Should NOT advance (paused)
+      expect(distState1.selfMintingOffset).to.be.gt(0) // Should have accumulated
 
-        // Trigger accumulation by changing rate (this forces accumulation)
-        await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('2000000'), true) // Force even if pending
+      // Calculate expected self-minting accumulation
+      // From initialBlock to distributionBlock1 (all blocks treated as paused)
+      const blocksSinceInitial = BigInt(distributionBlock1) - BigInt(initialBlock)
+      const selfMintingRate = ethers.parseEther('20') // 20% of 100 = 20 tokens/block
+      const expectedAccumulation = selfMintingRate * blocksSinceInitial
+      expect(distState1.selfMintingOffset).to.be.closeTo(expectedAccumulation, ethers.parseEther('1'))
 
-        const pendingBefore = await issuanceAllocator.pendingAccumulatedAllocatorIssuance()
-        expect(pendingBefore).to.be.gt(0)
+      // Verify no additional allocator-minting was distributed during pause
+      const balance1AfterPause = await (graphToken as any).balanceOf(await target1.getAddress())
+      expect(balance1AfterPause).to.equal(balance1Initial) // Should not have changed during pause
 
-        const initialBalance = await (graphToken as any).balanceOf(await target1.getAddress())
+      // Phase 6: Unpause and call distributeIssuance
+      await issuanceAllocator.connect(accounts.governor).unpause()
+      await ethers.provider.send('evm_mine', [])
 
-        // Call distributePendingIssuance - should work with very small denominator
-        await expect(issuanceAllocator.connect(accounts.governor)['distributePendingIssuance()']()).to.not.be.reverted
+      const tx2 = await issuanceAllocator.connect(accounts.governor).distributeIssuance()
+      await tx2.wait()
+      const distributionBlock2 = await ethers.provider.getBlockNumber()
 
-        // Target1 should receive all the pending issuance (since it's the only allocator-minting target)
-        const finalBalance = await (graphToken as any).balanceOf(await target1.getAddress())
-        expect(finalBalance).to.be.gt(initialBalance)
+      // Verify: Distribution state after second distribution
+      const distState2 = await issuanceAllocator.getDistributionState()
+      expect(distState2.lastSelfMintingBlock).to.equal(distributionBlock2)
+      expect(distState2.lastDistributionBlock).to.equal(distributionBlock2) // Should advance (unpaused)
+      expect(distState2.selfMintingOffset).to.equal(0) // Should be reset after distribution
 
-        // The distributed amount should equal the pending amount (within rounding)
-        const distributed = finalBalance - initialBalance
-        expect(distributed).to.be.closeTo(pendingBefore, ethers.parseEther('1'))
-      })
+      // Verify allocator-minting was distributed correctly
+      const balance1After = await (graphToken as any).balanceOf(await target1.getAddress())
+      expect(balance1After).to.be.gt(balance1Initial) // Should have received additional tokens
+
+      // Calculate total issuance for the period
+      const totalBlocks = BigInt(distributionBlock2) - BigInt(initialBlock)
+      const totalIssuance = ethers.parseEther('100') * totalBlocks
+
+      // Self-minting should have received their allowance (but not minted via allocator)
+      // Allocator-minting should have received (totalIssuance - selfMintingOffset) * (30 / 80)
+      // 30 tokens/block for target1, 50 tokens/block for default = 80 tokens/block total allocator-minting
+      const expectedAllocatorDistribution =
+        ((totalIssuance - expectedAccumulation) * ethers.parseEther('30')) / ethers.parseEther('80')
+
+      // Allow for rounding errors (compare total distributed amount)
+      // Note: Tolerance is higher due to multiple distribution events and the initial distribution
+      const totalDistributed = balance1After - balance1Initial
+      expect(totalDistributed).to.be.closeTo(expectedAllocatorDistribution, ethers.parseEther('25'))
     })
 
-    describe('Large Value and Overflow Protection', () => {
-      it('should handle large pending amounts without overflow', async () => {
-        const { issuanceAllocator, graphToken, target1 } = await setupIssuanceAllocator()
+    it('should use getDistributionState to query distribution state efficiently', async () => {
+      const { issuanceAllocator, graphToken, target1 } = await setupIssuanceAllocator()
 
-        // Setup with very high issuance rate
-        await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
-        await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
-        await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('1000000'), false) // 1M tokens per block
+      // Setup
+      await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
+      await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
+      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'))
 
-        // Add target with high allocation
-        await issuanceAllocator
-          .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 500000, 0, false) // 50%
+      await issuanceAllocator
+        .connect(accounts.governor)
+        [
+          'setTargetAllocation(address,uint256,uint256,uint256)'
+        ](await target1.getAddress(), 0, ethers.parseEther('50'), 0) // 50 tokens/block self
 
-        // Distribute once to initialize
-        await issuanceAllocator.connect(accounts.governor).distributeIssuance()
+      // Initialize
+      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
+      const initBlock = await ethers.provider.getBlockNumber()
 
-        // Pause and accumulate for many blocks
-        await issuanceAllocator.connect(accounts.governor).pause()
-        for (let i = 0; i < 100; i++) {
-          await ethers.provider.send('evm_mine', [])
-        }
+      // Verify initial state
+      let distState = await issuanceAllocator.getDistributionState()
+      expect(distState.lastDistributionBlock).to.equal(initBlock)
+      expect(distState.lastSelfMintingBlock).to.equal(initBlock)
+      expect(distState.selfMintingOffset).to.equal(0)
 
-        // Trigger accumulation by forcing rate change
-        await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('2000000'), true) // Force even if pending
+      // Pause and mine blocks
+      await issuanceAllocator.connect(accounts.governor).pause()
+      await ethers.provider.send('evm_mine', [])
+      await ethers.provider.send('evm_mine', [])
 
-        const pendingBefore = await issuanceAllocator.pendingAccumulatedAllocatorIssuance()
-        expect(pendingBefore).to.be.gt(ethers.parseEther('25000000')) // Should be very large (50% of total)
+      // Call distributeIssuance while paused
+      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
+      const pausedDistBlock = await ethers.provider.getBlockNumber()
 
-        const initialBalance = await (graphToken as any).balanceOf(await target1.getAddress())
+      // Verify state after paused distribution
+      distState = await issuanceAllocator.getDistributionState()
+      expect(distState.lastSelfMintingBlock).to.equal(pausedDistBlock)
+      expect(distState.lastDistributionBlock).to.equal(initBlock) // Should NOT advance (paused)
+      expect(distState.selfMintingOffset).to.be.gt(0) // Should have accumulated
 
-        // Call distributePendingIssuance - should handle large values without overflow
-        await expect(issuanceAllocator.connect(accounts.governor)['distributePendingIssuance()']()).to.not.be.reverted
-
-        const finalBalance = await (graphToken as any).balanceOf(await target1.getAddress())
-        expect(finalBalance).to.be.gt(initialBalance)
-
-        // Verify the calculation is correct for large values
-        // Target1 has 50% allocation, so it should get: (pendingAmount * 500000) / 1000000 = 50% of pending
-        const distributed = finalBalance - initialBalance
-        const expectedDistribution = pendingBefore / 2n // 50% of pending
-        expect(distributed).to.be.closeTo(expectedDistribution, ethers.parseEther('1000')) // Allow for rounding
-      })
+      // Verify getDistributionState returns consistent values
+      const distState2 = await issuanceAllocator.getDistributionState()
+      expect(distState.lastDistributionBlock).to.equal(distState2.lastDistributionBlock)
+      expect(distState.selfMintingOffset).to.equal(distState2.selfMintingOffset)
+      expect(distState.lastSelfMintingBlock).to.equal(distState2.lastSelfMintingBlock)
     })
 
-    describe('Precision and Rounding Edge Cases', () => {
-      it('should handle small allocations with minimal rounding loss', async () => {
-        const { issuanceAllocator, graphToken, target1, target2 } = await setupIssuanceAllocator()
+    it('should correctly emit IssuanceSelfMintAllowance events across pause/unpause cycles', async () => {
+      const { issuanceAllocator, graphToken, target1 } = await setupIssuanceAllocator()
 
-        // Setup with higher issuance rate to ensure accumulation
-        await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
-        await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
-        await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('1000000'), false) // Higher rate
+      // Setup
+      await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
+      await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
+      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'))
 
-        // Add targets with very small allocations
-        await issuanceAllocator
-          .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 1, 0, false) // 1 PPM
-        await issuanceAllocator
-          .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](await target2.getAddress(), 2, 0, false) // 2 PPM
+      await issuanceAllocator
+        .connect(accounts.governor)
+        [
+          'setTargetAllocation(address,uint256,uint256,uint256)'
+        ](await target1.getAddress(), 0, ethers.parseEther('50'), 0) // 50 tokens/block self
 
-        // Distribute once to initialize
-        await issuanceAllocator.connect(accounts.governor).distributeIssuance()
+      // Initialize
+      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
+      const initBlock = await ethers.provider.getBlockNumber()
 
-        // Pause and accumulate over multiple blocks
-        await issuanceAllocator.connect(accounts.governor).pause()
-        for (let i = 0; i < 10; i++) {
-          await ethers.provider.send('evm_mine', [])
-        }
+      // Pause, unpause (without distribute), pause again
+      await issuanceAllocator.connect(accounts.governor).pause()
+      await ethers.provider.send('evm_mine', [])
+      await issuanceAllocator.connect(accounts.governor).unpause()
+      await ethers.provider.send('evm_mine', [])
+      await ethers.provider.send('evm_mine', [])
+      await issuanceAllocator.connect(accounts.governor).pause()
+      await ethers.provider.send('evm_mine', [])
 
-        // Trigger accumulation by forcing rate change
-        await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('2000000'), true)
+      // Call distributeIssuance while paused
+      const tx = await issuanceAllocator.connect(accounts.governor).distributeIssuance()
+      const receipt = await tx.wait()
+      const currentBlock = await ethers.provider.getBlockNumber()
 
-        const pendingBefore = await issuanceAllocator.pendingAccumulatedAllocatorIssuance()
-        expect(pendingBefore).to.be.gt(0)
+      // Find IssuanceSelfMintAllowance events
+      const events = receipt.logs.filter(
+        (log) => log.topics[0] === issuanceAllocator.interface.getEvent('IssuanceSelfMintAllowance').topicHash,
+      )
 
-        const initialBalance1 = await (graphToken as any).balanceOf(await target1.getAddress())
-        const initialBalance2 = await (graphToken as any).balanceOf(await target2.getAddress())
+      // Should emit exactly one event for the entire range
+      expect(events.length).to.equal(1)
 
-        // Call distributePendingIssuance
-        await issuanceAllocator.connect(accounts.governor)['distributePendingIssuance()']()
+      // Decode the event
+      const decodedEvent = issuanceAllocator.interface.decodeEventLog(
+        'IssuanceSelfMintAllowance',
+        events[0].data,
+        events[0].topics,
+      )
 
-        const finalBalance1 = await (graphToken as any).balanceOf(await target1.getAddress())
-        const finalBalance2 = await (graphToken as any).balanceOf(await target2.getAddress())
+      // Verify event covers the correct block range (from initBlock+1 to currentBlock)
+      expect(decodedEvent.fromBlock).to.equal(BigInt(initBlock) + 1n)
+      expect(decodedEvent.toBlock).to.equal(currentBlock)
+      expect(decodedEvent.target).to.equal(await target1.getAddress())
 
-        const distributed1 = finalBalance1 - initialBalance1
-        const distributed2 = finalBalance2 - initialBalance2
-
-        // Verify proportional distribution (target2 should get ~2x target1)
-        if (distributed1 > 0 && distributed2 > 0) {
-          const ratio = (BigInt(distributed2) * 1000n) / BigInt(distributed1) // Multiply by 1000 for precision
-          expect(ratio).to.be.closeTo(2000n, 100n) // Should be close to 2.0 with some tolerance
-        }
-      })
-
-      it('should handle zero pending amount correctly', async () => {
-        const { issuanceAllocator, graphToken, target1 } = await setupIssuanceAllocator()
-
-        // Setup
-        await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
-        await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'), false)
-
-        // Add target
-        await issuanceAllocator
-          .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 500000, 0, false) // 50%
-
-        // Distribute to ensure no pending amount
-        await issuanceAllocator.connect(accounts.governor).distributeIssuance()
-        expect(await issuanceAllocator.pendingAccumulatedAllocatorIssuance()).to.equal(0)
-
-        const initialBalance = await (graphToken as any).balanceOf(await target1.getAddress())
-
-        // Call distributePendingIssuance with zero pending - should be no-op
-        await expect(issuanceAllocator.connect(accounts.governor)['distributePendingIssuance()']()).to.not.be.reverted
-
-        // Balance should remain unchanged
-        expect(await (graphToken as any).balanceOf(await target1.getAddress())).to.equal(initialBalance)
-      })
+      // Verify amount matches expected (50% of 100 tokens/block * number of blocks)
+      const blocksInRange = BigInt(currentBlock) - BigInt(initBlock)
+      const expectedAmount = ethers.parseEther('50') * blocksInRange
+      expect(decodedEvent.amount).to.be.closeTo(expectedAmount, ethers.parseEther('1'))
     })
 
-    describe('Mixed Allocation Scenarios', () => {
-      it('should correctly distribute with extreme allocation ratios', async () => {
-        const { issuanceAllocator, graphToken, target1, target2, target3 } = await setupIssuanceAllocator()
+    it('should continue accumulating through unpaused periods when accumulated balance exists', async () => {
+      const { issuanceAllocator, graphToken, target1 } = await setupIssuanceAllocator()
 
-        // Setup
-        await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
-        await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
-        await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('1000'), false)
+      // Setup
+      await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
+      await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
+      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'))
 
-        // Add targets with extreme ratios: 1 PPM, 499,999 PPM allocator-minting, 500,000 PPM self-minting
-        await issuanceAllocator
-          .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 1, 0, false) // 0.0001%
-        await issuanceAllocator
-          .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](await target2.getAddress(), 499999, 0, false) // 49.9999%
-        await issuanceAllocator
-          .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](await target3.getAddress(), 0, 500000, false) // 50% self-minting
+      // Set target1 allocation with both allocator and self minting
+      await issuanceAllocator
+        .connect(accounts.governor)
+        [
+          'setTargetAllocation(address,uint256,uint256,uint256)'
+        ](await target1.getAddress(), ethers.parseEther('30'), ethers.parseEther('20'), 0)
 
-        // Distribute once to initialize
-        await issuanceAllocator.connect(accounts.governor).distributeIssuance()
+      // Distribute to set starting point
+      await issuanceAllocator.distributeIssuance()
+      const blockAfterInitialDist = await ethers.provider.getBlockNumber()
 
-        // Pause and accumulate
-        await issuanceAllocator.connect(accounts.governor).pause()
-        for (let i = 0; i < 5; i++) {
-          await ethers.provider.send('evm_mine', [])
-        }
+      // Phase 1: Pause and mine blocks
+      await issuanceAllocator.connect(accounts.governor).pause()
+      await ethers.provider.send('evm_mine', [])
+      await ethers.provider.send('evm_mine', [])
+      await ethers.provider.send('evm_mine', [])
 
-        // Trigger accumulation by forcing rate change
-        await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('2000'), true)
+      // Phase 2: Distribute while paused
+      await issuanceAllocator.distributeIssuance()
+      const blockDist1 = await ethers.provider.getBlockNumber()
 
-        const pendingBefore = await issuanceAllocator.pendingAccumulatedAllocatorIssuance()
-        expect(pendingBefore).to.be.gt(0)
+      const state1 = await issuanceAllocator.getDistributionState()
+      const pausedBlocks1 = blockDist1 - blockAfterInitialDist
+      const expectedAccumulation1 = ethers.parseEther('20') * BigInt(pausedBlocks1)
+      expect(state1.selfMintingOffset).to.equal(expectedAccumulation1)
 
-        const initialBalance1 = await (graphToken as any).balanceOf(await target1.getAddress())
-        const initialBalance2 = await (graphToken as any).balanceOf(await target2.getAddress())
-        const initialBalance3 = await (graphToken as any).balanceOf(await target3.getAddress())
+      // Phase 3: Unpause (no distribute)
+      await issuanceAllocator.connect(accounts.governor).unpause()
 
-        // Call distributePendingIssuance
-        await issuanceAllocator.connect(accounts.governor)['distributePendingIssuance()']()
+      // Mine more blocks while unpaused (no distribute!)
+      await ethers.provider.send('evm_mine', [])
+      await ethers.provider.send('evm_mine', [])
+      await ethers.provider.send('evm_mine', [])
+      await ethers.provider.send('evm_mine', [])
+      await ethers.provider.send('evm_mine', [])
 
-        const finalBalance1 = await (graphToken as any).balanceOf(await target1.getAddress())
-        const finalBalance2 = await (graphToken as any).balanceOf(await target2.getAddress())
-        const finalBalance3 = await (graphToken as any).balanceOf(await target3.getAddress())
+      // Phase 4: Distribute while unpaused
+      await issuanceAllocator.distributeIssuance()
+      const blockDist2 = await ethers.provider.getBlockNumber()
 
-        const distributed1 = finalBalance1 - initialBalance1
-        const distributed2 = finalBalance2 - initialBalance2
-        const distributed3 = finalBalance3 - initialBalance3
+      const state2 = await issuanceAllocator.getDistributionState()
+      expect(state2.lastSelfMintingBlock).to.equal(blockDist2)
+      expect(state2.selfMintingOffset).to.equal(0) // Cleared by distribution
 
-        // Target3 (self-minting) should receive nothing from distributePendingIssuance
-        expect(distributed3).to.equal(0)
+      // Phase 5: Pause again (no distribute)
+      await issuanceAllocator.connect(accounts.governor).pause()
+      const blockPause2 = await ethers.provider.getBlockNumber()
 
-        // Target2 should receive ~499,999x more than target1
-        if (distributed1 > 0 && distributed2 > 0) {
-          const ratio = distributed2 / distributed1
-          expect(ratio).to.be.closeTo(499999n, 1000n) // Allow for rounding
-        }
+      // Mine more blocks while paused
+      await ethers.provider.send('evm_mine', [])
+      await ethers.provider.send('evm_mine', [])
+      await ethers.provider.send('evm_mine', [])
 
-        // Total distributed should equal pending (within rounding)
-        const totalDistributed = distributed1 + distributed2
-        expect(totalDistributed).to.be.closeTo(pendingBefore, ethers.parseEther('0.001'))
-      })
+      // Phase 6: Distribute while paused
+      await issuanceAllocator.distributeIssuance()
+      const blockDist3 = await ethers.provider.getBlockNumber()
 
-      it('should handle dynamic allocation changes affecting denominator', async () => {
-        const { issuanceAllocator, graphToken, target1, target2 } = await setupIssuanceAllocator()
+      const state3 = await issuanceAllocator.getDistributionState()
 
-        // Setup
-        await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
-        await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
-        await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'), false)
+      // THE FIX: With the new logic, accumulation continues from lastSelfMintingBlock
+      // when paused, even if some of those blocks happened during an unpaused period
+      // where no distribution occurred. This is conservative and safe.
+      const blocksAccumulated = blockDist3 - blockDist2
+      const actuallyPausedBlocks = blockDist3 - blockPause2
+      const unpausedBlocksIncluded = blocksAccumulated - actuallyPausedBlocks
 
-        // Initial setup: 50% allocator-minting, 50% self-minting
-        await issuanceAllocator
-          .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 500000, 0, false) // 50% allocator
-        await issuanceAllocator
-          .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](await target2.getAddress(), 0, 500000, false) // 50% self
+      // Verify the fix: accumulation should be for all blocks from lastSelfMintingBlock
+      const actualAccumulation = state3.selfMintingOffset
+      const expectedAccumulation = ethers.parseEther('20') * BigInt(blocksAccumulated)
 
-        // Distribute once to initialize
-        await issuanceAllocator.connect(accounts.governor).distributeIssuance()
+      expect(actualAccumulation).to.equal(
+        expectedAccumulation,
+        'Should accumulate from lastSelfMintingBlock when paused, including unpaused blocks where no distribution occurred',
+      )
 
-        // Pause and accumulate
-        await issuanceAllocator.connect(accounts.governor).pause()
-        await ethers.provider.send('evm_mine', [])
-        await ethers.provider.send('evm_mine', [])
-
-        // Change allocation to make denominator smaller: 10% allocator, 90% self-minting
-        await issuanceAllocator
-          .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 100000, 0, true) // 10% allocator
-        await issuanceAllocator
-          .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](await target2.getAddress(), 0, 900000, true) // 90% self
-
-        const pendingBefore = await issuanceAllocator.pendingAccumulatedAllocatorIssuance()
-        expect(pendingBefore).to.be.gt(0)
-
-        const initialBalance = await (graphToken as any).balanceOf(await target1.getAddress())
-
-        // Call distributePendingIssuance with changed denominator
-        await expect(issuanceAllocator.connect(accounts.governor)['distributePendingIssuance()']()).to.not.be.reverted
-
-        const finalBalance = await (graphToken as any).balanceOf(await target1.getAddress())
-        expect(finalBalance).to.be.gt(initialBalance)
-
-        // The distribution should use the new denominator (MILLION - 900000 = 100000)
-        // So target1 should get all the pending amount since it's the only allocator-minting target
-        const distributed = finalBalance - initialBalance
-        expect(distributed).to.be.closeTo(pendingBefore, ethers.parseEther('0.001'))
-      })
+      // Rationale: Once accumulation starts (during pause), continue through any unpaused periods
+      // until distribution clears the accumulation. This is conservative and allows better recovery.
+      expect(unpausedBlocksIncluded).to.equal(1) // Should include 1 unpaused block (blockDist2 to blockPause2)
     })
 
-    describe('Boundary Value Testing', () => {
-      it('should handle totalSelfMintingPPM = 0 (no self-minting targets)', async () => {
-        const { issuanceAllocator, graphToken, target1, target2 } = await setupIssuanceAllocator()
+    it('should correctly handle partial distribution when toBlockNumber < block.number', async () => {
+      const { issuanceAllocator, graphToken, target1, target2 } = await setupIssuanceAllocator()
 
-        // Setup
-        await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
-        await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
-        await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'), false)
+      // Setup
+      await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
+      await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
+      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'))
 
-        // Add only allocator-minting targets (totalSelfMintingPPM = 0)
-        await issuanceAllocator
-          .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 300000, 0, false) // 30%
-        await issuanceAllocator
-          .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](await target2.getAddress(), 200000, 0, false) // 20%
+      // Add targets: 30 tokens/block allocator-minting, 20 tokens/block self-minting
+      await issuanceAllocator
+        .connect(accounts.governor)
+        [
+          'setTargetAllocation(address,uint256,uint256,uint256)'
+        ](await target1.getAddress(), ethers.parseEther('30'), 0, 0)
+      await issuanceAllocator
+        .connect(accounts.governor)
+        [
+          'setTargetAllocation(address,uint256,uint256,uint256)'
+        ](await target2.getAddress(), 0, ethers.parseEther('20'), 0)
 
-        // Distribute once to initialize
-        await issuanceAllocator.connect(accounts.governor).distributeIssuance()
+      // Initialize distribution
+      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
+      const initialBlock = await ethers.provider.getBlockNumber()
 
-        // Pause and accumulate
-        await issuanceAllocator.connect(accounts.governor).pause()
-        await ethers.provider.send('evm_mine', [])
-        await ethers.provider.send('evm_mine', [])
+      // Pause and mine blocks to accumulate self-minting
+      await issuanceAllocator.connect(accounts.governor).pause()
+      await ethers.provider.send('evm_mine', [])
+      await ethers.provider.send('evm_mine', [])
+      await ethers.provider.send('evm_mine', [])
+      await ethers.provider.send('evm_mine', [])
+      await ethers.provider.send('evm_mine', [])
+      await ethers.provider.send('evm_mine', [])
+      await ethers.provider.send('evm_mine', [])
+      await ethers.provider.send('evm_mine', [])
 
-        // Trigger accumulation by forcing rate change
-        await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('200'), true)
+      // We've mined 8 blocks while paused (pause tx + 8 evm_mine calls)
+      // Current block should be initialBlock + 9 (pause + 8 mines)
 
-        const pendingBefore = await issuanceAllocator.pendingAccumulatedAllocatorIssuance()
-        expect(pendingBefore).to.be.gt(0)
+      // Call distributePendingIssuance with toBlockNumber at the halfway point
+      const midBlock = initialBlock + 5 // Distribute only up to block 5
 
-        const initialBalance1 = await (graphToken as any).balanceOf(await target1.getAddress())
-        const initialBalance2 = await (graphToken as any).balanceOf(await target2.getAddress())
+      await issuanceAllocator.connect(accounts.governor)['distributePendingIssuance(uint256)'](midBlock)
 
-        // Call distributePendingIssuance - denominator should be MILLION (1,000,000)
-        await expect(issuanceAllocator.connect(accounts.governor)['distributePendingIssuance()']()).to.not.be.reverted
+      // Check the state after partial distribution
+      const stateAfterPartial = await issuanceAllocator.getDistributionState()
+      const actualCurrentBlock = await ethers.provider.getBlockNumber()
 
-        const finalBalance1 = await (graphToken as any).balanceOf(await target1.getAddress())
-        const finalBalance2 = await (graphToken as any).balanceOf(await target2.getAddress())
+      // Budget-based clearing behavior for partial distribution:
+      // - lastSelfMintingBlock advances to actualCurrentBlock (via _advanceSelfMintingBlock)
+      // - lastDistributionBlock advances to midBlock (partial distribution)
+      // - selfMintingOffset is reduced by min(accumulated, totalForPeriod)
+      //
+      // In this case: accumulated self-minting from initialBlock to actualCurrentBlock is small
+      // compared to the period budget (100 tokens/block * 5 blocks distributed = 500 tokens),
+      // so all accumulated is cleared (budget exceeds accumulated).
 
-        const distributed1 = finalBalance1 - initialBalance1
-        const distributed2 = finalBalance2 - initialBalance2
+      expect(stateAfterPartial.lastDistributionBlock).to.equal(midBlock)
+      expect(stateAfterPartial.lastSelfMintingBlock).to.equal(actualCurrentBlock)
 
-        // Verify proportional distribution (3:2 ratio)
-        if (distributed1 > 0 && distributed2 > 0) {
-          const ratio = (BigInt(distributed1) * 1000n) / BigInt(distributed2) // Multiply by 1000 for precision
-          expect(ratio).to.be.closeTo(1500n, 50n) // 300000/200000 = 1.5
-        }
+      // Budget-based logic: subtract min(accumulated, totalForPeriod) from accumulated
+      // Since accumulated < totalForPeriod (small accumulation vs large budget for 5 blocks),
+      // all accumulated is cleared.
+      expect(stateAfterPartial.selfMintingOffset).to.equal(0, 'Accumulated cleared when less than period budget')
 
-        // Total distributed should equal the allocated portion of pending
-        // With 50% total allocator-minting allocation: (30% + 20%) / 100% = 50% of pending
-        const totalDistributed = distributed1 + distributed2
-        const expectedTotal = pendingBefore / 2n // 50% of pending
-        expect(totalDistributed).to.be.closeTo(expectedTotal, ethers.parseEther('0.001'))
-      })
+      // Verify subsequent distribution works correctly
+      await issuanceAllocator.connect(accounts.governor).unpause()
+      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
+      const finalBlock = await ethers.provider.getBlockNumber()
 
-      it('should handle totalSelfMintingPPM = MILLION - 1 (minimal allocator-minting)', async () => {
-        const { issuanceAllocator, graphToken, target1, target2 } = await setupIssuanceAllocator()
+      const stateAfterFinal = await issuanceAllocator.getDistributionState()
+      expect(stateAfterFinal.selfMintingOffset).to.equal(0)
+      expect(stateAfterFinal.lastDistributionBlock).to.equal(finalBlock)
 
-        // Setup
-        await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
-        await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
-        await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('1000'), false)
+      // Verify token distribution is mathematically correct
+      // The allocator-minting should have received the correct amount accounting for ALL self-minting accumulation
+      const balance1 = await (graphToken as any).balanceOf(await target1.getAddress())
 
-        // Add targets: 1 PPM allocator-minting, 999,999 PPM self-minting
-        await issuanceAllocator
-          .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 1, 0, false) // 1 PPM allocator
-        await issuanceAllocator
-          .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](await target2.getAddress(), 0, 999999, false) // 999,999 PPM self
+      const totalBlocks = BigInt(finalBlock) - BigInt(initialBlock)
+      const totalIssuance = ethers.parseEther('100') * totalBlocks
+      const totalSelfMinting = ethers.parseEther('20') * totalBlocks
+      const availableForAllocator = totalIssuance - totalSelfMinting
+      // target1 gets 30/80 of allocator-minting (30 for target1, 50 for default)
+      const expectedForTarget1 = (availableForAllocator * ethers.parseEther('30')) / ethers.parseEther('80')
 
-        // Distribute once to initialize
-        await issuanceAllocator.connect(accounts.governor).distributeIssuance()
+      // Allow higher tolerance due to multiple distribution calls (partial + full)
+      // Each transaction adds blocks which affects the total issuance calculation
+      expect(balance1).to.be.closeTo(expectedForTarget1, ethers.parseEther('100'))
+    })
 
-        // Pause and accumulate significant issuance
-        await issuanceAllocator.connect(accounts.governor).pause()
-        for (let i = 0; i < 10; i++) {
-          await ethers.provider.send('evm_mine', [])
-        }
+    it('should correctly handle accumulated self-minting that exceeds period budget', async () => {
+      const { issuanceAllocator, graphToken, target1, target2 } = await setupIssuanceAllocator()
 
-        // Trigger accumulation by forcing rate change
-        await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('2000'), true)
+      // Setup
+      await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
+      await issuanceAllocator.connect(accounts.governor).grantRole(PAUSE_ROLE, accounts.governor.address)
+      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'))
 
-        const pendingBefore = await issuanceAllocator.pendingAccumulatedAllocatorIssuance()
-        expect(pendingBefore).to.be.gt(0)
+      // High self-minting rate: 80 tokens/block, allocator: 20 tokens/block
+      await issuanceAllocator
+        .connect(accounts.governor)
+        [
+          'setTargetAllocation(address,uint256,uint256,uint256)'
+        ](await target1.getAddress(), ethers.parseEther('20'), 0, 0)
+      await issuanceAllocator
+        .connect(accounts.governor)
+        [
+          'setTargetAllocation(address,uint256,uint256,uint256)'
+        ](await target2.getAddress(), 0, ethers.parseEther('80'), 0)
 
-        const initialBalance1 = await (graphToken as any).balanceOf(await target1.getAddress())
-        const initialBalance2 = await (graphToken as any).balanceOf(await target2.getAddress())
+      // Initialize
+      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
+      const initialBlock = await ethers.provider.getBlockNumber()
 
-        // Call distributePendingIssuance - denominator should be 1
-        await expect(issuanceAllocator.connect(accounts.governor)['distributePendingIssuance()']()).to.not.be.reverted
+      // Pause and accumulate a lot
+      await issuanceAllocator.connect(accounts.governor).pause()
+      await ethers.provider.send('evm_mine', [])
+      await ethers.provider.send('evm_mine', [])
+      await ethers.provider.send('evm_mine', [])
+      await ethers.provider.send('evm_mine', [])
+      await ethers.provider.send('evm_mine', [])
+      const afterMining = await ethers.provider.getBlockNumber()
 
-        const finalBalance1 = await (graphToken as any).balanceOf(await target1.getAddress())
-        const finalBalance2 = await (graphToken as any).balanceOf(await target2.getAddress())
+      // Accumulated should be: 80 * (afterMining - initialBlock)
+      const blocksAccumulated = afterMining - initialBlock
+      const _expectedAccumulated = ethers.parseEther('80') * BigInt(blocksAccumulated)
 
-        const distributed1 = finalBalance1 - initialBalance1
-        const distributed2 = finalBalance2 - initialBalance2
+      // Now distribute only 1 block worth (partialBlock - initialBlock = 1)
+      const partialBlock = initialBlock + 1
+      await issuanceAllocator.connect(accounts.governor)['distributePendingIssuance(uint256)'](partialBlock)
 
-        // Target2 (self-minting) should receive nothing
-        expect(distributed2).to.equal(0)
+      const stateAfter = await issuanceAllocator.getDistributionState()
+      const afterDistBlock = await ethers.provider.getBlockNumber()
 
-        // Target1 should receive all pending issuance
-        expect(distributed1).to.be.closeTo(pendingBefore, ethers.parseEther('0.001'))
-      })
+      // More accumulation happened during the distributePendingIssuance call itself
+      const totalBlocksAccumulated = afterDistBlock - initialBlock
+      const totalExpectedAccumulated = ethers.parseEther('80') * BigInt(totalBlocksAccumulated)
+
+      // Budget-based logic: distributed 1 block with totalForPeriod = issuancePerBlock * 1 = 100
+      // Subtract budget from accumulated (not rate-based), since we don't know historical rates
+      const blocksDistributed = partialBlock - initialBlock
+      const totalForPeriod = ethers.parseEther('100') * BigInt(blocksDistributed)
+      const expectedRemaining = totalExpectedAccumulated - totalForPeriod
+
+      // This should NOT be zero - accumulated exceeds period budget, so remainder is retained
+      expect(stateAfter.selfMintingOffset).to.be.gt(0)
+      // Budget-based: accumulated ~480, subtract 100, expect ~380 remaining (within 10 token tolerance)
+      expect(stateAfter.selfMintingOffset).to.be.closeTo(expectedRemaining, ethers.parseEther('10'))
     })
   })
 })

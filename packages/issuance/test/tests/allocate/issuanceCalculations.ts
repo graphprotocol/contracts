@@ -3,110 +3,82 @@ import { ethers } from 'hardhat'
 /**
  * Shared calculation utilities for issuance tests.
  * These functions provide reference implementations for expected values in tests.
- * Enhanced with better naming, documentation, and error handling.
  */
 
 // Constants for better readability
 export const CALCULATION_CONSTANTS = {
-  PPM_DENOMINATOR: 1_000_000n, // Parts per million denominator
   PRECISION_MULTIPLIER: 1000n, // For ratio calculations
   WEI_PER_ETHER: ethers.parseEther('1'),
 } as const
 
 /**
- * Calculate expected accumulation for allocator-minting targets during pause.
- * Accumulation happens from lastIssuanceAccumulationBlock to current block.
+ * Calculate expected self-minting accumulation during pause.
+ * In the new model, we accumulate self-minting (not allocator-minting) during pause.
  *
- * @param issuancePerBlock - Issuance rate per block
+ * @param totalSelfMintingRate - Total self-minting rate (tokens per block)
  * @param blocks - Number of blocks to accumulate over
- * @param allocatorMintingPPM - Total allocator-minting allocation in PPM
- * @returns Expected accumulated amount for allocator-minting targets
+ * @returns Expected accumulated self-minting amount
  */
-export function calculateExpectedAccumulation(
-  issuancePerBlock: bigint,
-  blocks: bigint,
-  allocatorMintingPPM: bigint,
-): bigint {
-  if (blocks === 0n || allocatorMintingPPM === 0n) return 0n
-
-  const totalIssuance = issuancePerBlock * blocks
-  // Contract uses: totalIssuance * totalAllocatorMintingAllocationPPM / MILLION
-  return (totalIssuance * allocatorMintingPPM) / CALCULATION_CONSTANTS.PPM_DENOMINATOR
+export function calculateExpectedSelfMintingAccumulation(totalSelfMintingRate: bigint, blocks: bigint): bigint {
+  if (blocks === 0n || totalSelfMintingRate === 0n) return 0n
+  return totalSelfMintingRate * blocks
 }
 
 /**
- * Calculate expected issuance for a specific target.
+ * Calculate expected issuance for a specific target during normal operation.
  *
- * @param issuancePerBlock - Issuance rate per block
+ * @param targetRate - Target's allocation rate (tokens per block)
  * @param blocks - Number of blocks
- * @param targetAllocationPPM - Target's allocation in PPM
  * @returns Expected issuance for the target
  */
-export function calculateExpectedTargetIssuance(
-  issuancePerBlock: bigint,
-  blocks: bigint,
-  targetAllocationPPM: bigint,
-): bigint {
-  if (blocks === 0n || targetAllocationPPM === 0n) return 0n
-
-  const totalIssuance = issuancePerBlock * blocks
-  return (totalIssuance * targetAllocationPPM) / CALCULATION_CONSTANTS.PPM_DENOMINATOR
+export function calculateExpectedTargetIssuance(targetRate: bigint, blocks: bigint): bigint {
+  if (blocks === 0n || targetRate === 0n) return 0n
+  return targetRate * blocks
 }
 
 /**
- * Calculate proportional distribution of pending issuance among allocator-minting targets.
+ * Calculate proportional distribution during unpause when insufficient funds.
+ * Used when available funds < total non-default needs.
  *
- * @param pendingAmount - Total pending amount to distribute
- * @param targetAllocationPPM - Target's allocator-minting allocation in PPM
- * @param totalSelfMintingPPM - Total self-minting allocation in PPM
+ * @param availableAmount - Total available amount to distribute
+ * @param targetRate - Target's allocator-minting rate (tokens per block)
+ * @param totalNonDefaultRate - Total non-default allocator-minting rate
  * @returns Expected amount for the target
  */
 export function calculateProportionalDistribution(
-  pendingAmount: bigint,
-  targetAllocationPPM: bigint,
-  totalSelfMintingPPM: bigint,
+  availableAmount: bigint,
+  targetRate: bigint,
+  totalNonDefaultRate: bigint,
 ): bigint {
-  if (pendingAmount === 0n || targetAllocationPPM === 0n) return 0n
-
-  const totalAllocatorMintingPPM = CALCULATION_CONSTANTS.PPM_DENOMINATOR - totalSelfMintingPPM
-  if (totalAllocatorMintingPPM === 0n) return 0n
-
-  return (pendingAmount * targetAllocationPPM) / totalAllocatorMintingPPM
+  if (availableAmount === 0n || targetRate === 0n || totalNonDefaultRate === 0n) return 0n
+  return (availableAmount * targetRate) / totalNonDefaultRate
 }
 
 /**
  * Calculate expected total issuance for multiple targets.
  *
- * @param issuancePerBlock - Issuance rate per block
  * @param blocks - Number of blocks
- * @param targetAllocations - Array of target allocations in PPM
+ * @param targetRates - Array of target rates (tokens per block)
  * @returns Array of expected issuance amounts for each target
  */
-export function calculateMultiTargetIssuance(
-  issuancePerBlock: bigint,
-  blocks: bigint,
-  targetAllocations: bigint[],
-): bigint[] {
-  return targetAllocations.map((allocation) => calculateExpectedTargetIssuance(issuancePerBlock, blocks, allocation))
+export function calculateMultiTargetIssuance(blocks: bigint, targetRates: bigint[]): bigint[] {
+  return targetRates.map((rate) => calculateExpectedTargetIssuance(rate, blocks))
 }
 
 /**
- * Verify that distributed amounts add up to expected total rate.
+ * Verify that distributed amounts add up to expected total.
  *
  * @param distributedAmounts - Array of distributed amounts
- * @param expectedTotalRate - Expected total issuance rate
- * @param blocks - Number of blocks
+ * @param expectedTotal - Expected total amount
  * @param tolerance - Tolerance for rounding errors (default: 1 wei)
  * @returns True if amounts add up within tolerance
  */
 export function verifyTotalDistribution(
   distributedAmounts: bigint[],
-  expectedTotalRate: bigint,
-  blocks: bigint,
+  expectedTotal: bigint,
   tolerance: bigint = 1n,
 ): boolean {
   const totalDistributed = distributedAmounts.reduce((sum, amount) => sum + amount, 0n)
-  const expectedTotal = expectedTotalRate * blocks
   const diff = totalDistributed > expectedTotal ? totalDistributed - expectedTotal : expectedTotal - totalDistributed
   return diff <= tolerance
 }
@@ -114,36 +86,39 @@ export function verifyTotalDistribution(
 /**
  * Calculate expected distribution ratios between targets
  *
- * @param allocations - Array of allocations in PPM
+ * @param rates - Array of rates (tokens per block)
  * @returns Array of ratios relative to first target
  */
-export function calculateExpectedRatios(allocations: bigint[]): bigint[] {
-  if (allocations.length === 0) return []
+export function calculateExpectedRatios(rates: bigint[]): bigint[] {
+  if (rates.length === 0) return []
 
-  const baseAllocation = allocations[0]
-  if (baseAllocation === 0n) return allocations.map(() => 0n)
+  const baseRate = rates[0]
+  if (baseRate === 0n) return rates.map(() => 0n)
 
-  return allocations.map((allocation) => (allocation * CALCULATION_CONSTANTS.PRECISION_MULTIPLIER) / baseAllocation)
+  return rates.map((rate) => (rate * CALCULATION_CONSTANTS.PRECISION_MULTIPLIER) / baseRate)
 }
 
 /**
- * Convert allocation percentage to PPM
+ * Convert allocation percentage to absolute rate
  *
  * @param percentage - Percentage as a number (e.g., 30 for 30%)
- * @returns PPM value
+ * @param issuancePerBlock - Total issuance per block
+ * @returns Absolute rate (tokens per block)
  */
-export function percentageToPPM(percentage: number): number {
-  return Math.round(percentage * 10_000) // 1% = 10,000 PPM
+export function percentageToRate(percentage: number, issuancePerBlock: bigint): bigint {
+  return (issuancePerBlock * BigInt(Math.round(percentage * 100))) / 10000n
 }
 
 /**
- * Convert PPM to percentage
+ * Convert rate to percentage
  *
- * @param ppm - PPM value
+ * @param rate - Rate (tokens per block)
+ * @param issuancePerBlock - Total issuance per block
  * @returns Percentage as a number
  */
-export function ppmToPercentage(ppm: bigint | number): number {
-  return Number(ppm) / 10_000
+export function rateToPercentage(rate: bigint, issuancePerBlock: bigint): number {
+  if (issuancePerBlock === 0n) return 0
+  return Number((rate * 10000n) / issuancePerBlock) / 100
 }
 
 /**

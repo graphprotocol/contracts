@@ -38,15 +38,27 @@ describe('Allocate Access Control Tests', () => {
     describe('setIssuancePerBlock', () => {
       it('should revert when non-governor calls setIssuancePerBlock', async () => {
         await expect(
-          contracts.issuanceAllocator
-            .connect(accounts.nonGovernor)
-            .setIssuancePerBlock(ethers.parseEther('200'), false),
+          contracts.issuanceAllocator.connect(accounts.nonGovernor).setIssuancePerBlock(ethers.parseEther('200')),
         ).to.be.revertedWithCustomError(contracts.issuanceAllocator, 'AccessControlUnauthorizedAccount')
       })
 
       it('should allow governor to call setIssuancePerBlock', async () => {
         await expect(
-          contracts.issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('200'), false),
+          contracts.issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('200')),
+        ).to.not.be.reverted
+      })
+
+      it('should revert when non-governor calls setIssuancePerBlock (2-param variant)', async () => {
+        await expect(
+          contracts.issuanceAllocator
+            .connect(accounts.nonGovernor)
+            ['setIssuancePerBlock(uint256,uint256)'](ethers.parseEther('300'), 0),
+        ).to.be.revertedWithCustomError(contracts.issuanceAllocator, 'AccessControlUnauthorizedAccount')
+      })
+
+      it('should allow governor to call setIssuancePerBlock (2-param variant)', async () => {
+        await expect(
+          contracts.issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('300')),
         ).to.not.be.reverted
       })
     })
@@ -56,7 +68,7 @@ describe('Allocate Access Control Tests', () => {
         await expect(
           contracts.issuanceAllocator
             .connect(accounts.nonGovernor)
-            ['setTargetAllocation(address,uint256,uint256,bool)'](accounts.nonGovernor.address, 100000, 0, false),
+            ['setTargetAllocation(address,uint256,uint256)'](accounts.nonGovernor.address, 100000, 0),
         ).to.be.revertedWithCustomError(contracts.issuanceAllocator, 'AccessControlUnauthorizedAccount')
       })
 
@@ -65,7 +77,24 @@ describe('Allocate Access Control Tests', () => {
         await expect(
           contracts.issuanceAllocator
             .connect(accounts.governor)
-            ['setTargetAllocation(address,uint256,uint256,bool)'](contracts.directAllocation.target, 100000, 0, false),
+            ['setTargetAllocation(address,uint256,uint256)'](contracts.directAllocation.target, 100000, 0),
+        ).to.not.be.reverted
+      })
+
+      it('should revert when non-governor calls setTargetAllocation (3-param variant)', async () => {
+        await expect(
+          contracts.issuanceAllocator
+            .connect(accounts.nonGovernor)
+            ['setTargetAllocation(address,uint256,uint256,uint256)'](accounts.nonGovernor.address, 100000, 0, 0),
+        ).to.be.revertedWithCustomError(contracts.issuanceAllocator, 'AccessControlUnauthorizedAccount')
+      })
+
+      it('should allow governor to call setTargetAllocation (3-param variant)', async () => {
+        // Use a valid target contract address instead of EOA
+        await expect(
+          contracts.issuanceAllocator
+            .connect(accounts.governor)
+            ['setTargetAllocation(address,uint256,uint256,uint256)'](contracts.directAllocation.target, 100000, 0, 0),
         ).to.not.be.reverted
       })
     })
@@ -81,7 +110,7 @@ describe('Allocate Access Control Tests', () => {
         // First add the target so notifyTarget has something to notify
         await contracts.issuanceAllocator
           .connect(accounts.governor)
-          ['setTargetAllocation(address,uint256,uint256,bool)'](contracts.directAllocation.target, 100000, 0, false)
+          ['setTargetAllocation(address,uint256,uint256)'](contracts.directAllocation.target, 100000, 0)
 
         await expect(
           contracts.issuanceAllocator.connect(accounts.governor).notifyTarget(contracts.directAllocation.target),

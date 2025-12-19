@@ -58,9 +58,9 @@ contract MockIssuanceAllocator is IERC165, IIssuanceAllocationDistribution {
             IIssuanceTarget(target).beforeIssuanceAllocationChange();
         }
         _targetIssuance[target] = TargetIssuancePerBlock({
-            allocatorIssuancePerBlock: allocatorIssuance,
+            allocatorIssuanceRate: allocatorIssuance,
             allocatorIssuanceBlockAppliedTo: block.number,
-            selfIssuancePerBlock: selfIssuance,
+            selfIssuanceRate: selfIssuance,
             selfIssuanceBlockAppliedTo: block.number
         });
     }

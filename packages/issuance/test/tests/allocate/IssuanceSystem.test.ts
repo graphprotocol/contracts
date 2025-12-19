@@ -35,13 +35,13 @@ describe('Issuance System', () => {
       await contracts.issuanceAllocator
         .connect(accounts.governor)
         [
-          'setTargetAllocation(address,uint256,uint256,bool)'
-        ](addresses.target1, TestConstants.ALLOCATION_30_PERCENT, 0, false)
+          'setTargetAllocation(address,uint256,uint256,uint256)'
+        ](addresses.target1, TestConstants.ALLOCATION_30_PERCENT, 0, 0)
       await contracts.issuanceAllocator
         .connect(accounts.governor)
         [
-          'setTargetAllocation(address,uint256,uint256,bool)'
-        ](addresses.target2, TestConstants.ALLOCATION_40_PERCENT, 0, false)
+          'setTargetAllocation(address,uint256,uint256,uint256)'
+        ](addresses.target2, TestConstants.ALLOCATION_40_PERCENT, 0, 0)
 
       // Grant operator roles using predefined constants
       await contracts.target1
@@ -86,42 +86,46 @@ describe('Issuance System', () => {
 
       // Verify initial total allocation (excludes default since it's address(0))
       const totalAlloc = await contracts.issuanceAllocator.getTotalAllocation()
-      expect(totalAlloc.totalAllocationPPM).to.equal(700000) // 70% (30% + 40%, excludes default)
+      expect(totalAlloc.totalAllocationRate).to.equal(700000) // 70% (30% + 40%, excludes default)
 
       // Change allocations: target1 = 50%, target2 = 20% (30% goes to default)
       await contracts.issuanceAllocator
         .connect(accounts.governor)
         [
-          'setTargetAllocation(address,uint256,uint256,bool)'
-        ](addresses.target1, TestConstants.ALLOCATION_50_PERCENT, 0, false)
+          'setTargetAllocation(address,uint256,uint256,uint256)'
+        ](addresses.target1, TestConstants.ALLOCATION_50_PERCENT, 0, 0)
       await contracts.issuanceAllocator
         .connect(accounts.governor)
         [
-          'setTargetAllocation(address,uint256,uint256,bool)'
-        ](addresses.target2, TestConstants.ALLOCATION_20_PERCENT, 0, false)
+          'setTargetAllocation(address,uint256,uint256,uint256)'
+        ](addresses.target2, TestConstants.ALLOCATION_20_PERCENT, 0, 0)
 
       // Verify updated allocations (excludes default since it's address(0))
       const updatedTotalAlloc = await contracts.issuanceAllocator.getTotalAllocation()
-      expect(updatedTotalAlloc.totalAllocationPPM).to.equal(700000) // 70% (50% + 20%, excludes default)
+      expect(updatedTotalAlloc.totalAllocationRate).to.equal(700000) // 70% (50% + 20%, excludes default)
 
       // Verify individual target allocations
       const target1Info = await contracts.issuanceAllocator.getTargetData(addresses.target1)
       const target2Info = await contracts.issuanceAllocator.getTargetData(addresses.target2)
 
-      expect(target1Info.allocatorMintingPPM + target1Info.selfMintingPPM).to.equal(TestConstants.ALLOCATION_50_PERCENT)
-      expect(target2Info.allocatorMintingPPM + target2Info.selfMintingPPM).to.equal(TestConstants.ALLOCATION_20_PERCENT)
+      expect(target1Info.allocatorMintingRate + target1Info.selfMintingRate).to.equal(
+        TestConstants.ALLOCATION_50_PERCENT,
+      )
+      expect(target2Info.allocatorMintingRate + target2Info.selfMintingRate).to.equal(
+        TestConstants.ALLOCATION_20_PERCENT,
+      )
 
       // Verify proportional issuance distribution (50:20 = 5:2 ratio)
       const target1Result = await contracts.issuanceAllocator.getTargetIssuancePerBlock(addresses.target1)
       const target2Result = await contracts.issuanceAllocator.getTargetIssuancePerBlock(addresses.target2)
 
-      expect(target1Result.selfIssuancePerBlock).to.equal(0)
-      expect(target2Result.selfIssuancePerBlock).to.equal(0)
+      expect(target1Result.selfIssuanceRate).to.equal(0)
+      expect(target2Result.selfIssuanceRate).to.equal(0)
 
       // Verify the ratio using helper function: 50/20 = 2.5, so 2500 in our precision
       expectRatioToEqual(
-        target1Result.allocatorIssuancePerBlock,
-        target2Result.allocatorIssuancePerBlock,
+        target1Result.allocatorIssuanceRate,
+        target2Result.allocatorIssuanceRate,
         2500n, // 50/20 * 1000 precision
         TestConstants.DEFAULT_TOLERANCE,
       )

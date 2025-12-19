@@ -32,7 +32,7 @@ export async function deployIssuanceAllocator(graphToken, governor, issuancePerB
   const issuanceAllocator = issuanceAllocatorContract
 
   // Set issuance per block
-  await issuanceAllocator.connect(governor).setIssuancePerBlock(issuancePerBlock, false)
+  await issuanceAllocator.connect(governor).setIssuancePerBlock(issuancePerBlock)
 
   return issuanceAllocator
 }
