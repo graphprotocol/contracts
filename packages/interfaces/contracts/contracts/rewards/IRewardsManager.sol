@@ -50,18 +50,12 @@ interface IRewardsManager {
     function setRewardsEligibilityOracle(address newRewardsEligibilityOracle) external;
 
     /**
-     * @notice Set the indexer eligibility reclaim address
-     * @dev Address to mint tokens that would be denied due to indexer eligibility. Set to zero to disable.
-     * @param newReclaimAddress The address to receive eligibility-denied tokens
+     * @notice Set the reclaim address for a specific reason
+     * @dev Address to mint tokens for denied/reclaimed rewards. Set to zero to disable.
+     * @param reason The reclaim reason identifier (see RewardsReclaim library for canonical reasons)
+     * @param newReclaimAddress The address to receive tokens
      */
-    function setIndexerEligibilityReclaimAddress(address newReclaimAddress) external;
-
-    /**
-     * @notice Set the subgraph denied reclaim address
-     * @dev Address to mint tokens that would be denied due to subgraph denylist. Set to zero to disable.
-     * @param newReclaimAddress The address to receive subgraph-denied tokens
-     */
-    function setSubgraphDeniedReclaimAddress(address newReclaimAddress) external;
+    function setReclaimAddress(bytes32 reason, address newReclaimAddress) external;
 
     // -- Denylist --
 
@@ -155,6 +149,17 @@ interface IRewardsManager {
      * @return Assigned rewards amount
      */
     function takeRewards(address allocationID) external returns (uint256);
+
+    /**
+     * @notice Reclaim rewards for an allocation
+     * @dev This function can only be called by an authorized rewards issuer.
+     * Calculates pending rewards and mints them to the configured reclaim address.
+     * @param reason The reclaim reason identifier (see RewardsReclaim library for canonical reasons)
+     * @param allocationID Allocation
+     * @param data Arbitrary data to include in the RewardsReclaimed event for additional context
+     * @return The amount of rewards that were reclaimed (0 if no reclaim address set)
+     */
+    function reclaimRewards(bytes32 reason, address allocationID, bytes calldata data) external returns (uint256);
 
     // -- Hooks --
 

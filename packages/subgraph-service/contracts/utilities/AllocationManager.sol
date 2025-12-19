@@ -11,6 +11,7 @@ import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token
 import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
 import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
 import { ILegacyAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/ILegacyAllocation.sol";
+import { RewardsReclaim } from "@graphprotocol/interfaces/contracts/contracts/rewards/RewardsReclaim.sol";
 
 import { GraphDirectory } from "@graphprotocol/horizon/contracts/utilities/GraphDirectory.sol";
 import { AllocationManagerV1Storage } from "./AllocationManagerStorage.sol";
@@ -278,12 +279,20 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         IAllocation.State memory allocation = _allocations.get(_allocationId);
         require(allocation.isOpen(), AllocationManagerAllocationClosed(_allocationId));
 
-        // Mint indexing rewards if all conditions are met
-        uint256 tokensRewards = (!allocation.isStale(maxPOIStaleness) &&
-            !allocation.isAltruistic() &&
-            _poi != bytes32(0)) && _graphEpochManager().currentEpoch() > allocation.createdAtEpoch
-            ? _graphRewardsManager().takeRewards(_allocationId)
-            : 0;
+        // Mint indexing rewards if all conditions are met, otherwise reclaim with specific reason
+        uint256 tokensRewards;
+        if (allocation.isStale(maxPOIStaleness)) {
+            _graphRewardsManager().reclaimRewards(RewardsReclaim.STALE_POI, _allocationId, "");
+        } else if (allocation.isAltruistic()) {
+            _graphRewardsManager().reclaimRewards(RewardsReclaim.ALTRUISTIC_ALLOCATION, _allocationId, "");
+        } else if (_poi == bytes32(0)) {
+            _graphRewardsManager().reclaimRewards(RewardsReclaim.ZERO_POI, _allocationId, "");
+            // solhint-disable-next-line gas-strict-inequalities
+        } else if (_graphEpochManager().currentEpoch() <= allocation.createdAtEpoch) {
+            _graphRewardsManager().reclaimRewards(RewardsReclaim.ALLOCATION_TOO_YOUNG, _allocationId, "");
+        } else {
+            tokensRewards = _graphRewardsManager().takeRewards(_allocationId);
+        }
 
         // ... but we still take a snapshot to ensure the rewards are not accumulated for the next valid POI
         _allocations.snapshotRewards(
@@ -418,11 +427,22 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     function _closeAllocation(address _allocationId, bool _forceClosed) internal {
         IAllocation.State memory allocation = _allocations.get(_allocationId);
 
+        // Reclaim uncollected rewards before closing
+        uint256 reclaimedRewards = _graphRewardsManager().reclaimRewards(
+            RewardsReclaim.CLOSE_ALLOCATION,
+            _allocationId,
+            ""
+        );
+
         // Take rewards snapshot to prevent other allos from counting tokens from this allo
         _allocations.snapshotRewards(
             _allocationId,
             _graphRewardsManager().onSubgraphAllocationUpdate(allocation.subgraphDeploymentId)
         );
+
+        // Clear pending rewards only if rewards were reclaimed. This marks them as consumed,
+        // which could be useful for future logic that searches for unconsumed rewards.
+        if (0 < reclaimedRewards) _allocations.clearPendingRewards(_allocationId);
 
         _allocations.close(_allocationId);
         allocationProvisionTracker.release(allocation.indexer, allocation.tokens);

@@ -63,6 +63,25 @@ contract MockRewardsManager is IRewardsManager {
 
     function setIndexerEligibilityReclaimAddress(address) external {}
 
+    function setReclaimAddress(bytes32, address) external {}
+
+    function reclaimRewards(bytes32, address _allocationID, bytes calldata) external view returns (uint256) {
+        address rewardsIssuer = msg.sender;
+        (bool isActive, , , uint256 tokens, uint256 accRewardsPerAllocatedToken) = IRewardsIssuer(rewardsIssuer)
+            .getAllocationData(_allocationID);
+
+        if (!isActive) {
+            return 0;
+        }
+
+        // Calculate accumulated but unclaimed rewards
+        uint256 accRewardsPerTokens = tokens.mulPPM(rewardsPerSignal);
+        uint256 rewards = accRewardsPerTokens - accRewardsPerAllocatedToken;
+
+        // Note: We don't mint tokens for reclaimed rewards, they are just discarded
+        return rewards;
+    }
+
     // -- Getters --
 
     function getNewRewardsPerSignal() external view returns (uint256) {}

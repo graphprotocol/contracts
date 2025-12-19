@@ -90,8 +90,7 @@ contract RewardsManagerV6Storage is RewardsManagerV5Storage {
     IRewardsEligibility public rewardsEligibilityOracle;
     /// @notice Address of the issuance allocator
     IIssuanceAllocationDistribution public issuanceAllocator;
-    /// @notice Address to receive tokens denied due to indexer eligibility checks, set to zero to disable
-    address public indexerEligibilityReclaimAddress;
-    /// @notice Address to receive tokens denied due to subgraph denylist, set to zero to disable
-    address public subgraphDeniedReclaimAddress;
+    /// @notice Mapping of reclaim reason identifiers to reclaim addresses
+    /// @dev Uses bytes32 for extensibility. See RewardsReclaim library for canonical reasons.
+    mapping(bytes32 => address) public reclaimAddresses;
 }
