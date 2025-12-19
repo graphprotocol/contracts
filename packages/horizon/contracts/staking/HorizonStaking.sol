@@ -1128,10 +1128,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
 
         // Validation
         uint256 tokensToWithdraw = 0;
-        uint256 currentEpoch = _graphEpochManager().currentEpoch();
-        if (
-            delegation.__DEPRECATED_tokensLockedUntil > 0 && currentEpoch >= delegation.__DEPRECATED_tokensLockedUntil
-        ) {
+        if (delegation.__DEPRECATED_tokensLockedUntil > 0) {
             tokensToWithdraw = delegation.__DEPRECATED_tokensLocked;
         }
         require(tokensToWithdraw > 0, HorizonStakingNothingToWithdraw());

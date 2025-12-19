@@ -529,7 +529,7 @@ describe('L2Curation', () => {
 
       it('reject collect tokens distributed from invalid address', async function () {
         const tx = curation.connect(me).collect(subgraphDeploymentID, tokensToCollect)
-        await expect(tx).revertedWith('Caller must be the subgraph service or staking contract')
+        await expect(tx).revertedWith('Caller must be the subgraph service')
       })
 
       it('should collect tokens distributed to the curation pool', async function () {
