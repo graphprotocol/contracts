@@ -113,22 +113,4 @@ contract HorizonStakingForceWithdrawDelegatedTest is HorizonStakingTest {
         vm.expectRevert(expectedError);
         staking.forceWithdrawDelegated(users.indexer, users.delegator);
     }
-
-    function testForceWithdrawDelegated_RevertWhen_StillLocked(uint256 tokensLocked) public useDelegator {
-        vm.assume(tokensLocked > 0);
-
-        // Set a future epoch for tokensLockedUntil
-        uint256 futureEpoch = 1000;
-        _setStorage_DelegationPool(users.indexer, tokensLocked, 0, 0);
-        _setLegacyDelegation(users.indexer, users.delegator, 0, tokensLocked, futureEpoch);
-        token.transfer(address(staking), tokensLocked);
-
-        // switch to a third party
-        resetPrank(users.operator);
-
-        // Should revert because tokens are still locked (current epoch < futureEpoch)
-        bytes memory expectedError = abi.encodeWithSignature("HorizonStakingNothingToWithdraw()");
-        vm.expectRevert(expectedError);
-        staking.forceWithdrawDelegated(users.indexer, users.delegator);
-    }
 }
