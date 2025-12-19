@@ -216,6 +216,11 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         require(prov.createdAt != 0, HorizonStakingInvalidProvision(serviceProvider, verifier));
 
         if ((prov.maxVerifierCutPending != prov.maxVerifierCut) || (prov.thawingPeriodPending != prov.thawingPeriod)) {
+            // Re-validate thawing period in case governor reduced _maxThawingPeriod after staging
+            require(
+                prov.thawingPeriodPending <= _maxThawingPeriod,
+                HorizonStakingInvalidThawingPeriod(prov.thawingPeriodPending, _maxThawingPeriod)
+            );
             prov.maxVerifierCut = prov.maxVerifierCutPending;
             prov.thawingPeriod = prov.thawingPeriodPending;
             emit ProvisionParametersSet(serviceProvider, verifier, prov.maxVerifierCut, prov.thawingPeriod);

@@ -177,4 +177,36 @@ contract HorizonStakingProvisionParametersTest is HorizonStakingTest {
         );
         staking.acceptProvisionParameters(users.indexer);
     }
+
+    function test_ProvisionParametersAccept_RevertWhen_MaxThawingPeriodReduced(
+        uint256 amount,
+        uint32 maxVerifierCut,
+        uint64 thawingPeriod
+    ) public useIndexer useValidParameters(maxVerifierCut, thawingPeriod) {
+        vm.assume(amount > 0);
+        vm.assume(amount <= MAX_STAKING_TOKENS);
+        vm.assume(thawingPeriod > 0);
+
+        // Create provision with initial parameters (thawingPeriod = 0)
+        _createProvision(users.indexer, subgraphDataServiceAddress, amount, 0, 0);
+
+        // Stage new parameters with valid thawing period
+        _setProvisionParameters(users.indexer, subgraphDataServiceAddress, maxVerifierCut, thawingPeriod);
+
+        // Governor reduces max thawing period to below the staged value
+        uint64 newMaxThawingPeriod = thawingPeriod - 1;
+        resetPrank(users.governor);
+        _setMaxThawingPeriod(newMaxThawingPeriod);
+
+        // Verifier tries to accept the parameters - should revert
+        resetPrank(subgraphDataServiceAddress);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IHorizonStakingMain.HorizonStakingInvalidThawingPeriod.selector,
+                thawingPeriod,
+                newMaxThawingPeriod
+            )
+        );
+        staking.acceptProvisionParameters(users.indexer);
+    }
 }
