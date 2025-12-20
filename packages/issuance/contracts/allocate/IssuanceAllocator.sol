@@ -815,6 +815,7 @@ contract IssuanceAllocator is
         if (_distributeIssuance() < minDistributedBlock) return false;
 
         _notifyTarget(target);
+        _notifyTarget(_getIssuanceAllocatorStorage().targetAddresses[0]);
 
         // Total allocation calculation and check is delayed until after notifications.
         // Distributing and notifying unnecessarily is harmless, but we need to prevent
