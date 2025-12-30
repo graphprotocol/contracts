@@ -457,6 +457,8 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
 
         // Clear pending rewards only if rewards were reclaimed. This marks them as consumed,
         // which could be useful for future logic that searches for unconsumed rewards.
+        // Known limitation: This capture is incomplete due to other code paths (e.g., _presentPOI)
+        // that clear pending even when rewards are not consumed.
         if (0 < reclaimedRewards) _allocations.clearPendingRewards(_allocationId);
 
         _allocations.close(_allocationId);
