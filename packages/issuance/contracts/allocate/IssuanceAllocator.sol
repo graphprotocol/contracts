@@ -15,7 +15,7 @@ import { IIssuanceAllocationStatus } from "@graphprotocol/interfaces/contracts/i
 import { IIssuanceAllocationData } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationData.sol";
 import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceTarget.sol";
 import { BaseUpgradeable } from "../common/BaseUpgradeable.sol";
-import { ReentrancyGuardTransientUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardTransientUpgradeable.sol";
+import { ReentrancyGuardTransient } from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 // solhint-disable-next-line no-unused-import
@@ -136,7 +136,7 @@ import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/int
  */
 contract IssuanceAllocator is
     BaseUpgradeable,
-    ReentrancyGuardTransientUpgradeable,
+    ReentrancyGuardTransient,
     IIssuanceAllocationDistribution,
     IIssuanceAllocationAdministration,
     IIssuanceAllocationStatus,
@@ -344,7 +344,6 @@ contract IssuanceAllocator is
      */
     function initialize(address _governor) external virtual initializer {
         __BaseUpgradeable_init(_governor);
-        __ReentrancyGuardTransient_init();
 
         IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
 
