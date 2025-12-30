@@ -26,7 +26,7 @@ describe('Allocate Interface ID Stability', () => {
   })
 
   it('IIssuanceAllocationAdministration should have stable interface ID', () => {
-    expect(IIssuanceAllocationAdministration__factory.interfaceId).to.equal('0xd0b6c0e8')
+    expect(IIssuanceAllocationAdministration__factory.interfaceId).to.equal('0x50d8541d')
   })
 
   it('IIssuanceAllocationStatus should have stable interface ID', () => {

@@ -52,6 +52,11 @@ interface IRewardsManager {
     /**
      * @notice Set the reclaim address for a specific reason
      * @dev Address to mint tokens for denied/reclaimed rewards. Set to zero to disable.
+     *
+     * IMPORTANT: Changes take effect immediately and retroactively. All unclaimed rewards from
+     * previous periods will be sent to the new reclaim address when they are eventually reclaimed,
+     * regardless of which address was configured when the rewards were originally accrued.
+     *
      * @param reason The reclaim reason identifier (see RewardsReclaim library for canonical reasons)
      * @param newReclaimAddress The address to receive tokens
      */

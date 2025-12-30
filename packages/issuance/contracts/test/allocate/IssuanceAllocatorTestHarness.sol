@@ -14,6 +14,7 @@ contract IssuanceAllocatorTestHarness is IssuanceAllocator {
     /**
      * @notice Constructor for the test harness
      * @param _graphToken Address of the Graph Token contract
+     * @custom:oz-upgrades-unsafe-allow constructor
      */
     constructor(address _graphToken) IssuanceAllocator(_graphToken) {}
 

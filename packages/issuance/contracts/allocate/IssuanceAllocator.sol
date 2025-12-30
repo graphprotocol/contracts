@@ -6,7 +6,8 @@ import {
     TargetIssuancePerBlock,
     Allocation,
     AllocationTarget,
-    DistributionState
+    DistributionState,
+    SelfMintingEventMode
 } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocatorTypes.sol";
 import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationDistribution.sol";
 import { IIssuanceAllocationAdministration } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationAdministration.sol";
@@ -157,6 +158,7 @@ contract IssuanceAllocator is
     /// @param allocationTargets Mapping of target addresses to their allocation data
     /// @param targetAddresses Array of all target addresses (including default target at index 0)
     /// @param totalSelfMintingRate Total self-minting rate (tokens per block) across all targets
+    /// @param selfMintingEventMode Controls self-minting event emission behavior (PerTarget, Aggregate, or None)
     /// @dev Design invariant: totalAllocatorRate + totalSelfMintingRate == issuancePerBlock (always 100% allocated)
     /// @dev Design invariant: targetAddresses[0] is always the default target address
     /// @dev Design invariant: 1 <= targetAddresses.length (default target always exists)
@@ -170,6 +172,7 @@ contract IssuanceAllocator is
         mapping(address => AllocationTarget) allocationTargets;
         address[] targetAddresses;
         uint256 totalSelfMintingRate;
+        SelfMintingEventMode selfMintingEventMode;
     }
 
     /**
@@ -302,6 +305,19 @@ contract IssuanceAllocator is
     );
     /* solhint-enable gas-indexed-events */
 
+    /// @notice Emitted when self-minting allowance is calculated in aggregate mode
+    /// @param totalAmount The total amount of tokens available for self-minting across all targets
+    /// @param fromBlock First block included in this allowance period (inclusive)
+    /// @param toBlock Last block included in this allowance period (inclusive)
+    /// @dev This event is emitted when selfMintingEventMode is Aggregate, providing a single event
+    /// instead of per-target events to reduce gas costs
+    event IssuanceSelfMintAllowanceAggregate(uint256 totalAmount, uint256 indexed fromBlock, uint256 indexed toBlock); // solhint-disable-line gas-indexed-events
+
+    /// @notice Emitted when self-minting event mode is changed
+    /// @param oldMode The previous event emission mode
+    /// @param newMode The new event emission mode
+    event SelfMintingEventModeUpdated(SelfMintingEventMode oldMode, SelfMintingEventMode newMode);
+
     // -- Constructor --
 
     /**
@@ -324,6 +340,7 @@ contract IssuanceAllocator is
      * configuration. lastSelfMintingBlock defaults to 0. issuancePerBlock is 0. Once
      * setIssuancePerBlock() is called, it triggers _distributeIssuance() which updates
      * lastDistributionBlock to current block, establishing the starting point for issuance tracking.
+     * @dev selfMintingEventMode is initialized to PerTarget
      */
     function initialize(address _governor) external virtual initializer {
         __BaseUpgradeable_init(_governor);
@@ -334,6 +351,8 @@ contract IssuanceAllocator is
         // Initialize default target at index 0 with address(0)
         // Rates are 0 initially; default gets remainder when issuancePerBlock is set
         $.targetAddresses.push(address(0));
+
+        $.selfMintingEventMode = SelfMintingEventMode.PerTarget;
 
         // To guard against extreme edge case of pausing before setting issuancePerBlock, we initialize
         // lastDistributionBlock to block.number. This should be updated to the correct starting block
@@ -384,7 +403,7 @@ contract IssuanceAllocator is
      * @notice Advances self-minting block and emits allowance events
      * @dev When paused, accumulates self-minting amounts. This accumulation reduces the allocator-minting
      * budget when distribution resumes, ensuring total issuance stays within bounds.
-     * When not paused, just emits self-minting allowance events.
+     * When not paused, emits self-minting allowance events based on selfMintingEventMode.
      * Called by _distributeIssuance() which anyone can call.
      * Optimized for no-op cases: very cheap when already at current block.
      */
@@ -412,17 +431,25 @@ contract IssuanceAllocator is
         }
         $.lastSelfMintingBlock = block.number;
 
-        // Emit self-minting allowance events
+        // Emit self-minting allowance events based on mode
         if (0 < $.totalSelfMintingRate) {
-            for (uint256 i = 0; i < $.targetAddresses.length; ++i) {
-                address target = $.targetAddresses[i];
-                AllocationTarget storage targetData = $.allocationTargets[target];
+            if ($.selfMintingEventMode == SelfMintingEventMode.PerTarget) {
+                // Emit per-target events (highest gas cost)
+                for (uint256 i = 0; i < $.targetAddresses.length; ++i) {
+                    address target = $.targetAddresses[i];
+                    AllocationTarget storage targetData = $.allocationTargets[target];
 
-                if (0 < targetData.selfMintingRate) {
-                    uint256 amount = targetData.selfMintingRate * blocks;
-                    emit IssuanceSelfMintAllowance(target, amount, fromBlock, block.number);
+                    if (0 < targetData.selfMintingRate) {
+                        uint256 amount = targetData.selfMintingRate * blocks;
+                        emit IssuanceSelfMintAllowance(target, amount, fromBlock, block.number);
+                    }
                 }
+            } else if ($.selfMintingEventMode == SelfMintingEventMode.Aggregate) {
+                // Emit single aggregated event (lower gas cost)
+                uint256 totalAmount = $.totalSelfMintingRate * blocks;
+                emit IssuanceSelfMintAllowanceAggregate(totalAmount, fromBlock, block.number);
             }
+            // else None: skip event emission entirely (lowest gas cost)
         }
     }
 
@@ -722,6 +749,28 @@ contract IssuanceAllocator is
         emit IssuancePerBlockUpdated(oldIssuancePerBlock, newIssuancePerBlock);
 
         return true;
+    }
+
+    /**
+     * @inheritdoc IIssuanceAllocationAdministration
+     */
+    function setSelfMintingEventMode(SelfMintingEventMode newMode) external onlyRole(GOVERNOR_ROLE) returns (bool) {
+        IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
+        SelfMintingEventMode oldMode = $.selfMintingEventMode;
+
+        if (newMode == oldMode) return true;
+
+        $.selfMintingEventMode = newMode;
+        emit SelfMintingEventModeUpdated(oldMode, newMode);
+
+        return true;
+    }
+
+    /**
+     * @inheritdoc IIssuanceAllocationAdministration
+     */
+    function getSelfMintingEventMode() external view override returns (SelfMintingEventMode) {
+        return _getIssuanceAllocatorStorage().selfMintingEventMode;
     }
 
     // -- Target Management --

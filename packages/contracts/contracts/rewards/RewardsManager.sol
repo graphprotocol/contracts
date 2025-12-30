@@ -295,6 +295,10 @@ contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, IERC165, I
      * @inheritdoc IRewardsManager
      * @dev bytes32(0) is reserved as an invalid reason to prevent accidental misconfiguration
      * and catch uninitialized reason identifiers.
+     *
+     * IMPORTANT: Changes take effect immediately and retroactively. All unclaimed rewards from
+     * previous periods will be sent to the new reclaim address when they are eventually reclaimed,
+     * regardless of which address was configured when the rewards were originally accrued.
      */
     function setReclaimAddress(bytes32 reason, address newAddress) external override onlyGovernor {
         require(reason != bytes32(0), "Cannot set reclaim address for (bytes32(0))");

@@ -3,6 +3,7 @@
 pragma solidity ^0.7.6 || ^0.8.0;
 
 import { IIssuanceTarget } from "./IIssuanceTarget.sol";
+import { SelfMintingEventMode } from "./IIssuanceAllocatorTypes.sol";
 
 /**
  * @title IIssuanceAllocationAdministration
@@ -134,4 +135,21 @@ interface IIssuanceAllocationAdministration {
      * @return distributedBlock Block number that issuance was distributed up to
      */
     function distributePendingIssuance(uint256 toBlockNumber) external returns (uint256 distributedBlock);
+
+    /**
+     * @notice Set the self-minting event emission mode
+     * @param newMode The new emission mode (None, Aggregate, or PerTarget)
+     * @return applied True if the mode was set (including if already set to that mode)
+     * @dev None: Skip event emission entirely (lowest gas)
+     * @dev Aggregate: Emit single aggregated event for all self-minting (medium gas)
+     * @dev PerTarget: Emit events for each target with self-minting (highest gas)
+     * @dev Self-minting targets should call getTargetIssuancePerBlock() rather than relying on events
+     */
+    function setSelfMintingEventMode(SelfMintingEventMode newMode) external returns (bool applied);
+
+    /**
+     * @notice Get the current self-minting event emission mode
+     * @return mode The current emission mode
+     */
+    function getSelfMintingEventMode() external view returns (SelfMintingEventMode mode);
 }

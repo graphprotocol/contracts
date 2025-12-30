@@ -1866,6 +1866,37 @@ describe('IssuanceAllocator', () => {
       expect(result).to.equal(currentBlock)
     })
 
+    it('should not emit SelfMintingOffsetReconciled when offset unchanged', async () => {
+      const { issuanceAllocator, graphToken, target1 } = await setupIssuanceAllocator()
+
+      // Setup with only allocator-minting (no self-minting)
+      await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
+      await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(ethers.parseEther('100'))
+      await issuanceAllocator
+        .connect(accounts.governor)
+        ['setTargetAllocation(address,uint256,uint256)'](await target1.getAddress(), ethers.parseEther('50'), 0)
+
+      // Distribute to current block (no accumulated offset)
+      await issuanceAllocator.connect(accounts.governor).distributeIssuance()
+
+      // Verify no offset accumulated
+      const stateBefore = await issuanceAllocator.getDistributionState()
+      expect(stateBefore.selfMintingOffset).to.equal(0)
+
+      // Mine blocks and distribute again
+      await ethers.provider.send('evm_mine', [])
+      await ethers.provider.send('evm_mine', [])
+
+      // distributePendingIssuance with no accumulated offset should not emit reconciliation event
+      const tx = await issuanceAllocator.connect(accounts.governor)['distributePendingIssuance()']()
+
+      await expect(tx).to.not.emit(issuanceAllocator, 'SelfMintingOffsetReconciled')
+
+      // Verify offset is still 0
+      const stateAfter = await issuanceAllocator.getDistributionState()
+      expect(stateAfter.selfMintingOffset).to.equal(0)
+    })
+
     it('should handle proportional distribution when available < allocatedTotal', async () => {
       const { issuanceAllocator, graphToken, target1, target2 } = await setupIssuanceAllocator()
 

@@ -260,6 +260,21 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * which to calculate POIs. EBO posts once per epoch typically at each epoch change, so we restrict rewards to allocations
      * that have gone through at least one epoch change.
      *
+     * Reclaim target hierarchy:
+     * When rewards cannot be minted, they are reclaimed with a specific reason. The following conditions are checked
+     * in order, and the first matching condition determines which reclaim reason is used:
+     * 1. STALE_POI - if allocation is stale (lastPOI older than maxPOIStaleness)
+     * 2. ALTRUISTIC_ALLOCATION - if allocation has zero tokens
+     * 3. ZERO_POI - if POI is bytes32(0)
+     * 4. ALLOCATION_TOO_YOUNG - if allocation was created in the current epoch
+     * Each reason may have a different reclaim address configured in the RewardsManager. If multiple conditions
+     * apply simultaneously, only the first matching condition's reclaim address receives the rewards.
+     *
+     * Retroactive reclaim address changes:
+     * Any change to a reclaim address in the RewardsManager takes effect immediately and retroactively.
+     * All unclaimed rewards from previous periods will be sent to the new reclaim address when they are
+     * eventually reclaimed, regardless of which address was configured when the rewards were originally accrued.
+     *
      * Emits a {IndexingRewardsCollected} event.
      *
      * @param _allocationId The id of the allocation to collect rewards for
