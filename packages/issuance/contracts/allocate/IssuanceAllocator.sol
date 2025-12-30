@@ -28,10 +28,10 @@ import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/int
  * (tokens per block) and handles minting for allocator-minting targets.
  *
  * @dev The contract maintains a 100% allocation invariant through a default target mechanism:
- * - A default target target exists at targetAddresses[0] (initialized to address(0))
+ * - A default target exists at targetAddresses[0] (initialized to address(0))
  * - The default target automatically receives any unallocated portion of issuance
  * - Total allocation across all targets always equals issuancePerBlock (tracked as absolute rates)
- * - The default target address can be changed via setDefaultAllocationAddress()
+ * - The default target address can be changed via setDefaultTarget()
  * - When the default address is address(0), this 'unallocated' portion is not minted
  * - Regular targets cannot be set as the default target address
  *
@@ -58,6 +58,50 @@ import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/int
  *   periods until distribution clears it, preventing loss of self-minting allowances across pause cycles.
  * - Tracking divergence: lastSelfMintingBlock advances during pause (for allowance tracking) while
  *   lastDistributionBlock stays frozen (no allocator-minting). This is intentional and correct.
+ *
+ * @dev Issuance Accounting Invariants:
+ * The contract maintains strict accounting to ensure total token issuance never exceeds the configured
+ * issuancePerBlock rate over any time period. This section provides the mathematical foundation for
+ * understanding the relationship between self-minting and allocator-minting.
+ *
+ * Key Invariants:
+ * 1. Allocation Completeness: For all blocks b, totalAllocatorRate_b + totalSelfMintingRate_b = issuancePerBlock_b
+ *    This ensures 100% of issuance is always allocated across all targets.
+ *
+ * 2. Self-Minting Accumulation: For any undistributed block range [fromBlock, toBlock]:
+ *    selfMintingOffset = Σ(totalSelfMintingRate_b) for all b in range
+ *    where totalSelfMintingRate_b is the end-state rate for block b.
+ *
+ * 3. Rate Constraint: For all blocks b, totalSelfMintingRate_b ≤ issuancePerBlock_b
+ *    This follows from invariant (1) since 0 ≤ totalAllocatorRate_b.
+ *
+ * 4. Issuance Upper Bound: For any distribution period with blocks = toBlock - fromBlock + 1:
+ *    Let issuancePerBlock_final = current issuancePerBlock at distribution time
+ *
+ *    From invariants (2) and (3):
+ *      selfMintingOffset ≤ Σ(issuancePerBlock_b)
+ *
+ *    Allocator-minting budget for period:
+ *      available = max(0, issuancePerBlock_final * blocks - selfMintingOffset)
+ *
+ *    Total minted (self + allocator) for period:
+ *      ≤ max(selfMintingOffset, issuancePerBlock_final * blocks)
+ *      ≤ Σ(issuancePerBlock_b)
+ *
+ *    Therefore, total issuance never exceeds the sum of configured rates during the period.
+ *
+ * 5. Offset Reconciliation: During pending distribution, selfMintingOffset is adjusted to account for
+ *    the period's issuance budget. When distribution catches up to current block, the offset is cleared.
+ *    Any remaining offset when cleared represents self-minting that occurred beyond what the final
+ *    issuancePerBlock rate would allow for the period. This is acceptable because:
+ *    a) Self-minting targets were operating under rates that were valid at the time
+ *    b) The total minted still respects the Σ(issuancePerBlock_b) bound (invariant 4)
+ *    c) Clearing the offset prevents it from affecting future distributions
+ *    d) The SelfMintingOffsetReconciled event provides visibility into all offset adjustments
+ *
+ * This design ensures that even when issuancePerBlock or allocation rates change over time, and even
+ * when self-minting targets mint independently, the total tokens minted never exceeds the sum of
+ * configured issuance rates during the period.
  *
  * @dev There are a number of scenarios where the IssuanceAllocator could run into issues, including:
  * 1. The targetAddresses array could grow large enough that it exceeds the gas limit when calling distributeIssuance.
@@ -169,7 +213,7 @@ contract IssuanceAllocator is
     /// @param maxBlock The maximum valid block number (current block)
     error ToBlockOutOfRange(uint256 toBlock, uint256 minBlock, uint256 maxBlock);
 
-    /// @notice Thrown when attempting to set allocation for the default target target
+    /// @notice Thrown when attempting to set allocation for the default target
     /// @param defaultTarget The address of the default target
     error CannotSetAllocationForDefaultTarget(address defaultTarget);
 
@@ -238,17 +282,11 @@ contract IssuanceAllocator is
      * @notice Initialize the IssuanceAllocator contract
      * @param _governor Address that will have the GOVERNOR_ROLE
      * @dev Initializes with a default target at index 0 set to address(0)
-     * @dev default target will receive all unallocated issuance (initially 0 until rate is set)
-     * @dev Initialization: lastDistributionBlock is set to block.number as a safety guard against
-     * pausing before configuration. lastSelfMintingBlock defaults to 0. issuancePerBlock is 0.
-     * Once setIssuancePerBlock() is called, it triggers _distributeIssuance() which updates
+     * @dev Default target will receive all unallocated issuance (initially 0 until rate is set)
+     * @dev lastDistributionBlock is set to block.number as a safety guard against pausing before
+     * configuration. lastSelfMintingBlock defaults to 0. issuancePerBlock is 0. Once
+     * setIssuancePerBlock() is called, it triggers _distributeIssuance() which updates
      * lastDistributionBlock to current block, establishing the starting point for issuance tracking.
-     * @dev Rate changes while paused: Rate changes are stored but distributeIssuance() will NOT
-     * apply them while paused - it returns immediately with frozen lastDistributionBlock. When
-     * distribution eventually resumes (via unpause or manual distributePendingIssuance()), the
-     * CURRENT rates at that time are applied retroactively to the entire undistributed period.
-     * Governance must exercise caution when changing rates while paused to ensure they are applied
-     * to the correct block range. See setIssuancePerBlock() documentation for details.
      */
     function initialize(address _governor) external virtual initializer {
         __BaseUpgradeable_init(_governor);
@@ -411,23 +449,14 @@ contract IssuanceAllocator is
     /**
      * @notice Internal implementation for distributing pending accumulated allocator-minting issuance
      * @param toBlockNumber Block number to distribute up to
-     * @dev Distributes allocator-minting issuance for undistributed period using current rates
-     * (retroactively applied to from lastDistributionBlock to toBlockNumber, inclusive of both endpoints).
-     * @dev Called when 0 < self-minting offset, which occurs after pause periods or when
-     * distribution is delayed across pause/unpause cycles. Conservative accumulation strategy
-     * continues accumulating through unpaused periods until distribution clears it.
-     * The undistributed period (lastDistributionBlock to toBlockNumber) could theoretically span multiple pause/unpause cycles. In practice this is unlikely if there are active targets that call distributeIssuance().
-     * @dev Current rate is always applied retroactively to undistributed period, to the extent possible given the accumulated self-minting offset.
-     * If any interim rate was higher than current rate, there might be insufficient allocation
-     * to satisfy required allocations. In this case, we make the best match to honour the current rate.
-     * There will never more issuance relative to what the max interim issuance rate was, but in some circumstances the current rate is insufficient to satisfy the accumulated self-minting. In other cases, to satisfy the current rate, we distribute proportionally less to non-default targets than their current allocation rate.
-     * @dev Constraint: cannot distribute more than total issuance for the period.
-     * @dev Shortfall: When accumulated self-minting exceeds what current rate allows for the period,
-     * the total issuance already exceeded current rate expectations. No allocator-minting distributed.
-     * @dev When allocator-minting is available, there are two distribution cases:
-     * (1) available < allowance: proportional distribution among non-default, default gets zero
-     * (2) allowance <= available: full rates to non-default, remainder to default
-     * Where allowance is allocator rate (for non-default targets) * blocks, and available is total issuance for period minus accumulated self-minting.
+     * @dev Distributes allocator-minting issuance for undistributed period using current rates,
+     * retroactively applied from lastDistributionBlock to toBlockNumber (inclusive).
+     * Called when 0 < selfMintingOffset, which occurs after pause periods or delayed distribution.
+     * @dev Available budget = max(0, issuancePerBlock * blocks - selfMintingOffset).
+     * Distribution cases:
+     * (1) available < allocatedTotal: proportional distribution to non-default, default gets zero
+     * (2) allocatedTotal <= available: full rates to non-default, remainder to default
+     * Where allocatedTotal is sum of non-default allocator rates * blocks.
      * @return Block number that issuance was distributed up to
      */
     function _distributePendingIssuance(uint256 toBlockNumber) private returns (uint256) {
@@ -577,6 +606,10 @@ contract IssuanceAllocator is
      * - Only the default target is notified (target rates don't change, only default target changes)
      * - Target rates stay fixed; default target absorbs the change
      * - Whenever the rate is changed, the updateL2MintAllowance function _must_ be called on the L1GraphTokenGateway in L1, to ensure the bridge can mint the right amount of tokens
+     * @dev Rate changes while paused: The new rate applies retroactively to the entire undistributed
+     * period when distribution resumes. Governance must exercise caution to ensure rates are applied
+     * to the correct block range. Use distributePendingIssuance(blockNumber) to control precisely
+     * which block the new rate applies from.
      */
     function setIssuancePerBlock(
         uint256 newIssuancePerBlock,
@@ -710,15 +743,8 @@ contract IssuanceAllocator is
      * - If any allocation is non-zero and the target doesn't exist, the target will be added
      * - Will revert if the total allocation would exceed available capacity (default target + current target allocation)
      * - Will revert if attempting to add a target that doesn't support IIssuanceTarget
-     *
-     * Self-minting allocation is a special case for backwards compatibility with
-     * existing contracts like the RewardsManager. The IssuanceAllocator calculates
-     * issuance for self-minting targets but does not mint tokens directly for them. Self-minting targets
-     * should call getTargetIssuancePerBlock to determine their issuance amount and mint
-     * tokens accordingly. For example, the RewardsManager contract is expected to call
-     * getTargetIssuancePerBlock in its takeRewards function to calculate the correct
-     * amount of tokens to mint. Self-minting targets are responsible for adhering to
-     * the issuance schedule and should not mint more tokens than allocated.
+     * @dev Self-minting targets must call getTargetIssuancePerBlock to determine their issuance and mint
+     * accordingly. See contract header for details on self-minting vs allocator-minting allocation.
      */
     function setTargetAllocation(
         IIssuanceTarget target,
@@ -1047,7 +1073,7 @@ contract IssuanceAllocator is
 
     /**
      * @inheritdoc IIssuanceAllocationStatus
-     * @dev For reporting purposes, if the default target target is address(0), its allocation
+     * @dev For reporting purposes, if the default target is address(0), its allocation
      * @dev is treated as "unallocated" since address(0) cannot receive minting.
      * @dev When default is address(0): returns actual allocated amounts (may be less than issuancePerBlock)
      * @dev When default is a real address: returns issuancePerBlock
@@ -1057,7 +1083,7 @@ contract IssuanceAllocator is
         IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
 
         // If default is address(0), exclude its allocation from reported totals
-        // since it doe not receive minting (so it is considered unallocated).
+        // since it does not receive minting (so it is considered unallocated).
         // Address(0) will only have non-zero allocation when it is the default target,
         // so we can directly subtract zero address allocation.
         allocation.totalAllocationRate = $.issuancePerBlock - $.allocationTargets[address(0)].allocatorMintingRate;
