@@ -265,6 +265,43 @@ contract IssuanceAllocator is
         uint256 indexed toBlock
     ); // solhint-disable-line gas-indexed-events
 
+    /* solhint-disable gas-indexed-events */
+    /// @notice Emitted when self-minting offset is reconciled during pending distribution
+    /// @param offsetBefore The self-minting offset before reconciliation
+    /// @param offsetAfter The self-minting offset after reconciliation (0 when caught up to current block)
+    /// @param totalForPeriod The total issuance budget for the distributed period
+    /// @param fromBlock First block in the distribution period (inclusive)
+    /// @param toBlock Last block in the distribution period (inclusive)
+    /// @dev This event provides visibility into the accounting reconciliation between self-minting
+    /// and allocator-minting budgets during pending distribution. When offsetAfter is 0, the contract
+    /// has fully caught up with distribution. When offsetAfter > 0, there remains accumulated offset
+    /// that will be applied to future distributions.
+    event SelfMintingOffsetReconciled(
+        uint256 offsetBefore,
+        uint256 offsetAfter,
+        uint256 totalForPeriod,
+        uint256 indexed fromBlock,
+        uint256 indexed toBlock
+    );
+    /* solhint-enable gas-indexed-events */
+
+    /* solhint-disable gas-indexed-events */
+    /// @notice Emitted when self-minting offset accumulates during pause or catch-up
+    /// @param offsetBefore The self-minting offset before accumulation
+    /// @param offsetAfter The self-minting offset after accumulation
+    /// @param fromBlock First block in the accumulation period (inclusive)
+    /// @param toBlock Last block in the accumulation period (inclusive)
+    /// @dev This event provides visibility into offset growth during pause periods or while catching up
+    /// after unpause. Together with SelfMintingOffsetReconciled, provides complete accounting of all
+    /// offset changes.
+    event SelfMintingOffsetAccumulated(
+        uint256 offsetBefore,
+        uint256 offsetAfter,
+        uint256 indexed fromBlock,
+        uint256 indexed toBlock
+    );
+    /* solhint-enable gas-indexed-events */
+
     // -- Constructor --
 
     /**
@@ -358,14 +395,22 @@ contract IssuanceAllocator is
         if (previousBlock == block.number) return;
 
         uint256 blocks = block.number - previousBlock;
+        uint256 fromBlock = previousBlock + 1;
 
         // Accumulate if currently paused OR if there's existing accumulated balance.
         // Once accumulation starts (during pause), continue through any unpaused periods
         // until distribution clears the accumulation. This is conservative and allows
         // better recovery when distribution is delayed through pause/unpause cycles.
-        if (paused() || 0 < $.selfMintingOffset) $.selfMintingOffset += $.totalSelfMintingRate * blocks;
+        uint256 offsetBefore = $.selfMintingOffset;
+        if (paused() || 0 < offsetBefore) {
+            $.selfMintingOffset += $.totalSelfMintingRate * blocks;
+
+            // Emit accumulation event whenever offset changes
+            if (offsetBefore != $.selfMintingOffset) {
+                emit SelfMintingOffsetAccumulated(offsetBefore, $.selfMintingOffset, fromBlock, block.number);
+            }
+        }
         $.lastSelfMintingBlock = block.number;
-        uint256 fromBlock = previousBlock + 1;
 
         // Emit self-minting allowance events
         if (0 < $.totalSelfMintingRate) {
@@ -496,14 +541,44 @@ contract IssuanceAllocator is
         }
 
         $.lastDistributionBlock = toBlockNumber;
-
-        // Update accumulated self-minting after distribution.
-        // Subtract the period budget used (min of accumulated and totalForPeriod).
-        // When caught up to current block, clear all since nothing remains to distribute.
-        if (toBlockNumber == block.number) $.selfMintingOffset = 0;
-        else $.selfMintingOffset = totalForPeriod < selfMintingOffset ? selfMintingOffset - totalForPeriod : 0;
-
+        _reconcileSelfMintingOffset(toBlockNumber, blocks, totalForPeriod, selfMintingOffset);
         return toBlockNumber;
+    }
+
+    /**
+     * @notice Reconciles self-minting offset after distribution and emits event if changed
+     * @param toBlockNumber Block number distributed to
+     * @param blocks Number of blocks in the distribution period
+     * @param totalForPeriod Total issuance budget for the period
+     * @param selfMintingOffset Self-minting offset before reconciliation
+     * @dev Updates accumulated self-minting after distribution.
+     * Subtracts the period budget used (min of accumulated and totalForPeriod).
+     * When caught up to current block, clears all since nothing remains to distribute.
+     */
+    function _reconcileSelfMintingOffset(
+        uint256 toBlockNumber,
+        uint256 blocks,
+        uint256 totalForPeriod,
+        uint256 selfMintingOffset
+    ) private {
+        IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
+
+        uint256 newOffset = toBlockNumber == block.number
+            ? 0
+            : (totalForPeriod < selfMintingOffset ? selfMintingOffset - totalForPeriod : 0);
+
+        // Emit reconciliation event whenever offset changes during pending distribution
+        if (selfMintingOffset != newOffset) {
+            emit SelfMintingOffsetReconciled(
+                selfMintingOffset,
+                newOffset,
+                totalForPeriod,
+                toBlockNumber - blocks + 1,
+                toBlockNumber
+            );
+        }
+
+        $.selfMintingOffset = newOffset;
     }
 
     /**
