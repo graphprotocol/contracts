@@ -6,7 +6,8 @@ import {
     TargetIssuancePerBlock,
     Allocation,
     AllocationTarget,
-    DistributionState
+    DistributionState,
+    SelfMintingEventMode
 } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocatorTypes.sol";
 import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationDistribution.sol";
 import { IIssuanceAllocationAdministration } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationAdministration.sol";
@@ -14,7 +15,7 @@ import { IIssuanceAllocationStatus } from "@graphprotocol/interfaces/contracts/i
 import { IIssuanceAllocationData } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationData.sol";
 import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceTarget.sol";
 import { BaseUpgradeable } from "../common/BaseUpgradeable.sol";
-import { ReentrancyGuardTransientUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardTransientUpgradeable.sol";
+import { ReentrancyGuardTransient } from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 // solhint-disable-next-line no-unused-import
@@ -28,10 +29,10 @@ import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/int
  * (tokens per block) and handles minting for allocator-minting targets.
  *
  * @dev The contract maintains a 100% allocation invariant through a default target mechanism:
- * - A default target target exists at targetAddresses[0] (initialized to address(0))
+ * - A default target exists at targetAddresses[0] (initialized to address(0))
  * - The default target automatically receives any unallocated portion of issuance
  * - Total allocation across all targets always equals issuancePerBlock (tracked as absolute rates)
- * - The default target address can be changed via setDefaultAllocationAddress()
+ * - The default target address can be changed via setDefaultTarget()
  * - When the default address is address(0), this 'unallocated' portion is not minted
  * - Regular targets cannot be set as the default target address
  *
@@ -58,6 +59,50 @@ import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/int
  *   periods until distribution clears it, preventing loss of self-minting allowances across pause cycles.
  * - Tracking divergence: lastSelfMintingBlock advances during pause (for allowance tracking) while
  *   lastDistributionBlock stays frozen (no allocator-minting). This is intentional and correct.
+ *
+ * @dev Issuance Accounting Invariants:
+ * The contract maintains strict accounting to ensure total token issuance never exceeds the configured
+ * issuancePerBlock rate over any time period. This section provides the mathematical foundation for
+ * understanding the relationship between self-minting and allocator-minting.
+ *
+ * Key Invariants:
+ * 1. Allocation Completeness: For all blocks b, totalAllocatorRate_b + totalSelfMintingRate_b = issuancePerBlock_b
+ *    This ensures 100% of issuance is always allocated across all targets.
+ *
+ * 2. Self-Minting Accumulation: For any undistributed block range [fromBlock, toBlock]:
+ *    selfMintingOffset = Σ(totalSelfMintingRate_b) for all b in range
+ *    where totalSelfMintingRate_b is the end-state rate for block b.
+ *
+ * 3. Rate Constraint: For all blocks b, totalSelfMintingRate_b ≤ issuancePerBlock_b
+ *    This follows from invariant (1) since 0 ≤ totalAllocatorRate_b.
+ *
+ * 4. Issuance Upper Bound: For any distribution period with blocks = toBlock - fromBlock + 1:
+ *    Let issuancePerBlock_final = current issuancePerBlock at distribution time
+ *
+ *    From invariants (2) and (3):
+ *      selfMintingOffset ≤ Σ(issuancePerBlock_b)
+ *
+ *    Allocator-minting budget for period:
+ *      available = max(0, issuancePerBlock_final * blocks - selfMintingOffset)
+ *
+ *    Total minted (self + allocator) for period:
+ *      ≤ max(selfMintingOffset, issuancePerBlock_final * blocks)
+ *      ≤ Σ(issuancePerBlock_b)
+ *
+ *    Therefore, total issuance never exceeds the sum of configured rates during the period.
+ *
+ * 5. Offset Reconciliation: During pending distribution, selfMintingOffset is adjusted to account for
+ *    the period's issuance budget. When distribution catches up to current block, the offset is cleared.
+ *    Any remaining offset when cleared represents self-minting that occurred beyond what the final
+ *    issuancePerBlock rate would allow for the period. This is acceptable because:
+ *    a) Self-minting targets were operating under rates that were valid at the time
+ *    b) The total minted still respects the Σ(issuancePerBlock_b) bound (invariant 4)
+ *    c) Clearing the offset prevents it from affecting future distributions
+ *    d) The SelfMintingOffsetReconciled event provides visibility into all offset adjustments
+ *
+ * This design ensures that even when issuancePerBlock or allocation rates change over time, and even
+ * when self-minting targets mint independently, the total tokens minted never exceeds the sum of
+ * configured issuance rates during the period.
  *
  * @dev There are a number of scenarios where the IssuanceAllocator could run into issues, including:
  * 1. The targetAddresses array could grow large enough that it exceeds the gas limit when calling distributeIssuance.
@@ -91,7 +136,7 @@ import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/int
  */
 contract IssuanceAllocator is
     BaseUpgradeable,
-    ReentrancyGuardTransientUpgradeable,
+    ReentrancyGuardTransient,
     IIssuanceAllocationDistribution,
     IIssuanceAllocationAdministration,
     IIssuanceAllocationStatus,
@@ -113,6 +158,7 @@ contract IssuanceAllocator is
     /// @param allocationTargets Mapping of target addresses to their allocation data
     /// @param targetAddresses Array of all target addresses (including default target at index 0)
     /// @param totalSelfMintingRate Total self-minting rate (tokens per block) across all targets
+    /// @param selfMintingEventMode Controls self-minting event emission behavior (PerTarget, Aggregate, or None)
     /// @dev Design invariant: totalAllocatorRate + totalSelfMintingRate == issuancePerBlock (always 100% allocated)
     /// @dev Design invariant: targetAddresses[0] is always the default target address
     /// @dev Design invariant: 1 <= targetAddresses.length (default target always exists)
@@ -126,6 +172,7 @@ contract IssuanceAllocator is
         mapping(address => AllocationTarget) allocationTargets;
         address[] targetAddresses;
         uint256 totalSelfMintingRate;
+        SelfMintingEventMode selfMintingEventMode;
     }
 
     /**
@@ -169,7 +216,7 @@ contract IssuanceAllocator is
     /// @param maxBlock The maximum valid block number (current block)
     error ToBlockOutOfRange(uint256 toBlock, uint256 minBlock, uint256 maxBlock);
 
-    /// @notice Thrown when attempting to set allocation for the default target target
+    /// @notice Thrown when attempting to set allocation for the default target
     /// @param defaultTarget The address of the default target
     error CannotSetAllocationForDefaultTarget(address defaultTarget);
 
@@ -221,6 +268,56 @@ contract IssuanceAllocator is
         uint256 indexed toBlock
     ); // solhint-disable-line gas-indexed-events
 
+    /* solhint-disable gas-indexed-events */
+    /// @notice Emitted when self-minting offset is reconciled during pending distribution
+    /// @param offsetBefore The self-minting offset before reconciliation
+    /// @param offsetAfter The self-minting offset after reconciliation (0 when caught up to current block)
+    /// @param totalForPeriod The total issuance budget for the distributed period
+    /// @param fromBlock First block in the distribution period (inclusive)
+    /// @param toBlock Last block in the distribution period (inclusive)
+    /// @dev This event provides visibility into the accounting reconciliation between self-minting
+    /// and allocator-minting budgets during pending distribution. When offsetAfter is 0, the contract
+    /// has fully caught up with distribution. When offsetAfter > 0, there remains accumulated offset
+    /// that will be applied to future distributions.
+    event SelfMintingOffsetReconciled(
+        uint256 offsetBefore,
+        uint256 offsetAfter,
+        uint256 totalForPeriod,
+        uint256 indexed fromBlock,
+        uint256 indexed toBlock
+    );
+    /* solhint-enable gas-indexed-events */
+
+    /* solhint-disable gas-indexed-events */
+    /// @notice Emitted when self-minting offset accumulates during pause or catch-up
+    /// @param offsetBefore The self-minting offset before accumulation
+    /// @param offsetAfter The self-minting offset after accumulation
+    /// @param fromBlock First block in the accumulation period (inclusive)
+    /// @param toBlock Last block in the accumulation period (inclusive)
+    /// @dev This event provides visibility into offset growth during pause periods or while catching up
+    /// after unpause. Together with SelfMintingOffsetReconciled, provides complete accounting of all
+    /// offset changes.
+    event SelfMintingOffsetAccumulated(
+        uint256 offsetBefore,
+        uint256 offsetAfter,
+        uint256 indexed fromBlock,
+        uint256 indexed toBlock
+    );
+    /* solhint-enable gas-indexed-events */
+
+    /// @notice Emitted when self-minting allowance is calculated in aggregate mode
+    /// @param totalAmount The total amount of tokens available for self-minting across all targets
+    /// @param fromBlock First block included in this allowance period (inclusive)
+    /// @param toBlock Last block included in this allowance period (inclusive)
+    /// @dev This event is emitted when selfMintingEventMode is Aggregate, providing a single event
+    /// instead of per-target events to reduce gas costs
+    event IssuanceSelfMintAllowanceAggregate(uint256 totalAmount, uint256 indexed fromBlock, uint256 indexed toBlock); // solhint-disable-line gas-indexed-events
+
+    /// @notice Emitted when self-minting event mode is changed
+    /// @param oldMode The previous event emission mode
+    /// @param newMode The new event emission mode
+    event SelfMintingEventModeUpdated(SelfMintingEventMode oldMode, SelfMintingEventMode newMode);
+
     // -- Constructor --
 
     /**
@@ -238,27 +335,23 @@ contract IssuanceAllocator is
      * @notice Initialize the IssuanceAllocator contract
      * @param _governor Address that will have the GOVERNOR_ROLE
      * @dev Initializes with a default target at index 0 set to address(0)
-     * @dev default target will receive all unallocated issuance (initially 0 until rate is set)
-     * @dev Initialization: lastDistributionBlock is set to block.number as a safety guard against
-     * pausing before configuration. lastSelfMintingBlock defaults to 0. issuancePerBlock is 0.
-     * Once setIssuancePerBlock() is called, it triggers _distributeIssuance() which updates
+     * @dev Default target will receive all unallocated issuance (initially 0 until rate is set)
+     * @dev lastDistributionBlock is set to block.number as a safety guard against pausing before
+     * configuration. lastSelfMintingBlock defaults to 0. issuancePerBlock is 0. Once
+     * setIssuancePerBlock() is called, it triggers _distributeIssuance() which updates
      * lastDistributionBlock to current block, establishing the starting point for issuance tracking.
-     * @dev Rate changes while paused: Rate changes are stored but distributeIssuance() will NOT
-     * apply them while paused - it returns immediately with frozen lastDistributionBlock. When
-     * distribution eventually resumes (via unpause or manual distributePendingIssuance()), the
-     * CURRENT rates at that time are applied retroactively to the entire undistributed period.
-     * Governance must exercise caution when changing rates while paused to ensure they are applied
-     * to the correct block range. See setIssuancePerBlock() documentation for details.
+     * @dev selfMintingEventMode is initialized to PerTarget
      */
     function initialize(address _governor) external virtual initializer {
         __BaseUpgradeable_init(_governor);
-        __ReentrancyGuardTransient_init();
 
         IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
 
         // Initialize default target at index 0 with address(0)
         // Rates are 0 initially; default gets remainder when issuancePerBlock is set
         $.targetAddresses.push(address(0));
+
+        $.selfMintingEventMode = SelfMintingEventMode.PerTarget;
 
         // To guard against extreme edge case of pausing before setting issuancePerBlock, we initialize
         // lastDistributionBlock to block.number. This should be updated to the correct starting block
@@ -309,7 +402,7 @@ contract IssuanceAllocator is
      * @notice Advances self-minting block and emits allowance events
      * @dev When paused, accumulates self-minting amounts. This accumulation reduces the allocator-minting
      * budget when distribution resumes, ensuring total issuance stays within bounds.
-     * When not paused, just emits self-minting allowance events.
+     * When not paused, emits self-minting allowance events based on selfMintingEventMode.
      * Called by _distributeIssuance() which anyone can call.
      * Optimized for no-op cases: very cheap when already at current block.
      */
@@ -320,26 +413,42 @@ contract IssuanceAllocator is
         if (previousBlock == block.number) return;
 
         uint256 blocks = block.number - previousBlock;
+        uint256 fromBlock = previousBlock + 1;
 
         // Accumulate if currently paused OR if there's existing accumulated balance.
         // Once accumulation starts (during pause), continue through any unpaused periods
         // until distribution clears the accumulation. This is conservative and allows
         // better recovery when distribution is delayed through pause/unpause cycles.
-        if (paused() || 0 < $.selfMintingOffset) $.selfMintingOffset += $.totalSelfMintingRate * blocks;
-        $.lastSelfMintingBlock = block.number;
-        uint256 fromBlock = previousBlock + 1;
+        uint256 offsetBefore = $.selfMintingOffset;
+        if (paused() || 0 < offsetBefore) {
+            $.selfMintingOffset += $.totalSelfMintingRate * blocks;
 
-        // Emit self-minting allowance events
-        if (0 < $.totalSelfMintingRate) {
-            for (uint256 i = 0; i < $.targetAddresses.length; ++i) {
-                address target = $.targetAddresses[i];
-                AllocationTarget storage targetData = $.allocationTargets[target];
-
-                if (0 < targetData.selfMintingRate) {
-                    uint256 amount = targetData.selfMintingRate * blocks;
-                    emit IssuanceSelfMintAllowance(target, amount, fromBlock, block.number);
-                }
+            // Emit accumulation event whenever offset changes
+            if (offsetBefore != $.selfMintingOffset) {
+                emit SelfMintingOffsetAccumulated(offsetBefore, $.selfMintingOffset, fromBlock, block.number);
             }
+        }
+        $.lastSelfMintingBlock = block.number;
+
+        // Emit self-minting allowance events based on mode
+        if (0 < $.totalSelfMintingRate) {
+            if ($.selfMintingEventMode == SelfMintingEventMode.PerTarget) {
+                // Emit per-target events (highest gas cost)
+                for (uint256 i = 0; i < $.targetAddresses.length; ++i) {
+                    address target = $.targetAddresses[i];
+                    AllocationTarget storage targetData = $.allocationTargets[target];
+
+                    if (0 < targetData.selfMintingRate) {
+                        uint256 amount = targetData.selfMintingRate * blocks;
+                        emit IssuanceSelfMintAllowance(target, amount, fromBlock, block.number);
+                    }
+                }
+            } else if ($.selfMintingEventMode == SelfMintingEventMode.Aggregate) {
+                // Emit single aggregated event (lower gas cost)
+                uint256 totalAmount = $.totalSelfMintingRate * blocks;
+                emit IssuanceSelfMintAllowanceAggregate(totalAmount, fromBlock, block.number);
+            }
+            // else None: skip event emission entirely (lowest gas cost)
         }
     }
 
@@ -411,23 +520,14 @@ contract IssuanceAllocator is
     /**
      * @notice Internal implementation for distributing pending accumulated allocator-minting issuance
      * @param toBlockNumber Block number to distribute up to
-     * @dev Distributes allocator-minting issuance for undistributed period using current rates
-     * (retroactively applied to from lastDistributionBlock to toBlockNumber, inclusive of both endpoints).
-     * @dev Called when 0 < self-minting offset, which occurs after pause periods or when
-     * distribution is delayed across pause/unpause cycles. Conservative accumulation strategy
-     * continues accumulating through unpaused periods until distribution clears it.
-     * The undistributed period (lastDistributionBlock to toBlockNumber) could theoretically span multiple pause/unpause cycles. In practice this is unlikely if there are active targets that call distributeIssuance().
-     * @dev Current rate is always applied retroactively to undistributed period, to the extent possible given the accumulated self-minting offset.
-     * If any interim rate was higher than current rate, there might be insufficient allocation
-     * to satisfy required allocations. In this case, we make the best match to honour the current rate.
-     * There will never more issuance relative to what the max interim issuance rate was, but in some circumstances the current rate is insufficient to satisfy the accumulated self-minting. In other cases, to satisfy the current rate, we distribute proportionally less to non-default targets than their current allocation rate.
-     * @dev Constraint: cannot distribute more than total issuance for the period.
-     * @dev Shortfall: When accumulated self-minting exceeds what current rate allows for the period,
-     * the total issuance already exceeded current rate expectations. No allocator-minting distributed.
-     * @dev When allocator-minting is available, there are two distribution cases:
-     * (1) available < allowance: proportional distribution among non-default, default gets zero
-     * (2) allowance <= available: full rates to non-default, remainder to default
-     * Where allowance is allocator rate (for non-default targets) * blocks, and available is total issuance for period minus accumulated self-minting.
+     * @dev Distributes allocator-minting issuance for undistributed period using current rates,
+     * retroactively applied from lastDistributionBlock to toBlockNumber (inclusive).
+     * Called when 0 < selfMintingOffset, which occurs after pause periods or delayed distribution.
+     * @dev Available budget = max(0, issuancePerBlock * blocks - selfMintingOffset).
+     * Distribution cases:
+     * (1) available < allocatedTotal: proportional distribution to non-default, default gets zero
+     * (2) allocatedTotal <= available: full rates to non-default, remainder to default
+     * Where allocatedTotal is sum of non-default allocator rates * blocks.
      * @return Block number that issuance was distributed up to
      */
     function _distributePendingIssuance(uint256 toBlockNumber) private returns (uint256) {
@@ -467,14 +567,44 @@ contract IssuanceAllocator is
         }
 
         $.lastDistributionBlock = toBlockNumber;
-
-        // Update accumulated self-minting after distribution.
-        // Subtract the period budget used (min of accumulated and totalForPeriod).
-        // When caught up to current block, clear all since nothing remains to distribute.
-        if (toBlockNumber == block.number) $.selfMintingOffset = 0;
-        else $.selfMintingOffset = totalForPeriod < selfMintingOffset ? selfMintingOffset - totalForPeriod : 0;
-
+        _reconcileSelfMintingOffset(toBlockNumber, blocks, totalForPeriod, selfMintingOffset);
         return toBlockNumber;
+    }
+
+    /**
+     * @notice Reconciles self-minting offset after distribution and emits event if changed
+     * @param toBlockNumber Block number distributed to
+     * @param blocks Number of blocks in the distribution period
+     * @param totalForPeriod Total issuance budget for the period
+     * @param selfMintingOffset Self-minting offset before reconciliation
+     * @dev Updates accumulated self-minting after distribution.
+     * Subtracts the period budget used (min of accumulated and totalForPeriod).
+     * When caught up to current block, clears all since nothing remains to distribute.
+     */
+    function _reconcileSelfMintingOffset(
+        uint256 toBlockNumber,
+        uint256 blocks,
+        uint256 totalForPeriod,
+        uint256 selfMintingOffset
+    ) private {
+        IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
+
+        uint256 newOffset = toBlockNumber == block.number
+            ? 0
+            : (totalForPeriod < selfMintingOffset ? selfMintingOffset - totalForPeriod : 0);
+
+        // Emit reconciliation event whenever offset changes during pending distribution
+        if (selfMintingOffset != newOffset) {
+            emit SelfMintingOffsetReconciled(
+                selfMintingOffset,
+                newOffset,
+                totalForPeriod,
+                toBlockNumber - blocks + 1,
+                toBlockNumber
+            );
+        }
+
+        $.selfMintingOffset = newOffset;
     }
 
     /**
@@ -577,6 +707,10 @@ contract IssuanceAllocator is
      * - Only the default target is notified (target rates don't change, only default target changes)
      * - Target rates stay fixed; default target absorbs the change
      * - Whenever the rate is changed, the updateL2MintAllowance function _must_ be called on the L1GraphTokenGateway in L1, to ensure the bridge can mint the right amount of tokens
+     * @dev Rate changes while paused: The new rate applies retroactively to the entire undistributed
+     * period when distribution resumes. Governance must exercise caution to ensure rates are applied
+     * to the correct block range. Use distributePendingIssuance(blockNumber) to control precisely
+     * which block the new rate applies from.
      */
     function setIssuancePerBlock(
         uint256 newIssuancePerBlock,
@@ -614,6 +748,28 @@ contract IssuanceAllocator is
         emit IssuancePerBlockUpdated(oldIssuancePerBlock, newIssuancePerBlock);
 
         return true;
+    }
+
+    /**
+     * @inheritdoc IIssuanceAllocationAdministration
+     */
+    function setSelfMintingEventMode(SelfMintingEventMode newMode) external onlyRole(GOVERNOR_ROLE) returns (bool) {
+        IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
+        SelfMintingEventMode oldMode = $.selfMintingEventMode;
+
+        if (newMode == oldMode) return true;
+
+        $.selfMintingEventMode = newMode;
+        emit SelfMintingEventModeUpdated(oldMode, newMode);
+
+        return true;
+    }
+
+    /**
+     * @inheritdoc IIssuanceAllocationAdministration
+     */
+    function getSelfMintingEventMode() external view override returns (SelfMintingEventMode) {
+        return _getIssuanceAllocatorStorage().selfMintingEventMode;
     }
 
     // -- Target Management --
@@ -710,15 +866,8 @@ contract IssuanceAllocator is
      * - If any allocation is non-zero and the target doesn't exist, the target will be added
      * - Will revert if the total allocation would exceed available capacity (default target + current target allocation)
      * - Will revert if attempting to add a target that doesn't support IIssuanceTarget
-     *
-     * Self-minting allocation is a special case for backwards compatibility with
-     * existing contracts like the RewardsManager. The IssuanceAllocator calculates
-     * issuance for self-minting targets but does not mint tokens directly for them. Self-minting targets
-     * should call getTargetIssuancePerBlock to determine their issuance amount and mint
-     * tokens accordingly. For example, the RewardsManager contract is expected to call
-     * getTargetIssuancePerBlock in its takeRewards function to calculate the correct
-     * amount of tokens to mint. Self-minting targets are responsible for adhering to
-     * the issuance schedule and should not mint more tokens than allocated.
+     * @dev Self-minting targets must call getTargetIssuancePerBlock to determine their issuance and mint
+     * accordingly. See contract header for details on self-minting vs allocator-minting allocation.
      */
     function setTargetAllocation(
         IIssuanceTarget target,
@@ -1047,7 +1196,7 @@ contract IssuanceAllocator is
 
     /**
      * @inheritdoc IIssuanceAllocationStatus
-     * @dev For reporting purposes, if the default target target is address(0), its allocation
+     * @dev For reporting purposes, if the default target is address(0), its allocation
      * @dev is treated as "unallocated" since address(0) cannot receive minting.
      * @dev When default is address(0): returns actual allocated amounts (may be less than issuancePerBlock)
      * @dev When default is a real address: returns issuancePerBlock
@@ -1057,7 +1206,7 @@ contract IssuanceAllocator is
         IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
 
         // If default is address(0), exclude its allocation from reported totals
-        // since it doe not receive minting (so it is considered unallocated).
+        // since it does not receive minting (so it is considered unallocated).
         // Address(0) will only have non-zero allocation when it is the default target,
         // so we can directly subtract zero address allocation.
         allocation.totalAllocationRate = $.issuancePerBlock - $.allocationTargets[address(0)].allocatorMintingRate;

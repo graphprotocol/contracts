@@ -4,6 +4,18 @@ pragma solidity ^0.7.6 || ^0.8.0;
 pragma abicoder v2;
 
 /**
+ * @notice Controls self-minting event emission behavior to manage gas costs
+ * @dev None skips event emission entirely (lowest gas)
+ * @dev Aggregate emits a single aggregated event for all self-minting
+ * @dev PerTarget emits events for each target with self-minting (highest gas)
+ */
+enum SelfMintingEventMode {
+    None,
+    Aggregate,
+    PerTarget
+}
+
+/**
  * @notice Target issuance per block information
  * @param allocatorIssuanceRate Issuance rate for allocator-minting (tokens per block)
  * @param allocatorIssuanceBlockAppliedTo The block up to which allocator issuance has been applied
