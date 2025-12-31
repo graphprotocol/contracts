@@ -5,7 +5,7 @@ pragma abicoder v2;
 
 /**
  * @notice Controls self-minting event emission behavior to manage gas costs
- * @dev None skips event emission entirely (lowest gas, default)
+ * @dev None skips event emission entirely (lowest gas)
  * @dev Aggregate emits a single aggregated event for all self-minting
  * @dev PerTarget emits events for each target with self-minting (highest gas)
  */
