@@ -11,7 +11,7 @@ single source of truth for issuance deployment.
 
 ## Goals
 
-- Clean, target-based, idempotent deployments using Hardhat Ignition
+- Clean, idempotent deployments using hardhat-deploy
 - Separation of concerns:
   - Issuance deployment package (`packages/issuance/deploy`): deploy issuance
     components only (no cross‑package wiring)
@@ -21,9 +21,8 @@ single source of truth for issuance deployment.
   - Orchestration package (`packages/deploy`): perform cross‑package
     integrations and governance wiring (e.g. activating issuance components in
     RewardsManager, managing address books)
-- Minimal, parameterized CLI (network/parameters/target)
-- Governance checkpoints encoded as assertion calls that revert until the
-  governance transaction is executed
+- Simple deployment via tags (--tags issuance)
+- Governance integration verified via tasks in orchestration package
 - Address book tracks active and pending implementations
 
 ---

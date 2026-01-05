@@ -34,24 +34,14 @@ task(
     const { ethers } = hre
     const chainId = hre.network.config.chainId ?? (await ethers.provider.getNetwork()).chainId
 
-    // Try to load pending implementation if not explicitly provided
-    let implementationAddress = taskArgs.rewardsManagerImplementation
+    // Require explicit RewardsManager implementation address
+    const implementationAddress = taskArgs.rewardsManagerImplementation
 
     if (!implementationAddress) {
-      const issuanceAddressBookPath = path.resolve(__dirname, '../../issuance/addresses.json')
-      const addressBook = new EnhancedIssuanceAddressBook(issuanceAddressBookPath, Number(chainId))
-
-      const pendingImpl = addressBook.getPendingImplementation('RewardsManager')
-      if (pendingImpl) {
-        console.log(`\n💡 Using pending implementation from address book: ${pendingImpl}`)
-        implementationAddress = pendingImpl
-      } else {
-        throw new Error(
-          'No RewardsManager implementation address provided and no pending implementation found. ' +
-            'Either deploy an implementation first with issuance:deploy-reo-implementation, ' +
-            'or provide --rewards-manager-implementation parameter.',
-        )
-      }
+      throw new Error(
+        'RewardsManager implementation address is required. ' +
+          'Provide --rewards-manager-implementation parameter with the new implementation address.',
+      )
     }
 
     const result = await buildRewardsEligibilityUpgradeTxs(

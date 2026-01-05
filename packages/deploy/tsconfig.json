@@ -8,6 +8,7 @@
   "include": [
     "lib/**/*",
     "tasks/**/*",
+    "governance/**/*",
     "hardhat.config.ts"
   ],
   "exclude": [
@@ -16,8 +17,6 @@
     "artifacts",
     "cache",
     "test",
-    "tasks/deploy-reo-implementation.ts",
-    "tasks/rewards-eligibility-upgrade.ts",
-    "governance/rewards-eligibility-upgrade.ts"
+    "governance/issuance-upgrade.ts"
   ]
 }

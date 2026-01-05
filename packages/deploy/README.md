@@ -6,8 +6,8 @@ Cross-package deployment orchestration for Graph Protocol contracts.
 
 This package coordinates governance integrations across the Graph Protocol contract ecosystem:
 
-- **Core Contracts** - References to already-deployed protocol contracts (RewardsManager from `@graphprotocol/contracts` or `@graphprotocol/horizon`, GraphToken from `@graphprotocol/contracts`)
-- **Issuance** (`@graphprotocol/issuance`) - Issuance system contracts (RewardsEligibilityOracle, IssuanceAllocator, PilotAllocation)
+- **Core Contracts** - References to already-deployed protocol contracts (RewardsManager, GraphToken)
+- **Issuance** - Issuance system contracts (RewardsEligibilityOracle, IssuanceAllocator, PilotAllocation)
 
 This package does **NOT deploy contract implementations** - it orchestrates governance integration between already-deployed contracts from other packages.
 
@@ -19,10 +19,10 @@ This package does **NOT deploy contract implementations** - it orchestrates gove
 - Wire together contracts from different packages (Horizon + Issuance)
 - Coordinate RewardsManager upgrades with issuance system activation
 
-✅ **Governance checkpoint verification**
+✅ **Integration verification**
 
-- Checkpoint modules that verify governance has executed integration steps
-- Revert-until-complete assertions for programmatic verification
+- Hardhat tasks that verify governance has executed integration steps
+- Check on-chain state matches expected integration
 - Integration status reporting across packages
 
 ✅ **Pending implementation tracking**
@@ -64,13 +64,14 @@ This package does **NOT deploy contract implementations** - it orchestrates gove
 packages/deploy/
 ├── governance/           # Safe TX builders and helpers
 ├── tasks/                # Hardhat tasks for orchestration
-├── ignition/modules/
-│   ├── horizon/          # Reference modules for already-deployed protocol contracts
-│   └── issuance/         # Checkpoint modules for issuance integration
-└── test/                 # Integration and fork-based tests
+│   ├── verify-integration.ts         # Verify governance integration
+│   ├── rewards-eligibility-upgrade.ts # Generate REO upgrade TX
+│   ├── deployment-status.ts           # Show deployment status
+│   ├── sync-pending-implementation.ts # Sync address book
+│   └── list-pending-implementations.ts # List pending upgrades
+├── contracts/            # Orchestration helper contracts
+└── test/                 # Integration tests
 ```
-
-**Note:** Reference modules (in `horizon/`) use `contractAt()` to reference already-deployed contracts - they don't deploy anything. Checkpoint modules (in `issuance/`) verify that governance has executed integration steps.
 
 ## Workflow
 
@@ -104,28 +105,84 @@ npx hardhat issuance:build-rewards-eligibility-upgrade \
 
 ### 4. Verify Integration (Permissionless)
 
-Verify governance executed correctly:
+Verify governance executed correctly using verification task:
 
 ```bash
 cd packages/deploy
-npx hardhat ignition deploy ignition/modules/issuance/RewardsEligibilityOracleActive.ts \
-  --parameters configs/arbitrum-sepolia.json \
-  --network arbitrum-sepolia
+npx hardhat issuance:verify-integration --network arbitrum-sepolia
 
-# Success = governance executed correctly
-# Revert = governance not yet executed
+# Check specific integration:
+npx hardhat issuance:verify-integration --check reo --network arbitrum-sepolia
+npx hardhat issuance:verify-integration --check ia --network arbitrum-sepolia
+npx hardhat issuance:verify-integration --check ia-minter --network arbitrum-sepolia
 ```
 
-## Checkpoint Modules
+Task exits with code 0 if integration is verified, code 1 if not yet integrated.
 
-Checkpoint modules use `IssuanceStateVerifier` (stateless helper) to assert governance execution:
+## Available Tasks
 
-- **RewardsEligibilityOracleActive** - Asserts RewardsEligibilityOracle (REO) integrated with RewardsManager
-- **IssuanceAllocatorActive** - Asserts IssuanceAllocator (IA) integrated with RewardsManager
-- **IssuanceAllocatorMinter** - Asserts IssuanceAllocator (IA) has minter role on GraphToken
-- **PilotAllocationActive** - Asserts PilotAllocation configured as allocation target in IssuanceAllocator
+### Integration Verification
 
-These modules **revert until governance executes**, providing programmatic verification.
+**`issuance:verify-integration`** - Verify issuance contract integration
+
+```bash
+# Verify all integrations
+npx hardhat issuance:verify-integration --network arbitrumOne
+
+# Verify REO integration only
+npx hardhat issuance:verify-integration --check reo --network arbitrumOne
+
+# Verify IA integration only
+npx hardhat issuance:verify-integration --check ia --network arbitrumOne
+
+# Verify IA minter role only
+npx hardhat issuance:verify-integration --check ia-minter --network arbitrumOne
+```
+
+Checks:
+
+- **REO**: RewardsManager.rewardsEligibilityOracle() == REO address
+- **IA**: RewardsManager.issuanceAllocator() == IA address
+- **IA-Minter**: GraphToken.hasRole(MINTER_ROLE, IA) == true
+
+### Governance TX Generation
+
+**`issuance:build-rewards-eligibility-upgrade`** - Generate Safe TX for REO integration
+
+```bash
+npx hardhat issuance:build-rewards-eligibility-upgrade \
+  --rewards-manager-implementation 0x... \
+  --network arbitrumSepolia
+```
+
+### Status & Tracking
+
+**`issuance:deployment-status`** - Show comprehensive deployment status
+
+```bash
+# Show all contracts
+npx hardhat issuance:deployment-status --network arbitrumOne
+
+# Verify on-chain state
+npx hardhat issuance:deployment-status --verify true --network arbitrumOne
+
+# Show only specific package
+npx hardhat issuance:deployment-status --package issuance --network arbitrumOne
+```
+
+**`issuance:list-pending-implementations`** - List pending implementations
+
+```bash
+npx hardhat issuance:list-pending-implementations --network arbitrumOne
+```
+
+**`issuance:sync-pending-implementation`** - Sync address book after governance
+
+```bash
+npx hardhat issuance:sync-pending-implementation \
+  --contract RewardsManager \
+  --network arbitrumOne
+```
 
 ## Testing
 
@@ -135,9 +192,6 @@ pnpm test
 
 # Integration tests only
 pnpm test:integration
-
-# Fork-based tests only
-pnpm test:fork
 ```
 
 ## Development

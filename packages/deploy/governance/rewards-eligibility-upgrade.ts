@@ -29,8 +29,9 @@ export async function buildRewardsEligibilityUpgradeTxs(
   const chainId = Number(hre.network.config.chainId ?? (await hre.ethers.provider.getNetwork()).chainId)
   const provider = hre.ethers.provider
 
-  const horizonContracts = connectGraphHorizon(chainId, provider)
-  const issuanceContracts = connectGraphIssuance(chainId, provider)
+  // Note: Using 'as any' to bypass incomplete type definitions in toolshed
+  const horizonContracts = connectGraphHorizon(chainId, provider) as any
+  const issuanceContracts = connectGraphIssuance(chainId, provider) as any
 
   if (!horizonContracts.GraphProxyAdmin || !horizonContracts.RewardsManager) {
     throw new Error('GraphProxyAdmin or RewardsManager not found in Horizon address book')
@@ -61,21 +62,20 @@ export async function buildRewardsEligibilityUpgradeTxs(
 
   const builder = new TxBuilder(chainId, { template: templatePath, outputDir })
 
-  const upgradeTx = await horizonContracts.GraphProxyAdmin.populateTransaction.upgrade(
+  const upgradeTx = await horizonContracts.GraphProxyAdmin.upgrade.populateTransaction(
     rewardsManagerProxy,
     rewardsManagerImplementation,
   )
 
-  const acceptTx = await horizonContracts.GraphProxyAdmin.populateTransaction.acceptProxy(
-    rewardsManagerImplementation,
+  const acceptTx = await horizonContracts.GraphProxyAdmin.acceptProxy.populateTransaction(
     rewardsManagerProxy,
   )
 
-  const setAllocatorTx = await horizonContracts.RewardsManager.populateTransaction.setIssuanceAllocator(
+  const setAllocatorTx = await horizonContracts.RewardsManager.setIssuanceAllocator.populateTransaction(
     issuanceAllocatorAddress,
   )
 
-  const setOracleTx = await horizonContracts.RewardsManager.populateTransaction.setRewardsEligibilityOracle(
+  const setOracleTx = await horizonContracts.RewardsManager.setRewardsEligibilityOracle.populateTransaction(
     rewardsEligibilityOracleAddress,
   )
 

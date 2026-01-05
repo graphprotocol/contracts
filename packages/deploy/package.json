@@ -10,14 +10,12 @@
     "test": "hardhat test",
     "test:integration": "hardhat test test/*integration*.test.ts",
     "test:fork": "hardhat test test/*fork*.test.ts",
-    "clean": "rm -rf dist cache artifacts ignition/deployments"
+    "clean": "rm -rf dist cache artifacts"
   },
   "dependencies": {
     "@graphprotocol/horizon": "workspace:*",
     "@graphprotocol/issuance": "workspace:*",
     "@graphprotocol/toolshed": "workspace:*",
-    "@nomicfoundation/hardhat-ignition": "^0.15.0",
-    "@nomicfoundation/hardhat-ignition-ethers": "^0.15.0",
     "@nomicfoundation/solidity-analyzer-linux-x64-gnu": "^0.1.2",
     "ethers": "^6.13.0",
     "hardhat": "^2.22.0"

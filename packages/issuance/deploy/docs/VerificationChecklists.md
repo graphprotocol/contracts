@@ -166,40 +166,28 @@ missed and maintain audit trails.
   - [ ] RewardsManager upgraded
   - [ ] Verification complete
 
-- [ ] **Ignition ready**
-  - [ ] Module tested: `ignition/modules/RewardsEligibilityOracle.ts`
-  - [ ] Configuration file ready: `ignition/configs/issuance.<network>.json5`
+- [ ] **Deployment ready**
+  - [ ] Deployment scripts tested
   - [ ] Parameters validated
-  - [ ] Deployment ID chosen: `__________________`
+  - [ ] Network configuration correct
 
 #### Deployment
 
-- [ ] **Deploy via Ignition**
+- [ ] **Deploy via hardhat-deploy**
 
   ```bash
-  npx hardhat ignition deploy ignition/modules/RewardsEligibilityOracle.ts \
-    --network <network> \
-    --parameters ignition/configs/issuance.<network>.json5 \
-    --deployment-id <deployment-id>
+  cd packages/issuance/deploy
+  npx hardhat deploy --tags issuance --network <network>
   ```
 
   - [ ] Deployment successful
   - [ ] Transaction hashes recorded
   - [ ] Gas costs recorded
 
-- [ ] **Sync addresses**
-
-  ```bash
-  npx ts-node scripts/sync-addresses.ts <deployment-id> <chain-id>
-  ```
-
-  - [ ] Addresses synced to `addresses.json`
-  - [ ] Address book updated correctly
-
 - [ ] **Verify contracts**
 
   ```bash
-  npx hardhat ignition verify <deployment-id>
+  npx hardhat etherscan-verify --network <network>
   ```
 
   - [ ] Implementation verified
@@ -796,24 +784,21 @@ missed and maintain audit trails.
 ### Key Commands
 
 ```bash
-# Deploy
-npx hardhat ignition deploy ignition/modules/RewardsEligibilityOracle.ts \
-  --network <network> \
-  --parameters ignition/configs/issuance.<network>.json5 \
-  --deployment-id <deployment-id>
+# Deploy issuance components
+cd packages/issuance/deploy
+npx hardhat deploy --tags issuance --network <network>
 
-# Sync addresses
-npx ts-node scripts/sync-addresses.ts <deployment-id> <chain-id>
+# Verify contracts
+npx hardhat etherscan-verify --network <network>
 
-# Verify
-npx hardhat ignition verify <deployment-id>
-
-# Generate governance batch
+# Generate governance batch (from deploy package)
+cd packages/deploy
 npx hardhat issuance:build-rewards-eligibility-upgrade \
   --network <network> \
-  --rewardsManagerImplementation <address> \
-  --rewardsEligibilityOracleAddress <address> \
-  --outputDir ./governance-proposals
+  --rewards-manager-implementation <address>
+
+# Verify integration (from deploy package)
+npx hardhat issuance:verify-integration --network <network>
 ```
 
 ---

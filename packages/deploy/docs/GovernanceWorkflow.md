@@ -252,7 +252,7 @@ Compared to manual workflow:
 
 | Step                    | Manual                   | Automated                 |
 | ----------------------- | ------------------------ | ------------------------- |
-| Deploy implementation   | Manual Ignition command  | ✅ Single task            |
+| Deploy implementation   | Manual deploy command    | ✅ Single task            |
 | Record in address book  | Edit JSON by hand        | ✅ Automatic              |
 | Generate TX JSON        | Run command with address | ✅ Automatic              |
 | Risk of typo            | ⚠️ High                  | ✅ None                   |

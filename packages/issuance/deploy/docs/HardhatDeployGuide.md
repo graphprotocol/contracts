@@ -44,7 +44,7 @@ pnpm hardhat run scripts/export-addresses.ts --network <network-name>
 2. **01_issuance_allocator.ts** - Deploy IssuanceAllocator with TransparentUpgradeableProxy
 3. **02_pilot_allocation.ts** - Deploy PilotAllocation with TransparentUpgradeableProxy
 4. **03_rewards_eligibility_oracle.ts** - Deploy RewardsEligibilityOracle with TransparentUpgradeableProxy
-5. **04_accept_ownership.ts** - Accept ownership of all contracts as governor
+5. **04_verify_governance.ts** - Verify GOVERNOR_ROLE is assigned to all contracts
 
 ### Tags
 

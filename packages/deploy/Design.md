@@ -8,13 +8,12 @@ This document describes the design for the cross-package orchestration system in
 
 ## Goals
 
-- Clean, target-based, idempotent deployments using Hardhat Ignition
+- Cross-package governance integration and verification
 - Separation of concerns:
-  - Issuance deployment package (packages/issuance/deploy): deploy issuance components (no cross‑package wiring)
-  - Contracts deployment package (packages/contracts/deploy): core contract modules, mainly for RewardsManager (no cross‑package wiring)
+  - Issuance deployment package (packages/issuance/deploy): deploy issuance components using hardhat-deploy (no cross‑package wiring)
+  - Horizon deployment package (packages/horizon): deploy core protocol contracts (GraphToken, RewardsManager, GraphProxyAdmin)
   - Orchestration package (packages/deploy): perform cross‑package integrations that require governance
-- Minimal, parameterized CLI (network/parameters/target)
-- Governance checkpoints encoded as assertion calls that revert until the governance transaction is executed
+- Task-based verification of governance integration
 - Address book tracks active and pending implementations
 
 ### Components
@@ -32,29 +31,31 @@ This document describes the design for the cross-package orchestration system in
 - GraphToken (From `@graphprotocol/contracts`)
 - GraphProxyAdmin (From `@graphprotocol/contracts` or `@graphprotocol/horizon`)
 
-### Targets model
+### Integration Verification
 
-**Component targets** (in `packages/issuance/deploy/`):
+**Component deployment** (in `packages/issuance/deploy/`):
 
-- rewards-eligibility-oracle (REO deployment)
-- issuance-allocator (IA deployment)
-- direct-allocation (DA implementation deployment)
+- Deploys IssuanceAllocator, RewardsEligibilityOracle, PilotAllocation
+- Uses hardhat-deploy numbered scripts with tags and dependencies
+- Each deployment is idempotent and resumable
 
-**Integration/checkpoint targets** (in this package - `packages/deploy/`):
+**Integration verification** (in this package - `packages/deploy/`):
 
-- rewards-eligibility-oracle-active: Verifies `RewardsManager.setRewardsEligibilityOracle(REO)` executed
-- issuance-allocator-active: Verifies `RewardsManager.setIssuanceAllocator(IA)` executed
-- issuance-allocator-minter: Verifies `GraphToken.addMinter(IA)` executed
+The `issuance:verify-integration` task verifies governance has executed integration:
 
-**TODO:** The following targets mentioned in this design are not yet implemented:
+- `--check reo`: Verifies `RewardsManager.setRewardsEligibilityOracle(REO)` executed
+- `--check ia`: Verifies `RewardsManager.setIssuanceAllocator(IA)` executed
+- `--check ia-minter`: Verifies `GraphToken.addMinter(IA)` executed
 
-- issuance-allocator-reallocation checkpoint
+**TODO:** The following checks are not yet implemented:
 
-**Note:** pilot-allocation component deployment is handled in `packages/issuance/deploy/`, and the PilotAllocationActive checkpoint is now implemented in this package.
+- Allocation configuration verification (IssuanceAllocator.setTargetAllocation)
+
+**Note:** pilot-allocation component deployment is handled in `packages/issuance/deploy/`.
 
 Notes:
 
-- "Active" targets assert equality (e.g., `RewardsManager.rewardsEligibilityOracle() == REO`). They are intentionally not in issuance package when they depend on external packages.
+- Integration checks assert equality (e.g., `RewardsManager.rewardsEligibilityOracle() == REO`). They are intentionally in the orchestration package since they depend on cross-package state.
 
 ### Configuration state definitions
 
@@ -79,16 +80,16 @@ Notes:
 
 Three phases per upgrade:
 
-1. Prepare (permissionless): deploy new implementations, parameters, and helper/contracts as needed
+1. Prepare (permissionless): deploy new implementations, parameters, and helper contracts as needed
 2. Execute (governance): execute Safe batch to perform the state transition
-3. Verify/Sync: assertion modules/scripts succeed; address book syncs pending → active
+3. Verify/Sync: verification tasks check integration; address book syncs pending → active
 
-We use a small, stateless `IssuanceStateVerifier` helper with view functions that revert until state is correct:
+The `issuance:verify-integration` task checks on-chain state to confirm governance execution:
 
-- `assertRewardsEligibilityOracleSet(rewardsManager, expectedREO)`
-- `assertIssuanceAllocatorSet(rewardsManager, expectedIA)`
-- `assertMinterRole(graphToken, expectedMinter)`
-- `assertTargetAllocated(issuanceAllocator, target)`
+- `RewardsManager.rewardsEligibilityOracle()` == deployed REO address
+- `RewardsManager.issuanceAllocator()` == deployed IA address
+- `GraphToken.hasRole(MINTER_ROLE, IA)` == true
+- Additional checks for allocation configuration (TODO)
 
 ### Governance transactions
 
@@ -185,13 +186,17 @@ sequenceDiagram
 }
 ```
 
-### Parameters and CLI
+### Tasks and CLI
 
-**TODO:** This package does not yet have its own CLI. It uses Hardhat tasks:
+This package uses Hardhat tasks for orchestration:
 
 - `issuance:build-rewards-eligibility-upgrade` - Generate Safe TX batch for REO/IA integration
+- `issuance:verify-integration` - Verify governance integration has been executed
+- `issuance:deployment-status` - Show deployment status across packages
+- `issuance:list-pending-implementations` - List pending implementations
+- `issuance:sync-pending-implementation` - Sync address book after governance
 
-For component deployment CLI, see `packages/issuance/deploy/`.
+For component deployment, see `packages/issuance/deploy/`.
 
 ### API correctness
 
@@ -219,26 +224,26 @@ For component deployment CLI, see `packages/issuance/deploy/`.
 
 **TODO:** `packages/contracts/deploy/` is mentioned in this design but doesn't currently exist. RewardsManager deployment may be handled by `packages/horizon/` instead.
 
-### Ignition-based deployment approach
+### Deployment and verification approach
 
-What Ignition handles (idempotent by design):
+**Component deployment** (in `packages/issuance/deploy/`):
 
-- Contract deployment (skips when identical result already exists)
-- Proxy deployment (TransparentUpgradeableProxy)
-- Idempotent m.call() operations (by call ID)
-- Dependency resolution across modules
-- Deployment state tracking in ignition/deployments/
+- Uses hardhat-deploy for idempotent, resumable deployments
+- Numbered deployment scripts (00_, 01_, etc.) run in order
+- Tags and dependencies control deployment flow
+- Deployment state tracked in deployments/ directory
 
-What scripts handle (governance coordination):
+**Orchestration tasks** (in this package):
 
-- Governance proposal generation (transaction data for Safe)
-- Go‑live verification (assertions over live state)
+- Governance proposal generation (Safe transaction batches)
+- Integration verification (on-chain state checks)
+- Address book management (pending → active syncing)
 
 Key benefits:
 
-1. Ignition provides idempotency and deterministic addresses
-2. Clear separation between deployment and governance
-3. Safe re‑runs with persisted state and dependency tracking
+1. hardhat-deploy provides idempotency and deployment tracking
+2. Clear separation between component deployment and governance integration
+3. Task-based verification ensures governance executed correctly
 
 ### Safety considerations
 
@@ -258,28 +263,31 @@ Testing strategy:
 
 ### Testing/verification
 
-- Use Ignition to run targets idempotently; “Active” targets should fail until governance is executed
-- Add small verification scripts that read on-chain state and print expected vs actual; exit non‑zero on mismatch
+- Component deployment tests in `packages/issuance/deploy/test/` verify deployment succeeds
+- Integration verification via `issuance:verify-integration` task checks on-chain state
+- Task exits with code 0 if integrated, code 1 if not yet integrated
+- Can be used in CI/CD pipelines or governance verification workflows
 
-### Appendix: Canonical target list
+### Appendix: Component and integration list
 
-(This list is not complete and needs review.)
+**Components** (deployed by `packages/issuance/deploy/`):
 
-- Issuance (packages/issuance/deploy):
-  - rewards-eligibility-oracle
-  - issuance-allocator
-  - pilot-allocation
-- Contracts (packages/contracts):
-  - graph-token
-  - graph-proxy-admin
-  - rewards-manager
-- Orchestration (packages/deploy):
-  - rewards-eligibility-oracle-active
-  - issuance-allocator-active
-  - issuance-allocator-minter
-  - issuance-allocator-reallocation
+- IssuanceAllocator (proxy + implementation)
+- RewardsEligibilityOracle (proxy + implementation)
+- PilotAllocation (proxy + implementation)
+- GraphIssuanceProxyAdmin (shared proxy admin)
 
-Note: Integration (“Active”) targets now live in packages/deploy. See that package’s README for the list.
+**Referenced contracts** (from other packages):
+
+- GraphToken (from packages/contracts or packages/horizon)
+- RewardsManager (from packages/contracts or packages/horizon)
+- GraphProxyAdmin (from packages/contracts or packages/horizon)
+
+**Integration checks** (verified by this package):
+
+- REO integration: `RewardsManager.rewardsEligibilityOracle()` == REO address
+- IA integration: `RewardsManager.issuanceAllocator()` == IA address
+- IA minter role: `GraphToken.hasRole(MINTER_ROLE, IA)` == true
 
 ## Proxy administration
 
@@ -485,40 +493,39 @@ graph TD
 ```mermaid
 sequenceDiagram
     participant Deployer as Deployer
-    participant Ignition as Hardhat Ignition
+    participant Deploy as hardhat-deploy
     participant Admin as GraphIssuanceProxyAdmin
     participant Impl as Implementation Contract
     participant Proxy as Transparent Upgradeable Proxy
     participant Gov as Governance
 
     Note over Deployer,Gov: Initial Deployment
-    Deployer->>Ignition: Deploy implementation
-    Ignition->>Impl: Deploy contract bytecode
-    Impl-->>Ignition: Implementation deployed
+    Deployer->>Deploy: Run deployment scripts
+    Deploy->>Impl: Deploy contract bytecode
+    Impl-->>Deploy: Implementation deployed
     Note right of Impl: "New Implementation Deployed" state
 
-    Deployer->>Ignition: Deploy proxy with initial implementation
-    Ignition->>Proxy: Deploy proxy pointing to implementation
+    Deploy->>Proxy: Deploy proxy with initial implementation
     Proxy->>Impl: Initialize with implementation
-    Proxy-->>Ignition: Proxy deployed and initialized
+    Proxy-->>Deploy: Proxy deployed and initialized
     Note right of Proxy: "New Implementation Live" state
 
     Note over Deployer,Gov: Initial Configuration
-    Ignition->>Proxy: Perform initial configuration
+    Deploy->>Proxy: Perform initial configuration
     Proxy->>Impl: Execute configuration calls
     Impl-->>Proxy: Configuration complete
     Note right of Proxy: Contract configured
 
     Note over Deployer,Gov: Transfer to Governance
-    Ignition->>Proxy: Transfer ownership to governance
-    Proxy->>Impl: Set governance as owner/admin roles
-    Impl-->>Proxy: Ownership transferred
-    Ignition-->>Deployer: Deployment complete, governance controls contract
+    Deploy->>Proxy: Grant GOVERNOR_ROLE to governance
+    Proxy->>Impl: Set governance role
+    Impl-->>Proxy: Role granted
+    Deploy-->>Deployer: Deployment complete, governance controls contract
 
     Note over Deployer,Gov: Governance Configuration Update
-    Deployer->>Ignition: Generate configuration update proposal
-    Ignition->>Ignition: Create governance transaction data
-    Ignition-->>Deployer: Configuration proposal ready
+    Deployer->>Deploy: Generate configuration update proposal
+    Deploy->>Deploy: Create governance transaction data
+    Deploy-->>Deployer: Configuration proposal ready (Safe JSON)
 
     Gov->>Proxy: Execute configuration update
     Proxy->>Impl: Update configuration parameters
@@ -526,21 +533,21 @@ sequenceDiagram
     Note right of Proxy: Contract reconfigured
 
     Note over Deployer,Gov: Verification and Sync
-    Deployer->>Ignition: Verify configuration changes
-    Ignition->>Proxy: Read updated configuration
+    Deployer->>Deploy: Run verify-integration task
+    Deploy->>Proxy: Read updated configuration
     Proxy->>Impl: Return current configuration
-    Impl-->>Ignition: Configuration verified
-    Ignition->>Ignition: Update address book/deployment records
-    Ignition-->>Deployer: Verification complete, records synced
+    Impl-->>Deploy: Configuration verified
+    Deploy->>Deploy: Update address book
+    Deploy-->>Deployer: Verification complete, records synced
 
     Note over Deployer,Gov: Proxy Implementation Upgrade
-    Deployer->>Ignition: Deploy new implementation
-    Ignition->>Impl: Deploy new contract bytecode
-    Impl-->>Ignition: New implementation deployed
+    Deployer->>Deploy: Deploy new implementation
+    Deploy->>Impl: Deploy new contract bytecode
+    Impl-->>Deploy: New implementation deployed
     Note right of Impl: "New Implementation Deployed" state
 
-    Ignition->>Ignition: Generate governance upgrade proposal
-    Ignition-->>Deployer: Waiting for governance upgrade
+    Deploy->>Deploy: Generate governance upgrade proposal
+    Deploy-->>Deployer: Waiting for governance upgrade
 
     Gov->>Admin: Execute upgrade proposal
     Admin->>Proxy: Upgrade to new implementation
@@ -549,9 +556,9 @@ sequenceDiagram
     Note right of Proxy: "New Implementation Live" state
 
     Note over Deployer,Gov: Verification and Sync
-    Deployer->>Ignition: Verify upgrade completed
-    Ignition->>Proxy: Check current implementation
-    Proxy-->>Ignition: Implementation address verified
-    Ignition->>Ignition: Update address book/deployment records
-    Ignition-->>Deployer: Verification complete, records synced
+    Deployer->>Deploy: Run sync-pending-implementation task
+    Deploy->>Proxy: Check current implementation
+    Proxy-->>Deploy: Implementation address verified
+    Deploy->>Deploy: Update address book
+    Deploy-->>Deployer: Verification complete, records synced
 ```
