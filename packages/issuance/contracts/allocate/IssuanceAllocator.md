@@ -141,14 +141,12 @@ The contract includes several mechanisms to handle potential gas limit issues:
 
 ### Initial Setup
 
-**Automated Deployment**
-
 The deployment is automated using hardhat-deploy scripts in `packages/issuance/deploy/deploy/`.
 
 **Prerequisites:**
 
 - GraphToken contract deployed (provide via `deployments/<network>/GraphToken.json`)
-- RewardsManager deployed (optional, for automatic rate configuration)
+- RewardsManager upgraded with `setIssuanceAllocator()` and `issuanceAllocator()` methods
 - Governor and pauseGuardian addresses configured in `hardhat.config.ts` namedAccounts
 
 **Deployment command:**
