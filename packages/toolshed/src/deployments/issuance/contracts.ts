@@ -1,5 +1,5 @@
 import type { DirectAllocation, IssuanceAllocator, RewardsEligibilityOracle } from '@graphprotocol/interfaces'
-import type { ProxyAdmin } from '@openzeppelin/contracts'
+import type { Contract } from 'ethers'
 
 import type { ContractList } from '../contract'
 
@@ -13,7 +13,7 @@ export const GraphIssuanceContractNameList = [
 export type GraphIssuanceContractName = (typeof GraphIssuanceContractNameList)[number]
 
 export interface GraphIssuanceContracts extends ContractList<GraphIssuanceContractName> {
-  GraphIssuanceProxyAdmin: ProxyAdmin
+  GraphIssuanceProxyAdmin: Contract
   IssuanceAllocator: IssuanceAllocator
   PilotAllocation: DirectAllocation
   RewardsEligibilityOracle: RewardsEligibilityOracle

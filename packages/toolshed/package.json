@@ -63,6 +63,7 @@
     "json5": "^2.2.3"
   },
   "devDependencies": {
+    "@openzeppelin/contracts": "catalog:",
     "@types/debug": "^4.1.12",
     "@types/json5": "^2.2.0",
     "eslint": "catalog:",

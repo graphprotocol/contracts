@@ -18,15 +18,32 @@ async function main() {
   const pa = await deployments.getOrNull('GraphIssuanceProxyAdmin')
   const ia = await deployments.getOrNull('IssuanceAllocator')
   const iaImpl = await deployments.getOrNull('IssuanceAllocator_Implementation')
+  const pilot = await deployments.getOrNull('PilotAllocation')
+  const pilotImpl = await deployments.getOrNull('PilotAllocation_Implementation')
   const reo = await deployments.getOrNull('RewardsEligibilityOracle')
   const reoImpl = await deployments.getOrNull('RewardsEligibilityOracle_Implementation')
 
   const chainMap: Record<string, unknown> = {}
 
+  if (pa) {
+    chainMap['GraphIssuanceProxyAdmin'] = {
+      address: pa.address,
+    }
+  }
+
   if (ia) {
     chainMap['IssuanceAllocator'] = {
       address: ia.address,
       implementation: iaImpl?.address,
+      proxyAdmin: pa?.address,
+      proxy: 'transparent',
+    }
+  }
+
+  if (pilot) {
+    chainMap['PilotAllocation'] = {
+      address: pilot.address,
+      implementation: pilotImpl?.address,
       proxyAdmin: pa?.address,
       proxy: 'transparent',
     }

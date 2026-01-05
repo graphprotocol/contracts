@@ -18,12 +18,18 @@ catalogs:
     '@eslint/js':
       specifier: ^9.37.0
       version: 9.38.0
+    '@nomicfoundation/hardhat-chai-matchers':
+      specifier: ^2.0.0
+      version: 2.1.0
     '@nomicfoundation/hardhat-ethers':
       specifier: ^3.1.0
       version: 3.1.0
     '@nomicfoundation/hardhat-verify':
       specifier: ^2.0.10
       version: 2.1.1
+    '@openzeppelin/contracts':
+      specifier: ^5.3.0
+      version: 5.4.0
     '@typechain/hardhat':
       specifier: ^9.0.0
       version: 9.1.0
@@ -33,6 +39,9 @@ catalogs:
     '@typescript-eslint/parser':
       specifier: ^8.46.1
       version: 8.46.2
+    chai:
+      specifier: ^4.2.0
+      version: 4.5.0
     dotenv:
       specifier: ^16.5.0
       version: 16.6.1
@@ -1144,6 +1153,9 @@ importers:
         specifier: workspace:^
         version: link:../../toolshed
     devDependencies:
+      '@nomicfoundation/hardhat-chai-matchers':
+        specifier: 'catalog:'
+        version: 2.1.0(@nomicfoundation/hardhat-ethers@3.1.0(ethers@6.15.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10)))(chai@4.5.0)(ethers@6.15.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10))
       '@nomicfoundation/hardhat-ethers':
         specifier: 'catalog:'
         version: 3.1.0(ethers@6.15.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10))
@@ -1165,6 +1177,9 @@ importers:
       '@types/node':
         specifier: ^20.17.50
         version: 20.19.14
+      chai:
+        specifier: 'catalog:'
+        version: 4.5.0
       dotenv:
         specifier: 'catalog:'
         version: 16.6.1
@@ -1573,6 +1588,9 @@ importers:
         specifier: ^2.2.3
         version: 2.2.3
     devDependencies:
+      '@openzeppelin/contracts':
+        specifier: 'catalog:'
+        version: 5.4.0
       '@types/debug':
         specifier: ^4.1.12
         version: 4.1.12

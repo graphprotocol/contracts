@@ -43,30 +43,28 @@ packages/deploy/                   # Cross-package orchestration
 
 ```
 packages/issuance/deploy/
-├── contracts/                      # Deployment helper contracts
-│   ├── IssuanceStateVerifier.sol  # Stateless governance verification helper
-│   └── mocks/                      # Test mocks (MockGraphToken, MockRewardsManager)
+├── deploy/                         # Hardhat-deploy scripts (numbered execution order)
+│   ├── 00_proxy_admin.ts          # Deploy GraphIssuanceProxyAdmin
+│   ├── 01_issuance_allocator.ts   # Deploy IssuanceAllocator + proxy
+│   ├── 02_pilot_allocation.ts      # Deploy PilotAllocation + proxy
+│   ├── 03_rewards_eligibility_oracle.ts  # Deploy RewardsEligibilityOracle + proxy
+│   ├── 04_accept_ownership.ts      # Accept ownership via governor
+│   └── 00_rewards_manager.ts       # Legacy RewardsManager upgrades
 │
-├── ignition/                       # Hardhat Ignition modules
-│   ├── modules/
-│   │   ├── contracts/              # Component deployment modules
-│   │   │   ├── RewardsEligibilityOracle.ts
-│   │   │   ├── IssuanceAllocator.ts
-│   │   │   └── PilotAllocation.ts
-│   │   ├── proxy/                  # Proxy deployment utilities
-│   │   │   ├── implementation.ts
-│   │   │   ├── TransparentUpgradeableProxy.ts
-│   │   │   └── utils.ts
-│   │   ├── deploy.ts               # Main deployment orchestrator
-│   │   ├── index.ts                # Module exports
-│   │   └── examples/               # Example deployment scripts
-│   └── configs/                    # Network-specific configurations
-│       ├── issuance.default.json5
-│       ├── issuance.arbitrumSepolia.json5
-│       └── issuance.arbitrumOne.json5
+├── deployments/                    # Hardhat-deploy artifacts per network
+│   ├── localhost/                  # Local test deployments
+│   ├── arbitrumSepolia/           # Testnet deployments
+│   └── arbitrumOne/               # Mainnet deployments
 │
-├── docs/                           # Production deployment documentation
-│   ├── README.md                   # Documentation navigation
+├── scripts/                        # Deployment utilities
+│   └── export-addresses.ts        # Export to address book format
+│
+├── test/                          # Deployment tests
+│   └── deployment.test.ts         # Deployment validation suite
+│
+├── docs/                          # Production deployment documentation
+│   ├── README.md                  # Documentation navigation
+│   ├── HardhatDeployGuide.md      # Hardhat-deploy deployment guide (PRIMARY)
 │   ├── REODeploymentSequence.md   # Complete REO deployment guide
 │   ├── GovernanceWorkflow.md      # Three-phase governance pattern
 │   ├── VerificationChecklists.md  # Comprehensive checklists
@@ -74,16 +72,14 @@ packages/issuance/deploy/
 │   ├── APICorrectness.md          # Method signatures
 │   └── IADeploymentGuide.md       # 3-stage IA migration (future)
 │
-├── legacy/                         # Analysis and convergence planning
-│   ├── ConvergenceStrategy.md     # Convergence plan
-│   ├── ConvergencePlan.md         # Detailed implementation plan
-│   ├── OrchestratorPackageProposal.md  # Orchestrator design
-│   └── [other analysis docs]
+├── contracts/                     # Deployment helper contracts
+│   ├── IssuanceStateVerifier.sol  # Stateless governance verification helper
+│   └── mocks/                     # Test mocks (MockGraphToken, MockRewardsManager)
 │
-└── README.md                       # This file
+└── README.md                      # This file
 ```
 
-**Note:** `governance/` and `tasks/` have moved to `packages/deploy/` as they handle cross-package orchestration.
+**Note:** This package uses **hardhat-deploy** for deployments. See [docs/HardhatDeployGuide.md](docs/HardhatDeployGuide.md) for complete deployment documentation.
 
 ---
 
@@ -91,20 +87,37 @@ packages/issuance/deploy/
 
 ### 1. Deploy Component (Permissionless)
 
-Deploy REO component contracts:
-
 ```bash
 cd packages/issuance/deploy
-npx hardhat ignition deploy ignition/modules/contracts/RewardsEligibilityOracle.ts \
-  --network arbitrum-sepolia \
-  --parameters ignition/configs/issuance.arbitrumSepolia.json5
+
+# Create GraphToken deployment artifact for your network
+mkdir -p deployments/arbitrumSepolia
+echo '{"address":"0x...","abi":[]}' > deployments/arbitrumSepolia/GraphToken.json
+
+# Deploy all issuance contracts
+pnpm hardhat deploy --tags issuance --network arbitrumSepolia
+
+# Export to address book
+pnpm hardhat run scripts/export-addresses.ts --network arbitrumSepolia
 ```
 
-**Result:** REO deployed at address `0xREO...`
+**Result:** All issuance contracts deployed with addresses exported to `addresses.json`
 
 ### 2. Governance Integration (See packages/deploy/)
 
 For governance integration with RewardsManager, see `packages/deploy/` README.
+
+---
+
+## Documentation
+
+See **[docs/HardhatDeployGuide.md](docs/HardhatDeployGuide.md)** for complete deployment documentation including:
+
+- Deployment process and scripts
+- Network configuration
+- Tag-based selective deployment
+- Upgrade workflows
+- Troubleshooting
 
 ---
 
@@ -115,7 +128,7 @@ For governance integration with RewardsManager, see `packages/deploy/` README.
 - Deploy contract implementations
 - Deploy TransparentUpgradeableProxy for each contract
 - Initialize contracts with safe defaults
-- Track deployments in Ignition artifacts
+- Track deployments in hardhat-deploy artifacts
 
 ### ✅ Helper Contracts
 
@@ -150,74 +163,19 @@ For governance integration with RewardsManager, see `packages/deploy/` README.
 ### ❌ Checkpoint/Verification Modules
 
 **Not here:** Modules that verify governance execution
-**See instead:** `packages/deploy/ignition/modules/issuance/` - Checkpoint modules
-
----
-
-## Configuration
-
-### Network Configuration Files
-
-Located in `ignition/configs/`:
-
-- `issuance.default.json5` - Default parameters
-- `issuance.arbitrumSepolia.json5` - Testnet config
-- `issuance.arbitrumOne.json5` - Mainnet config
-
-### Required Parameters
-
-```json5
-{
-  $global: {
-    graphTokenAddress: '0x...', // Required: GraphToken address
-  },
-}
-```
-
----
-
-## Deployment Modules
-
-### RewardsEligibilityOracle
-
-```typescript
-// Deploy new REO
-import REOModule from './ignition/modules/contracts/RewardsEligibilityOracle'
-
-// Connect to existing REO
-import { MigrateRewardsEligibilityOracleModule } from './ignition/modules/contracts/RewardsEligibilityOracle'
-```
-
-### IssuanceAllocator
-
-```typescript
-// Deploy new IA
-import IAModule from './ignition/modules/contracts/IssuanceAllocator'
-
-// Connect to existing IA
-import { MigrateIssuanceAllocatorModule } from './ignition/modules/contracts/IssuanceAllocator'
-```
-
-### PilotAllocation
-
-```typescript
-// Deploy new PilotAllocation
-import PAModule from './ignition/modules/contracts/PilotAllocation'
-
-// Connect to existing PilotAllocation
-import { MigratePilotAllocationModule } from './ignition/modules/contracts/PilotAllocation'
-```
+**See instead:** `packages/deploy/` - Orchestration and verification
 
 ---
 
 ## Testing
 
 ```bash
-# Compile contracts (includes IssuanceStateVerifier and mocks)
-pnpm compile
-
-# Run tests
+# Run deployment tests
 pnpm test
+
+# Test on local hardhat network
+pnpm hardhat node  # Terminal 1
+pnpm hardhat deploy --tags issuance --network localhost  # Terminal 2
 ```
 
 ---
@@ -233,24 +191,14 @@ After deploying components in this package:
 
 ---
 
-## Documentation
-
-### Production Deployment Guides
+## Additional Documentation
 
 See `docs/` directory for comprehensive deployment documentation:
 
+- **[docs/HardhatDeployGuide.md](./docs/HardhatDeployGuide.md)** - Complete hardhat-deploy guide (PRIMARY)
 - **[docs/README.md](./docs/README.md)** - Documentation navigation
-- **[docs/REODeploymentSequence.md](./docs/REODeploymentSequence.md)** - Complete REO deployment guide
 - **[docs/GovernanceWorkflow.md](./docs/GovernanceWorkflow.md)** - Three-phase governance workflow
 - **[docs/VerificationChecklists.md](./docs/VerificationChecklists.md)** - Comprehensive checklists
-
-### Convergence Planning
-
-See `legacy/` directory for analysis and convergence planning:
-
-- **[legacy/ConvergencePlan.md](./legacy/ConvergencePlan.md)** - Detailed convergence implementation plan
-- **[legacy/ConvergenceStrategy.md](./legacy/ConvergenceStrategy.md)** - What to keep from each approach
-- **[legacy/OrchestratorPackageProposal.md](./legacy/OrchestratorPackageProposal.md)** - Orchestrator package design
 
 ---
 
@@ -268,12 +216,13 @@ See **`packages/deploy/`** for:
 
 ## Status
 
-- ✅ Component deployment modules ready
-- ✅ IssuanceStateVerifier contract added
+- ✅ Hardhat-deploy migration complete
+- ✅ Numbered deployment scripts (00-04)
+- ✅ Deployment test suite
+- ✅ Address book export script
+- ✅ External OpenZeppelin artifacts configured
+- ✅ IssuanceStateVerifier contract
 - ✅ Mock contracts for testing
-- ✅ Proxy deployment utilities
-- ✅ Network configurations
 - ✅ Documentation complete
-- ✅ Orchestration separated to `packages/deploy/`
 
-**This package is production-ready for component deployment.**
+**This package is production-ready for component deployment using hardhat-deploy.**
