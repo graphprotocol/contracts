@@ -256,15 +256,20 @@ describe('Rewards - Eligibility Oracle', () => {
       // Jump to next epoch
       await helpers.mineEpoch(epochManager)
 
-      // Close allocation - denylist should be checked first
+      // Close allocation - both checks will be performed
       const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
 
-      // Verify: Denylist wins (checked first in RewardsManager.takeRewards line 522)
-      // Should emit RewardsDenied (not RewardsDeniedDueToEligibility)
-      await expect(tx).emit(rewardsManager, 'RewardsDenied').withArgs(indexer1.address, allocationID1)
+      const expectedIndexingRewards = toGRT('1400')
 
-      // Verify: REO event is NOT emitted
-      await expect(tx).to.not.emit(rewardsManager, 'RewardsDeniedDueToEligibility')
+      // Verify: Both denial events are emitted (new "first successful reclaim" behavior)
+      // Since neither has a reclaim address configured, both checks run and both events emit
+      await expect(tx).emit(rewardsManager, 'RewardsDenied').withArgs(indexer1.address, allocationID1)
+      await expect(tx)
+        .emit(rewardsManager, 'RewardsDeniedDueToEligibility')
+        .withArgs(indexer1.address, allocationID1, expectedIndexingRewards)
+
+      // Rewards are dropped (no reclaim happens since neither has address configured)
+      await expect(tx).to.not.emit(rewardsManager, 'RewardsReclaimed')
     })
 
     it('should check REO when denylist allows but indexer ineligible', async function () {

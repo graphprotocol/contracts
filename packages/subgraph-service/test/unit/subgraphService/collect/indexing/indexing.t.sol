@@ -171,4 +171,75 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
         );
         subgraphService.collect(newIndexer, paymentType, data);
     }
+
+    function test_SubgraphService_Collect_Indexing_ZeroRewards(uint256 tokens) public useIndexer useAllocation(tokens) {
+        IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
+        bytes memory data = abi.encode(allocationID, bytes32("POI"), _getHardcodedPOIMetadata());
+
+        // Don't skip time - collect immediately, expecting zero rewards
+        _collect(users.indexer, paymentType, data);
+    }
+
+    function test_SubgraphService_Collect_Indexing_ZeroPOI(uint256 tokens) public useIndexer useAllocation(tokens) {
+        IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
+        // Submit zero POI (bytes32(0))
+        bytes memory data = abi.encode(allocationID, bytes32(0), _getHardcodedPOIMetadata());
+
+        // skip time to ensure allocation could get rewards
+        vm.roll(block.number + EPOCH_LENGTH);
+
+        // Should succeed but reclaim rewards due to zero POI - just verify it doesn't revert
+        subgraphService.collect(users.indexer, paymentType, data);
+    }
+
+    function test_SubgraphService_Collect_Indexing_StalePOI(uint256 tokens) public useIndexer useAllocation(tokens) {
+        IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
+        bytes memory data = abi.encode(allocationID, bytes32("POI"), _getHardcodedPOIMetadata());
+
+        // Skip past maxPOIStaleness to make allocation stale
+        skip(maxPOIStaleness + 1);
+
+        // Should succeed but reclaim rewards due to stale POI - just verify it doesn't revert
+        subgraphService.collect(users.indexer, paymentType, data);
+    }
+
+    function test_SubgraphService_Collect_Indexing_AltruisticAllocation(uint256 tokens) public useIndexer {
+        tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
+
+        _createProvision(users.indexer, tokens, fishermanRewardPercentage, disputePeriod);
+        _register(users.indexer, abi.encode("url", "geoHash", address(0)));
+
+        // Create altruistic allocation (0 tokens)
+        bytes memory data = _createSubgraphAllocationData(users.indexer, subgraphDeployment, allocationIDPrivateKey, 0);
+        _startService(users.indexer, data);
+
+        IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
+        bytes memory collectData = abi.encode(allocationID, bytes32("POI"), _getHardcodedPOIMetadata());
+
+        // skip time to ensure allocation could get rewards
+        vm.roll(block.number + EPOCH_LENGTH);
+
+        // Should succeed but reclaim rewards due to altruistic allocation - just verify it doesn't revert
+        subgraphService.collect(users.indexer, paymentType, collectData);
+    }
+
+    function test_SubgraphService_Collect_Indexing_RevertWhen_AllocationClosed(
+        uint256 tokens
+    ) public useIndexer useAllocation(tokens) {
+        IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
+        bytes memory data = abi.encode(allocationID, bytes32("POI"), _getHardcodedPOIMetadata());
+
+        // Close the allocation
+        resetPrank(users.indexer);
+        subgraphService.stopService(users.indexer, abi.encode(allocationID));
+
+        // skip time to ensure allocation could get rewards
+        vm.roll(block.number + EPOCH_LENGTH);
+
+        // Attempt to collect on closed allocation should revert
+        // Using the bytes4 selector directly since AllocationManagerAllocationClosed is inherited from AllocationManager
+        bytes4 selector = bytes4(keccak256("AllocationManagerAllocationClosed(address)"));
+        vm.expectRevert(abi.encodeWithSelector(selector, allocationID));
+        subgraphService.collect(users.indexer, paymentType, data);
+    }
 }

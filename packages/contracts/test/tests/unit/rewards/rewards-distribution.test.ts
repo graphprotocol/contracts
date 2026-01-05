@@ -21,6 +21,10 @@ import { NetworkFixture } from '../lib/fixtures'
 
 const MAX_PPM = 1000000
 
+// TODO: Behavior change - HorizonRewardsAssigned is no longer emitted when rewards == 0
+// Set to true if the old behavior is restored (emitting event for zero rewards)
+const EMIT_EVENT_FOR_ZERO_REWARDS = false
+
 const { HashZero, WeiPerEther } = constants
 
 const toRound = (n: BigNumber) => formatGRT(n.add(toGRT('0.5'))).split('.')[0]
@@ -321,9 +325,13 @@ describe('Rewards - Distribution', () => {
 
         // Close allocation. At this point rewards should be collected for that indexer
         const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
-        await expect(tx)
-          .emit(rewardsManager, 'HorizonRewardsAssigned')
-          .withArgs(indexer1.address, allocationID1, toBN(0))
+        if (EMIT_EVENT_FOR_ZERO_REWARDS) {
+          await expect(tx)
+            .emit(rewardsManager, 'HorizonRewardsAssigned')
+            .withArgs(indexer1.address, allocationID1, toBN(0))
+        } else {
+          await expect(tx).to.not.emit(rewardsManager, 'HorizonRewardsAssigned')
+        }
       })
 
       it('does not revert with an underflow if the minimum signal changes, and signal came after allocation', async function () {
@@ -339,9 +347,13 @@ describe('Rewards - Distribution', () => {
 
         // Close allocation. At this point rewards should be collected for that indexer
         const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
-        await expect(tx)
-          .emit(rewardsManager, 'HorizonRewardsAssigned')
-          .withArgs(indexer1.address, allocationID1, toBN(0))
+        if (EMIT_EVENT_FOR_ZERO_REWARDS) {
+          await expect(tx)
+            .emit(rewardsManager, 'HorizonRewardsAssigned')
+            .withArgs(indexer1.address, allocationID1, toBN(0))
+        } else {
+          await expect(tx).to.not.emit(rewardsManager, 'HorizonRewardsAssigned')
+        }
       })
 
       it('does not revert if signal was already under minimum', async function () {
@@ -356,9 +368,13 @@ describe('Rewards - Distribution', () => {
         // Close allocation. At this point rewards should be collected for that indexer
         const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
 
-        await expect(tx)
-          .emit(rewardsManager, 'HorizonRewardsAssigned')
-          .withArgs(indexer1.address, allocationID1, toBN(0))
+        if (EMIT_EVENT_FOR_ZERO_REWARDS) {
+          await expect(tx)
+            .emit(rewardsManager, 'HorizonRewardsAssigned')
+            .withArgs(indexer1.address, allocationID1, toBN(0))
+        } else {
+          await expect(tx).to.not.emit(rewardsManager, 'HorizonRewardsAssigned')
+        }
       })
 
       it('should distribute rewards on closed allocation and send to destination', async function () {
@@ -499,7 +515,11 @@ describe('Rewards - Distribution', () => {
 
         // Close allocation. At this point rewards should be zero
         const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
-        await expect(tx).emit(rewardsManager, 'HorizonRewardsAssigned').withArgs(indexer1.address, allocationID1, 0)
+        if (EMIT_EVENT_FOR_ZERO_REWARDS) {
+          await expect(tx).emit(rewardsManager, 'HorizonRewardsAssigned').withArgs(indexer1.address, allocationID1, 0)
+        } else {
+          await expect(tx).to.not.emit(rewardsManager, 'HorizonRewardsAssigned')
+        }
 
         // After state - should be unchanged since no rewards were minted
         const afterTokenSupply = await grt.totalSupply()

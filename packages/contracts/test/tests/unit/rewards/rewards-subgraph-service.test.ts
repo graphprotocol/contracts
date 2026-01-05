@@ -10,6 +10,10 @@ import { network } from 'hardhat'
 
 import { NetworkFixture } from '../lib/fixtures'
 
+// TODO: Behavior change - HorizonRewardsAssigned is no longer emitted when rewards == 0
+// Set to true if the old behavior is restored (emitting event for zero rewards)
+const EMIT_EVENT_FOR_ZERO_REWARDS = false
+
 describe('Rewards - SubgraphService', () => {
   const graph = hre.graph()
   let curator1: SignerWithAddress
@@ -253,9 +257,13 @@ describe('Rewards - SubgraphService', () => {
 
         const mockSubgraphServiceSigner = await hre.ethers.getSigner(mockSubgraphService.address)
 
-        // Take rewards should return 0 and emit event with 0 amount
+        // Take rewards should return 0
         const tx = rewardsManager.connect(mockSubgraphServiceSigner).takeRewards(allocationID1)
-        await expect(tx).emit(rewardsManager, 'HorizonRewardsAssigned').withArgs(indexer1.address, allocationID1, 0)
+        if (EMIT_EVENT_FOR_ZERO_REWARDS) {
+          await expect(tx).emit(rewardsManager, 'HorizonRewardsAssigned').withArgs(indexer1.address, allocationID1, 0)
+        } else {
+          await expect(tx).to.not.emit(rewardsManager, 'HorizonRewardsAssigned')
+        }
 
         // Stop impersonating
         await network.provider.request({
@@ -300,7 +308,11 @@ describe('Rewards - SubgraphService', () => {
 
         // Take rewards should succeed with 0 amount
         const tx = rewardsManager.connect(mockSubgraphServiceSigner).takeRewards(allocationID1)
-        await expect(tx).emit(rewardsManager, 'HorizonRewardsAssigned').withArgs(indexer1.address, allocationID1, 0)
+        if (EMIT_EVENT_FOR_ZERO_REWARDS) {
+          await expect(tx).emit(rewardsManager, 'HorizonRewardsAssigned').withArgs(indexer1.address, allocationID1, 0)
+        } else {
+          await expect(tx).to.not.emit(rewardsManager, 'HorizonRewardsAssigned')
+        }
 
         // Stop impersonating
         await network.provider.request({
@@ -383,7 +395,7 @@ describe('Rewards - SubgraphService', () => {
         await rewardsManager.connect(governor).setSubgraphAvailabilityOracle(governor.address)
         await rewardsManager.connect(governor).setDenied(subgraphDeploymentID1, true)
 
-        // Setup allocation
+        // Setup allocation with some pending rewards so rewards > 0
         await mockSubgraphService.setAllocation(
           allocationID1,
           true,
@@ -391,8 +403,10 @@ describe('Rewards - SubgraphService', () => {
           subgraphDeploymentID1,
           toGRT('12500'),
           0,
-          0,
+          toGRT('100'), // accRewardsPending > 0 so rewards will be calculated
         )
+
+        await mockSubgraphService.setSubgraphAllocatedTokens(subgraphDeploymentID1, toGRT('12500'))
 
         // Impersonate the mock subgraph service contract
         await network.provider.request({

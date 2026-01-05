@@ -102,4 +102,28 @@ contract MockSubgraphService is IRewardsIssuer {
     function getSubgraphAllocatedTokens(bytes32 subgraphDeploymentId) external view override returns (uint256) {
         return subgraphAllocatedTokens[subgraphDeploymentId];
     }
+
+    /**
+     * @notice Helper function to call reclaimRewards on RewardsManager for testing
+     * @param rewardsManager Address of the RewardsManager contract
+     * @param reason Reason identifier for reclaiming rewards
+     * @param allocationId The allocation ID
+     * @param contextData Additional context data for the reclaim
+     * @return Amount of rewards reclaimed
+     */
+    function callReclaimRewards(
+        address rewardsManager,
+        bytes32 reason,
+        address allocationId,
+        bytes calldata contextData
+    ) external returns (uint256) {
+        // Call reclaimRewards on the RewardsManager
+        // solhint-disable-next-line avoid-low-level-calls
+        (bool success, bytes memory data) = rewardsManager.call(
+            // solhint-disable-next-line gas-small-strings
+            abi.encodeWithSignature("reclaimRewards(bytes32,address,bytes)", reason, allocationId, contextData)
+        );
+        require(success, "reclaimRewards call failed");
+        return abi.decode(data, (uint256));
+    }
 }

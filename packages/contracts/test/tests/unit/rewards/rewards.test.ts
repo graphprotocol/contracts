@@ -15,14 +15,22 @@ import {
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BigNumber as BN } from 'bignumber.js'
 import { expect } from 'chai'
-import { BigNumber, constants } from 'ethers'
+import { BigNumber, constants, utils } from 'ethers'
 import hre from 'hardhat'
 
 import { NetworkFixture } from '../lib/fixtures'
 
 const MAX_PPM = 1000000
 
+// TODO: Behavior change - HorizonRewardsAssigned is no longer emitted when rewards == 0
+// Set to true if the old behavior is restored (emitting event for zero rewards)
+const EMIT_EVENT_FOR_ZERO_REWARDS = false
+
 const { HashZero, WeiPerEther } = constants
+
+// Reclaim reason identifiers (matching RewardsReclaim.sol)
+const INDEXER_INELIGIBLE = utils.id('INDEXER_INELIGIBLE')
+const SUBGRAPH_DENIED = utils.id('SUBGRAPH_DENIED')
 
 const toRound = (n: BigNumber) => formatGRT(n.add(toGRT('0.5'))).split('.')[0]
 
@@ -711,9 +719,13 @@ describe('Rewards', () => {
 
         // Close allocation. At this point rewards should be collected for that indexer
         const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
-        await expect(tx)
-          .emit(rewardsManager, 'HorizonRewardsAssigned')
-          .withArgs(indexer1.address, allocationID1, toBN(0))
+        if (EMIT_EVENT_FOR_ZERO_REWARDS) {
+          await expect(tx)
+            .emit(rewardsManager, 'HorizonRewardsAssigned')
+            .withArgs(indexer1.address, allocationID1, toBN(0))
+        } else {
+          await expect(tx).to.not.emit(rewardsManager, 'HorizonRewardsAssigned')
+        }
       })
 
       it('does not revert with an underflow if the minimum signal changes, and signal came after allocation', async function () {
@@ -729,9 +741,13 @@ describe('Rewards', () => {
 
         // Close allocation. At this point rewards should be collected for that indexer
         const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
-        await expect(tx)
-          .emit(rewardsManager, 'HorizonRewardsAssigned')
-          .withArgs(indexer1.address, allocationID1, toBN(0))
+        if (EMIT_EVENT_FOR_ZERO_REWARDS) {
+          await expect(tx)
+            .emit(rewardsManager, 'HorizonRewardsAssigned')
+            .withArgs(indexer1.address, allocationID1, toBN(0))
+        } else {
+          await expect(tx).to.not.emit(rewardsManager, 'HorizonRewardsAssigned')
+        }
       })
 
       it('does not revert if signal was already under minimum', async function () {
@@ -746,9 +762,13 @@ describe('Rewards', () => {
         // Close allocation. At this point rewards should be collected for that indexer
         const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
 
-        await expect(tx)
-          .emit(rewardsManager, 'HorizonRewardsAssigned')
-          .withArgs(indexer1.address, allocationID1, toBN(0))
+        if (EMIT_EVENT_FOR_ZERO_REWARDS) {
+          await expect(tx)
+            .emit(rewardsManager, 'HorizonRewardsAssigned')
+            .withArgs(indexer1.address, allocationID1, toBN(0))
+        } else {
+          await expect(tx).to.not.emit(rewardsManager, 'HorizonRewardsAssigned')
+        }
       })
 
       it('should distribute rewards on closed allocation and send to destination', async function () {
@@ -889,7 +909,11 @@ describe('Rewards', () => {
 
         // Close allocation. At this point rewards should be zero
         const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
-        await expect(tx).emit(rewardsManager, 'HorizonRewardsAssigned').withArgs(indexer1.address, allocationID1, 0)
+        if (EMIT_EVENT_FOR_ZERO_REWARDS) {
+          await expect(tx).emit(rewardsManager, 'HorizonRewardsAssigned').withArgs(indexer1.address, allocationID1, 0)
+        } else {
+          await expect(tx).to.not.emit(rewardsManager, 'HorizonRewardsAssigned')
+        }
 
         // After state - should be unchanged since no rewards were minted
         const afterTokenSupply = await grt.totalSupply()
@@ -898,6 +922,88 @@ describe('Rewards', () => {
         // Check that no tokens were minted (rewards were 0)
         expect(afterTokenSupply).eq(beforeTokenSupply)
         expect(afterStakingBalance).eq(beforeStakingBalance)
+      })
+
+      it('should handle zero rewards with denylist and reclaim address', async function () {
+        // Setup reclaim address for SubgraphDenied
+        const reclaimWallet = assetHolder
+        await rewardsManager.connect(governor).setReclaimAddress(SUBGRAPH_DENIED, reclaimWallet.address)
+
+        // Setup denylist
+        await rewardsManager.connect(governor).setSubgraphAvailabilityOracle(governor.address)
+        await rewardsManager.connect(governor).setDenied(subgraphDeploymentID1, true)
+
+        // Align with the epoch boundary
+        await helpers.mineEpoch(epochManager)
+
+        // Setup allocation with zero rewards (no signal)
+        const tokensToAllocate = toGRT('12500')
+        await staking.connect(indexer1).stake(tokensToAllocate)
+        await staking
+          .connect(indexer1)
+          .allocateFrom(
+            indexer1.address,
+            subgraphDeploymentID1,
+            tokensToAllocate,
+            allocationID1,
+            metadata,
+            await channelKey1.generateProof(indexer1.address),
+          )
+
+        // Close allocation immediately (same epoch) - should have zero rewards
+        const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
+
+        // Should not emit events for zero rewards
+        await expect(tx).to.not.emit(rewardsManager, 'RewardsDenied')
+        await expect(tx).to.not.emit(rewardsManager, 'RewardsReclaimed')
+        if (EMIT_EVENT_FOR_ZERO_REWARDS) {
+          await expect(tx).emit(rewardsManager, 'HorizonRewardsAssigned').withArgs(indexer1.address, allocationID1, 0)
+        } else {
+          await expect(tx).to.not.emit(rewardsManager, 'HorizonRewardsAssigned')
+        }
+      })
+
+      it('should handle zero rewards with eligibility oracle and reclaim address', async function () {
+        // Setup reclaim address for IndexerIneligible
+        const reclaimWallet = assetHolder
+        await rewardsManager.connect(governor).setReclaimAddress(INDEXER_INELIGIBLE, reclaimWallet.address)
+
+        // Setup eligibility oracle that denies
+        const MockRewardsEligibilityOracleFactory = await hre.ethers.getContractFactory(
+          'contracts/tests/MockRewardsEligibilityOracle.sol:MockRewardsEligibilityOracle',
+        )
+        const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(false) // Deny
+        await mockOracle.deployed()
+        await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
+
+        // Align with the epoch boundary
+        await helpers.mineEpoch(epochManager)
+
+        // Setup allocation with zero rewards (no signal)
+        const tokensToAllocate = toGRT('12500')
+        await staking.connect(indexer1).stake(tokensToAllocate)
+        await staking
+          .connect(indexer1)
+          .allocateFrom(
+            indexer1.address,
+            subgraphDeploymentID1,
+            tokensToAllocate,
+            allocationID1,
+            metadata,
+            await channelKey1.generateProof(indexer1.address),
+          )
+
+        // Close allocation immediately (same epoch) - should have zero rewards
+        const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
+
+        // Should not emit events for zero rewards
+        await expect(tx).to.not.emit(rewardsManager, 'RewardsDeniedDueToEligibility')
+        await expect(tx).to.not.emit(rewardsManager, 'RewardsReclaimed')
+        if (EMIT_EVENT_FOR_ZERO_REWARDS) {
+          await expect(tx).emit(rewardsManager, 'HorizonRewardsAssigned').withArgs(indexer1.address, allocationID1, 0)
+        } else {
+          await expect(tx).to.not.emit(rewardsManager, 'HorizonRewardsAssigned')
+        }
       })
     })
   })
