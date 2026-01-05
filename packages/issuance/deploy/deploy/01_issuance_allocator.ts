@@ -50,7 +50,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
 
   // Deploy using hardhat-deploy's proxy option for TransparentUpgradeableProxy
   // This handles implementation deployment, proxy deployment, and atomic initialization
-  // Uses our custom GraphIssuanceProxyAdmin via viaAdminContract
+  // Uses our custom GraphIssuanceProxyAdmin by specifying both name and artifact
   const result = await deploy('IssuanceAllocator', {
     from: deployer,
     contract: 'IssuanceAllocator',
@@ -59,7 +59,10 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     waitConfirmations: 1,
     proxy: {
       owner: governor, // Owner of the ProxyAdmin
-      viaAdminContract: 'GraphIssuanceProxyAdmin', // Use our custom ProxyAdmin
+      viaAdminContract: {
+        name: 'GraphIssuanceProxyAdmin',
+        artifact: 'ProxyAdmin',
+      },
       proxyContract: 'OpenZeppelinTransparentProxy',
       execute: {
         // Atomic initialization during proxy deployment

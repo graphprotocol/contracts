@@ -5,6 +5,7 @@ import '@typechain/hardhat'
 import 'hardhat-contract-sizer'
 import '@openzeppelin/hardhat-upgrades'
 import '@nomicfoundation/hardhat-verify'
+import * as path from 'path'
 
 import { hardhatBaseConfig } from '@graphprotocol/toolshed/hardhat'
 import type { HardhatUserConfig } from 'hardhat/config'
@@ -27,19 +28,23 @@ const issuanceSolidityConfig = {
 
 const baseConfig = hardhatBaseConfig(require)
 
+// Use absolute paths to avoid path resolution issues with hardhat-deploy
+const projectRoot = path.resolve(__dirname, '..')
+const deployRoot = __dirname
+
 const config: HardhatUserConfig = {
   ...baseConfig,
   solidity: issuanceSolidityConfig,
   // This package only provides deployment and governance tooling.
   // Reuse issuance contracts and artifacts from the parent package.
   paths: {
-    root: '..',
-    sources: './contracts',
-    tests: './deploy/test',
-    artifacts: './artifacts',
-    cache: './cache',
-    deploy: './deploy/deploy',
-    deployments: './deploy/deployments',
+    root: projectRoot,
+    sources: path.join(projectRoot, 'contracts'),
+    tests: path.join(deployRoot, 'test'),
+    artifacts: path.join(projectRoot, 'artifacts'),
+    cache: path.join(projectRoot, 'cache'),
+    deploy: path.join(deployRoot, 'deploy'),
+    deployments: path.join(deployRoot, 'deployments'),
   },
   namedAccounts: {
     deployer: {
@@ -52,7 +57,7 @@ const config: HardhatUserConfig = {
   external: {
     contracts: [
       {
-        artifacts: './node_modules/@openzeppelin/contracts/build/contracts',
+        artifacts: path.join(projectRoot, 'node_modules/@openzeppelin/contracts/build/contracts'),
       },
     ],
   },

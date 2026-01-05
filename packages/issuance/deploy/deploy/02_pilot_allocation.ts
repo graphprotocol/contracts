@@ -62,7 +62,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     waitConfirmations: 1,
     proxy: {
       owner: governor, // Owner of the ProxyAdmin
-      viaAdminContract: 'GraphIssuanceProxyAdmin', // Use our custom ProxyAdmin
+      viaAdminContract: { name: 'GraphIssuanceProxyAdmin', artifact: 'ProxyAdmin' }, // Use our custom ProxyAdmin
       proxyContract: 'OpenZeppelinTransparentProxy',
       execute: {
         // Atomic initialization during proxy deployment
