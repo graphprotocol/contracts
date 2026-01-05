@@ -94,6 +94,7 @@ All contracts use TransparentUpgradeableProxy:
 ### GraphToken Dependency
 
 All contracts require GraphToken address via:
+
 - Immutable constructor parameter on implementations
 - Provided via `deployments/<network>/GraphToken.json`
 
@@ -121,6 +122,7 @@ Run tests: `pnpm test:self`
 Configure networks in `hardhat.config.ts` or use environment variables.
 
 Named accounts (from toolshed base config):
+
 - `deployer` - Account 0 (pays gas)
 - `governor` - Account 1 (receives admin roles)
 

@@ -76,13 +76,11 @@ packages/deploy/
 
 ### 1. Deploy Components (Permissionless)
 
-Deploy issuance contracts using the issuance package:
+Deploy issuance contracts using hardhat-deploy:
 
 ```bash
 cd packages/issuance/deploy
-npx hardhat ignition deploy ignition/modules/contracts/RewardsEligibilityOracle.ts \
-  --network arbitrum-sepolia \
-  --parameters ignition/configs/issuance.arbitrumSepolia.json5
+npx hardhat deploy --tags issuance --network arbitrum-sepolia
 ```
 
 ### 2. Generate Governance TX (Permissionless)
