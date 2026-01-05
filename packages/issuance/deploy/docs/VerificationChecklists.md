@@ -211,7 +211,7 @@ missed and maintain audit trails.
 - [ ] **Contract addresses recorded**
   - [ ] REO Proxy: `__________________`
   - [ ] REO Implementation: `__________________`
-  - [ ] ProxyAdmin: `__________________`
+  - [ ] GraphIssuanceProxyAdmin: `__________________`
 
 - [ ] **Deployment verification**
   - [ ] REO proxy deployed at expected address
@@ -228,7 +228,7 @@ missed and maintain audit trails.
 
 - [ ] **Ownership verification**
   - [ ] `reo.owner()` returns governance multi-sig: `__________________`
-  - [ ] ProxyAdmin owned by governance
+  - [ ] GraphIssuanceProxyAdmin owned by governance
   - [ ] Owner can call owner-only functions
 
 - [ ] **Interface verification**
@@ -248,7 +248,7 @@ missed and maintain audit trails.
   - [ ] Chain ID correct
   - [ ] Proxy address correct
   - [ ] Implementation address correct
-  - [ ] ProxyAdmin address correct
+  - [ ] GraphIssuanceProxyAdmin address correct
 
 ### Stage 2.2: Role Configuration
 
@@ -772,18 +772,18 @@ missed and maintain audit trails.
 **Network:** **\*\*\*\***\_\_**\*\*\*\***
 **Chain ID:** **\*\*\*\***\_\_**\*\*\*\***
 
-| Component                     | Address                      |
-| ----------------------------- | ---------------------------- |
-| GraphToken                    | **\*\*\*\***\_\_**\*\*\*\*** |
-| RewardsManager Proxy          | **\*\*\*\***\_\_**\*\*\*\*** |
-| RewardsManager Implementation | **\*\*\*\***\_\_**\*\*\*\*** |
-| GraphProxyAdmin               | **\*\*\*\***\_\_**\*\*\*\*** |
-| REO Proxy                     | **\*\*\*\***\_\_**\*\*\*\*** |
-| REO Implementation            | **\*\*\*\***\_\_**\*\*\*\*** |
-| REO ProxyAdmin                | **\*\*\*\***\_\_**\*\*\*\*** |
-| Governance Multi-sig          | **\*\*\*\***\_\_**\*\*\*\*** |
-| OPERATOR Address              | **\*\*\*\***\_\_**\*\*\*\*** |
-| ORACLE Address                | **\*\*\*\***\_\_**\*\*\*\*** |
+| Component                            | Address                      |
+| ------------------------------------ | ---------------------------- |
+| GraphToken                           | **\*\*\*\***\_\_**\*\*\*\*** |
+| RewardsManager Proxy                 | **\*\*\*\***\_\_**\*\*\*\*** |
+| RewardsManager Implementation        | **\*\*\*\***\_\_**\*\*\*\*** |
+| GraphProxyAdmin (core)               | **\*\*\*\***\_\_**\*\*\*\*** |
+| REO Proxy (RewardsEligibilityOracle) | **\*\*\*\***\_\_**\*\*\*\*** |
+| REO Implementation                   | **\*\*\*\***\_\_**\*\*\*\*** |
+| GraphIssuanceProxyAdmin (REO admin)  | **\*\*\*\***\_\_**\*\*\*\*** |
+| Governance Multi-sig                 | **\*\*\*\***\_\_**\*\*\*\*** |
+| OPERATOR Address                     | **\*\*\*\***\_\_**\*\*\*\*** |
+| ORACLE Address                       | **\*\*\*\***\_\_**\*\*\*\*** |
 
 ### Key Parameters
 
