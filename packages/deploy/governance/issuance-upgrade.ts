@@ -40,7 +40,8 @@ export async function buildIssuanceContractUpgradeTxs(
   const chainId = Number(hre.network.config.chainId ?? (await hre.ethers.provider.getNetwork()).chainId)
   const provider = hre.ethers.provider
 
-  const issuanceContracts = connectGraphIssuance(chainId, provider)
+  // Note: Using 'as any' to bypass incomplete type definitions in toolshed
+  const issuanceContracts = connectGraphIssuance(chainId, provider) as any
 
   if (!issuanceContracts.GraphIssuanceProxyAdmin) {
     throw new Error('GraphIssuanceProxyAdmin not found in Issuance address book')

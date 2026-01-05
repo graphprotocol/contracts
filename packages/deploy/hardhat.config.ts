@@ -2,16 +2,16 @@ import '@nomicfoundation/hardhat-ethers'
 import '@nomicfoundation/hardhat-chai-matchers'
 import '@typechain/hardhat'
 import '@nomicfoundation/hardhat-verify'
-
-import { hardhatBaseConfig } from '@graphprotocol/toolshed/hardhat'
-import type { HardhatUserConfig } from 'hardhat/config'
-
 // Explicitly register local Hardhat tasks (orchestration helpers)
 import './tasks/rewards-eligibility-upgrade'
+import './tasks/issuance-contract-upgrade'
 import './tasks/verify-integration'
 import './tasks/sync-pending-implementation'
 import './tasks/list-pending-implementations'
 import './tasks/deployment-status'
+
+import { hardhatBaseConfig } from '@graphprotocol/toolshed/hardhat'
+import type { HardhatUserConfig } from 'hardhat/config'
 
 const baseConfig = hardhatBaseConfig(require)
 
