@@ -1,9 +1,7 @@
 import { task } from 'hardhat/config'
 import type { HardhatRuntimeEnvironment } from 'hardhat/types'
-import path from 'path'
 
 import { buildRewardsEligibilityUpgradeTxs } from '../governance/rewards-eligibility-upgrade'
-import { EnhancedIssuanceAddressBook } from '../lib/enhanced-address-book'
 
 task(
   'issuance:build-rewards-eligibility-upgrade',
@@ -63,4 +61,3 @@ task(
     console.log(`Implementation: ${implementationAddress}`)
     console.log(`Safe transaction batch written to: ${result.outputFile}`)
   })
-

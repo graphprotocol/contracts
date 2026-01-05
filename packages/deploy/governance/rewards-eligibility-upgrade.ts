@@ -67,13 +67,10 @@ export async function buildRewardsEligibilityUpgradeTxs(
     rewardsManagerImplementation,
   )
 
-  const acceptTx = await horizonContracts.GraphProxyAdmin.acceptProxy.populateTransaction(
-    rewardsManagerProxy,
-  )
+  const acceptTx = await horizonContracts.GraphProxyAdmin.acceptProxy.populateTransaction(rewardsManagerProxy)
 
-  const setAllocatorTx = await horizonContracts.RewardsManager.setIssuanceAllocator.populateTransaction(
-    issuanceAllocatorAddress,
-  )
+  const setAllocatorTx =
+    await horizonContracts.RewardsManager.setIssuanceAllocator.populateTransaction(issuanceAllocatorAddress)
 
   const setOracleTx = await horizonContracts.RewardsManager.setRewardsEligibilityOracle.populateTransaction(
     rewardsEligibilityOracleAddress,
@@ -110,4 +107,3 @@ export async function buildRewardsEligibilityUpgradeTxs(
     outputFile,
   }
 }
-

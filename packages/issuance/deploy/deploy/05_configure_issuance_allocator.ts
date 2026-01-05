@@ -50,12 +50,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
       const rewardsManagerRate = (await read('RewardsManager', 'issuancePerBlock')) as bigint
       if (rewardsManagerRate > 0n) {
         log(`Setting issuance rate to match RewardsManager: ${rewardsManagerRate}`)
-        await execute(
-          'IssuanceAllocator',
-          { from: governor, log: true },
-          'setIssuancePerBlock',
-          rewardsManagerRate,
-        )
+        await execute('IssuanceAllocator', { from: governor, log: true }, 'setIssuancePerBlock', rewardsManagerRate)
         log('✓ Issuance rate configured')
       } else {
         log('⚠ RewardsManager rate is 0, skipping rate configuration')
@@ -74,11 +69,10 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
   if (await shouldConfigureRM) {
     try {
       const rewardsManager = await deployments.get('RewardsManager')
-      const rmAllocation = (await read(
-        'IssuanceAllocator',
-        'getTargetAllocation',
-        rewardsManager.address,
-      )) as { allocatorMintingRate: bigint; selfMintingRate: bigint }
+      const rmAllocation = (await read('IssuanceAllocator', 'getTargetAllocation', rewardsManager.address)) as {
+        allocatorMintingRate: bigint
+        selfMintingRate: bigint
+      }
 
       if (rmAllocation.selfMintingRate === 0n && currentRate > 0n) {
         log(`Configuring RewardsManager as self-minting target: ${rewardsManager.address}`)

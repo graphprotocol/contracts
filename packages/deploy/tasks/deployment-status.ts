@@ -178,10 +178,7 @@ async function getContractStatus(
   } else {
     // Assume it's a proxy if name suggests it (heuristic)
     status.isProxy =
-      name.includes('Manager') ||
-      name.includes('Oracle') ||
-      name.includes('Allocator') ||
-      name.includes('Allocation')
+      name.includes('Manager') || name.includes('Oracle') || name.includes('Allocator') || name.includes('Allocation')
     status.implementation = 'Not verified'
   }
 

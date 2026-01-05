@@ -229,7 +229,7 @@ For component deployment, see `packages/issuance/deploy/`.
 **Component deployment** (in `packages/issuance/deploy/`):
 
 - Uses hardhat-deploy for idempotent, resumable deployments
-- Numbered deployment scripts (00_, 01_, etc.) run in order
+- Numbered deployment scripts (00*, 01*, etc.) run in order
 - Tags and dependencies control deployment flow
 - Deployment state tracked in deployments/ directory
 

@@ -1,6 +1,6 @@
+import { connectGraphHorizon, connectGraphIssuance } from '@graphprotocol/toolshed/deployments'
 import { task } from 'hardhat/config'
 import type { HardhatRuntimeEnvironment } from 'hardhat/types'
-import { connectGraphHorizon, connectGraphIssuance } from '@graphprotocol/toolshed/deployments'
 
 /**
  * Verify issuance contract integration status

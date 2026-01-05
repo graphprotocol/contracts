@@ -12,10 +12,7 @@ contract IssuanceStateVerifier {
     /**
      * @notice Assert that RewardsManager has the expected RewardsEligibilityOracle set
      */
-    function assertRewardsEligibilityOracleSet(
-        address rewardsManager,
-        address expectedOracle
-    ) external view {
+    function assertRewardsEligibilityOracleSet(address rewardsManager, address expectedOracle) external view {
         // Read the rewardsEligibilityOracle from the RewardsManager
         (bool success, bytes memory data) = rewardsManager.staticcall(
             abi.encodeWithSignature("rewardsEligibilityOracle()")
@@ -30,13 +27,8 @@ contract IssuanceStateVerifier {
     /**
      * @notice Assert that RewardsManager has the expected IssuanceAllocator set
      */
-    function assertIssuanceAllocatorSet(
-        address rewardsManager,
-        address expectedAllocator
-    ) external view {
-        (bool success, bytes memory data) = rewardsManager.staticcall(
-            abi.encodeWithSignature("issuanceAllocator()")
-        );
+    function assertIssuanceAllocatorSet(address rewardsManager, address expectedAllocator) external view {
+        (bool success, bytes memory data) = rewardsManager.staticcall(abi.encodeWithSignature("issuanceAllocator()"));
         require(success, "Failed to read issuanceAllocator");
         address actualAllocator = abi.decode(data, (address));
         if (actualAllocator != expectedAllocator) {
@@ -62,10 +54,7 @@ contract IssuanceStateVerifier {
      * @notice Assert that a target is allocated in the IssuanceAllocator
      * @dev Checks that the target has a non-zero total allocation (allocatorMinting + selfMinting > 0)
      */
-    function assertTargetAllocated(
-        address issuanceAllocator,
-        address target
-    ) external view {
+    function assertTargetAllocated(address issuanceAllocator, address target) external view {
         // Call getTargetAllocation(address) which returns Allocation struct
         (bool success, bytes memory data) = issuanceAllocator.staticcall(
             abi.encodeWithSignature("getTargetAllocation(address)", target)

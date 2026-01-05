@@ -43,16 +43,16 @@ See [GovernanceWorkflow.md](./GovernanceWorkflow.md) for Safe transaction genera
 
 ## Documentation Status
 
-| Document                      | Status | Focus                          |
-| ----------------------------- | ------ | ------------------------------ |
-| HardhatDeployGuide.md         | ✅      | Component deployment (PRIMARY) |
-| VerificationChecklists.md     | ✅      | Deployment validation          |
-| GovernanceWorkflow.md         | ✅      | Governance transactions        |
-| Design.md                     | ✅      | System architecture            |
-| REODeploymentSequence.md      | 📋      | REO-specific deployment        |
-| IADeploymentGuide.md          | 📋      | IA-specific deployment         |
-| REOArchitecture.md            | 📋      | Visual diagrams                |
-| REO-RMRolloutPlan.md          | 📋      | Integration planning           |
+| Document                  | Status | Focus                          |
+| ------------------------- | ------ | ------------------------------ |
+| HardhatDeployGuide.md     | ✅     | Component deployment (PRIMARY) |
+| VerificationChecklists.md | ✅     | Deployment validation          |
+| GovernanceWorkflow.md     | ✅     | Governance transactions        |
+| Design.md                 | ✅     | System architecture            |
+| REODeploymentSequence.md  | 📋     | REO-specific deployment        |
+| IADeploymentGuide.md      | 📋     | IA-specific deployment         |
+| REOArchitecture.md        | 📋     | Visual diagrams                |
+| REO-RMRolloutPlan.md      | 📋     | Integration planning           |
 
 Legend: ✅ Core • 📋 Reference
 

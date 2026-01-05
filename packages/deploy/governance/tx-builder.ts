@@ -55,4 +55,3 @@ export class TxBuilder {
     return this.outputFile
   }
 }
-

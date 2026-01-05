@@ -17,10 +17,7 @@ import { EnhancedIssuanceAddressBook } from '../lib/enhanced-address-book'
  * Usage:
  *   npx hardhat issuance:sync-pending-implementation --contract RewardsManager --network arbitrumOne
  */
-task(
-  'issuance:sync-pending-implementation',
-  'Mark pending implementation as active after governance execution',
-)
+task('issuance:sync-pending-implementation', 'Mark pending implementation as active after governance execution')
   .addParam('contract', 'Contract name (e.g., RewardsManager, IssuanceAllocator)')
   .addOptionalParam('skipVerification', 'Skip on-chain verification (use with caution)', 'false')
   .setAction(async (taskArgs, hre: HardhatRuntimeEnvironment) => {

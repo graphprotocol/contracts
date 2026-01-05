@@ -32,4 +32,3 @@ export class GraphIssuanceAddressBook extends AddressBook<number, GraphIssuanceC
     }
   }
 }
-

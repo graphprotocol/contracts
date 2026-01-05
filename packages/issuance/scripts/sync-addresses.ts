@@ -1,12 +1,12 @@
 /**
  * Sync Ignition deployment addresses to main addresses.json
- * 
+ *
  * This script reads deployed addresses from Hardhat Ignition's deployment artifacts
  * and updates the main addresses.json file with the correct format.
- * 
+ *
  * Usage:
  *   npx ts-node scripts/sync-addresses.ts <deployment-id> <chain-id>
- * 
+ *
  * Example:
  *   npx ts-node scripts/sync-addresses.ts issuance-arbitrumSepolia 421614
  */
@@ -43,14 +43,10 @@ function syncAddresses(deploymentId: string, chainId: string) {
   }
 
   // Load deployed addresses from Ignition
-  const deployedAddresses: IgnitionDeployedAddresses = JSON.parse(
-    fs.readFileSync(deployedAddressesPath, 'utf8')
-  )
+  const deployedAddresses: IgnitionDeployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath, 'utf8'))
 
   // Load existing address book
-  const addressBook: AddressBook = JSON.parse(
-    fs.readFileSync(addressBookPath, 'utf8')
-  )
+  const addressBook: AddressBook = JSON.parse(fs.readFileSync(addressBookPath, 'utf8'))
 
   // Ensure chain ID exists in address book
   if (!addressBook[chainId]) {
@@ -63,18 +59,17 @@ function syncAddresses(deploymentId: string, chainId: string) {
   for (const contractName of contracts) {
     // Find proxy address (the main contract address)
     const proxyKey = Object.keys(deployedAddresses).find(
-      key => key.includes(`${contractName}_ProxyWithABI`) || key.includes(`TransparentUpgradeableProxy_${contractName}`)
+      (key) =>
+        key.includes(`${contractName}_ProxyWithABI`) || key.includes(`TransparentUpgradeableProxy_${contractName}`),
     )
-    
+
     // Find implementation address
     const implKey = Object.keys(deployedAddresses).find(
-      key => key.includes(`${contractName}#${contractName}`) && !key.includes('ProxyAdmin')
+      (key) => key.includes(`${contractName}#${contractName}`) && !key.includes('ProxyAdmin'),
     )
-    
+
     // Find proxy admin address
-    const proxyAdminKey = Object.keys(deployedAddresses).find(
-      key => key.includes(`ProxyAdmin_${contractName}`)
-    )
+    const proxyAdminKey = Object.keys(deployedAddresses).find((key) => key.includes(`ProxyAdmin_${contractName}`))
 
     if (proxyKey) {
       const entry: AddressBookEntry = {
@@ -115,4 +110,3 @@ if (args.length < 2) {
 
 const [deploymentId, chainId] = args
 syncAddresses(deploymentId, chainId)
-

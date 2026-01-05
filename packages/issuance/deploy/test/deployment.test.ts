@@ -1,6 +1,6 @@
 import { expect } from 'chai'
-import { ethers, deployments, getNamedAccounts, artifacts, network } from 'hardhat'
 import { Contract } from 'ethers'
+import { artifacts, deployments, ethers, getNamedAccounts, network } from 'hardhat'
 
 describe('Issuance Deployment', function () {
   let governor: string
@@ -58,9 +58,10 @@ describe('Issuance Deployment', function () {
 
     it('should be initialized', async function () {
       // Try to initialize again - should revert
-      await expect(
-        issuanceAllocator.initialize(governor),
-      ).to.be.revertedWithCustomError(issuanceAllocator, 'InvalidInitialization')
+      await expect(issuanceAllocator.initialize(governor)).to.be.revertedWithCustomError(
+        issuanceAllocator,
+        'InvalidInitialization',
+      )
     })
   })
 
@@ -90,9 +91,10 @@ describe('Issuance Deployment', function () {
     })
 
     it('should be initialized', async function () {
-      await expect(
-        pilotAllocation.initialize(governor),
-      ).to.be.revertedWithCustomError(pilotAllocation, 'InvalidInitialization')
+      await expect(pilotAllocation.initialize(governor)).to.be.revertedWithCustomError(
+        pilotAllocation,
+        'InvalidInitialization',
+      )
     })
   })
 
@@ -121,9 +123,7 @@ describe('Issuance Deployment', function () {
     })
 
     it('should be initialized', async function () {
-      await expect(
-        reo.initialize(governor),
-      ).to.be.revertedWithCustomError(reo, 'InvalidInitialization')
+      await expect(reo.initialize(governor)).to.be.revertedWithCustomError(reo, 'InvalidInitialization')
     })
   })
 

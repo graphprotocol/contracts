@@ -5,10 +5,10 @@ import '@typechain/hardhat'
 import 'hardhat-contract-sizer'
 import '@openzeppelin/hardhat-upgrades'
 import '@nomicfoundation/hardhat-verify'
-import * as path from 'path'
 
 import { hardhatBaseConfig } from '@graphprotocol/toolshed/hardhat'
 import type { HardhatUserConfig } from 'hardhat/config'
+import * as path from 'path'
 
 // Issuance-specific Solidity configuration with Cancun EVM version
 const issuanceSolidityConfig = {

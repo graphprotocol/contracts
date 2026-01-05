@@ -24,4 +24,3 @@ export function connectGraphIssuance(chainId: number, signerOrProvider: Signer |
   const addressBook = new GraphIssuanceAddressBook(addressBookPath, chainId)
   return addressBook.loadContracts(signerOrProvider, false)
 }
-
