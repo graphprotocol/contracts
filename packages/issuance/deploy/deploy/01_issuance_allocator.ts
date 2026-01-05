@@ -77,7 +77,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
   if (result.newlyDeployed) {
     log(`IssuanceAllocator proxy deployed at ${result.address}`)
     log(`IssuanceAllocator implementation at ${result.implementation}`)
-    log(`Note: Ownership must be accepted by governor via acceptOwnership()`)
+    log(`Governor role assigned to: ${governor}`)
   } else {
     log(`IssuanceAllocator proxy already exists at ${result.address}`)
     if (result.implementation) {

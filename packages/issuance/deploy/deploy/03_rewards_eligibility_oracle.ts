@@ -74,7 +74,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
   if (result.newlyDeployed) {
     log(`RewardsEligibilityOracle proxy deployed at ${result.address}`)
     log(`RewardsEligibilityOracle implementation at ${result.implementation}`)
-    log(`Note: Ownership must be accepted by governor via acceptOwnership()`)
+    log(`Governor role assigned to: ${governor}`)
   } else {
     log(`RewardsEligibilityOracle proxy already exists at ${result.address}`)
     if (result.implementation) {

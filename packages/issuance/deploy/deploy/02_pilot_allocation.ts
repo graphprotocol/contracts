@@ -77,7 +77,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
   if (result.newlyDeployed) {
     log(`PilotAllocation proxy deployed at ${result.address}`)
     log(`PilotAllocation implementation at ${result.implementation}`)
-    log(`Note: Ownership must be accepted by governor via acceptOwnership()`)
+    log(`Governor role assigned to: ${governor}`)
   } else {
     log(`PilotAllocation proxy already exists at ${result.address}`)
     if (result.implementation) {
