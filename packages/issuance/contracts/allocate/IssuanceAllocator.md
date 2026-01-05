@@ -141,86 +141,103 @@ The contract includes several mechanisms to handle potential gas limit issues:
 
 ### Initial Setup
 
-**Note: This section is a work-in-progress discussion document for planning deployment, not finalized implementation documentation.**
+**Automated Deployment**
 
-**The verification steps documented here are minimal deployment verification checks. These should be complemented by appropriate functional testing and verification as needed for production deployment.**
+The deployment is automated using hardhat-deploy scripts in `packages/issuance/deploy/deploy/`.
 
 **Prerequisites:**
 
-- GraphToken contract deployed
-- RewardsManager upgraded with `setIssuanceAllocator()` function
-- GraphIssuanceProxyAdmin deployed with protocol governance as owner
+- GraphToken contract deployed (provide via `deployments/<network>/GraphToken.json`)
+- RewardsManager deployed (optional, for automatic rate configuration)
+- Governor and pauseGuardian addresses configured in `hardhat.config.ts` namedAccounts
 
-To safely replicate existing issuance configuration during RewardsManager migration:
+**Deployment command:**
 
-- Default target starts as `address(0)` (that will not be minted to), allowing initial configuration without minting to any targets
+```bash
+cd packages/issuance/deploy
+npx hardhat deploy --tags issuance --network <network>
+```
+
+**Architecture:**
+
+- Default target starts as `address(0)` (will not be minted to), allowing safe initial configuration
 - Deployment uses atomic initialization via proxy constructor (prevents front-running)
-- Deployment account performs initial configuration, then transfers control to governance
-- Granting of minter role can be delayed until replication of initial configuration with upgraded RewardsManager is verified to allow seamless transition to use of IssuanceAllocator
-- **Governance control**: This contract uses OpenZeppelin's TransparentUpgradeableProxy pattern (not custom GraphProxy). GraphIssuanceProxyAdmin (owned by protocol governance) controls upgrades, while GOVERNOR_ROLE controls operations. The same governance address should have both roles.
+- Contracts initialized with governor address (receives GOVERNOR_ROLE directly)
+- Granting of minter role delayed until configuration verified
+- **Governance control**: Uses OpenZeppelin's TransparentUpgradeableProxy pattern. GraphIssuanceProxyAdmin (owned by governor) controls upgrades, while GOVERNOR_ROLE controls operations
 
-**Deployment sequence:**
+#### Deployment Sequence
 
-1. **Deploy and initialize** (deployment account)
-   - Deploy IssuanceAllocator implementation with GraphToken address
-   - Deploy TransparentUpgradeableProxy with implementation, GraphIssuanceProxyAdmin, and initialization data
-   - **Atomic initialization**: `initialize(deploymentAccountAddress)` called via proxy constructor
-   - Deployment account receives GOVERNOR_ROLE (temporary, for configuration)
-   - Automatically creates default target at `targetAddresses[0] = address(0)`
+The following scripts run in order (automated via hardhat-deploy):
+
+**Component Deployment (Automated):**
+
+1. **00_proxy_admin.ts** - Deploy GraphIssuanceProxyAdmin
+   - Owned by governor address
+   - Controls all issuance proxy upgrades
+
+2. **01_issuance_allocator.ts** - Deploy IssuanceAllocator
+   - Deploy implementation with GraphToken constructor parameter
+   - Deploy TransparentUpgradeableProxy with atomic initialization
+   - Initialize with governor address (receives GOVERNOR_ROLE)
+   - Automatically creates default target at `address(0)` with zero allocation
    - Sets `lastDistributionBlock = block.number`
-   - **Security**: Front-running prevented by atomic deployment + initialization
-2. **Set issuance rate** (deployment account)
-   - Query current rate from RewardsManager: `rate = rewardsManager.issuancePerBlock()`
-   - Call `setIssuancePerBlock(rate)` to replicate existing rate
-   - All issuance allocated to default target (`address(0)`)
-   - No tokens minted (default target cannot receive mints)
-3. **Assign RewardsManager allocation** (deployment account)
-   - Call `setTargetAllocation(rewardsManagerAddress, 0, issuancePerBlock)`
-   - `allocatorMintingRate = 0` (RewardsManager will self-mint)
-   - `selfMintingRate = issuancePerBlock` (RewardsManager receives 100% allocation)
-   - Default target automatically adjusts to zero allocation
-4. **Verify configuration before transfer** (deployment account)
-   - Verify contract is not paused (`paused()` returns false)
-   - Verify `getIssuancePerBlock()` returns expected rate (matches RewardsManager)
-   - Verify `getTargetAllocation(rewardsManager)` shows correct self-minting configuration
-   - Verify only two targets exist: `targetAddresses[0] = address(0)` and `targetAddresses[1] = rewardsManager`
-   - Verify default target is `address(0)` with zero allocation
-   - Contract is ready to transfer control to governance
-5. **Distribute issuance** (anyone - no role required)
-   - Call `distributeIssuance()` to bring contract to fully current state
-   - Updates `lastDistributionBlock` to current block
-   - Verifies distribution mechanism is functioning correctly
-   - No tokens minted (no minter role yet, all allocation to self-minting RM)
-6. **Set pause controls and transfer governance** (deployment account)
-   - Grant PAUSE_ROLE to pause guardian (same account as used for RewardsManager pause control)
-   - Grant GOVERNOR_ROLE to actual governor address (protocol governance multisig)
-   - Revoke GOVERNOR_ROLE from deployment account (MUST grant to governance first, then revoke)
-   - **Note**: Upgrade control (via GraphIssuanceProxyAdmin) is separate from GOVERNOR_ROLE
-7. **Verify deployment and configuration** (governor)
-   - **Bytecode verification**: Verify deployed implementation bytecode matches expected contract
-   - **Access control**:
-     - Verify governance address has GOVERNOR_ROLE
-     - Verify deployment account does NOT have GOVERNOR_ROLE
-     - Verify pause guardian has PAUSE_ROLE
-     - **Off-chain**: Review all RoleGranted events since deployment to verify no other addresses have GOVERNOR_ROLE or PAUSE_ROLE
-   - **Pause state**: Verify contract is not paused (`paused()` returns false)
-   - **Issuance rate**: Verify `getIssuancePerBlock()` matches RewardsManager rate exactly
-   - **Target configuration**:
-     - Verify only two targets exist: `targetAddresses[0] = address(0)` and `targetAddresses[1] = rewardsManager`
-     - Verify default target is `address(0)` with zero allocation
-     - Verify `getTargetAllocation(rewardsManager)` shows correct self-minting allocation (100%)
-   - **Proxy configuration**:
-     - Verify GraphIssuanceProxyAdmin controls the proxy
-     - Verify GraphIssuanceProxyAdmin owner is protocol governance
-8. **Configure RewardsManager** (governor)
-   - Call `rewardsManager.setIssuanceAllocator(issuanceAllocatorAddress)`
-   - RewardsManager will now query IssuanceAllocator for its issuance rate
-   - RewardsManager continues to mint tokens itself (self-minting)
-9. **Grant minter role** (governor, only when configuration verified)
-   - Grant minter role to IssuanceAllocator on Graph Token
-10. **Set default target** (governor, optional, recommended)
 
-- Call `setDefaultTarget()` to receive future unallocated issuance
+3. **02_pilot_allocation.ts** - Deploy PilotAllocation
+   - Uses DirectAllocation implementation
+   - Deployed as TransparentUpgradeableProxy
+   - Optional test allocation target
+
+4. **03_rewards_eligibility_oracle.ts** - Deploy RewardsEligibilityOracle
+   - Deployed as TransparentUpgradeableProxy
+   - Initialized with governor address
+
+5. **04_verify_governance.ts** - Verify governance configuration
+   - Verify governor has GOVERNOR_ROLE on all contracts
+   - Verify pause guardian has PAUSE_ROLE (or will be granted)
+   - Verify IssuanceAllocator configuration state
+   - Verify ProxyAdmin ownership
+
+6. **05_configure_issuance_allocator.ts** - Configure IssuanceAllocator
+   - Set issuance rate (from RewardsManager if available)
+   - Configure RewardsManager as self-minting target (if available)
+   - Call `distributeIssuance()` to initialize distribution state
+   - Grant PAUSE_ROLE to pause guardian
+
+7. **06_deploy_reclaim_addresses.ts** - Deploy DirectAllocation instances
+   - Deploy reclaim addresses as allocation targets
+   - Each instance is a TransparentUpgradeableProxy using DirectAllocation implementation
+   - Can be configured as allocation targets via `setTargetAllocation()`
+
+**Post-Deployment Verification:**
+
+```bash
+# View deployment status
+npx hardhat deploy --show-stack --network <network>
+
+# Verify contracts on block explorer
+npx hardhat etherscan-verify --network <network>
+```
+
+**Governance Integration (Cross-Package):**
+
+The following steps require governance execution and are handled by the orchestration package (`packages/deploy`):
+
+- **Configure RewardsManager** - `rewardsManager.setIssuanceAllocator(issuanceAllocatorAddress)`
+- **Grant minter role** - `graphToken.grantRole(MINTER_ROLE, issuanceAllocator)`
+- **Set default target** - `issuanceAllocator.setDefaultTarget(targetAddress)` (optional)
+
+See `packages/deploy` for governance integration tasks:
+
+```bash
+# Generate Safe transaction batch for governance
+npx hardhat issuance:build-rewards-eligibility-upgrade \
+  --rewards-manager-implementation <address> \
+  --network <network>
+
+# Verify governance executed integration
+npx hardhat issuance:verify-integration --network <network>
+```
 
 ### Normal Operation
 
