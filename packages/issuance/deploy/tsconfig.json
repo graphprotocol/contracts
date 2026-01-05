@@ -3,6 +3,6 @@
   "compilerOptions": {
     "outDir": "./dist"
   },
-  "include": ["hardhat.config.ts", "ignition/**/*.ts", "governance/**/*.ts", "tasks/**/*.ts", "scripts/**/*.ts"],
+  "include": ["hardhat.config.ts", "deploy/**/*.ts", "test/**/*.ts", "scripts/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

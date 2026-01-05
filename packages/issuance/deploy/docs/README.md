@@ -1,442 +1,63 @@
 # Issuance Deployment Documentation
 
-**Last Updated:** 2025-11-19
+Documentation for deploying Graph Issuance contracts.
 
----
+## Primary Guide
 
-## Overview
+See **[HardhatDeployGuide.md](./HardhatDeployGuide.md)** for complete deployment instructions.
 
-This directory documents **issuance component deployment**. The canonical
-design and target model for the issuance system lives in
-[`Design.md`](./Design.md), which in turn restates and updates the original
-design from `incoming/issuance/Design.md`.
+## Available Documentation
 
-For this phase the focus is on:
+### Deployment
 
-- Making it clear what is **logically required** to deploy the issuance
-  components (RewardsEligibilityOracle, IssuanceAllocator, PilotAllocation)
-  on top of an existing Horizon deployment.
-- Keeping cross-package governance/orchestration details in `packages/deploy`
-  docs; the more detailed multi-phase guides listed below should be treated
-  as **background**, not canonical.
+- **[HardhatDeployGuide.md](./HardhatDeployGuide.md)** - Complete hardhat-deploy deployment guide
+- **[GovernanceWorkflow.md](./GovernanceWorkflow.md)** - Governance transaction workflow
+- **[VerificationChecklists.md](./VerificationChecklists.md)** - Deployment verification checklists
 
-The immediate priority remains **RewardsEligibilityOracle (REO)** while
-preserving the gradual migration pattern for **IssuanceAllocator (IA)**.
+### Architecture
 
----
+- **[Design.md](./Design.md)** - Issuance system design and architecture
+- **[REOArchitecture.md](./REOArchitecture.md)** - RewardsEligibilityOracle architecture diagrams
 
-## Quick Start
+### Component-Specific Guides
 
-In this phase, treat this directory primarily as a **design hub**:
+- **[REODeploymentSequence.md](./REODeploymentSequence.md)** - RewardsEligibilityOracle deployment sequence
+- **[IADeploymentGuide.md](./IADeploymentGuide.md)** - IssuanceAllocator deployment guide
+- **[REO-RMRolloutPlan.md](./REO-RMRolloutPlan.md)** - REO + RewardsManager integration plan
 
-1. Start with **[`Design.md`](./Design.md)** for the canonical target model.
-2. For deep background and historical deployment planning for REO/IA, you
-   may consult:
-   - `REODeploymentSequence.md`
-   - `IADeploymentGuide.md`
-   - `GovernanceWorkflow.md`
-   - `VerificationChecklists.md`
-   - `REOArchitecture.md`
+## Quick Reference
 
-These background documents contain richer process detail, diagrams and
-checklists, but they are **not** the source of truth. Cross-package
-governance/orchestration belongs in `packages/deploy/docs`.
+### Deploy All Contracts
 
-We will gradually migrate or trim these background docs; they should not be
-extended with new normative content.
+```bash
+pnpm hardhat deploy --tags issuance --network <network>
+```
 
-- **REO lifecycle states** - State transition diagram
-- **Integration flow** - RM + REO query flow
-- **Oracle operations** - Data submission flow
-- **Proxy administration** - Upgrade pattern
-- **Dependency graph** - Critical path and governance gates
-- **Rollback procedures** - Rollback flow diagram
-- **Monitoring architecture** - Metrics and alerting
-- **Access control** - Role-based permissions
-- **Network topology** - Multi-network deployment
-- **Future IA integration** - Complete issuance system
+### Verify Deployment
 
-**When to use:** Communicating architecture, governance proposals, presentations, understanding system design
+Use checklists in [VerificationChecklists.md](./VerificationChecklists.md)
 
----
+### Generate Governance Transactions
 
-#### [APICorrectness.md](./APICorrectness.md)
+See [GovernanceWorkflow.md](./GovernanceWorkflow.md) for Safe transaction generation
 
-Correct method signatures and usage to prevent implementation errors.
+## Documentation Status
 
-Contents:
+| Document                      | Status | Focus                          |
+| ----------------------------- | ------ | ------------------------------ |
+| HardhatDeployGuide.md         | ✅      | Component deployment (PRIMARY) |
+| VerificationChecklists.md     | ✅      | Deployment validation          |
+| GovernanceWorkflow.md         | ✅      | Governance transactions        |
+| Design.md                     | ✅      | System architecture            |
+| REODeploymentSequence.md      | 📋      | REO-specific deployment        |
+| IADeploymentGuide.md          | 📋      | IA-specific deployment         |
+| REOArchitecture.md            | 📋      | Visual diagrams                |
+| REO-RMRolloutPlan.md          | 📋      | Integration planning           |
 
-- **REO methods** with correct signatures and examples
-- **RewardsManager integration** methods
-- **IssuanceAllocator methods** (future use section)
-- **GraphToken methods** for minting authority
-- **Proxy administration** methods
-- **Common mistakes** and how to avoid them
-- **Quick reference tables** for all methods
-- **Testing examples** using Hardhat console and scripts
+Legend: ✅ Core • 📋 Reference
 
-**When to use:** Implementing integration code, writing scripts, debugging integration issues, preventing common errors
+## Note on Scope
 
----
+This directory documents **component deployment** for the issuance package.
 
-### IA Deployment Documents (Future)
-
-#### [IADeploymentGuide.md](./IADeploymentGuide.md)
-
-Critical 3-stage gradual migration pattern for IssuanceAllocator.
-
-Contents:
-
-- **Stage 1: Deploy with Zero Impact** - Deploy without production changes
-- **Stage 2: Activate with No Distribution Change** - Integrate at 100% to RM
-- **Stage 3: Gradual Allocation Changes** - Incrementally adjust distribution
-- **Why each stage matters** - Risk mitigation rationale
-- **Rollback procedures** for each stage
-- **Testing strategy** throughout migration
-- **Monitoring requirements** between stages
-- **Future enhancements needed** when IA deployment planned
-
-**When to use:** Planning IA deployment, understanding migration strategy, **CRITICAL reading before any IA mainnet deployment**
-
-⚠️ **IMPORTANT:** The 3-stage pattern is non-negotiable for mainnet safety
-
----
-
-## Key Concepts
-
-### Three-Phase Governance Pattern
-
-#### Phase 1: Prepare (Permissionless)
-
-- Anyone can deploy implementations
-- Generate governance transaction data
-- Independent verification
-- **No production impact**
-
-#### Phase 2: Execute (Governance)
-
-- Governance multi-sig reviews
-- Safe batch transaction execution
-- State transitions occur
-- **Production impact happens**
-
-#### Phase 3: Verify/Sync (Automated)
-
-- Verify expected state achieved
-- Update address book
-- Activate monitoring
-- **Confirmation and documentation**
-
-**Benefits:**
-
-- Clear separation of deployment and governance
-- Independent verification before execution
-- Automated verification after execution
-- Audit trail at each step
-
----
-
-### Zero-Impact Deployment
-
-**Concept:** Deploy contracts without affecting production system
-
-**REO Example:**
-
-- Phase 2: Deploy REO contracts
-- REO exists but not integrated with RewardsManager
-- Production rewards unchanged
-- Can test, verify, and validate safely
-- Phase 4: Governance integration (production impact)
-
-**IA Example (Future):**
-
-- Stage 1: Deploy IA configured at 100% to RM
-- IA exists but not integrated
-- Zero production impact
-- Stage 2: Integrate IA with RM (but still 100% to RM)
-- Stage 3: Change allocations gradually
-
-**Benefits:**
-
-- Safe deployment without production risk
-- Time to validate before activation
-- Independent verification possible
-- Clear rollback at each step
-
----
-
-### Gradual Migration (IA Specific)
-
-**3-Stage Pattern:**
-
-1. **Deploy** - Infrastructure ready, zero impact
-2. **Replicate** - Activate while matching existing behavior
-3. **Adjust** - Gradually change to target distribution
-
-**Why Gradual:**
-
-- Validates integration before economic changes
-- Proves mechanics work (Stage 2)
-- Small changes easier to monitor and rollback (Stage 3)
-- Each step builds confidence
-- Issues caught early with minimal impact
-
-**Critical:** Do not skip stages or rush the process
-
----
-
-## Deployment Status
-
-### Current State
-
-| Component                    | Status      | Documentation             |
-| ---------------------------- | ----------- | ------------------------- |
-| **RewardsEligibilityOracle** | 🟡 Planning | REODeploymentSequence.md  |
-| **IssuanceAllocator**        | ⚪ Future   | IADeploymentGuide.md      |
-| **Governance Tooling**       | 🟢 Ready    | GovernanceWorkflow.md     |
-| **Verification**             | 🟡 Planned  | VerificationChecklists.md |
-
-**Legend:**
-
-- 🟢 Ready/Complete
-- 🟡 In Progress/Planning
-- 🔴 Blocked/Issues
-- ⚪ Not Started/Future
-
----
-
-## Related Documentation
-
-### In This Repository
-
-**Configuration:**
-
-- `../ignition/README.md` - Ignition deployment modules
-- `../ignition/configs/` - Network-specific configuration
-
-**Governance:**
-
-- `../governance/README.md` - Governance transaction tooling
-- `../governance/rewards-eligibility-upgrade.ts` - TX builder for REO integration
-
-**Existing Integration Docs:**
-
-- `../../DEPLOYMENT.md` - Overview of what was created
-- `../../INTEGRATION.md` - Horizon alignment and toolshed integration
-
-### Analysis (Background)
-
-**Earlier Deployment Work Analysis:**
-
-- `../legacy/AnalysisREADME.md` - Overview of analysis
-- `../legacy/GapAnalysis.md` - Comparison with current spike
-- `../legacy/Conflicts.md` - Design decisions
-- `../legacy/NextPhaseRecommendations.md` - Future implementation plan
-- `../legacy/ConvergenceStrategy.md` - Convergence strategy (what to keep from each approach)
-- Earlier docs in `../legacy/` - Design.md, DeploymentGuide.md, README.md
-
-**Note:** Legacy directory contains background research and earlier work that informed these production docs
-
----
-
-## Common Tasks
-
-### Planning REO Deployment
-
-1. Read [REODeploymentSequence.md](./REODeploymentSequence.md)
-2. Review [GovernanceWorkflow.md](./GovernanceWorkflow.md)
-3. Print [VerificationChecklists.md](./VerificationChecklists.md)
-4. Identify governance addresses and role holders
-5. Set up oracle infrastructure
-6. Validate configuration parameters
-7. Create deployment timeline
-
----
-
-### Preparing Governance Proposal
-
-1. Deploy contracts (Phase 1: Prepare)
-2. Generate Safe transaction batch:
-
-   ```bash
-   cd packages/issuance/deploy
-   npx hardhat issuance:build-rewards-eligibility-upgrade \
-     --network <network> \
-     --rewardsManagerImplementation <address> \
-     --rewardsEligibilityOracleAddress <address> \
-     --outputDir ./governance-proposals
-   ```
-
-3. Follow governance workflow ([GovernanceWorkflow.md](./GovernanceWorkflow.md))
-4. Create forum post with proposal
-5. Collect governance signatures
-6. Execute when ready
-
----
-
-### Verifying Deployment
-
-1. Use appropriate checklist from [VerificationChecklists.md](./VerificationChecklists.md)
-2. Verify contract addresses and configuration
-3. Check ownership and roles
-4. Test view functions
-5. Verify block explorer
-6. Run verification scripts (when created)
-7. Update address book
-8. Document results
-
----
-
-### Integrating REO with RewardsManager
-
-1. Ensure Phase 1-3 complete (RM upgraded, REO deployed and tested)
-2. Generate governance transaction (see "Preparing Governance Proposal")
-3. Governance reviews and executes
-4. Verify integration using [VerificationChecklists.md](./VerificationChecklists.md) Phase 4
-5. Begin monitoring period (Phase 5)
-
----
-
-### Planning IA Deployment (Future)
-
-1. **READ [IADeploymentGuide.md](./IADeploymentGuide.md) FIRST**
-2. Understand 3-stage migration is required
-3. Plan Stage 1: Deploy with zero impact
-4. Plan Stage 2: Integrate at 100% RM
-5. Plan Stage 3: Gradual allocation changes
-6. Budget 4-8 weeks between Stage 2 and 3
-7. Create monitoring plan
-8. Identify rollback triggers
-
-⚠️ **Do not skip stages or rush the process**
-
----
-
-## Questions & Support
-
-### Common Questions
-
-**Q: Can I deploy REO without upgrading RewardsManager first?**
-A: No. Phase 1 (RM upgrade) is a prerequisite. RM must have `setRewardsEligibilityOracle()` method.
-
-**Q: Can I skip the testing period (Phase 3)?**
-A: Not recommended for mainnet. Testing period (2-4 weeks) validates deployment before production integration.
-
-**Q: Can I enable REO validation immediately after integration?**
-A: Not recommended. Phase 5 monitoring period (4-8 weeks) proves oracle reliability before enforcement.
-
-**Q: Why is the IA 3-stage migration required?**
-A: Safety. Stage 2 validates integration without economic changes. Stage 3 makes changes gradually with clear rollback.
-
-**Q: Can I deploy IA and REO together?**
-A: Technically yes, but REO is prioritized. Current governance tooling supports both in one batch.
-
-**Q: What if something goes wrong after deployment?**
-A: Each document includes rollback procedures. Phase-dependent rollback options available.
-
-### Getting Help
-
-**For deployment questions:**
-
-- Review relevant documentation in this directory
-- Check [APICorrectness.md](./APICorrectness.md) for method usage
-- Check existing tooling in `../governance/` and `../ignition/`
-
-**For governance questions:**
-
-- See [GovernanceWorkflow.md](./GovernanceWorkflow.md)
-- Check existing task: `npx hardhat issuance:build-rewards-eligibility-upgrade --help`
-
-**For technical integration:**
-
-- See [APICorrectness.md](./APICorrectness.md)
-- Check contract interfaces in `@graphprotocol/interfaces`
-- Review integration tests in `../../test/`
-
----
-
-## Contributing
-
-### Updating Documentation
-
-**When to update:**
-
-- Contract interfaces change
-- Deployment procedures change
-- New networks added
-- Lessons learned from deployment
-- Issues discovered or resolved
-
-**How to update:**
-
-- Maintain consistency across documents
-- Update related documents together
-- Add dates to updated sections
-- Preserve Mermaid diagrams (update if architecture changes)
-- Keep checklists actionable
-
-**Documentation style:**
-
-- Clear, concise, technical
-- Actionable (tell what to do, not just what exists)
-- Include examples
-- Document both correct and incorrect usage
-- Explain _why_ not just _what_
-
----
-
-## Document Changelog
-
-### 2025-11-19 - Initial Release
-
-**Created:**
-
-- REODeploymentSequence.md - Complete REO deployment guide
-- GovernanceWorkflow.md - Three-phase governance pattern
-- VerificationChecklists.md - Comprehensive verification checklists
-- REOArchitecture.md - Visual diagrams and architecture
-- APICorrectness.md - Method signatures and correct usage
-- IADeploymentGuide.md - 3-stage IA migration pattern (future)
-- README.md (this file)
-
-**Source:**
-
-- Extracted and adapted from earlier deployment work
-- Focused on REO immediate deployment needs
-- Preserved IA patterns for future use
-- Integrated with existing Ignition and governance tooling
-
----
-
-## Additional Resources
-
-**Deployment Tools:**
-
-- Hardhat Ignition: <https://hardhat.org/ignition>
-- Gnosis Safe: <https://app.safe.global/>
-- Block Explorers: Arbiscan (Arbitrum One, Arbitrum Sepolia)
-
-**Protocol Documentation:**
-
-- Graph Protocol Docs: <https://thegraph.com/docs/>
-- GIP-0079: [Rewards Eligibility Oracle proposal]
-
-**Development:**
-
-- Hardhat: <https://hardhat.org/>
-- Ethers.js: <https://docs.ethers.org/>
-- OpenZeppelin: <https://docs.openzeppelin.com/>
-
----
-
-**Next Steps:**
-
-1. **Review REO deployment sequence** ([REODeploymentSequence.md](./REODeploymentSequence.md))
-2. **Identify governance addresses** for your network
-3. **Set up oracle infrastructure** for REO operations
-4. **Validate configuration parameters**
-5. **Begin Phase 1** when ready (RM upgrade)
-
----
-
-**Remember:** Safety first. Follow the phased approach. Use the checklists. Verify at each step.
+Cross-package orchestration and governance integration documentation belongs in `packages/deploy/`.

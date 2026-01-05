@@ -1,228 +1,170 @@
-# Issuance Component Deployment
+# Issuance Deployment
 
-**Last Updated:** 2025-11-19
-**Status:** Production-ready component deployment
+Component-only deployment for Graph Issuance contracts using hardhat-deploy.
 
----
+## Contracts
 
-## Purpose
+This package deploys:
 
-This package provides **component-only deployment** for Graph Issuance contracts:
+- **IssuanceAllocator** - Token allocation contract with role-based access control
+- **PilotAllocation** - Direct token allocation (using DirectAllocation implementation)
+- **RewardsEligibilityOracle** - Oracle for rewards eligibility validation
+- **GraphIssuanceProxyAdmin** - Shared ProxyAdmin for all issuance proxies
 
-- RewardsEligibilityOracle (REO)
-- IssuanceAllocator (IA)
-- PilotAllocation
-
-**Important:** This package handles component deployment only. For cross-package orchestration and governance integration, see `packages/deploy/`.
-
----
-
-## Architecture
-
-### Two-Package Deployment Model
-
-```
-packages/issuance/deploy/          # Component deployment (this package)
-└── Deploy REO, IA, PilotAllocation with proxies
-
-packages/deploy/                   # Cross-package orchestration
-├── Generate governance TX batches
-├── Coordinate with Horizon contracts (RewardsManager, GraphToken)
-└── Verify integration with checkpoint modules
-```
-
-**Why two packages?**
-
-- **Component deployment** (this package) is permissionless and pure
-- **Governance integration** (packages/deploy/) requires coordination with Horizon
-- Clean separation enables independent testing and deployment
-
----
-
-## Directory Structure
-
-```
-packages/issuance/deploy/
-├── deploy/                         # Hardhat-deploy scripts (numbered execution order)
-│   ├── 00_proxy_admin.ts          # Deploy GraphIssuanceProxyAdmin
-│   ├── 01_issuance_allocator.ts   # Deploy IssuanceAllocator + proxy
-│   ├── 02_pilot_allocation.ts      # Deploy PilotAllocation + proxy
-│   ├── 03_rewards_eligibility_oracle.ts  # Deploy RewardsEligibilityOracle + proxy
-│   ├── 04_accept_ownership.ts      # Accept ownership via governor
-│   └── 00_rewards_manager.ts       # Legacy RewardsManager upgrades
-│
-├── deployments/                    # Hardhat-deploy artifacts per network
-│   ├── localhost/                  # Local test deployments
-│   ├── arbitrumSepolia/           # Testnet deployments
-│   └── arbitrumOne/               # Mainnet deployments
-│
-├── scripts/                        # Deployment utilities
-│   └── export-addresses.ts        # Export to address book format
-│
-├── test/                          # Deployment tests
-│   └── deployment.test.ts         # Deployment validation suite
-│
-├── docs/                          # Production deployment documentation
-│   ├── README.md                  # Documentation navigation
-│   ├── HardhatDeployGuide.md      # Hardhat-deploy deployment guide (PRIMARY)
-│   ├── REODeploymentSequence.md   # Complete REO deployment guide
-│   ├── GovernanceWorkflow.md      # Three-phase governance pattern
-│   ├── VerificationChecklists.md  # Comprehensive checklists
-│   ├── REOArchitecture.md         # Visual diagrams
-│   ├── APICorrectness.md          # Method signatures
-│   └── IADeploymentGuide.md       # 3-stage IA migration (future)
-│
-├── contracts/                     # Deployment helper contracts
-│   ├── IssuanceStateVerifier.sol  # Stateless governance verification helper
-│   └── mocks/                     # Test mocks (MockGraphToken, MockRewardsManager)
-│
-└── README.md                      # This file
-```
-
-**Note:** This package uses **hardhat-deploy** for deployments. See [docs/HardhatDeployGuide.md](docs/HardhatDeployGuide.md) for complete deployment documentation.
-
----
+All contracts use OpenZeppelin's TransparentUpgradeableProxy pattern.
 
 ## Quick Start
 
-### 1. Deploy Component (Permissionless)
+### Prerequisites
+
+Create a GraphToken deployment artifact for your network:
 
 ```bash
-cd packages/issuance/deploy
-
-# Create GraphToken deployment artifact for your network
-mkdir -p deployments/arbitrumSepolia
-echo '{"address":"0x...","abi":[]}' > deployments/arbitrumSepolia/GraphToken.json
-
-# Deploy all issuance contracts
-pnpm hardhat deploy --tags issuance --network arbitrumSepolia
-
-# Export to address book
-pnpm hardhat run scripts/export-addresses.ts --network arbitrumSepolia
+mkdir -p deployments/<network>
+echo '{"address":"0x...","abi":[]}' > deployments/<network>/GraphToken.json
 ```
 
-**Result:** All issuance contracts deployed with addresses exported to `addresses.json`
+### Deploy
 
-### 2. Governance Integration (See packages/deploy/)
+```bash
+# Deploy all issuance contracts
+pnpm hardhat deploy --tags issuance --network <network>
 
-For governance integration with RewardsManager, see `packages/deploy/` README.
+# Deploy specific components
+pnpm hardhat deploy --tags issuance-allocator --network <network>
+pnpm hardhat deploy --tags pilot-allocation --network <network>
+pnpm hardhat deploy --tags rewards-eligibility --network <network>
+```
 
----
-
-## Documentation
-
-See **[docs/HardhatDeployGuide.md](docs/HardhatDeployGuide.md)** for complete deployment documentation including:
-
-- Deployment process and scripts
-- Network configuration
-- Tag-based selective deployment
-- Upgrade workflows
-- Troubleshooting
-
----
-
-## What This Package Provides
-
-### ✅ Component Deployment
-
-- Deploy contract implementations
-- Deploy TransparentUpgradeableProxy for each contract
-- Initialize contracts with safe defaults
-- Track deployments in hardhat-deploy artifacts
-
-### ✅ Helper Contracts
-
-- **IssuanceStateVerifier.sol** - Stateless helper for governance verification
-- **Mock contracts** - For testing (MockGraphToken, MockRewardsManager)
-
-### ✅ Deployment Utilities
-
-- Reusable proxy deployment helpers
-- Implementation deployment utilities
-- Network configuration management
-
----
-
-## What This Package Does NOT Provide
-
-### ❌ Governance Integration
-
-**Not here:** Integrating REO/IA with RewardsManager
-**See instead:** `packages/deploy/` - Cross-package orchestration
-
-### ❌ Safe Transaction Generation
-
-**Not here:** Generating governance TX batches
-**See instead:** `packages/deploy/governance/` - TX builders
-
-### ❌ Hardhat Tasks for Orchestration
-
-**Not here:** Tasks that coordinate multiple packages
-**See instead:** `packages/deploy/tasks/` - Orchestration tasks
-
-### ❌ Checkpoint/Verification Modules
-
-**Not here:** Modules that verify governance execution
-**See instead:** `packages/deploy/` - Orchestration and verification
-
----
-
-## Testing
+### Test
 
 ```bash
 # Run deployment tests
-pnpm test
+pnpm test:self
 
-# Test on local hardhat network
-pnpm hardhat node  # Terminal 1
-pnpm hardhat deploy --tags issuance --network localhost  # Terminal 2
+# Run with coverage
+pnpm test:coverage:self
 ```
 
----
+## Deployment Scripts
 
-## Next Steps After Component Deployment
+Located in `deploy/`:
 
-After deploying components in this package:
+- `00_graph_token.ts` - Test fixture (local networks only)
+- `00_proxy_admin.ts` - Deploy GraphIssuanceProxyAdmin
+- `01_issuance_allocator.ts` - Deploy IssuanceAllocator with proxy
+- `02_pilot_allocation.ts` - Deploy PilotAllocation with proxy
+- `03_rewards_eligibility_oracle.ts` - Deploy RewardsEligibilityOracle with proxy
+- `04_verify_governance.ts` - Verify governor role assignments
 
-1. **Generate Governance TX** - See `packages/deploy/` README
-2. **Execute via Safe** - Upload TX batch to Safe UI
-3. **Verify Integration** - Use checkpoint modules in `packages/deploy/`
-4. **Update Address Book** - Record integrated contracts
+### Optional Script
 
----
+- `00_rewards_manager.ts` - Legacy RewardsManager upgrades (separate from issuance)
 
-## Additional Documentation
+## Tags
 
-See `docs/` directory for comprehensive deployment documentation:
+- `issuance` - Deploy all issuance contracts (GraphIssuanceProxyAdmin + all 3 contracts)
+- `issuance-core` - Deploy the 3 main contracts (IA, Pilot, REO)
+- `issuance-allocator` - Deploy IssuanceAllocator only
+- `pilot-allocation` - Deploy PilotAllocation only
+- `rewards-eligibility` - Deploy RewardsEligibilityOracle only
+- `verify-governance` - Verify governor roles only
+- `proxy-admin` - Deploy GraphIssuanceProxyAdmin only
 
-- **[docs/HardhatDeployGuide.md](./docs/HardhatDeployGuide.md)** - Complete hardhat-deploy guide (PRIMARY)
-- **[docs/README.md](./docs/README.md)** - Documentation navigation
-- **[docs/GovernanceWorkflow.md](./docs/GovernanceWorkflow.md)** - Three-phase governance workflow
-- **[docs/VerificationChecklists.md](./docs/VerificationChecklists.md)** - Comprehensive checklists
+## Architecture
 
----
+### Access Control
 
-## For Cross-Package Orchestration
+These contracts use **role-based access control** (OpenZeppelin AccessControl), not ownership:
 
-See **`packages/deploy/`** for:
+- `GOVERNOR_ROLE` - Full administrative access
+- `PAUSE_ROLE` - Emergency pause capability
+- `OPERATOR_ROLE` - Operational tasks
 
-- Governance TX generation
-- Safe batch builders
-- Checkpoint/verification modules
-- Fork-based integration tests
-- Hardhat orchestration tasks
+During deployment, the governor address (from `namedAccounts`) receives the `GOVERNOR_ROLE`.
 
----
+### Proxy Pattern
+
+All contracts use TransparentUpgradeableProxy:
+
+- **Shared Admin**: All proxies use `GraphIssuanceProxyAdmin`
+- **Atomic Initialization**: Contracts initialized during proxy deployment
+- **Governance Upgrades**: Only ProxyAdmin owner (governor) can upgrade
+
+### GraphToken Dependency
+
+All contracts require GraphToken address via:
+- Immutable constructor parameter on implementations
+- Provided via `deployments/<network>/GraphToken.json`
+
+## Deployment Flow
+
+1. **Deploy ProxyAdmin** - Owned by governor
+2. **Deploy Implementations** - With GraphToken constructor arg
+3. **Deploy Proxies** - Using shared ProxyAdmin, atomic initialization
+4. **Verify Governance** - Confirm governor has GOVERNOR_ROLE on all contracts
+
+## Testing
+
+The deployment test suite validates:
+
+- ✅ Proxy deployment and initialization
+- ✅ Governor role assignment
+- ✅ Shared ProxyAdmin architecture
+- ✅ Distinct implementation addresses
+- ✅ Initialization protection (cannot re-initialize)
+
+Run tests: `pnpm test:self`
+
+## Network Configuration
+
+Configure networks in `hardhat.config.ts` or use environment variables.
+
+Named accounts (from toolshed base config):
+- `deployer` - Account 0 (pays gas)
+- `governor` - Account 1 (receives admin roles)
+
+## Export Addresses
+
+After deployment, export addresses:
+
+```bash
+pnpm hardhat run scripts/export-addresses.ts --network <network>
+```
+
+Creates `addresses.json` with all deployed contract addresses.
+
+## Upgrades
+
+Upgrades must be done via governance through the ProxyAdmin:
+
+```bash
+# Deploy new implementation
+pnpm hardhat deploy --tags issuance-allocator --network <network>
+
+# Upgrade via ProxyAdmin (governance only)
+# Use governance tooling in packages/deploy/ for Safe transactions
+```
+
+## Documentation
+
+- `test/deployment.test.ts` - Reference for deployment validation
+- `docs/` - Extended deployment guides and architecture docs
+- `deploy/*.ts` - Each script has inline documentation
+
+## What This Package Does NOT Provide
+
+This is component-only deployment. Cross-package orchestration belongs in `packages/deploy/`:
+
+- ❌ Governance transaction generation
+- ❌ Safe batch builders
+- ❌ Integration with RewardsManager
+- ❌ Checkpoint/verification modules
+- ❌ Multi-package coordination
 
 ## Status
 
-- ✅ Hardhat-deploy migration complete
-- ✅ Numbered deployment scripts (00-04)
-- ✅ Deployment test suite
-- ✅ Address book export script
-- ✅ External OpenZeppelin artifacts configured
-- ✅ IssuanceStateVerifier contract
-- ✅ Mock contracts for testing
-- ✅ Documentation complete
-
-**This package is production-ready for component deployment using hardhat-deploy.**
+✅ Production-ready for component deployment
+✅ All deployment tests passing (14/14)
+✅ Role-based access control verified
+✅ Shared ProxyAdmin architecture validated

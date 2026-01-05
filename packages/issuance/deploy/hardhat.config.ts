@@ -10,10 +10,6 @@ import * as path from 'path'
 import { hardhatBaseConfig } from '@graphprotocol/toolshed/hardhat'
 import type { HardhatUserConfig } from 'hardhat/config'
 
-// Explicitly register local Hardhat tasks (deployment / governance helpers)
-// Note: rewards-eligibility-upgrade task not yet available in this branch
-// import './tasks/rewards-eligibility-upgrade'
-
 // Issuance-specific Solidity configuration with Cancun EVM version
 const issuanceSolidityConfig = {
   version: '0.8.27',
