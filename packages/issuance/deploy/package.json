@@ -6,11 +6,9 @@
   "author": "Edge & Node",
   "license": "GPL-2.0-or-later",
   "scripts": {
-    "build:self": "hardhat compile",
-    "build:self:coverage": "pnpm build:self",
     "test:self": "hardhat test",
     "test:coverage:self": "hardhat coverage",
-    "clean": "rm -rf .eslintcache deployments/localhost cache artifacts"
+    "clean": "rm -rf .eslintcache deployments/localhost cache"
   },
   "dependencies": {
     "@graphprotocol/issuance": "workspace:^",
@@ -19,8 +17,6 @@
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "catalog:",
     "@nomicfoundation/hardhat-ethers": "catalog:",
-    "@nomicfoundation/hardhat-ignition": "^0.15.9",
-    "@nomicfoundation/hardhat-ignition-ethers": "^0.15.9",
     "@nomicfoundation/hardhat-verify": "catalog:",
     "hardhat-deploy": "^1.0.4",
     "@openzeppelin/hardhat-upgrades": "^3.9.0",

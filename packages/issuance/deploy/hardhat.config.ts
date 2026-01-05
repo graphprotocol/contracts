@@ -1,6 +1,5 @@
 import '@nomicfoundation/hardhat-chai-matchers'
 import '@nomicfoundation/hardhat-ethers'
-import '@nomicfoundation/hardhat-ignition-ethers'
 import 'hardhat-deploy'
 import '@typechain/hardhat'
 import 'hardhat-contract-sizer'
@@ -10,8 +9,9 @@ import '@nomicfoundation/hardhat-verify'
 import { hardhatBaseConfig } from '@graphprotocol/toolshed/hardhat'
 import type { HardhatUserConfig } from 'hardhat/config'
 
-// TODO: Re-enable after removing params.ts dependency (causes circular import)
-// import './tasks/upgrade-rewards-manager'
+// Explicitly register local Hardhat tasks (deployment / governance helpers)
+// Note: rewards-eligibility-upgrade task not yet available in this branch
+// import './tasks/rewards-eligibility-upgrade'
 
 // Issuance-specific Solidity configuration with Cancun EVM version
 const issuanceSolidityConfig = {
@@ -33,10 +33,13 @@ const config: HardhatUserConfig = {
   // This package only provides deployment and governance tooling.
   // Reuse issuance contracts and artifacts from the parent package.
   paths: {
-    sources: '../contracts',
-    tests: './test',
-    artifacts: '../artifacts',
-    cache: '../cache',
+    root: '..',
+    sources: './contracts',
+    tests: './deploy/test',
+    artifacts: './artifacts',
+    cache: './cache',
+    deploy: './deploy/deploy',
+    deployments: './deploy/deployments',
   },
   namedAccounts: {
     deployer: {
@@ -49,7 +52,7 @@ const config: HardhatUserConfig = {
   external: {
     contracts: [
       {
-        artifacts: '../node_modules/@openzeppelin/contracts/build/contracts',
+        artifacts: './node_modules/@openzeppelin/contracts/build/contracts',
       },
     ],
   },
