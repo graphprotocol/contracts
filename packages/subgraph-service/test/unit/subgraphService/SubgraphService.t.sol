@@ -383,7 +383,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         CollectPaymentData memory collectPaymentDataBefore,
         CollectPaymentData memory collectPaymentDataAfter
     ) private view {
-        (IGraphTallyCollector.SignedRAV memory signedRav, uint256 tokensToCollect) = abi.decode(
+        (IGraphTallyCollector.SignedRAV memory signedRav, ) = abi.decode(
             _data,
             (IGraphTallyCollector.SignedRAV, uint256)
         );

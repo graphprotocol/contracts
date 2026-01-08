@@ -20,6 +20,7 @@ import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/r
 import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationDistribution.sol";
 import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceTarget.sol";
 import { IRewardsEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibility.sol";
+import { RewardsReclaim } from "@graphprotocol/interfaces/contracts/contracts/rewards/RewardsReclaim.sol";
 
 /**
  * @title Rewards Manager Contract
@@ -106,6 +107,32 @@ contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, IERC165, I
     event RewardsEligibilityOracleSet(
         address indexed oldRewardsEligibilityOracle,
         address indexed newRewardsEligibilityOracle
+    );
+
+    /**
+     * @notice Emitted when a reclaim address is set
+     * @param reason The reclaim reason identifier
+     * @param oldAddress Previous address
+     * @param newAddress New address
+     */
+    event ReclaimAddressSet(bytes32 indexed reason, address indexed oldAddress, address indexed newAddress);
+
+    /**
+     * @notice Emitted when rewards are reclaimed to a configured address
+     * @param reason The reclaim reason identifier
+     * @param amount Amount of rewards reclaimed
+     * @param indexer Address of the indexer
+     * @param allocationID Address of the allocation
+     * @param subgraphDeploymentID Subgraph deployment ID for the allocation
+     * @param data Additional context data for the reclaim
+     */
+    event RewardsReclaimed(
+        bytes32 indexed reason,
+        uint256 amount,
+        address indexed indexer,
+        address indexed allocationID,
+        bytes32 subgraphDeploymentID,
+        bytes data
     );
 
     // -- Modifiers --
@@ -264,6 +291,26 @@ contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, IERC165, I
         }
     }
 
+    /**
+     * @inheritdoc IRewardsManager
+     * @dev bytes32(0) is reserved as an invalid reason to prevent accidental misconfiguration
+     * and catch uninitialized reason identifiers.
+     *
+     * IMPORTANT: Changes take effect immediately and retroactively. All unclaimed rewards from
+     * previous periods will be sent to the new reclaim address when they are eventually reclaimed,
+     * regardless of which address was configured when the rewards were originally accrued.
+     */
+    function setReclaimAddress(bytes32 reason, address newAddress) external override onlyGovernor {
+        require(reason != bytes32(0), "Cannot set reclaim address for (bytes32(0))");
+
+        address oldAddress = reclaimAddresses[reason];
+
+        if (oldAddress != newAddress) {
+            reclaimAddresses[reason] = newAddress;
+            emit ReclaimAddressSet(reason, oldAddress, newAddress);
+        }
+    }
+
     // -- Denylist --
 
     /**
@@ -297,10 +344,10 @@ contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, IERC165, I
      * @dev Gets the effective issuance per block, taking into account the IssuanceAllocator if set
      */
     function getRewardsIssuancePerBlock() public view override returns (uint256) {
-        if (address(issuanceAllocator) != address(0)) {
-            return issuanceAllocator.getTargetIssuancePerBlock(address(this)).selfIssuancePerBlock;
-        }
-        return issuancePerBlock;
+        return
+            address(issuanceAllocator) != address(0)
+                ? issuanceAllocator.getTargetIssuancePerBlock(address(this)).selfIssuanceRate
+                : issuancePerBlock;
     }
 
     /**
@@ -495,10 +542,130 @@ contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, IERC165, I
     }
 
     /**
+     * @notice Calculate rewards for an allocation
+     * @param rewardsIssuer Address of the rewards issuer calling the function
+     * @param allocationID Address of the allocation
+     * @return rewards Amount of rewards calculated
+     * @return indexer Address of the indexer
+     * @return subgraphDeploymentID Subgraph deployment ID
+     */
+    function _calcAllocationRewards(
+        address rewardsIssuer,
+        address allocationID
+    ) private returns (uint256 rewards, address indexer, bytes32 subgraphDeploymentID) {
+        (
+            bool isActive,
+            address _indexer,
+            bytes32 _subgraphDeploymentID,
+            uint256 tokens,
+            uint256 accRewardsPerAllocatedToken,
+            uint256 accRewardsPending
+        ) = IRewardsIssuer(rewardsIssuer).getAllocationData(allocationID);
+
+        uint256 updatedAccRewardsPerAllocatedToken = onSubgraphAllocationUpdate(_subgraphDeploymentID);
+
+        rewards = isActive
+            ? accRewardsPending.add(
+                _calcRewards(tokens, accRewardsPerAllocatedToken, updatedAccRewardsPerAllocatedToken)
+            )
+            : 0;
+
+        indexer = _indexer;
+        subgraphDeploymentID = _subgraphDeploymentID;
+    }
+
+    /**
+     * @notice Common function to reclaim rewards to a configured address
+     * @param reason The reclaim reason identifier
+     * @param rewards Amount of rewards to reclaim
+     * @param indexer Address of the indexer
+     * @param allocationID Address of the allocation
+     * @param subgraphDeploymentID Subgraph deployment ID for the allocation
+     * @param data Additional context data for the reclaim
+     * @return reclaimed The amount of rewards that were reclaimed (0 if no reclaim address set)
+     */
+    function _reclaimRewards(
+        bytes32 reason,
+        uint256 rewards,
+        address indexer,
+        address allocationID,
+        bytes32 subgraphDeploymentID,
+        bytes memory data
+    ) private returns (uint256 reclaimed) {
+        address target = reclaimAddresses[reason];
+        if (0 < rewards && target != address(0)) {
+            graphToken().mint(target, rewards);
+            emit RewardsReclaimed(reason, rewards, indexer, allocationID, subgraphDeploymentID, data);
+            reclaimed = rewards;
+        }
+    }
+
+    /**
+     * @notice Check if rewards should be denied and attempt to reclaim them
+     * @param rewards Amount of rewards to check
+     * @param indexer Address of the indexer
+     * @param allocationID Address of the allocation
+     * @param subgraphDeploymentID Subgraph deployment ID for the allocation
+     * @return denied True if rewards should be denied (either reclaimed or dropped), false if they should be minted
+     * @dev First successful reclaim wins - checks performed in order with short-circuit on reclaim:
+     * 1. Subgraph deny list: emit RewardsDenied. If reclaim address set → reclaim and return (STOP, eligibility not checked)
+     * 2. Indexer eligibility: Checked if subgraph not denied OR denied without reclaim address. Emit RewardsDeniedDueToEligibility. If reclaim address set → reclaim and return
+     * Multiple denial events may be emitted only when multiple checks fail without reclaim addresses configured.
+     * Any failing check without a reclaim address still denies rewards (drops them without minting).
+     */
+    function _deniedRewards(
+        uint256 rewards,
+        address indexer,
+        address allocationID,
+        bytes32 subgraphDeploymentID
+    ) private returns (bool denied) {
+        if (isDenied(subgraphDeploymentID)) {
+            emit RewardsDenied(indexer, allocationID);
+            if (
+                0 <
+                _reclaimRewards(
+                    RewardsReclaim.SUBGRAPH_DENIED,
+                    rewards,
+                    indexer,
+                    allocationID,
+                    subgraphDeploymentID,
+                    ""
+                )
+            ) {
+                return true; // Successfully reclaimed, deny rewards
+            }
+            denied = true; // Denied but no reclaim address
+        }
+
+        if (address(rewardsEligibilityOracle) != address(0) && !rewardsEligibilityOracle.isEligible(indexer)) {
+            emit RewardsDeniedDueToEligibility(indexer, allocationID, rewards);
+            if (
+                0 <
+                _reclaimRewards(
+                    RewardsReclaim.INDEXER_INELIGIBLE,
+                    rewards,
+                    indexer,
+                    allocationID,
+                    subgraphDeploymentID,
+                    ""
+                )
+            ) {
+                return true; // Successfully reclaimed, deny rewards
+            }
+            denied = true; // Denied but no reclaim address
+        }
+    }
+
+    /**
      * @inheritdoc IRewardsManager
      * @dev This function can only be called by an authorized rewards issuer which are
      * the staking contract (for legacy allocations), and the subgraph service (for new allocations).
      * Mints 0 tokens if the allocation is not active.
+     * @dev First successful reclaim wins - short-circuits on reclaim:
+     * - If subgraph denied with reclaim address → reclaim to SUBGRAPH_DENIED address (eligibility NOT checked)
+     * - If subgraph not denied OR denied without address, then check eligibility → reclaim to INDEXER_INELIGIBLE if configured
+     * - Subsequent denial emitted only when earlier denial has no reclaim address
+     * - Any denial without reclaim address drops rewards (no minting)
      */
     function takeRewards(address _allocationID) external override returns (uint256) {
         address rewardsIssuer = msg.sender;
@@ -507,46 +674,37 @@ contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, IERC165, I
             "Caller must be a rewards issuer"
         );
 
-        (
-            bool isActive,
-            address indexer,
-            bytes32 subgraphDeploymentID,
-            uint256 tokens,
-            uint256 accRewardsPerAllocatedToken,
-            uint256 accRewardsPending
-        ) = IRewardsIssuer(rewardsIssuer).getAllocationData(_allocationID);
+        (uint256 rewards, address indexer, bytes32 subgraphDeploymentID) = _calcAllocationRewards(
+            rewardsIssuer,
+            _allocationID
+        );
 
-        uint256 updatedAccRewardsPerAllocatedToken = onSubgraphAllocationUpdate(subgraphDeploymentID);
+        if (rewards == 0) return 0;
+        if (_deniedRewards(rewards, indexer, _allocationID, subgraphDeploymentID)) return 0;
 
-        // Do not do rewards on denied subgraph deployments ID
-        if (isDenied(subgraphDeploymentID)) {
-            emit RewardsDenied(indexer, _allocationID);
-            return 0;
-        }
-
-        uint256 rewards = 0;
-        if (isActive) {
-            // Calculate rewards accrued by this allocation
-            rewards = accRewardsPending.add(
-                _calcRewards(tokens, accRewardsPerAllocatedToken, updatedAccRewardsPerAllocatedToken)
-            );
-
-            // Do not reward if indexer is not eligible based on rewards eligibility
-            if (address(rewardsEligibilityOracle) != address(0) && !rewardsEligibilityOracle.isEligible(indexer)) {
-                emit RewardsDeniedDueToEligibility(indexer, _allocationID, rewards);
-                return 0;
-            }
-
-            if (rewards > 0) {
-                // Mint directly to rewards issuer for the reward amount
-                // The rewards issuer contract will do bookkeeping of the reward and
-                // assign in proportion to each stakeholder incentive
-                graphToken().mint(rewardsIssuer, rewards);
-            }
-        }
-
+        graphToken().mint(rewardsIssuer, rewards);
         emit HorizonRewardsAssigned(indexer, _allocationID, rewards);
 
         return rewards;
+    }
+
+    /**
+     * @inheritdoc IRewardsManager
+     * @dev bytes32(0) as a reason is reserved as a no-op and will not be reclaimed.
+     */
+    function reclaimRewards(
+        bytes32 reason,
+        address allocationID,
+        bytes calldata data
+    ) external override returns (uint256) {
+        address rewardsIssuer = msg.sender;
+        require(rewardsIssuer == address(subgraphService), "Not a rewards issuer");
+
+        (uint256 rewards, address indexer, bytes32 subgraphDeploymentID) = _calcAllocationRewards(
+            rewardsIssuer,
+            allocationID
+        );
+
+        return _reclaimRewards(reason, rewards, indexer, allocationID, subgraphDeploymentID, data);
     }
 }

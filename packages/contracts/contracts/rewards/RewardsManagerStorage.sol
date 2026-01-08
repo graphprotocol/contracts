@@ -83,11 +83,14 @@ contract RewardsManagerV5Storage is RewardsManagerV4Storage {
  * @title RewardsManagerV6Storage
  * @author Edge & Node
  * @notice Storage layout for RewardsManager V6
- * Includes support for Rewards Eligibility Oracle and Issuance Allocator.
+ * Includes support for Rewards Eligibility Oracle, Issuance Allocator, and reclaim addresses.
  */
 contract RewardsManagerV6Storage is RewardsManagerV5Storage {
     /// @notice Address of the rewards eligibility oracle contract
     IRewardsEligibility public rewardsEligibilityOracle;
     /// @notice Address of the issuance allocator
     IIssuanceAllocationDistribution public issuanceAllocator;
+    /// @notice Mapping of reclaim reason identifiers to reclaim addresses
+    /// @dev Uses bytes32 for extensibility. See RewardsReclaim library for canonical reasons.
+    mapping(bytes32 => address) public reclaimAddresses;
 }
