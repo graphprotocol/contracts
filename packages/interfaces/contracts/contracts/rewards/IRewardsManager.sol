@@ -43,6 +43,12 @@ interface IRewardsManager {
      */
     function setSubgraphService(address subgraphService) external;
 
+    /**
+     * @notice Set the rewards eligibility oracle address
+     * @param newRewardsEligibilityOracle The address of the rewards eligibility oracle
+     */
+    function setRewardsEligibilityOracle(address newRewardsEligibilityOracle) external;
+
     // -- Denylist --
 
     /**
@@ -66,6 +72,13 @@ interface IRewardsManager {
     function isDenied(bytes32 subgraphDeploymentID) external view returns (bool);
 
     // -- Getters --
+
+    /**
+     * @notice Gets the effective issuance per block for rewards
+     * @dev Takes into account the issuance allocator if set
+     * @return The effective issuance per block
+     */
+    function getRewardsIssuancePerBlock() external view returns (uint256);
 
     /**
      * @notice Gets the issuance of rewards per signal since last updated
