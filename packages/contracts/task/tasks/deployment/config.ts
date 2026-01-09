@@ -6,6 +6,7 @@ import {
   updateGeneralParams,
   writeConfig,
 } from '@graphprotocol/sdk'
+import { readConfig } from '@graphprotocol/contracts-task'
 import { greTask } from '@graphprotocol/sdk/gre'
 
 greTask('update-config', 'Update graph config parameters with onchain data')
@@ -30,7 +31,8 @@ greTask('update-config', 'Update graph config parameters with onchain data')
       if (!sure) return
     }
 
-    const { graphConfig, contracts } = hre.graph({ graphConfig: configFile })
+    const { contracts } = hre.graph({ graphConfig: configFile })
+    const graphConfig = readConfig(configFile, false)
 
     // general parameters
     console.log(`> General`)
