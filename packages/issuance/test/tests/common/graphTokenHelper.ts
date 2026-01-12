@@ -58,9 +58,8 @@ export class GraphTokenHelper {
    */
   static async deploy(governor) {
     // Load the GraphToken artifact directly from the contracts package
-    const graphTokenArtifactPath = require.resolve(
-      '@graphprotocol/contracts/artifacts/contracts/token/GraphToken.sol/GraphToken.json',
-    )
+    const graphTokenArtifactPath =
+      require.resolve('@graphprotocol/contracts/artifacts/contracts/token/GraphToken.sol/GraphToken.json')
     const GraphTokenArtifact = JSON.parse(fs.readFileSync(graphTokenArtifactPath, 'utf8'))
 
     // Create a contract factory using the artifact
