@@ -1,0 +1,11 @@
+{
+  "$global": {
+    // Existing contract addresses (from arbitrumSepolia fork)
+    "graphProxyAdminAddress": "0x7474a6cc5fAeDEc620Db0fa8E4da6eD58477042C",
+    "rewardsManagerAddress": "0x1F49caE7669086c8ba53CC35d1E9f80176d67E79",
+
+    // Implementation addresses - each version needs its own parameter (fixed once deployed)
+    "rewardsManagerV2Address": "0xB90E09488d99D6b5e08D1E82080801a96c85976a",
+    "rewardsManagerV3Address": "0x5842F91bC81b4BfEcDd4C5c90A1001F0f9C70bBB"
+  }
+}

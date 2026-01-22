@@ -135,6 +135,92 @@ task('deploy:migrate', 'Upgrade an existing version of the Graph Protocol v1 to 
     console.log(`\n\n🎉 ✨ 🚀 ✅ Migration step ${step} complete! 🎉 ✨ 🚀 ✅\n`)
   })
 
+task('deploy:upgrade', 'Upgrade existing protocol contracts')
+  .addOptionalParam(
+    'upgradeConfig',
+    'Name of the upgrade configuration file to use. Format is "upgrade.<name>.json5", file must be in the "ignition/configs/" directory. Defaults to network name.',
+    undefined,
+    types.string,
+  )
+  .addOptionalParam('step', 'Upgrade step to run (1 or 2)', undefined, types.int)
+  .addOptionalParam('accountIndex', 'Derivation path index for the account to use', 0, types.int)
+  .addFlag('patchConfig', 'Patch configuration file using address book values - does not save changes')
+  .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
+    const graph = hre.graph()
+    const step: number = args.step ?? 0
+
+    // Upgrade step to run
+    console.log('\n========== Upgrade steps ==========')
+    const validSteps = [1, 2]
+    if (!validSteps.includes(step)) {
+      console.error(`Error: Invalid upgrade step provided: ${step}`)
+      console.error(`Valid steps are: ${validSteps.join(', ')}`)
+      process.exit(1)
+    }
+    console.log(`Running upgrade step: ${step}`)
+
+    // Load configuration for the upgrade
+    console.log('\n========== Upgrade configuration ==========')
+    const { config: UpgradeConfig, file } = loadConfig(
+      './ignition/configs/',
+      'upgrade',
+      args.upgradeConfig ?? hre.network.name,
+    )
+    console.log(`Loaded upgrade configuration from ${file}`)
+
+    // Display the deployer -- this also triggers the secure accounts prompt if being used
+    console.log('\n========== Deployer account ==========')
+    const deployer = await graph.accounts.getDeployer(args.accountIndex)
+    console.log('Using deployer account:', deployer.address)
+    const balance = await hre.ethers.provider.getBalance(deployer.address)
+    console.log('Deployer balance:', hre.ethers.formatEther(balance), 'ETH')
+    if (balance === 0n) {
+      console.error('Error: Deployer account has no ETH balance')
+      process.exit(1)
+    }
+
+    // Run upgrade step
+    console.log(`\n========== Running upgrade: step ${step} ==========`)
+    const { UpgradeDeployerModule, UpgradeGovernorModule } = require('../ignition/modules/upgrades/upgrade')
+    const UpgradeModule = step === 1 ? UpgradeDeployerModule : UpgradeGovernorModule
+
+    const deployment = await hre.ignition.deploy(UpgradeModule, {
+      displayUi: true,
+      parameters:
+        args.patchConfig && step === 2 ? _patchUpgradeConfig(UpgradeConfig, graph.horizon.addressBook) : UpgradeConfig,
+      deploymentId: `horizon-${hre.network.name}-upgrade`,
+      defaultSender: deployer.address,
+    })
+
+    // Update address book
+    console.log('\n========== Updating address book ==========')
+    // @ts-expect-error - @graphprotocol/toolshed/hardhat exports ts files so types mismatch here
+    saveToAddressBook(deployment, graph.horizon.addressBook)
+    console.log(`Address book at ${graph.horizon.addressBook.file} updated!`)
+
+    console.log(`\n\nUpgrade step ${step} complete!\n`)
+  })
+
+function _patchUpgradeConfig<ChainId extends number, ContractName extends string>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  config: any,
+  horizonAddressBook: AddressBook<ChainId, ContractName>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): any {
+  const RewardsManager = horizonAddressBook.getEntry('RewardsManager')
+  const latestImpl = RewardsManager.implementation ?? ''
+
+  // Find the first empty version parameter and patch it with the latest implementation address
+  const versionParams = ['rewardsManagerV2Address', 'rewardsManagerV3Address']
+  for (const param of versionParams) {
+    if (!config.$global[param]) {
+      return patchConfig(config, { $global: { [param]: latestImpl } })
+    }
+  }
+
+  return config
+}
+
 // This function patches the Ignition configuration object using an address book to fill in the gaps
 // The resulting configuration is not saved back to the configuration file
 

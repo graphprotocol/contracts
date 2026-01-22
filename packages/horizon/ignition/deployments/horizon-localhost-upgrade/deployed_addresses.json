@@ -1,0 +1,11 @@
+{
+  "UpgradeRewardsManagerDeployer#RewardsManagerProxy": "0x1F49caE7669086c8ba53CC35d1E9f80176d67E79",
+  "UpgradeRewardsManagerDeployer#RewardsManagerV2": "0xB90E09488d99D6b5e08D1E82080801a96c85976a",
+  "UpgradeRewardsManagerGovernor#GraphProxyAdmin": "0x7474a6cc5fAeDEc620Db0fa8E4da6eD58477042C",
+  "UpgradeRewardsManagerGovernor#RewardsManagerImplV2": "0xB90E09488d99D6b5e08D1E82080801a96c85976a",
+  "UpgradeRewardsManagerGovernor#RewardsManagerProxy": "0x1F49caE7669086c8ba53CC35d1E9f80176d67E79",
+  "UpgradeRewardsManagerGovernor#upgradeRewardsManagerV2_proxy": "0x1F49caE7669086c8ba53CC35d1E9f80176d67E79",
+  "UpgradeRewardsManagerDeployer#RewardsManagerV3": "0x5842F91bC81b4BfEcDd4C5c90A1001F0f9C70bBB",
+  "UpgradeRewardsManagerGovernor#RewardsManagerImplV3": "0x5842F91bC81b4BfEcDd4C5c90A1001F0f9C70bBB",
+  "UpgradeRewardsManagerGovernor#upgradeRewardsManagerV3_proxy": "0x1F49caE7669086c8ba53CC35d1E9f80176d67E79"
+}

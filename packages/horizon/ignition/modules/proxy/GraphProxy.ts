@@ -33,10 +33,15 @@ export function upgradeGraphProxy(
   metadata: ImplementationMetadata,
   options?: ContractOptions,
 ) {
-  const upgradeCall = m.call(proxyAdmin, 'upgrade', [proxy, implementation], options)
-  const acceptCall = m.call(proxyAdmin, 'acceptProxy', [implementation, proxy], { ...options, after: [upgradeCall] })
+  const baseId = options?.id ?? 'upgradeGraphProxy'
+  const upgradeCall = m.call(proxyAdmin, 'upgrade', [proxy, implementation], { ...options, id: `${baseId}_upgrade` })
+  const acceptCall = m.call(proxyAdmin, 'acceptProxy', [implementation, proxy], {
+    ...options,
+    id: `${baseId}_accept`,
+    after: [upgradeCall],
+  })
 
-  return loadProxyWithABI(m, proxy, metadata, { ...options, after: [acceptCall] })
+  return loadProxyWithABI(m, proxy, metadata, { ...options, id: `${baseId}_proxy`, after: [acceptCall] })
 }
 
 export function acceptUpgradeGraphProxy(
