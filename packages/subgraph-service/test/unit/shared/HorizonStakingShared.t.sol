@@ -78,6 +78,7 @@ abstract contract HorizonStakingSharedTest is SubgraphBaseTest {
     function _setStorageAllocationHardcoded(address indexer, address allocationId, uint256 tokens) internal {
         IHorizonStakingExtension.Allocation memory allocation = IHorizonStakingExtension.Allocation({
             indexer: indexer,
+            // forge-lint: disable-next-line(unsafe-typecast)
             subgraphDeploymentID: bytes32("0x12344321"),
             tokens: tokens,
             createdAtEpoch: 1234,
