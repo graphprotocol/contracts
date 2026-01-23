@@ -230,6 +230,26 @@ jobs:
             echo "No YAML files to lint"
           fi
 
+      - name: Lint Forge files
+        id: lint_forge
+        continue-on-error: true
+        run: |
+          if [ "${{ steps.lint_mode.outputs.mode }}" = "all" ]; then
+            echo "Linting all Forge files..."
+            pnpm lint:forge
+          elif [ "${{ steps.changed_files.outputs.sol_count }}" -gt "0" ]; then
+            # Check if any changed .sol files are in Forge packages
+            FORGE_FILES=$(cat changed_sol.txt | grep -E '^packages/(horizon|subgraph-service)/' || true)
+            if [ -n "$FORGE_FILES" ]; then
+              echo "Found Forge-related changes, running forge lint..."
+              pnpm lint:forge
+            else
+              echo "No Forge-related Solidity files changed"
+            fi
+          else
+            echo "No Solidity files to lint with Forge"
+          fi
+
       - name: Check lint results
         if: always()
         run: |
@@ -238,7 +258,8 @@ jobs:
              [ "${{ steps.lint_ts.outcome }}" = "failure" ] || \
              [ "${{ steps.lint_md.outcome }}" = "failure" ] || \
              [ "${{ steps.lint_json.outcome }}" = "failure" ] || \
-             [ "${{ steps.lint_yaml.outcome }}" = "failure" ]; then
+             [ "${{ steps.lint_yaml.outcome }}" = "failure" ] || \
+             [ "${{ steps.lint_forge.outcome }}" = "failure" ]; then
             echo "❌ One or more linters failed"
             exit 1
           else
