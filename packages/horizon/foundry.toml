@@ -7,3 +7,7 @@ cache_path  = 'cache_forge'
 fs_permissions = [{ access = "read", path = "./"}]
 optimizer = true
 optimizer_runs = 100
+
+[lint]
+# Ignore Hardhat-only import files that don't contain lintable code
+ignore = ["contracts/mocks/imports.sol"]
