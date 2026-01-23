@@ -18,12 +18,24 @@ catalogs:
     '@eslint/js':
       specifier: ^9.39.2
       version: 9.39.2
+    '@nomicfoundation/hardhat-ethers':
+      specifier: ^3.1.0
+      version: 3.1.0
+    '@nomicfoundation/hardhat-verify':
+      specifier: ^2.0.10
+      version: 2.1.1
+    '@typechain/hardhat':
+      specifier: ^9.0.0
+      version: 9.1.0
     '@typescript-eslint/eslint-plugin':
       specifier: ^8.53.0
       version: 8.53.0
     '@typescript-eslint/parser':
       specifier: ^8.53.0
       version: 8.53.0
+    dotenv:
+      specifier: ^16.5.0
+      version: 16.6.1
     eslint:
       specifier: ^9.39.2
       version: 9.39.2
@@ -42,9 +54,33 @@ catalogs:
     eslint-plugin-unused-imports:
       specifier: ^4.2.0
       version: 4.2.0
+    ethers:
+      specifier: ^6.16.0
+      version: 6.16.0
+    glob:
+      specifier: ^11.0.2
+      version: 11.0.3
     globals:
       specifier: ^16.4.0
       version: 16.4.0
+    hardhat:
+      specifier: ^2.26.0
+      version: 2.26.3
+    hardhat-contract-sizer:
+      specifier: ^2.10.0
+      version: 2.10.1
+    hardhat-gas-reporter:
+      specifier: ^1.0.8
+      version: 1.0.10
+    hardhat-ignore-warnings:
+      specifier: ^0.2.12
+      version: 0.2.12
+    hardhat-secure-accounts:
+      specifier: ^1.0.5
+      version: 1.0.5
+    hardhat-storage-layout:
+      specifier: ^0.1.7
+      version: 0.1.7
     husky:
       specifier: ^9.1.7
       version: 9.1.7
@@ -61,8 +97,11 @@ catalogs:
       specifier: ^2.1.0
       version: 2.1.0
     solhint:
-      specifier: ^6.0.1
-      version: 6.0.1
+      specifier: ^6.0.3
+      version: 6.0.3
+    ts-node:
+      specifier: ^10.9.2
+      version: 10.9.2
     typescript:
       specifier: ^5.9.3
       version: 5.9.3
@@ -141,7 +180,7 @@ importers:
         version: 2.1.0(prettier@3.7.4)
       solhint:
         specifier: 'catalog:'
-        version: 6.0.1(typescript@5.9.3)
+        version: 6.0.3(typescript@5.9.3)
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -285,7 +324,7 @@ importers:
         version: 2.1.0(prettier@3.7.4)
       solhint:
         specifier: 'catalog:'
-        version: 6.0.1(typescript@5.9.3)
+        version: 6.0.3(typescript@5.9.3)
       solidity-coverage:
         specifier: ^0.8.16
         version: 0.8.16(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10))
@@ -686,7 +725,7 @@ importers:
         version: 2.1.0(prettier@3.7.4)
       solhint:
         specifier: 'catalog:'
-        version: 6.0.1(typescript@5.9.3)
+        version: 6.0.3(typescript@5.9.3)
       solidity-coverage:
         specifier: ^0.8.16
         version: 0.8.16(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10))
@@ -861,7 +900,7 @@ importers:
         version: 2.1.0(prettier@3.7.4)
       solhint:
         specifier: 'catalog:'
-        version: 6.0.1(typescript@5.9.3)
+        version: 6.0.3(typescript@5.9.3)
       solidity-coverage:
         specifier: ^0.8.0
         version: 0.8.16(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10))
@@ -921,7 +960,7 @@ importers:
         version: 2.1.0(prettier@3.7.4)
       solhint:
         specifier: 'catalog:'
-        version: 6.0.1(typescript@5.9.3)
+        version: 6.0.3(typescript@5.9.3)
       ts-node:
         specifier: 'catalog:'
         version: 10.9.2(@types/node@20.19.14)(typescript@5.9.3)
@@ -1009,7 +1048,7 @@ importers:
         version: 2.1.0(prettier@3.7.4)
       solhint:
         specifier: 'catalog:'
-        version: 6.0.1(typescript@5.9.3)
+        version: 6.0.3(typescript@5.9.3)
       ts-node:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@20.19.14)(typescript@5.9.3)
@@ -1223,7 +1262,7 @@ importers:
         version: 2.1.0(prettier@3.7.4)
       solhint:
         specifier: 'catalog:'
-        version: 6.0.1(typescript@5.9.3)
+        version: 6.0.3(typescript@5.9.3)
       solidity-coverage:
         specifier: ^0.8.0
         version: 0.8.16(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10))
@@ -1371,7 +1410,7 @@ importers:
         version: 2.1.0(prettier@3.7.4)
       solhint:
         specifier: 'catalog:'
-        version: 6.0.1(typescript@5.9.3)
+        version: 6.0.3(typescript@5.9.3)
       solidity-coverage:
         specifier: ^0.8.16
         version: 0.8.16(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10))
@@ -4565,10 +4604,6 @@ packages:
     resolution: {integrity: sha512-4Dj6M28JB+oAH8kFkTLUo+a2jwOFkuqb3yucU0CANcRRUbxS0cP0nZYCGjcc3BNXwRIsUVmDGgzawme7zvJHvg==}
     engines: {node: '>=12'}
 
-  antlr4@4.13.2:
-    resolution: {integrity: sha512-QiVbZhyy4xAZ17UPEuG3YTOt8ZaoeOR1CvEAqrEsDBsOqINslaB147i9xqljZqoyf5S+EUlGStaj+t22LT9MOg==}
-    engines: {node: '>=16'}
-
   antlr4ts@0.5.0-alpha.4:
     resolution: {integrity: sha512-WPQDt1B74OfPv/IMS2ekXAKkTZIHl88uMetg6q3OTqgFxZ/dxDXI0EWLyZid/1Pe6hTftyg5N7gel5wNAGxXyQ==}
 
@@ -5832,6 +5867,7 @@ packages:
 
   debug@3.2.6:
     resolution: {integrity: sha512-mel+jf7nrtEl5Pn1Qx46zARXKDpBbvzezse7p7LqINmdoIk8PYP5SySaxEmYv6TZ0JyEKA1hsCId6DIhgITtWQ==}
+    deprecated: Debug versions >=3.2.0 <3.2.7 || >=4 <4.3.1 have a low-severity ReDos regression when used in a Node.js environment. It is recommended you upgrade to 3.2.7 or 4.3.1. (https://github.com/visionmedia/debug/issues/797)
     peerDependencies:
       supports-color: '*'
     peerDependenciesMeta:
@@ -7045,19 +7081,24 @@ packages:
 
   glob@5.0.15:
     resolution: {integrity: sha512-c9IPMazfRITpmAAKi22dK1VKxGDX9ehhqfABDriL/lzO92xcUKEJPQHrVA/2YHSNFB4iFlykVmWvwo48nr3OxA==}
+    deprecated: Glob versions prior to v9 are no longer supported
 
   glob@7.1.2:
     resolution: {integrity: sha512-MJTUg1kjuLeQCJ+ccE4Vpa6kKVXkPYJ2mOCQyUuKLcLQsdrMCpBPUi8qVE6+YuaJkozeA9NusTAw3hLr8Xe5EQ==}
+    deprecated: Glob versions prior to v9 are no longer supported
 
   glob@7.1.7:
     resolution: {integrity: sha512-OvD9ENzPLbegENnYP5UUfJIirTg4+XwMWGaQfQTY0JenxNvvIKP3U3/tAQSPIu/lHxXYSZmpXlUHeqAIdKzBLQ==}
+    deprecated: Glob versions prior to v9 are no longer supported
 
   glob@7.2.3:
     resolution: {integrity: sha512-nFR0zLpU2YCaRxwoCJvL6UvCH2JFyFVIvwTLsIf21AuHlMskA1hhTdk+LlYJtOlYt9v6dvszD2BGRqBL+iQK9Q==}
+    deprecated: Glob versions prior to v9 are no longer supported
 
   glob@8.1.0:
     resolution: {integrity: sha512-r8hpEjiQEYlF2QU0df3dS+nxxSIreXQS1qRhMJM0Q5NDdR386C7jb7Hwwod8Fgiuex+k0GFjgft18yvxm5XoCQ==}
     engines: {node: '>=12'}
+    deprecated: Glob versions prior to v9 are no longer supported
 
   global-directory@4.0.1:
     resolution: {integrity: sha512-wHTUcDUoZ1H5/0iVqEudYW4/kAlN5cZ3j/bXn0Dpbizl9iaUVeWSHqiOjsgk6OW2bkLclbBjzewBz6weQ1zA2Q==}
@@ -10631,8 +10672,8 @@ packages:
     engines: {node: '>=10.0.0'}
     hasBin: true
 
-  solhint@6.0.1:
-    resolution: {integrity: sha512-Lew5nhmkXqHPybzBzkMzvvWkpOJSSLTkfTZwRriWvfR2naS4YW2PsjVGaoX9tZFmHh7SuS+e2GEGo5FPYYmJ8g==}
+  solhint@6.0.3:
+    resolution: {integrity: sha512-LYiy1bN8X9eUsti13mbS4fY6ILVxhP6VoOgqbHxCsHl5VPnxOWf7U1V9ZvgizxdInKBMW82D1FNJO+daAcWHbA==}
     hasBin: true
 
   solidity-ast@0.4.61:
@@ -11498,10 +11539,12 @@ packages:
 
   uuid@3.3.2:
     resolution: {integrity: sha512-yXJmeNaw3DnnKAOKJE51sL/ZaYfWJRl1pK9dr19YFCu0ObS231AB1/LbqTKRAQ5kw8A90rA6fr4riOUpTZvQZA==}
+    deprecated: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details.
     hasBin: true
 
   uuid@3.4.0:
     resolution: {integrity: sha512-HjSDRw6gZE5JMggctHBcjVak08+KEVhSIiDzFnT9S9aegmp85S/bReBVTb4QTFaRNptJ9kuYaNhnbNEOkbKb/A==}
+    deprecated: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details.
     hasBin: true
 
   uuid@8.3.2:
@@ -13261,7 +13304,7 @@ snapshots:
   '@eslint/config-array@0.21.1':
     dependencies:
       '@eslint/object-schema': 2.1.7
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       minimatch: 3.1.2
     transitivePeerDependencies:
       - supports-color
@@ -13277,7 +13320,7 @@ snapshots:
   '@eslint/eslintrc@3.3.1':
     dependencies:
       ajv: 6.12.6
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       espree: 10.4.0
       globals: 14.0.0
       ignore: 5.3.2
@@ -14987,7 +15030,7 @@ snapshots:
       '@graphql-tools/utils': 10.9.1(graphql@16.11.0)
       dset: 3.1.4
       graphql: 16.11.0
-      js-yaml: 4.1.0
+      js-yaml: 4.1.1
       lodash.get: 4.4.2
       lodash.topath: 4.5.2
       tiny-lru: 8.0.2
@@ -15002,7 +15045,7 @@ snapshots:
       '@graphql-tools/utils': 9.2.1(graphql@16.11.0)
       dset: 3.1.4
       graphql: 16.11.0
-      js-yaml: 4.1.0
+      js-yaml: 4.1.1
       lodash.get: 4.4.2
       lodash.topath: 4.5.2
       tiny-lru: 8.0.2
@@ -15450,7 +15493,7 @@ snapshots:
       '@ledgerhq/errors': 5.50.0
       '@ledgerhq/logs': 5.50.0
       rxjs: 6.6.7
-      semver: 7.7.2
+      semver: 7.7.3
 
   '@ledgerhq/errors@5.50.0': {}
 
@@ -15862,7 +15905,7 @@ snapshots:
 
   '@npmcli/fs@3.1.1':
     dependencies:
-      semver: 7.7.2
+      semver: 7.7.3
 
   '@npmcli/redact@2.0.1': {}
 
@@ -16832,7 +16875,7 @@ snapshots:
 
   '@types/minimatch@6.0.0':
     dependencies:
-      minimatch: 10.0.3
+      minimatch: 10.1.1
 
   '@types/mkdirp@0.5.2':
     dependencies:
@@ -16927,7 +16970,7 @@ snapshots:
       '@typescript-eslint/types': 8.53.0
       '@typescript-eslint/typescript-estree': 8.53.0(typescript@5.9.3)
       '@typescript-eslint/visitor-keys': 8.53.0
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       eslint: 9.39.2(jiti@2.5.1)
       typescript: 5.9.3
     transitivePeerDependencies:
@@ -16937,7 +16980,7 @@ snapshots:
     dependencies:
       '@typescript-eslint/tsconfig-utils': 8.53.0(typescript@5.9.3)
       '@typescript-eslint/types': 8.53.0
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       typescript: 5.9.3
     transitivePeerDependencies:
       - supports-color
@@ -16956,7 +16999,7 @@ snapshots:
       '@typescript-eslint/types': 8.53.0
       '@typescript-eslint/typescript-estree': 8.53.0(typescript@5.9.3)
       '@typescript-eslint/utils': 8.53.0(eslint@9.39.2(jiti@2.5.1))(typescript@5.9.3)
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       eslint: 9.39.2(jiti@2.5.1)
       ts-api-utils: 2.4.0(typescript@5.9.3)
       typescript: 5.9.3
@@ -16971,7 +17014,7 @@ snapshots:
       '@typescript-eslint/tsconfig-utils': 8.53.0(typescript@5.9.3)
       '@typescript-eslint/types': 8.53.0
       '@typescript-eslint/visitor-keys': 8.53.0
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       minimatch: 9.0.5
       semver: 7.7.3
       tinyglobby: 0.2.15
@@ -17276,8 +17319,6 @@ snapshots:
   ansi-styles@5.2.0: {}
 
   ansi-styles@6.2.3: {}
-
-  antlr4@4.13.2: {}
 
   antlr4ts@0.5.0-alpha.4: {}
 
@@ -18988,7 +19029,7 @@ snapshots:
   cosmiconfig@8.3.6(typescript@5.9.3):
     dependencies:
       import-fresh: 3.3.1
-      js-yaml: 4.1.0
+      js-yaml: 4.1.1
       parse-json: 5.2.0
       path-type: 4.0.0
     optionalDependencies:
@@ -19155,10 +19196,6 @@ snapshots:
       ms: 2.1.3
 
   debug@3.2.7:
-    dependencies:
-      ms: 2.1.3
-
-  debug@4.4.3:
     dependencies:
       ms: 2.1.3
 
@@ -19715,7 +19752,7 @@ snapshots:
       ajv: 6.12.6
       chalk: 4.1.2
       cross-spawn: 7.0.6
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       escape-string-regexp: 4.0.0
       eslint-scope: 8.4.0
       eslint-visitor-keys: 4.2.1
@@ -21069,7 +21106,7 @@ snapshots:
     dependencies:
       foreground-child: 3.3.1
       jackspeak: 4.1.1
-      minimatch: 10.0.3
+      minimatch: 10.1.1
       minipass: 7.1.2
       package-json-from-dist: 1.0.1
       path-scurry: 2.0.0
@@ -23352,7 +23389,7 @@ snapshots:
   micromark@4.0.2:
     dependencies:
       '@types/debug': 4.1.12
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       decode-named-character-reference: 1.2.0
       devlop: 1.1.0
       micromark-core-commonmark: 2.0.3
@@ -23819,7 +23856,7 @@ snapshots:
     dependencies:
       hosted-git-info: 7.0.2
       proc-log: 4.2.0
-      semver: 7.7.2
+      semver: 7.7.3
       validate-npm-package-name: 5.0.1
 
   npm-registry-fetch@17.1.0:
@@ -24118,7 +24155,7 @@ snapshots:
       got: 12.6.1
       registry-auth-token: 5.1.0
       registry-url: 6.0.1
-      semver: 7.7.2
+      semver: 7.7.3
 
   package-manager-detector@0.2.11:
     dependencies:
@@ -25267,7 +25304,7 @@ snapshots:
       moment-timezone: 0.5.48
       pg-connection-string: 2.9.1
       retry-as-promised: 7.1.1
-      semver: 7.7.2
+      semver: 7.7.3
       sequelize-pool: 7.1.0
       toposort-class: 1.0.1
       uuid: 8.3.2
@@ -25574,12 +25611,11 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
-  solhint@6.0.1(typescript@5.9.3):
+  solhint@6.0.3(typescript@5.9.3):
     dependencies:
       '@solidity-parser/parser': 0.20.2
       ajv: 6.12.6
       ajv-errors: 1.0.1(ajv@6.12.6)
-      antlr4: 4.13.2
       ast-parents: 0.0.1
       better-ajv-errors: 2.0.2(ajv@6.12.6)
       chalk: 4.1.2
@@ -25588,11 +25624,11 @@ snapshots:
       fast-diff: 1.3.0
       glob: 8.1.0
       ignore: 5.3.2
-      js-yaml: 4.1.0
+      js-yaml: 4.1.1
       latest-version: 7.0.0
       lodash: 4.17.21
       pluralize: 8.0.0
-      semver: 7.7.2
+      semver: 7.7.3
       table: 6.9.0
       text-table: 0.2.0
     optionalDependencies:
