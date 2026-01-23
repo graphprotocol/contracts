@@ -4,6 +4,7 @@ pragma solidity 0.8.27;
 // TODO: Re-enable and fix issues when publishing a new version
 // solhint-disable gas-strict-inequalities
 // solhint-disable function-max-lines
+// forge-lint: disable-start(unwrapped-modifier-logic, mixed-case-variable, mixed-case-function)
 
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";

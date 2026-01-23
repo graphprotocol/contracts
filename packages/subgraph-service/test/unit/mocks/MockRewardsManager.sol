@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "forge-std/Test.sol";
-
 import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManager.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 
@@ -65,10 +63,10 @@ contract MockRewardsManager is IRewardsManager {
 
     function setReclaimAddress(bytes32, address) external {}
 
-    function reclaimRewards(bytes32, address _allocationID, bytes calldata) external view returns (uint256) {
+    function reclaimRewards(bytes32, address _allocationId, bytes calldata) external view returns (uint256) {
         address rewardsIssuer = msg.sender;
         (bool isActive, , , uint256 tokens, uint256 accRewardsPerAllocatedToken) = IRewardsIssuer(rewardsIssuer)
-            .getAllocationData(_allocationID);
+            .getAllocationData(_allocationId);
 
         if (!isActive) {
             return 0;
@@ -106,10 +104,10 @@ contract MockRewardsManager is IRewardsManager {
 
     function updateAccRewardsPerSignal() external returns (uint256) {}
 
-    function takeRewards(address _allocationID) external returns (uint256) {
+    function takeRewards(address _allocationId) external returns (uint256) {
         address rewardsIssuer = msg.sender;
         (bool isActive, , , uint256 tokens, uint256 accRewardsPerAllocatedToken) = IRewardsIssuer(rewardsIssuer)
-            .getAllocationData(_allocationID);
+            .getAllocationData(_allocationId);
 
         if (!isActive) {
             return 0;
@@ -125,12 +123,12 @@ contract MockRewardsManager is IRewardsManager {
 
     function onSubgraphSignalUpdate(bytes32) external pure returns (uint256) {}
 
-    function onSubgraphAllocationUpdate(bytes32 _subgraphDeploymentID) external returns (uint256) {
-        if (subgraphs[_subgraphDeploymentID]) {
+    function onSubgraphAllocationUpdate(bytes32 _subgraphDeploymentId) external returns (uint256) {
+        if (subgraphs[_subgraphDeploymentId]) {
             return rewardsPerSubgraphAllocationUpdate;
         }
 
-        subgraphs[_subgraphDeploymentID] = true;
+        subgraphs[_subgraphDeploymentId] = true;
         return 0;
     }
 

@@ -20,28 +20,28 @@ contract DataServiceTest is HorizonStakingSharedTest {
     }
 
     function test_Constructor_WhenTheContractIsDeployedWithAValidController() external view {
-        _assert_delegationRatio(type(uint32).max);
-        _assert_provisionTokens_range(type(uint256).min, type(uint256).max);
-        _assert_verifierCut_range(type(uint32).min, uint32(PPMMath.MAX_PPM));
-        _assert_thawingPeriod_range(type(uint64).min, type(uint64).max);
+        _assertDelegationRatio(type(uint32).max);
+        _assertProvisionTokensRange(type(uint256).min, type(uint256).max);
+        _assertVerifierCutRange(type(uint32).min, uint32(PPMMath.MAX_PPM));
+        _assertThawingPeriodRange(type(uint64).min, type(uint64).max);
     }
 
     // -- Delegation ratio --
 
     function test_DelegationRatio_WhenSettingTheDelegationRatio(uint32 delegationRatio) external {
-        _assert_set_delegationRatio(delegationRatio);
+        _assertSetDelegationRatio(delegationRatio);
     }
 
     function test_DelegationRatio_WhenGettingTheDelegationRatio(uint32 ratio) external {
         dataService.setDelegationRatio(ratio);
-        _assert_delegationRatio(ratio);
+        _assertDelegationRatio(ratio);
     }
 
     // -- Provision tokens --
 
     function test_ProvisionTokens_WhenSettingAValidRange(uint256 min, uint256 max) external {
         vm.assume(min <= max);
-        _assert_set_provisionTokens_range(min, max);
+        _assertSetProvisionTokensRange(min, max);
     }
 
     function test_ProvisionTokens_RevertWhen_SettingAnInvalidRange(uint256 min, uint256 max) external {
@@ -53,7 +53,7 @@ contract DataServiceTest is HorizonStakingSharedTest {
 
     function test_ProvisionTokens_WhenGettingTheRange() external {
         dataService.setProvisionTokensRange(dataService.PROVISION_TOKENS_MIN(), dataService.PROVISION_TOKENS_MAX());
-        _assert_provisionTokens_range(dataService.PROVISION_TOKENS_MIN(), dataService.PROVISION_TOKENS_MAX());
+        _assertProvisionTokensRange(dataService.PROVISION_TOKENS_MIN(), dataService.PROVISION_TOKENS_MAX());
     }
 
     function test_ProvisionTokens_WhenGettingTheRangeWithAnOverridenGetter() external {
@@ -129,7 +129,7 @@ contract DataServiceTest is HorizonStakingSharedTest {
     function test_VerifierCut_WhenSettingAValidRange(uint32 min, uint32 max) external {
         vm.assume(min <= max);
         vm.assume(max <= uint32(PPMMath.MAX_PPM));
-        _assert_set_verifierCut_range(min, max);
+        _assertSetVerifierCutRange(min, max);
     }
 
     function test_VerifierCut_RevertWhen_SettingAnInvalidRange(uint32 min, uint32 max) external {
@@ -149,7 +149,7 @@ contract DataServiceTest is HorizonStakingSharedTest {
 
     function test_VerifierCut_WhenGettingTheRange() external {
         dataService.setVerifierCutRange(dataService.VERIFIER_CUT_MIN(), dataService.VERIFIER_CUT_MAX());
-        _assert_verifierCut_range(dataService.VERIFIER_CUT_MIN(), dataService.VERIFIER_CUT_MAX());
+        _assertVerifierCutRange(dataService.VERIFIER_CUT_MIN(), dataService.VERIFIER_CUT_MAX());
     }
 
     function test_VerifierCut_WhenGettingTheRangeWithAnOverridenGetter() external {
@@ -198,7 +198,7 @@ contract DataServiceTest is HorizonStakingSharedTest {
 
     function test_ThawingPeriod_WhenSettingAValidRange(uint64 min, uint64 max) external {
         vm.assume(min <= max);
-        _assert_set_thawingPeriod_range(min, max);
+        _assertSetThawingPeriodRange(min, max);
     }
 
     function test_ThawingPeriod_RevertWhen_SettingAnInvalidRange(uint64 min, uint64 max) external {
@@ -210,7 +210,7 @@ contract DataServiceTest is HorizonStakingSharedTest {
 
     function test_ThawingPeriod_WhenGettingTheRange() external {
         dataService.setThawingPeriodRange(dataService.THAWING_PERIOD_MIN(), dataService.THAWING_PERIOD_MAX());
-        _assert_thawingPeriod_range(dataService.THAWING_PERIOD_MIN(), dataService.THAWING_PERIOD_MAX());
+        _assertThawingPeriodRange(dataService.THAWING_PERIOD_MIN(), dataService.THAWING_PERIOD_MAX());
     }
 
     function test_ThawingPeriod_WhenGettingTheRangeWithAnOverridenGetter() external {
@@ -366,52 +366,52 @@ contract DataServiceTest is HorizonStakingSharedTest {
 
     // -- Assert functions --
 
-    function _assert_set_delegationRatio(uint32 ratio) internal {
+    function _assertSetDelegationRatio(uint32 ratio) internal {
         vm.expectEmit();
         emit ProvisionManager.DelegationRatioSet(ratio);
         dataService.setDelegationRatio(ratio);
-        _assert_delegationRatio(ratio);
+        _assertDelegationRatio(ratio);
     }
 
-    function _assert_delegationRatio(uint32 ratio) internal view {
+    function _assertDelegationRatio(uint32 ratio) internal view {
         uint32 _delegationRatio = dataService.getDelegationRatio();
         assertEq(_delegationRatio, ratio);
     }
 
-    function _assert_set_provisionTokens_range(uint256 min, uint256 max) internal {
+    function _assertSetProvisionTokensRange(uint256 min, uint256 max) internal {
         vm.expectEmit();
         emit ProvisionManager.ProvisionTokensRangeSet(min, max);
         dataService.setProvisionTokensRange(min, max);
-        _assert_provisionTokens_range(min, max);
+        _assertProvisionTokensRange(min, max);
     }
 
-    function _assert_provisionTokens_range(uint256 min, uint256 max) internal view {
+    function _assertProvisionTokensRange(uint256 min, uint256 max) internal view {
         (uint256 _min, uint256 _max) = dataService.getProvisionTokensRange();
         assertEq(_min, min);
         assertEq(_max, max);
     }
 
-    function _assert_set_verifierCut_range(uint32 min, uint32 max) internal {
+    function _assertSetVerifierCutRange(uint32 min, uint32 max) internal {
         vm.expectEmit();
         emit ProvisionManager.VerifierCutRangeSet(min, max);
         dataService.setVerifierCutRange(min, max);
-        _assert_verifierCut_range(min, max);
+        _assertVerifierCutRange(min, max);
     }
 
-    function _assert_verifierCut_range(uint32 min, uint32 max) internal view {
+    function _assertVerifierCutRange(uint32 min, uint32 max) internal view {
         (uint32 _min, uint32 _max) = dataService.getVerifierCutRange();
         assertEq(_min, min);
         assertEq(_max, max);
     }
 
-    function _assert_set_thawingPeriod_range(uint64 min, uint64 max) internal {
+    function _assertSetThawingPeriodRange(uint64 min, uint64 max) internal {
         vm.expectEmit();
         emit ProvisionManager.ThawingPeriodRangeSet(min, max);
         dataService.setThawingPeriodRange(min, max);
-        _assert_thawingPeriod_range(min, max);
+        _assertThawingPeriodRange(min, max);
     }
 
-    function _assert_thawingPeriod_range(uint64 min, uint64 max) internal view {
+    function _assertThawingPeriodRange(uint64 min, uint64 max) internal view {
         (uint64 _min, uint64 _max) = dataService.getThawingPeriodRange();
         assertEq(_min, min);
         assertEq(_max, max);

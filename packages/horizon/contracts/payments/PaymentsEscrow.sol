@@ -38,6 +38,7 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
     mapping(address payer => mapping(address collector => mapping(address receiver => IPaymentsEscrow.EscrowAccount escrowAccount)))
         public escrowAccounts;
 
+    // forge-lint: disable-next-item(unwrapped-modifier-logic)
     /**
      * @notice Modifier to prevent function execution when contract is paused
      * @dev Reverts if the controller indicates the contract is paused

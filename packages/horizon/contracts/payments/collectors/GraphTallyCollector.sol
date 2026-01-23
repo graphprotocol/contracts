@@ -5,6 +5,7 @@ pragma solidity 0.8.27;
 // solhint-disable gas-small-strings
 // solhint-disable gas-strict-inequalities
 // solhint-disable function-max-lines
+// forge-lint: disable-start(mixed-case-function, mixed-case-variable)
 
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { IGraphTallyCollector } from "@graphprotocol/interfaces/contracts/horizon/IGraphTallyCollector.sol";

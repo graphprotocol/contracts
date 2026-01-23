@@ -4,6 +4,7 @@ pragma solidity 0.8.27;
 
 // TODO: Re-enable and fix issues when publishing a new version
 // solhint-disable function-max-lines, gas-strict-inequalities
+// forge-lint: disable-start(mixed-case-variable, mixed-case-function, unwrapped-modifier-logic)
 
 import { ICuration } from "@graphprotocol/interfaces/contracts/contracts/curation/ICuration.sol";
 import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";

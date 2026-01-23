@@ -3,6 +3,7 @@ pragma solidity 0.8.27;
 
 // TODO: Re-enable and fix issues when publishing a new version
 // solhint-disable gas-strict-inequalities
+// forge-lint: disable-start(mixed-case-variable)
 
 import { IAttestation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAttestation.sol";
 

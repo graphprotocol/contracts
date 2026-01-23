@@ -48,6 +48,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     /// @dev Minimum amount of delegation.
     uint256 private constant MIN_DELEGATION = 1e18;
 
+    // forge-lint: disable-next-item(unwrapped-modifier-logic)
     /**
      * @notice Checks that the caller is authorized to operate over a provision.
      * @param serviceProvider The address of the service provider.
@@ -61,6 +62,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         _;
     }
 
+    // forge-lint: disable-next-item(unwrapped-modifier-logic)
     /**
      * @notice Checks that the caller is authorized to operate over a provision or it is the verifier.
      * @param serviceProvider The address of the service provider.
@@ -1045,6 +1047,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         );
         require(thawRequestList.count < MAX_THAW_REQUESTS, HorizonStakingTooManyThawRequests());
 
+        // forge-lint: disable-next-item(asm-keccak256)
         bytes32 thawRequestId = keccak256(abi.encodePacked(_serviceProvider, _verifier, _owner, thawRequestList.nonce));
         ThawRequest storage thawRequest = _getThawRequest(_requestType, thawRequestId);
         thawRequest.shares = _shares;

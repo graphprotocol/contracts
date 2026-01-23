@@ -2,6 +2,9 @@
 
 pragma solidity 0.8.27;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// forge-lint: disable-start(unsafe-typecast)
+
 import { LibFixedMath } from "../../libraries/LibFixedMath.sol";
 
 /**

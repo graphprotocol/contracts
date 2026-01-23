@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "forge-std/Test.sol";
-
 import { MathUtils } from "@graphprotocol/horizon/contracts/libraries/MathUtils.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 import { IDisputeManager } from "@graphprotocol/interfaces/contracts/subgraph-service/IDisputeManager.sol";
@@ -169,14 +167,14 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
             stakeSnapshot
         );
 
-        bytes32 _disputeID = disputeManager.createQueryDispute(_attestationData);
+        bytes32 _disputeId = disputeManager.createQueryDispute(_attestationData);
 
         // Check that the dispute was created and that it has the correct ID
-        assertTrue(disputeManager.isDisputeCreated(_disputeID), "Dispute should be created.");
-        assertEq(expectedDisputeId, _disputeID, "Dispute ID should match");
+        assertTrue(disputeManager.isDisputeCreated(_disputeId), "Dispute should be created.");
+        assertEq(expectedDisputeId, _disputeId, "Dispute ID should match");
 
         // Check dispute values
-        IDisputeManager.Dispute memory dispute = _getDispute(_disputeID);
+        IDisputeManager.Dispute memory dispute = _getDispute(_disputeId);
         assertEq(dispute.indexer, indexer, "Indexer should match");
         assertEq(dispute.fisherman, fisherman, "Fisherman should match");
         assertEq(dispute.deposit, disputeDeposit, "Deposit should match");
@@ -202,7 +200,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
             "Fisherman should be charged the dispute deposit"
         );
 
-        return _disputeID;
+        return _disputeId;
     }
 
     struct Balances {
@@ -280,13 +278,14 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         return _disputeId;
     }
 
-    struct BeforeValues_CreateQueryDisputeConflict {
+    struct BeforeValuesCreateQueryDisputeConflict {
         IAttestation.State attestation1;
         IAttestation.State attestation2;
         address indexer1;
         address indexer2;
         uint256 stakeSnapshot1;
         uint256 stakeSnapshot2;
+        uint256 disputeDeposit;
     }
 
     function _createQueryDisputeConflict(
@@ -295,18 +294,19 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
     ) internal returns (bytes32, bytes32) {
         (, address fisherman, ) = vm.readCallers();
 
-        BeforeValues_CreateQueryDisputeConflict memory beforeValues;
+        BeforeValuesCreateQueryDisputeConflict memory beforeValues;
         beforeValues.attestation1 = Attestation.parse(attestationData1);
         beforeValues.attestation2 = Attestation.parse(attestationData2);
         beforeValues.indexer1 = disputeManager.getAttestationIndexer(beforeValues.attestation1);
         beforeValues.indexer2 = disputeManager.getAttestationIndexer(beforeValues.attestation2);
         beforeValues.stakeSnapshot1 = disputeManager.getStakeSnapshot(beforeValues.indexer1);
         beforeValues.stakeSnapshot2 = disputeManager.getStakeSnapshot(beforeValues.indexer2);
+        beforeValues.disputeDeposit = disputeManager.disputeDeposit();
 
         uint256 beforeFishermanBalance = token.balanceOf(fisherman);
 
         // Approve the dispute deposit
-        token.approve(address(disputeManager), disputeDeposit);
+        token.approve(address(disputeManager), beforeValues.disputeDeposit);
 
         bytes32 expectedDisputeId1 = keccak256(
             abi.encodePacked(
@@ -335,7 +335,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
             expectedDisputeId1,
             beforeValues.indexer1,
             fisherman,
-            disputeDeposit / 2,
+            beforeValues.disputeDeposit / 2,
             beforeValues.attestation1.subgraphDeploymentId,
             attestationData1,
             cancellableAt,
@@ -346,7 +346,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
             expectedDisputeId2,
             beforeValues.indexer2,
             fisherman,
-            disputeDeposit / 2,
+            beforeValues.disputeDeposit / 2,
             beforeValues.attestation2.subgraphDeploymentId,
             attestationData2,
             cancellableAt,
@@ -368,7 +368,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         IDisputeManager.Dispute memory dispute1 = _getDispute(_disputeId1);
         assertEq(dispute1.indexer, beforeValues.indexer1, "Indexer 1 should match");
         assertEq(dispute1.fisherman, fisherman, "Fisherman 1 should match");
-        assertEq(dispute1.deposit, disputeDeposit / 2, "Deposit 1 should match");
+        assertEq(dispute1.deposit, beforeValues.disputeDeposit / 2, "Deposit 1 should match");
         assertEq(dispute1.relatedDisputeId, _disputeId2, "Related dispute ID 1 should be the id of the other dispute");
         assertEq(
             uint8(dispute1.disputeType),
@@ -386,7 +386,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         IDisputeManager.Dispute memory dispute2 = _getDispute(_disputeId2);
         assertEq(dispute2.indexer, beforeValues.indexer2, "Indexer 2 should match");
         assertEq(dispute2.fisherman, fisherman, "Fisherman 2 should match");
-        assertEq(dispute2.deposit, disputeDeposit / 2, "Deposit 2 should match");
+        assertEq(dispute2.deposit, beforeValues.disputeDeposit / 2, "Deposit 2 should match");
         assertEq(dispute2.relatedDisputeId, _disputeId1, "Related dispute ID 2 should be the id of the other dispute");
         assertEq(
             uint8(dispute2.disputeType),
@@ -405,7 +405,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         uint256 afterFishermanBalance = token.balanceOf(fisherman);
         assertEq(
             afterFishermanBalance,
-            beforeFishermanBalance - disputeDeposit,
+            beforeFishermanBalance - beforeValues.disputeDeposit,
             "Fisherman should be charged the dispute deposit"
         );
 
@@ -435,7 +435,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
             _disputeId,
             dispute.indexer,
             dispute.fisherman,
-            dispute.deposit + fishermanReward
+            disputeDeposit + fishermanReward
         );
 
         // Accept the dispute
@@ -758,34 +758,34 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
      */
 
     function _createAttestationReceipt(
-        bytes32 requestCID,
-        bytes32 responseCID,
+        bytes32 requestCid,
+        bytes32 responseCid,
         bytes32 subgraphDeploymentId
     ) internal pure returns (IAttestation.Receipt memory receipt) {
         return
             IAttestation.Receipt({
-                requestCID: requestCID,
-                responseCID: responseCID,
+                requestCID: requestCid,
+                responseCID: responseCid,
                 subgraphDeploymentId: subgraphDeploymentId
             });
     }
 
     function _createConflictingAttestations(
-        bytes32 requestCID,
+        bytes32 requestCid,
         bytes32 subgraphDeploymentId,
-        bytes32 responseCID1,
-        bytes32 responseCID2,
+        bytes32 responseCid1,
+        bytes32 responseCid2,
         uint256 signer1,
         uint256 signer2
     ) internal view returns (bytes memory attestationData1, bytes memory attestationData2) {
         IAttestation.Receipt memory receipt1 = _createAttestationReceipt(
-            requestCID,
-            responseCID1,
+            requestCid,
+            responseCid1,
             subgraphDeploymentId
         );
         IAttestation.Receipt memory receipt2 = _createAttestationReceipt(
-            requestCID,
-            responseCID2,
+            requestCid,
+            responseCid2,
             subgraphDeploymentId
         );
 
@@ -834,7 +834,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
             });
     }
 
-    function _setStorage_SubgraphService(address _subgraphService) internal {
+    function _setStorageSubgraphService(address _subgraphService) internal {
         vm.store(address(disputeManager), bytes32(uint256(51)), bytes32(uint256(uint160(_subgraphService))));
     }
 }

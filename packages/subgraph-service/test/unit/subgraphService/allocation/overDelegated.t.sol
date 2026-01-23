@@ -1,13 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "forge-std/Test.sol";
-
-import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
-import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
-import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
-
-import { Allocation } from "../../../../contracts/libraries/Allocation.sol";
 import { SubgraphServiceTest } from "../SubgraphService.t.sol";
 
 contract SubgraphServiceAllocationOverDelegatedTest is SubgraphServiceTest {
@@ -20,8 +13,8 @@ contract SubgraphServiceAllocationOverDelegatedTest is SubgraphServiceTest {
         uint256 undelegationTokens
     ) public useIndexer {
         // Use minimum provision tokens
-        uint256 indexerTokens = minimumProvisionTokens;
-        uint256 allocationTokens = indexerTokens * delegationRatio;
+        uint256 indexerTokens = MINIMUM_PROVISION_TOKENS;
+        uint256 allocationTokens = indexerTokens * DELEGATION_RATIO;
         // Bound delegation tokens to be over delegated
         delegationTokens = bound(delegationTokens, allocationTokens, MAX_TOKENS);
         // Assume undelegation tokens to still leave indexer over delegated
@@ -30,7 +23,7 @@ contract SubgraphServiceAllocationOverDelegatedTest is SubgraphServiceTest {
 
         // Create provision
         token.approve(address(staking), indexerTokens);
-        _createProvision(users.indexer, indexerTokens, fishermanRewardPercentage, disputePeriod);
+        _createProvision(users.indexer, indexerTokens, FISHERMAN_REWARD_PERCENTAGE, DISPUTE_PERIOD);
         _register(users.indexer, abi.encode("url", "geoHash", address(0)));
 
         // Delegate so that indexer is over allocated
@@ -43,7 +36,7 @@ contract SubgraphServiceAllocationOverDelegatedTest is SubgraphServiceTest {
         bytes memory data = _createSubgraphAllocationData(
             users.indexer,
             subgraphDeployment,
-            allocationIDPrivateKey,
+            allocationIdPrivateKey,
             allocationTokens
         );
         _startService(users.indexer, data);

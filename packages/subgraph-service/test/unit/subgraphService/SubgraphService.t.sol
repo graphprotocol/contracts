@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "forge-std/Test.sol";
-
 import { IDataService } from "@graphprotocol/interfaces/contracts/data-service/IDataService.sol";
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
@@ -18,7 +16,6 @@ import { ILegacyAllocation } from "@graphprotocol/interfaces/contracts/subgraph-
 
 import { Allocation } from "../../../contracts/libraries/Allocation.sol";
 import { AllocationManager } from "../../../contracts/utilities/AllocationManager.sol";
-import { LegacyAllocation } from "../../../contracts/libraries/LegacyAllocation.sol";
 import { SubgraphServiceSharedTest } from "../shared/SubgraphServiceShared.t.sol";
 
 contract SubgraphServiceTest is SubgraphServiceSharedTest {
@@ -145,7 +142,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
             assertEq(afterAllocatedTokens, beforeAllocatedTokens - allocatedTokensDelta);
         }
         assertEq(afterAllocation.tokens, _tokens);
-        assertEq(afterAllocation.accRewardsPerAllocatedToken, rewardsPerSubgraphAllocationUpdate);
+        assertEq(afterAllocation.accRewardsPerAllocatedToken, REWARDS_PER_SUBGRAPH_ALLOCATION_UPDATE);
         assertEq(afterAllocation.accRewardsPending, afterAccRewardsPending);
         assertEq(afterSubgraphAllocatedTokens, _tokens);
     }
@@ -292,7 +289,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         IAllocation.State memory allocation = subgraphService.getAllocation(allocationId);
         bytes32 subgraphDeploymentId = allocation.subgraphDeploymentId;
 
-        address payer = graphTallyCollector.isAuthorized(signedRav.rav.payer, _recoverRAVSigner(signedRav))
+        address payer = graphTallyCollector.isAuthorized(signedRav.rav.payer, _recoverRavSigner(signedRav))
             ? signedRav.rav.payer
             : address(0);
 
@@ -486,15 +483,15 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         }
     }
 
-    function _migrateLegacyAllocation(address _indexer, address _allocationId, bytes32 _subgraphDeploymentID) internal {
+    function _migrateLegacyAllocation(address _indexer, address _allocationId, bytes32 _subgraphDeploymentId) internal {
         vm.expectEmit(address(subgraphService));
-        emit AllocationManager.LegacyAllocationMigrated(_indexer, _allocationId, _subgraphDeploymentID);
+        emit AllocationManager.LegacyAllocationMigrated(_indexer, _allocationId, _subgraphDeploymentId);
 
-        subgraphService.migrateLegacyAllocation(_indexer, _allocationId, _subgraphDeploymentID);
+        subgraphService.migrateLegacyAllocation(_indexer, _allocationId, _subgraphDeploymentId);
 
         ILegacyAllocation.State memory afterLegacyAllocation = subgraphService.getLegacyAllocation(_allocationId);
         assertEq(afterLegacyAllocation.indexer, _indexer);
-        assertEq(afterLegacyAllocation.subgraphDeploymentId, _subgraphDeploymentID);
+        assertEq(afterLegacyAllocation.subgraphDeploymentId, _subgraphDeploymentId);
     }
 
     /*
@@ -507,7 +504,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         resetPrank(_indexer);
         token.approve(address(staking), _tokens);
         staking.stakeTo(_indexer, _tokens);
-        staking.provision(_indexer, address(subgraphService), _tokens, fishermanRewardPercentage, disputePeriod);
+        staking.provision(_indexer, address(subgraphService), _tokens, FISHERMAN_REWARD_PERCENTAGE, DISPUTE_PERIOD);
         _register(_indexer, abi.encode("url", "geoHash", address(0)));
 
         (address newIndexerAllocationId, uint256 newIndexerAllocationKey) = makeAddrAndKey("newIndexerAllocationId");
@@ -522,9 +519,9 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
      * PRIVATE FUNCTIONS
      */
 
-    function _recoverRAVSigner(IGraphTallyCollector.SignedRAV memory _signedRAV) private view returns (address) {
-        bytes32 messageHash = graphTallyCollector.encodeRAV(_signedRAV.rav);
-        return ECDSA.recover(messageHash, _signedRAV.signature);
+    function _recoverRavSigner(IGraphTallyCollector.SignedRAV memory _signedRav) private view returns (address) {
+        bytes32 messageHash = graphTallyCollector.encodeRAV(_signedRav.rav);
+        return ECDSA.recover(messageHash, _signedRav.signature);
     }
 
     function _getClaimList(address _indexer) private view returns (ILinkedList.List memory) {
@@ -547,7 +544,8 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
     // - uint8 indexingStatus - status (failed, syncing, etc). Mapping maintained by indexer agent.
     // - uint8 errorCode - Again up to indexer agent, but seems sensible to use 0 if no error, and error codes for anything else.
     // - uint256 errorBlockNumber - Block number (indexed chain) where the indexing error happens. 0 if no error.
-    function _getHardcodedPOIMetadata() internal view returns (bytes memory) {
+    function _getHardcodedPoiMetadata() internal view returns (bytes memory) {
+        // forge-lint: disable-next-line(unsafe-typecast)
         return abi.encode(block.number, bytes32("PUBLIC_POI1"), uint8(0), uint8(0), uint256(0));
     }
 }

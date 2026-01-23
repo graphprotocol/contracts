@@ -2,6 +2,9 @@
 
 pragma solidity 0.8.27;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// forge-lint: disable-start(mixed-case-variable)
+
 import { IHorizonStakingExtension } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingExtension.sol";
 import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";

@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "forge-std/Test.sol";
-
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 import { GraphDirectory } from "@graphprotocol/horizon/contracts/utilities/GraphDirectory.sol";
 import { UnsafeUpgrades } from "@openzeppelin/foundry-upgrades/Upgrades.sol";
@@ -67,16 +65,16 @@ contract DisputeManagerConstructorTest is DisputeManagerTest {
         address proxy = _initializeDisputeManager(
             disputeManagerImplementation,
             users.arbitrator,
-            disputePeriod,
-            disputeDeposit,
+            DISPUTE_PERIOD,
+            DISPUTE_DEPOSIT,
             fishermanRewardPercentage,
             maxSlashingPercentage
         );
 
         DisputeManager disputeManager = DisputeManager(proxy);
         assertEq(disputeManager.arbitrator(), users.arbitrator);
-        assertEq(disputeManager.disputePeriod(), disputePeriod);
-        assertEq(disputeManager.disputeDeposit(), disputeDeposit);
+        assertEq(disputeManager.disputePeriod(), DISPUTE_PERIOD);
+        assertEq(disputeManager.disputeDeposit(), DISPUTE_DEPOSIT);
         assertEq(disputeManager.fishermanRewardCut(), fishermanRewardPercentage);
     }
 
@@ -96,10 +94,10 @@ contract DisputeManagerConstructorTest is DisputeManagerTest {
         _initializeDisputeManager(
             disputeManagerImplementation,
             address(0),
-            disputePeriod,
-            disputeDeposit,
-            fishermanRewardPercentage,
-            maxSlashingPercentage
+            DISPUTE_PERIOD,
+            DISPUTE_DEPOSIT,
+            FISHERMAN_REWARD_PERCENTAGE,
+            MAX_SLASHING_PERCENTAGE
         );
     }
 
@@ -111,9 +109,9 @@ contract DisputeManagerConstructorTest is DisputeManagerTest {
             disputeManagerImplementation,
             users.arbitrator,
             0,
-            disputeDeposit,
-            fishermanRewardPercentage,
-            maxSlashingPercentage
+            DISPUTE_DEPOSIT,
+            FISHERMAN_REWARD_PERCENTAGE,
+            MAX_SLASHING_PERCENTAGE
         );
     }
 
@@ -127,10 +125,10 @@ contract DisputeManagerConstructorTest is DisputeManagerTest {
         _initializeDisputeManager(
             disputeManagerImplementation,
             users.arbitrator,
-            disputePeriod,
+            DISPUTE_PERIOD,
             0,
-            fishermanRewardPercentage,
-            maxSlashingPercentage
+            FISHERMAN_REWARD_PERCENTAGE,
+            MAX_SLASHING_PERCENTAGE
         );
     }
 
@@ -147,10 +145,10 @@ contract DisputeManagerConstructorTest is DisputeManagerTest {
         _initializeDisputeManager(
             disputeManagerImplementation,
             users.arbitrator,
-            disputePeriod,
-            disputeDeposit,
+            DISPUTE_PERIOD,
+            DISPUTE_DEPOSIT,
             _fishermanRewardPercentage,
-            maxSlashingPercentage
+            MAX_SLASHING_PERCENTAGE
         );
     }
 
@@ -167,9 +165,9 @@ contract DisputeManagerConstructorTest is DisputeManagerTest {
         _initializeDisputeManager(
             disputeManagerImplementation,
             users.arbitrator,
-            disputePeriod,
-            disputeDeposit,
-            fishermanRewardPercentage,
+            DISPUTE_PERIOD,
+            DISPUTE_DEPOSIT,
+            FISHERMAN_REWARD_PERCENTAGE,
             _maxSlashingPercentage
         );
     }

@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.27;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// forge-lint: disable-start(mixed-case-variable)
+
 /**
  * @title AttestationManagerStorage
  * @author Edge & Node

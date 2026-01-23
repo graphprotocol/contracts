@@ -5,6 +5,7 @@ pragma solidity 0.8.27;
 // solhint-disable gas-indexed-events
 // solhint-disable gas-small-strings
 // solhint-disable function-max-lines
+// forge-lint: disable-start(mixed-case-variable, mixed-case-function)
 
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
