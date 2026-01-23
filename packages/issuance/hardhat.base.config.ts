@@ -11,6 +11,7 @@ export const issuanceSolidityConfig = {
       runs: 100,
     },
     evmVersion: 'cancun' as const,
+    viaIR: true,
   },
 }
 

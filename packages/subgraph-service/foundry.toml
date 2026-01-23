@@ -7,3 +7,4 @@ cache_path  = 'cache_forge'
 fs_permissions = [{ access = "read", path = "./"}]
 optimizer = true
 optimizer_runs = 100
+via_ir = true
