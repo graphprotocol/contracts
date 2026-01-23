@@ -52,6 +52,7 @@ bin/
 .env
 .DS_Store
 .vscode
+core
 
 # Coverage and other reports
 coverage/
