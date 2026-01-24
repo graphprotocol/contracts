@@ -228,7 +228,14 @@ The linting configuration follows a hierarchical structure where packages inheri
 - **Root Configuration**: `.markdownlint.json` - Markdown formatting and style rules
 - **Direct Command**: `npx markdownlint '**/*.md' --fix`
 - **Ignore Files**: `.markdownlintignore` automatically picked up by markdownlint CLI
-- **Global Application**: Applied to all markdown files across the monorepo
+- **Package Inheritance**: Packages that need Markdownlint must have a `.markdownlint.json` file that extends the root config
+- **Example Package Config**:
+
+  ```json
+  {
+    "extends": "../../.markdownlint.json"
+  }
+  ```
 
 ### Linting Scripts
 
@@ -303,13 +310,14 @@ The repository enforces TODO comment resolution to maintain code quality:
 | ESLint       | `eslint.config.mjs`   | Auto-inherited                   | Built into config            |
 | Prettier     | `prettier.config.cjs` | `prettier.config.cjs` (inherits) | `.prettierignore`            |
 | Solhint      | `.solhint.json`       | `.solhint.json` (array extends)  | N/A                          |
-| Markdownlint | `.markdownlint.json`  | Auto-inherited                   | `.markdownlintignore`        |
+| Markdownlint | `.markdownlint.json`  | `.markdownlint.json` (extends)   | `.markdownlintignore`        |
 | Lint-staged  | `package.json`        | N/A                              | `scripts/lint-staged-run.sh` |
 
 ### Troubleshooting
 
 - **ESLint not finding config**: ESLint searches up parent directories automatically - no local config needed
 - **Prettier not working**: Packages need a `prettier.config.cjs` that inherits from root config
+- **Markdownlint not working**: Packages need a `.markdownlint.json` that extends root config
 - **Solhint missing rules**: If extending a parent config, use array format: `["solhint:recommended", "./../../.solhint.json"]` to ensure all rules are loaded
 - **Solhint inheritance not working**: Nested extends don't work - parent config's `solhint:recommended` won't be inherited with simple string extends
 - **Solhint rule reference**: Use `npx solhint list-rules` to see all available rules and their descriptions
