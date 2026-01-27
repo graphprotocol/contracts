@@ -1,0 +1,13 @@
+{
+  "421614": {
+    "GraphIssuanceProxyAdmin": {
+      "address": "0x69ccb949a45dbe759defe7cb9f5e62031a3e28da"
+    },
+    "RewardsEligibilityOracle": {
+      "address": "0x6d47902c3358e0bcc06171de935cb23d8e276fdd",
+      "proxy": "transparent",
+      "proxyAdmin": "0x69ccb949a45dbe759defe7cb9f5e62031a3e28da",
+      "implementation": "0xad4b5218684ed8553fbad3f57c2b7a0a356cca13"
+    }
+  }
+}

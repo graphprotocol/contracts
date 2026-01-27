@@ -92,7 +92,7 @@
     "RewardsManager": {
       "address": "0x1F49caE7669086c8ba53CC35d1E9f80176d67E79",
       "proxy": "graph",
-      "implementation": "0x856843F6409a8b3A0d4aaE67313037FED02bBBFf"
+      "implementation": "0xb6a641879F195448F3Da10fF3b3C4541808a9342"
     },
     "HorizonStaking": {
       "address": "0x865365C425f3A593Ffe698D9c4E6707D14d51e08",
