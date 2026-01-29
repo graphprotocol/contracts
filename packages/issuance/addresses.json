@@ -1,13 +1,28 @@
 {
+  "42161": {},
   "421614": {
-    "GraphIssuanceProxyAdmin": {
-      "address": "0x69ccb949a45dbe759defe7cb9f5e62031a3e28da"
+    "NetworkOperator": {
+      "address": "0xade6b8eb69a49b56929c1d4f4b428d791861db6f"
     },
     "RewardsEligibilityOracle": {
-      "address": "0x6d47902c3358e0bcc06171de935cb23d8e276fdd",
+      "address": "0x62c2305739cc75f19a3a6d52387ceb3690d99a99",
       "proxy": "transparent",
-      "proxyAdmin": "0x69ccb949a45dbe759defe7cb9f5e62031a3e28da",
-      "implementation": "0xad4b5218684ed8553fbad3f57c2b7a0a356cca13"
+      "proxyAdmin": "0xa7bebc2e956745c9f95dfa20b9bdb14e1291c2f4",
+      "implementation": "0x4eb1de98440a39339817bdeeb3b3fff410b0b924",
+      "implementationDeployment": {
+        "txHash": "0x9d8ab7bdc68280704f1273ba4696099d87006cda24f0132aa6c2255a5433d840",
+        "argsData": "0x000000000000000000000000f8c05dcf59e8b28bfd5eed176c562bebcfc7ac04",
+        "bytecodeHash": "0x22bd24cad779155253a7306e7cdab79d124e7ce5e8184842274045e25d91bde8",
+        "blockNumber": 237989268,
+        "timestamp": "2026-01-29T18:47:05.000Z",
+        "verified": "https://sepolia.arbiscan.io/address/0x4eb1de98440a39339817bdeeb3b3fff410b0b924#code"
+      },
+      "proxyDeployment": {
+        "txHash": "0xc898da08abda88d2af21afde07dd37aa68ddbe843bfaff7db318a878786df91c",
+        "argsData": "0x0000000000000000000000008f6827bd2c17db7cf65913680adf7562acb6e5c100000000000000000000000072ee30d43fb5a90b3fe983156c5d2fbe6f6d07b300000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000024c4d66de800000000000000000000000072ee30d43fb5a90b3fe983156c5d2fbe6f6d07b300000000000000000000000000000000000000000000000000000000",
+        "bytecodeHash": "0x6b4ba3015667741610274b7c196ec5d7767235d85865912f7ac680eac3011c54",
+        "blockNumber": 237961353
+      }
     }
   }
 }

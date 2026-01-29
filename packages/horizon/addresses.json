@@ -92,7 +92,18 @@
     "RewardsManager": {
       "address": "0x1F49caE7669086c8ba53CC35d1E9f80176d67E79",
       "proxy": "graph",
-      "implementation": "0xb6a641879F195448F3Da10fF3b3C4541808a9342"
+      "implementation": "0x3e5d4a3c983722847305d392ec2da2b434bbc1a1",
+      "proxyDeployment": {
+        "verified": "https://sepolia.arbiscan.io/address/0x1F49caE7669086c8ba53CC35d1E9f80176d67E79#code"
+      },
+      "implementationDeployment": {
+        "txHash": "0xbbe454064263e5df92ef557be365de5ebbcb2124e4819797420d69d6ab0ca362",
+        "argsData": "0x",
+        "bytecodeHash": "0xedcb2bf7e0828950e2eba564e4a42bef05d886a98e1c9961ad518f9435edb434",
+        "blockNumber": 237979471,
+        "timestamp": "2026-01-29T18:04:45.000Z",
+        "verified": "https://sepolia.arbiscan.io/address/0x3e5d4a3c983722847305d392ec2da2b434bbc1a1#code"
+      }
     },
     "HorizonStaking": {
       "address": "0x865365C425f3A593Ffe698D9c4E6707D14d51e08",
