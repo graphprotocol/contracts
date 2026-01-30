@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity 0.8.27;
+pragma solidity 0.8.33;
 
 import { IssuanceAllocator } from "../../allocate/IssuanceAllocator.sol";
 
@@ -25,7 +25,7 @@ contract IssuanceAllocatorTestHarness is IssuanceAllocator {
      * @param allocatedRate Total rate allocated to non-default targets
      * @param toBlockNumber Block number distributing to
      */
-    function exposed_distributePendingProportionally(
+    function exposedDistributePendingProportionally(
         uint256 available,
         uint256 allocatedRate,
         uint256 toBlockNumber
@@ -41,7 +41,7 @@ contract IssuanceAllocatorTestHarness is IssuanceAllocator {
      * @param allocatedTotal Total amount allocated to non-default targets at full rate
      * @param toBlockNumber Block number distributing to
      */
-    function exposed_distributePendingWithFullRate(
+    function exposedDistributePendingWithFullRate(
         uint256 blocks,
         uint256 available,
         uint256 allocatedTotal,

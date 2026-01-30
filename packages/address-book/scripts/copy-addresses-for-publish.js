@@ -23,6 +23,10 @@ const FILES_TO_COPY = [
     target: 'src/horizon/addresses.json',
   },
   {
+    source: '../../../issuance/addresses.json',
+    target: 'src/issuance/addresses.json',
+  },
+  {
     source: '../../../subgraph-service/addresses.json',
     target: 'src/subgraph-service/addresses.json',
   },

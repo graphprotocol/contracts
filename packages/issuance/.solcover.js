@@ -1,5 +1,5 @@
 module.exports = {
-  skipFiles: ['test/'],
+  skipFiles: ['testing/'],
   providerOptions: {
     mnemonic: 'myth like bonus scare over problem client lizard pioneer submit female collect',
     network_id: 1337,

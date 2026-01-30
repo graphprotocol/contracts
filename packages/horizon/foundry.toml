@@ -7,3 +7,10 @@ cache_path  = 'cache_forge'
 fs_permissions = [{ access = "read", path = "./"}]
 optimizer = true
 optimizer_runs = 100
+
+# Exclude test files from coverage reports
+no_match_coverage = "(^test/|/mocks/)"
+
+# Lint configuration
+[lint]
+ignore = ["contracts/mocks/imports.sol"]

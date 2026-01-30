@@ -27,7 +27,9 @@
     "./utils": {
       "types": "./dist/src/utils.d.ts",
       "default": "./dist/src/utils.js"
-    }
+    },
+    "./artifacts/*": "./artifacts/*",
+    "./contracts/*": "./contracts/*"
   },
   "files": [
     "artifacts/**/*",
@@ -57,7 +59,9 @@
   "devDependencies": {
     "@ethersproject/abi": "5.7.0",
     "@ethersproject/providers": "5.7.2",
+    "@nomicfoundation/hardhat-ethers": "^3.0.0",
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@nomicfoundation/hardhat-verify": "^2.0.0",
     "@openzeppelin/contracts": "3.4.2",
     "@openzeppelin/contracts-upgradeable": "3.4.2",
     "@typechain/ethers-v5": "^10.2.1",
