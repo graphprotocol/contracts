@@ -11,7 +11,7 @@ import { NetworkFixture } from '../lib/fixtures'
 
 const ISSUANCE_PER_BLOCK = toBN('200000000000000000000') // 200 GRT every block
 
-describe.skip('Rewards - Configuration', () => {
+describe('Rewards - Configuration', () => {
   const graph = hre.graph()
   let governor: SignerWithAddress
   let indexer1: SignerWithAddress

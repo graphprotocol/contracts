@@ -8,7 +8,7 @@ import hre from 'hardhat'
 
 import { NetworkFixture } from '../lib/fixtures'
 
-describe.skip('RewardsManager interfaces', () => {
+describe('RewardsManager interfaces', () => {
   const graph = hre.graph()
   let governor: SignerWithAddress
 

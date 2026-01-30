@@ -1115,7 +1115,7 @@ describe('Rewards', () => {
         expect(afterTokenSupply).gt(beforeTokenSupply)
       })
 
-      it.skip('should reclaim denied-period rewards via onSubgraphAllocationUpdate', async function () {
+      it('should reclaim denied-period rewards via onSubgraphAllocationUpdate', async function () {
         // Setup reclaim address
         const reclaimWallet = assetHolder
         await rewardsManager.connect(governor).setReclaimAddress(SUBGRAPH_DENIED, reclaimWallet.address)

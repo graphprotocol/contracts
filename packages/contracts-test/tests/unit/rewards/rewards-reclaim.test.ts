@@ -18,7 +18,7 @@ const INDEXER_INELIGIBLE = utils.id('INDEXER_INELIGIBLE')
 const SUBGRAPH_DENIED = utils.id('SUBGRAPH_DENIED')
 const CLOSE_ALLOCATION = utils.id('CLOSE_ALLOCATION')
 
-describe.skip('Rewards - Reclaim Addresses', () => {
+describe('Rewards - Reclaim Addresses', () => {
   const graph = hre.graph()
   let curator1: SignerWithAddress
   let governor: SignerWithAddress

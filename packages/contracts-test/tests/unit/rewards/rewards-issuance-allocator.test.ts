@@ -9,7 +9,7 @@ import hre from 'hardhat'
 
 import { NetworkFixture } from '../lib/fixtures'
 
-describe.skip('Rewards - Issuance Allocator', () => {
+describe('Rewards - Issuance Allocator', () => {
   const graph = hre.graph()
   let curator1: SignerWithAddress
   let governor: SignerWithAddress

@@ -13,7 +13,7 @@ import { NetworkFixture } from '../lib/fixtures'
 
 const { HashZero } = constants
 
-describe.skip('Rewards - Eligibility Oracle', () => {
+describe('Rewards - Eligibility Oracle', () => {
   const graph = hre.graph()
   let curator1: SignerWithAddress
   let governor: SignerWithAddress
