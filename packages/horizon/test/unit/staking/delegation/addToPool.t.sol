@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "forge-std/Test.sol";
-
 import { IHorizonStakingMain } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingMain.sol";
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
@@ -136,7 +134,7 @@ contract HorizonStakingDelegationAddToPoolTest is HorizonStakingTest {
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
 
         // undelegate shares so we have thawing shares/tokens
-        DelegationInternal memory delegation = _getStorage_Delegation(
+        DelegationInternal memory delegation = _getStorageDelegation(
             users.indexer,
             subgraphDataServiceAddress,
             users.delegator,

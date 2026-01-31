@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "forge-std/Test.sol";
-
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingProvisionTest is HorizonStakingTest {
@@ -100,7 +98,7 @@ contract HorizonStakingProvisionTest is HorizonStakingTest {
         uint256 amount
     ) public useIndexer useStake(amount) {
         // simulate the transition period
-        _setStorage_DeprecatedThawingPeriod(THAWING_PERIOD_IN_BLOCKS);
+        _setStorageDeprecatedThawingPeriod(THAWING_PERIOD_IN_BLOCKS);
 
         // oddly we use subgraphDataServiceLegacyAddress as the subgraph service address
         // so subgraphDataServiceAddress is not the subgraph service ¯\_(ツ)_/¯
@@ -194,7 +192,7 @@ contract HorizonStakingProvisionTest is HorizonStakingTest {
         tokensToAdd = bound(tokensToAdd, 1, MAX_STAKING_TOKENS);
 
         // Ensure the verifier has enough tokens to then stake to the provision
-        token.transfer(subgraphDataServiceAddress, tokensToAdd);
+        require(token.transfer(subgraphDataServiceAddress, tokensToAdd), "Transfer failed");
 
         // Add more tokens to the provision
         resetPrank(subgraphDataServiceAddress);

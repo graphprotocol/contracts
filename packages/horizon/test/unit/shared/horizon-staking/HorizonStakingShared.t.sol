@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "forge-std/Test.sol";
-
 import { GraphBaseTest } from "../../GraphBase.t.sol";
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { IHorizonStakingBase } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingBase.sol";
@@ -23,7 +21,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     event Transfer(address indexed from, address indexed to, uint tokens);
 
     address internal _allocationId = makeAddr("allocationId");
-    bytes32 internal constant _subgraphDeploymentID = keccak256("subgraphDeploymentID");
+    bytes32 internal constant _SUBGRAPH_DEPLOYMENT_ID = keccak256("subgraphDeploymentID");
     uint256 internal constant MAX_ALLOCATION_EPOCHS = 28;
 
     uint32 internal alphaNumerator = 100;
@@ -82,12 +80,12 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
 
     modifier useAllocation(uint256 tokens) {
         vm.assume(tokens <= MAX_STAKING_TOKENS);
-        _createAllocation(users.indexer, _allocationId, _subgraphDeploymentID, tokens);
+        _createAllocation(users.indexer, _allocationId, _SUBGRAPH_DEPLOYMENT_ID, tokens);
         _;
     }
 
     modifier useRebateParameters() {
-        _setStorage_RebateParameters(alphaNumerator, alphaDenominator, lambdaNumerator, lambdaDenominator);
+        _setStorageRebateParameters(alphaNumerator, alphaDenominator, lambdaNumerator, lambdaDenominator);
         _;
     }
 
@@ -109,14 +107,14 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     function _createAllocation(
         address serviceProvider,
         address allocationId,
-        bytes32 subgraphDeploymentID,
+        bytes32 subgraphDeploymentId,
         uint256 tokens
     ) internal {
-        _setStorage_MaxAllocationEpochs(MAX_ALLOCATION_EPOCHS);
+        _setStorageMaxAllocationEpochs(MAX_ALLOCATION_EPOCHS);
 
         IHorizonStakingExtension.Allocation memory _allocation = IHorizonStakingExtension.Allocation({
             indexer: serviceProvider,
-            subgraphDeploymentID: subgraphDeploymentID,
+            subgraphDeploymentID: subgraphDeploymentId,
             tokens: tokens,
             createdAtEpoch: block.timestamp,
             closedAtEpoch: 0,
@@ -125,12 +123,12 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             accRewardsPerAllocatedToken: 0,
             distributedRebates: 0
         });
-        _setStorage_allocation(_allocation, allocationId, tokens);
+        _setStorageAllocation(_allocation, allocationId, tokens);
 
         // delegation pool initialized
-        _setStorage_DelegationPool(serviceProvider, 0, uint32(PPMMath.MAX_PPM), uint32(PPMMath.MAX_PPM));
+        _setStorageDelegationPool(serviceProvider, 0, uint32(PPMMath.MAX_PPM), uint32(PPMMath.MAX_PPM));
 
-        token.transfer(address(staking), tokens);
+        require(token.transfer(address(staking), tokens), "Transfer failed");
     }
 
     /*
@@ -147,7 +145,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         // before
         uint256 beforeStakingBalance = token.balanceOf(address(staking));
         uint256 beforeSenderBalance = token.balanceOf(msgSender);
-        ServiceProviderInternal memory beforeServiceProvider = _getStorage_ServiceProviderInternal(serviceProvider);
+        ServiceProviderInternal memory beforeServiceProvider = _getStorageServiceProviderInternal(serviceProvider);
 
         // stakeTo
         token.approve(address(staking), tokens);
@@ -158,7 +156,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         // after
         uint256 afterStakingBalance = token.balanceOf(address(staking));
         uint256 afterSenderBalance = token.balanceOf(msgSender);
-        ServiceProviderInternal memory afterServiceProvider = _getStorage_ServiceProviderInternal(serviceProvider);
+        ServiceProviderInternal memory afterServiceProvider = _getStorageServiceProviderInternal(serviceProvider);
 
         // assert
         assertEq(afterStakingBalance, beforeStakingBalance + tokens);
@@ -179,7 +177,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         // before
         uint256 beforeStakingBalance = token.balanceOf(address(staking));
         uint256 beforeSenderBalance = token.balanceOf(msgSender);
-        ServiceProviderInternal memory beforeServiceProvider = _getStorage_ServiceProviderInternal(serviceProvider);
+        ServiceProviderInternal memory beforeServiceProvider = _getStorageServiceProviderInternal(serviceProvider);
         Provision memory beforeProvision = staking.getProvision(serviceProvider, verifier);
 
         // stakeTo
@@ -193,7 +191,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         // after
         uint256 afterStakingBalance = token.balanceOf(address(staking));
         uint256 afterSenderBalance = token.balanceOf(msgSender);
-        ServiceProviderInternal memory afterServiceProvider = _getStorage_ServiceProviderInternal(serviceProvider);
+        ServiceProviderInternal memory afterServiceProvider = _getStorageServiceProviderInternal(serviceProvider);
         Provision memory afterProvision = staking.getProvision(serviceProvider, verifier);
 
         // assert - stakeTo
@@ -237,7 +235,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         // before
         uint256 beforeSenderBalance = token.balanceOf(msgSender);
         uint256 beforeStakingBalance = token.balanceOf(address(staking));
-        ServiceProviderInternal memory beforeServiceProvider = _getStorage_ServiceProviderInternal(msgSender);
+        ServiceProviderInternal memory beforeServiceProvider = _getStorageServiceProviderInternal(msgSender);
 
         bool withdrawCalled = beforeServiceProvider.__DEPRECATED_tokensLocked != 0 &&
             block.number >= beforeServiceProvider.__DEPRECATED_tokensLockedUntil;
@@ -279,7 +277,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         // after
         uint256 afterSenderBalance = token.balanceOf(msgSender);
         uint256 afterStakingBalance = token.balanceOf(address(staking));
-        ServiceProviderInternal memory afterServiceProvider = _getStorage_ServiceProviderInternal(msgSender);
+        ServiceProviderInternal memory afterServiceProvider = _getStorageServiceProviderInternal(msgSender);
 
         // assert
         if (deprecatedThawingPeriod == 0) {
@@ -323,7 +321,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         (, address msgSender, ) = vm.readCallers();
 
         // before
-        ServiceProviderInternal memory beforeServiceProvider = _getStorage_ServiceProviderInternal(msgSender);
+        ServiceProviderInternal memory beforeServiceProvider = _getStorageServiceProviderInternal(msgSender);
         uint256 beforeSenderBalance = token.balanceOf(msgSender);
         uint256 beforeStakingBalance = token.balanceOf(address(staking));
 
@@ -333,7 +331,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         staking.withdraw();
 
         // after
-        ServiceProviderInternal memory afterServiceProvider = _getStorage_ServiceProviderInternal(msgSender);
+        ServiceProviderInternal memory afterServiceProvider = _getStorageServiceProviderInternal(msgSender);
         uint256 afterSenderBalance = token.balanceOf(msgSender);
         uint256 afterStakingBalance = token.balanceOf(address(staking));
 
@@ -357,7 +355,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         uint32 maxVerifierCut,
         uint64 thawingPeriod
     ) internal {
-        __provision(serviceProvider, verifier, tokens, maxVerifierCut, thawingPeriod, false);
+        _provision(serviceProvider, verifier, tokens, maxVerifierCut, thawingPeriod, false);
     }
 
     function _provisionLocked(
@@ -367,10 +365,10 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         uint32 maxVerifierCut,
         uint64 thawingPeriod
     ) internal {
-        __provision(serviceProvider, verifier, tokens, maxVerifierCut, thawingPeriod, true);
+        _provision(serviceProvider, verifier, tokens, maxVerifierCut, thawingPeriod, true);
     }
 
-    function __provision(
+    function _provision(
         address serviceProvider,
         address verifier,
         uint256 tokens,
@@ -379,7 +377,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         bool locked
     ) private {
         // before
-        ServiceProviderInternal memory beforeServiceProvider = _getStorage_ServiceProviderInternal(serviceProvider);
+        ServiceProviderInternal memory beforeServiceProvider = _getStorageServiceProviderInternal(serviceProvider);
 
         // provision
         vm.expectEmit();
@@ -392,7 +390,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
 
         // after
         Provision memory afterProvision = staking.getProvision(serviceProvider, verifier);
-        ServiceProviderInternal memory afterServiceProvider = _getStorage_ServiceProviderInternal(serviceProvider);
+        ServiceProviderInternal memory afterServiceProvider = _getStorageServiceProviderInternal(serviceProvider);
 
         // assert
         assertEq(afterProvision.tokens, tokens);
@@ -418,7 +416,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     function _addToProvision(address serviceProvider, address verifier, uint256 tokens) internal {
         // before
         Provision memory beforeProvision = staking.getProvision(serviceProvider, verifier);
-        ServiceProviderInternal memory beforeServiceProvider = _getStorage_ServiceProviderInternal(serviceProvider);
+        ServiceProviderInternal memory beforeServiceProvider = _getStorageServiceProviderInternal(serviceProvider);
 
         // addToProvision
         vm.expectEmit();
@@ -427,7 +425,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
 
         // after
         Provision memory afterProvision = staking.getProvision(serviceProvider, verifier);
-        ServiceProviderInternal memory afterServiceProvider = _getStorage_ServiceProviderInternal(serviceProvider);
+        ServiceProviderInternal memory afterServiceProvider = _getStorageServiceProviderInternal(serviceProvider);
 
         // assert
         assertEq(afterProvision.tokens, beforeProvision.tokens + tokens);
@@ -535,7 +533,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     function _deprovision(address serviceProvider, address verifier, uint256 nThawRequests) internal {
         // before
         Provision memory beforeProvision = staking.getProvision(serviceProvider, verifier);
-        ServiceProviderInternal memory beforeServiceProvider = _getStorage_ServiceProviderInternal(serviceProvider);
+        ServiceProviderInternal memory beforeServiceProvider = _getStorageServiceProviderInternal(serviceProvider);
         ILinkedList.List memory beforeThawRequestList = staking.getThawRequestList(
             IHorizonStakingTypes.ThawRequestType.Provision,
             serviceProvider,
@@ -543,7 +541,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             serviceProvider
         );
 
-        Params_CalcThawRequestData memory params = Params_CalcThawRequestData({
+        ParamsCalcThawRequestData memory params = ParamsCalcThawRequestData({
             thawRequestType: IHorizonStakingTypes.ThawRequestType.Provision,
             serviceProvider: serviceProvider,
             verifier: verifier,
@@ -551,7 +549,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             iterations: nThawRequests,
             delegation: false
         });
-        CalcValues_ThawRequestData memory calcValues = calcThawRequestData(params);
+        CalcValuesThawRequestData memory calcValues = calcThawRequestData(params);
 
         // deprovision
         for (uint i = 0; i < calcValues.thawRequestsFulfilledList.length; i++) {
@@ -581,7 +579,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
 
         // after
         Provision memory afterProvision = staking.getProvision(serviceProvider, verifier);
-        ServiceProviderInternal memory afterServiceProvider = _getStorage_ServiceProviderInternal(serviceProvider);
+        ServiceProviderInternal memory afterServiceProvider = _getStorageServiceProviderInternal(serviceProvider);
         ILinkedList.List memory afterThawRequestList = staking.getThawRequestList(
             IHorizonStakingTypes.ThawRequestType.Provision,
             serviceProvider,
@@ -640,7 +638,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(afterThawRequestList.nonce, beforeThawRequestList.nonce);
     }
 
-    struct BeforeValues_Reprovision {
+    struct BeforeValuesReprovision {
         Provision provision;
         Provision provisionNewVerifier;
         ServiceProviderInternal serviceProvider;
@@ -654,10 +652,10 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         uint256 nThawRequests
     ) internal {
         // before
-        BeforeValues_Reprovision memory beforeValues = BeforeValues_Reprovision({
+        BeforeValuesReprovision memory beforeValues = BeforeValuesReprovision({
             provision: staking.getProvision(serviceProvider, verifier),
             provisionNewVerifier: staking.getProvision(serviceProvider, newVerifier),
-            serviceProvider: _getStorage_ServiceProviderInternal(serviceProvider),
+            serviceProvider: _getStorageServiceProviderInternal(serviceProvider),
             thawRequestList: staking.getThawRequestList(
                 IHorizonStakingTypes.ThawRequestType.Provision,
                 serviceProvider,
@@ -667,7 +665,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         });
 
         // calc
-        Params_CalcThawRequestData memory params = Params_CalcThawRequestData({
+        ParamsCalcThawRequestData memory params = ParamsCalcThawRequestData({
             thawRequestType: IHorizonStakingTypes.ThawRequestType.Provision,
             serviceProvider: serviceProvider,
             verifier: verifier,
@@ -675,7 +673,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             iterations: nThawRequests,
             delegation: false
         });
-        CalcValues_ThawRequestData memory calcValues = calcThawRequestData(params);
+        CalcValuesThawRequestData memory calcValues = calcThawRequestData(params);
 
         // reprovision
         for (uint i = 0; i < calcValues.thawRequestsFulfilledList.length; i++) {
@@ -708,7 +706,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         // after
         Provision memory afterProvision = staking.getProvision(serviceProvider, verifier);
         Provision memory afterProvisionNewVerifier = staking.getProvision(serviceProvider, newVerifier);
-        ServiceProviderInternal memory afterServiceProvider = _getStorage_ServiceProviderInternal(serviceProvider);
+        ServiceProviderInternal memory afterServiceProvider = _getStorageServiceProviderInternal(serviceProvider);
         ILinkedList.List memory afterThawRequestList = staking.getThawRequestList(
             IHorizonStakingTypes.ThawRequestType.Provision,
             serviceProvider,
@@ -877,14 +875,14 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     }
 
     function _setOperator(address verifier, address operator, bool allow) internal {
-        __setOperator(verifier, operator, allow, false);
+        _setOperator(verifier, operator, allow, false);
     }
 
     function _setOperatorLocked(address verifier, address operator, bool allow) internal {
-        __setOperator(verifier, operator, allow, true);
+        _setOperator(verifier, operator, allow, true);
     }
 
-    function __setOperator(address verifier, address operator, bool allow, bool locked) private {
+    function _setOperator(address verifier, address operator, bool allow, bool locked) private {
         (, address msgSender, ) = vm.readCallers();
 
         // staking contract knows the address of the legacy subgraph service
@@ -892,7 +890,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         bool legacy = verifier == subgraphDataServiceLegacyAddress;
 
         // before
-        bool beforeOperatorAllowed = _getStorage_OperatorAuth(msgSender, verifier, operator, legacy);
+        bool beforeOperatorAllowed = _getStorageOperatorAuth(msgSender, verifier, operator, legacy);
         bool beforeOperatorAllowedGetter = staking.isAuthorized(msgSender, verifier, operator);
         assertEq(beforeOperatorAllowed, beforeOperatorAllowedGetter);
 
@@ -906,7 +904,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         }
 
         // after
-        bool afterOperatorAllowed = _getStorage_OperatorAuth(msgSender, verifier, operator, legacy);
+        bool afterOperatorAllowed = _getStorageOperatorAuth(msgSender, verifier, operator, legacy);
         bool afterOperatorAllowedGetter = staking.isAuthorized(msgSender, verifier, operator);
         assertEq(afterOperatorAllowed, afterOperatorAllowedGetter, "afterOperatorAllowedGetter FAIL");
 
@@ -915,14 +913,14 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     }
 
     function _delegate(address serviceProvider, address verifier, uint256 tokens, uint256 minSharesOut) internal {
-        __delegate(serviceProvider, verifier, tokens, minSharesOut, false);
+        _delegate(serviceProvider, verifier, tokens, minSharesOut, false);
     }
 
     function _delegate(address serviceProvider, uint256 tokens) internal {
-        __delegate(serviceProvider, subgraphDataServiceLegacyAddress, tokens, 0, true);
+        _delegate(serviceProvider, subgraphDataServiceLegacyAddress, tokens, 0, true);
     }
 
-    function __delegate(
+    function _delegate(
         address serviceProvider,
         address verifier,
         uint256 tokens,
@@ -932,12 +930,12 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         (, address delegator, ) = vm.readCallers();
 
         // before
-        DelegationPoolInternalTest memory beforePool = _getStorage_DelegationPoolInternal(
+        DelegationPoolInternalTest memory beforePool = _getStorageDelegationPoolInternal(
             serviceProvider,
             verifier,
             legacy
         );
-        DelegationInternal memory beforeDelegation = _getStorage_Delegation(
+        DelegationInternal memory beforeDelegation = _getStorageDelegation(
             serviceProvider,
             verifier,
             delegator,
@@ -961,17 +959,12 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         }
 
         // after
-        DelegationPoolInternalTest memory afterPool = _getStorage_DelegationPoolInternal(
+        DelegationPoolInternalTest memory afterPool = _getStorageDelegationPoolInternal(
             serviceProvider,
             verifier,
             legacy
         );
-        DelegationInternal memory afterDelegation = _getStorage_Delegation(
-            serviceProvider,
-            verifier,
-            delegator,
-            legacy
-        );
+        DelegationInternal memory afterDelegation = _getStorageDelegation(serviceProvider, verifier, delegator, legacy);
         uint256 afterDelegatorBalance = token.balanceOf(delegator);
         uint256 afterStakingBalance = token.balanceOf(address(staking));
 
@@ -994,12 +987,12 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
 
     function _undelegate(address serviceProvider, address verifier, uint256 shares) internal {
         (, address caller, ) = vm.readCallers();
-        __undelegate(IHorizonStakingTypes.ThawRequestType.Delegation, serviceProvider, verifier, shares, false, caller);
+        _undelegate(IHorizonStakingTypes.ThawRequestType.Delegation, serviceProvider, verifier, shares, false, caller);
     }
 
     function _undelegate(address serviceProvider, uint256 shares) internal {
         (, address caller, ) = vm.readCallers();
-        __undelegate(
+        _undelegate(
             IHorizonStakingTypes.ThawRequestType.Delegation,
             serviceProvider,
             subgraphDataServiceLegacyAddress,
@@ -1009,20 +1002,20 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         );
     }
 
-    struct BeforeValues_Undelegate {
+    struct BeforeValuesUndelegate {
         DelegationPoolInternalTest pool;
         DelegationInternal delegation;
         ILinkedList.List thawRequestList;
         uint256 delegatedTokens;
     }
-    struct CalcValues_Undelegate {
+    struct CalcValuesUndelegate {
         uint256 tokens;
         uint256 thawingShares;
         uint64 thawingUntil;
         bytes32 thawRequestId;
     }
 
-    function __undelegate(
+    function _undelegate(
         IHorizonStakingTypes.ThawRequestType thawRequestType,
         address serviceProvider,
         address verifier,
@@ -1033,9 +1026,9 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         (, address delegator, ) = vm.readCallers();
 
         // before
-        BeforeValues_Undelegate memory beforeValues;
-        beforeValues.pool = _getStorage_DelegationPoolInternal(serviceProvider, verifier, legacy);
-        beforeValues.delegation = _getStorage_Delegation(serviceProvider, verifier, delegator, legacy);
+        BeforeValuesUndelegate memory beforeValues;
+        beforeValues.pool = _getStorageDelegationPoolInternal(serviceProvider, verifier, legacy);
+        beforeValues.delegation = _getStorageDelegation(serviceProvider, verifier, delegator, legacy);
         beforeValues.thawRequestList = staking.getThawRequestList(
             thawRequestType,
             serviceProvider,
@@ -1045,7 +1038,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         beforeValues.delegatedTokens = staking.getDelegatedTokensAvailable(serviceProvider, verifier);
 
         // calc
-        CalcValues_Undelegate memory calcValues;
+        CalcValuesUndelegate memory calcValues;
         calcValues.tokens =
             ((beforeValues.pool.tokens - beforeValues.pool.tokensThawing) * shares) / beforeValues.pool.shares;
         calcValues.thawingShares = beforeValues.pool.tokensThawing == 0
@@ -1080,12 +1073,12 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         }
 
         // after
-        DelegationPoolInternalTest memory afterPool = _getStorage_DelegationPoolInternal(
+        DelegationPoolInternalTest memory afterPool = _getStorageDelegationPoolInternal(
             users.indexer,
             verifier,
             legacy
         );
-        DelegationInternal memory afterDelegation = _getStorage_Delegation(
+        DelegationInternal memory afterDelegation = _getStorageDelegation(
             serviceProvider,
             verifier,
             beneficiary,
@@ -1122,7 +1115,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     }
 
     function _withdrawDelegated(address serviceProvider, address verifier, uint256 nThawRequests) internal {
-        Params_WithdrawDelegated memory params = Params_WithdrawDelegated({
+        ParamsWithdrawDelegated memory params = ParamsWithdrawDelegated({
             thawRequestType: IHorizonStakingTypes.ThawRequestType.Delegation,
             serviceProvider: serviceProvider,
             verifier: verifier,
@@ -1132,7 +1125,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             nThawRequests: nThawRequests,
             legacy: verifier == subgraphDataServiceLegacyAddress
         });
-        __withdrawDelegated(params);
+        _withdrawDelegated(params);
     }
 
     function _redelegate(
@@ -1143,7 +1136,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         uint256 minSharesForNewProvider,
         uint256 nThawRequests
     ) internal {
-        Params_WithdrawDelegated memory params = Params_WithdrawDelegated({
+        ParamsWithdrawDelegated memory params = ParamsWithdrawDelegated({
             thawRequestType: IHorizonStakingTypes.ThawRequestType.Delegation,
             serviceProvider: serviceProvider,
             verifier: verifier,
@@ -1153,10 +1146,10 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             nThawRequests: nThawRequests,
             legacy: false
         });
-        __withdrawDelegated(params);
+        _withdrawDelegated(params);
     }
 
-    struct BeforeValues_WithdrawDelegated {
+    struct BeforeValuesWithdrawDelegated {
         DelegationPoolInternalTest pool;
         DelegationPoolInternalTest newPool;
         DelegationInternal newDelegation;
@@ -1164,7 +1157,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         uint256 senderBalance;
         uint256 stakingBalance;
     }
-    struct AfterValues_WithdrawDelegated {
+    struct AfterValuesWithdrawDelegated {
         DelegationPoolInternalTest pool;
         DelegationPoolInternalTest newPool;
         DelegationInternal newDelegation;
@@ -1173,7 +1166,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         uint256 stakingBalance;
     }
 
-    struct Params_WithdrawDelegated {
+    struct ParamsWithdrawDelegated {
         IHorizonStakingTypes.ThawRequestType thawRequestType;
         address serviceProvider;
         address verifier;
@@ -1184,20 +1177,20 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         bool legacy;
     }
 
-    function __withdrawDelegated(Params_WithdrawDelegated memory params) private {
+    function _withdrawDelegated(ParamsWithdrawDelegated memory params) private {
         (, address msgSender, ) = vm.readCallers();
 
         bool reDelegate = params.newServiceProvider != address(0) && params.newVerifier != address(0);
 
         // before
-        BeforeValues_WithdrawDelegated memory beforeValues;
-        beforeValues.pool = _getStorage_DelegationPoolInternal(params.serviceProvider, params.verifier, params.legacy);
-        beforeValues.newPool = _getStorage_DelegationPoolInternal(
+        BeforeValuesWithdrawDelegated memory beforeValues;
+        beforeValues.pool = _getStorageDelegationPoolInternal(params.serviceProvider, params.verifier, params.legacy);
+        beforeValues.newPool = _getStorageDelegationPoolInternal(
             params.newServiceProvider,
             params.newVerifier,
             params.legacy
         );
-        beforeValues.newDelegation = _getStorage_Delegation(
+        beforeValues.newDelegation = _getStorageDelegation(
             params.newServiceProvider,
             params.newVerifier,
             msgSender,
@@ -1212,7 +1205,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         beforeValues.senderBalance = token.balanceOf(msgSender);
         beforeValues.stakingBalance = token.balanceOf(address(staking));
 
-        Params_CalcThawRequestData memory paramsCalc = Params_CalcThawRequestData({
+        ParamsCalcThawRequestData memory paramsCalc = ParamsCalcThawRequestData({
             thawRequestType: params.thawRequestType,
             serviceProvider: params.serviceProvider,
             verifier: params.verifier,
@@ -1220,7 +1213,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             iterations: params.nThawRequests,
             delegation: true
         });
-        CalcValues_ThawRequestData memory calcValues = calcThawRequestData(paramsCalc);
+        CalcValuesThawRequestData memory calcValues = calcThawRequestData(paramsCalc);
 
         // withdrawDelegated
         for (uint i = 0; i < calcValues.thawRequestsFulfilledList.length; i++) {
@@ -1283,14 +1276,14 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         }
 
         // after
-        AfterValues_WithdrawDelegated memory afterValues;
-        afterValues.pool = _getStorage_DelegationPoolInternal(params.serviceProvider, params.verifier, params.legacy);
-        afterValues.newPool = _getStorage_DelegationPoolInternal(
+        AfterValuesWithdrawDelegated memory afterValues;
+        afterValues.pool = _getStorageDelegationPoolInternal(params.serviceProvider, params.verifier, params.legacy);
+        afterValues.newPool = _getStorageDelegationPoolInternal(
             params.newServiceProvider,
             params.newVerifier,
             params.legacy
         );
-        afterValues.newDelegation = _getStorage_Delegation(
+        afterValues.newDelegation = _getStorageDelegation(
             params.newServiceProvider,
             params.newVerifier,
             msgSender,
@@ -1382,7 +1375,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         bool legacy = verifier == subgraphDataServiceLegacyAddress;
 
         // before
-        DelegationPoolInternalTest memory beforePool = _getStorage_DelegationPoolInternal(
+        DelegationPoolInternalTest memory beforePool = _getStorageDelegationPoolInternal(
             serviceProvider,
             verifier,
             legacy
@@ -1398,7 +1391,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         staking.addToDelegationPool(serviceProvider, verifier, tokens);
 
         // after
-        DelegationPoolInternalTest memory afterPool = _getStorage_DelegationPoolInternal(
+        DelegationPoolInternalTest memory afterPool = _getStorageDelegationPoolInternal(
             serviceProvider,
             verifier,
             legacy
@@ -1486,14 +1479,14 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(afterMaxThawingPeriod, maxThawingPeriod);
     }
 
-    struct BeforeValues_Slash {
+    struct BeforeValuesSlash {
         Provision provision;
         DelegationPoolInternalTest pool;
         ServiceProviderInternal serviceProvider;
         uint256 stakingBalance;
         uint256 verifierBalance;
     }
-    struct CalcValues_Slash {
+    struct CalcValuesSlash {
         uint256 tokensToSlash;
         uint256 providerTokensSlashed;
         uint256 delegationTokensSlashed;
@@ -1507,15 +1500,15 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         bool legacy = verifier == subgraphDataServiceLegacyAddress;
 
         // before
-        BeforeValues_Slash memory before;
+        BeforeValuesSlash memory before;
         before.provision = staking.getProvision(serviceProvider, verifier);
-        before.pool = _getStorage_DelegationPoolInternal(serviceProvider, verifier, legacy);
-        before.serviceProvider = _getStorage_ServiceProviderInternal(serviceProvider);
+        before.pool = _getStorageDelegationPoolInternal(serviceProvider, verifier, legacy);
+        before.serviceProvider = _getStorageServiceProviderInternal(serviceProvider);
         before.stakingBalance = token.balanceOf(address(staking));
         before.verifierBalance = token.balanceOf(verifier);
 
         // Calculate expected tokens after slashing
-        CalcValues_Slash memory calcValues;
+        CalcValuesSlash memory calcValues;
         calcValues.tokensToSlash = MathUtils.min(tokens, before.provision.tokens + before.pool.tokens);
         calcValues.providerTokensSlashed = MathUtils.min(before.provision.tokens, calcValues.tokensToSlash);
         calcValues.delegationTokensSlashed = calcValues.tokensToSlash - calcValues.providerTokensSlashed;
@@ -1558,12 +1551,12 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
 
         // after
         Provision memory afterProvision = staking.getProvision(serviceProvider, verifier);
-        DelegationPoolInternalTest memory afterPool = _getStorage_DelegationPoolInternal(
+        DelegationPoolInternalTest memory afterPool = _getStorageDelegationPoolInternal(
             serviceProvider,
             verifier,
             legacy
         );
-        ServiceProviderInternal memory afterServiceProvider = _getStorage_ServiceProviderInternal(serviceProvider);
+        ServiceProviderInternal memory afterServiceProvider = _getStorageServiceProviderInternal(serviceProvider);
         uint256 afterStakingBalance = token.balanceOf(address(staking));
         uint256 afterVerifierBalance = token.balanceOf(verifier);
 
@@ -1620,12 +1613,12 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     }
 
     // use struct to avoid 'stack too deep' error
-    struct CalcValues_CloseAllocation {
+    struct CalcValuesCloseAllocation {
         uint256 rewards;
         uint256 delegatorRewards;
         uint256 indexerRewards;
     }
-    struct BeforeValues_CloseAllocation {
+    struct BeforeValuesCloseAllocation {
         IHorizonStakingExtension.Allocation allocation;
         DelegationPoolInternalTest pool;
         ServiceProviderInternal serviceProvider;
@@ -1640,21 +1633,19 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         (, address msgSender, ) = vm.readCallers();
 
         // before
-        BeforeValues_CloseAllocation memory beforeValues;
+        BeforeValuesCloseAllocation memory beforeValues;
         beforeValues.allocation = staking.getAllocation(allocationId);
-        beforeValues.pool = _getStorage_DelegationPoolInternal(
+        beforeValues.pool = _getStorageDelegationPoolInternal(
             beforeValues.allocation.indexer,
             subgraphDataServiceLegacyAddress,
             true
         );
-        beforeValues.serviceProvider = _getStorage_ServiceProviderInternal(beforeValues.allocation.indexer);
-        beforeValues.subgraphAllocations = _getStorage_SubgraphAllocations(
-            beforeValues.allocation.subgraphDeploymentID
-        );
+        beforeValues.serviceProvider = _getStorageServiceProviderInternal(beforeValues.allocation.indexer);
+        beforeValues.subgraphAllocations = _getStorageSubgraphAllocations(beforeValues.allocation.subgraphDeploymentID);
         beforeValues.stakingBalance = token.balanceOf(address(staking));
         beforeValues.indexerBalance = token.balanceOf(beforeValues.allocation.indexer);
         beforeValues.beneficiaryBalance = token.balanceOf(
-            _getStorage_RewardsDestination(beforeValues.allocation.indexer)
+            _getStorageRewardsDestination(beforeValues.allocation.indexer)
         );
 
         bool isAuth = staking.isAuthorized(
@@ -1662,9 +1653,9 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             subgraphDataServiceLegacyAddress,
             msgSender
         );
-        address rewardsDestination = _getStorage_RewardsDestination(beforeValues.allocation.indexer);
+        address rewardsDestination = _getStorageRewardsDestination(beforeValues.allocation.indexer);
 
-        CalcValues_CloseAllocation memory calcValues = CalcValues_CloseAllocation({
+        CalcValuesCloseAllocation memory calcValues = CalcValuesCloseAllocation({
             rewards: ALLOCATIONS_REWARD_CUT,
             delegatorRewards: ALLOCATIONS_REWARD_CUT -
                 uint256(beforeValues.pool.__DEPRECATED_indexingRewardCut).mulPPM(ALLOCATIONS_REWARD_CUT),
@@ -1689,17 +1680,15 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
 
         // after
         IHorizonStakingExtension.Allocation memory afterAllocation = staking.getAllocation(allocationId);
-        DelegationPoolInternalTest memory afterPool = _getStorage_DelegationPoolInternal(
+        DelegationPoolInternalTest memory afterPool = _getStorageDelegationPoolInternal(
             beforeValues.allocation.indexer,
             subgraphDataServiceLegacyAddress,
             true
         );
-        ServiceProviderInternal memory afterServiceProvider = _getStorage_ServiceProviderInternal(
+        ServiceProviderInternal memory afterServiceProvider = _getStorageServiceProviderInternal(
             beforeValues.allocation.indexer
         );
-        uint256 afterSubgraphAllocations = _getStorage_SubgraphAllocations(
-            beforeValues.allocation.subgraphDeploymentID
-        );
+        uint256 afterSubgraphAllocations = _getStorageSubgraphAllocations(beforeValues.allocation.subgraphDeploymentID);
         uint256 afterStakingBalance = token.balanceOf(address(staking));
         uint256 afterIndexerBalance = token.balanceOf(beforeValues.allocation.indexer);
         uint256 afterBeneficiaryBalance = token.balanceOf(rewardsDestination);
@@ -1774,7 +1763,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     }
 
     // use struct to avoid 'stack too deep' error
-    struct BeforeValues_Collect {
+    struct BeforeValuesCollect {
         IHorizonStakingExtension.Allocation allocation;
         DelegationPoolInternalTest pool;
         ServiceProviderInternal serviceProvider;
@@ -1783,7 +1772,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         uint256 curationBalance;
         uint256 beneficiaryBalance;
     }
-    struct CalcValues_Collect {
+    struct CalcValuesCollect {
         uint256 protocolTaxTokens;
         uint256 queryFees;
         uint256 curationCutTokens;
@@ -1791,7 +1780,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         uint256 payment;
         uint256 delegationFeeCut;
     }
-    struct AfterValues_Collect {
+    struct AfterValuesCollect {
         IHorizonStakingExtension.Allocation allocation;
         DelegationPoolInternalTest pool;
         ServiceProviderInternal serviceProvider;
@@ -1805,17 +1794,17 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         (, address msgSender, ) = vm.readCallers();
 
         // before
-        BeforeValues_Collect memory beforeValues;
+        BeforeValuesCollect memory beforeValues;
         beforeValues.allocation = staking.getAllocation(allocationId);
-        beforeValues.pool = _getStorage_DelegationPoolInternal(
+        beforeValues.pool = _getStorageDelegationPoolInternal(
             beforeValues.allocation.indexer,
             subgraphDataServiceLegacyAddress,
             true
         );
-        beforeValues.serviceProvider = _getStorage_ServiceProviderInternal(beforeValues.allocation.indexer);
+        beforeValues.serviceProvider = _getStorageServiceProviderInternal(beforeValues.allocation.indexer);
 
-        (uint32 curationPercentage, uint32 protocolPercentage) = _getStorage_ProtocolTaxAndCuration();
-        address rewardsDestination = _getStorage_RewardsDestination(beforeValues.allocation.indexer);
+        (uint32 curationPercentage, uint32 protocolPercentage) = _getStorageProtocolTaxAndCuration();
+        address rewardsDestination = _getStorageRewardsDestination(beforeValues.allocation.indexer);
 
         beforeValues.stakingBalance = token.balanceOf(address(staking));
         beforeValues.senderBalance = token.balanceOf(msgSender);
@@ -1823,7 +1812,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         beforeValues.beneficiaryBalance = token.balanceOf(rewardsDestination);
 
         // calc some stuff
-        CalcValues_Collect memory calcValues;
+        CalcValuesCollect memory calcValues;
         calcValues.protocolTaxTokens = tokens.mulPPMRoundUp(protocolPercentage);
         calcValues.queryFees = tokens - calcValues.protocolTaxTokens;
         calcValues.curationCutTokens = 0;
@@ -1869,14 +1858,14 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         staking.collect(tokens, allocationId);
 
         // after
-        AfterValues_Collect memory afterValues;
+        AfterValuesCollect memory afterValues;
         afterValues.allocation = staking.getAllocation(allocationId);
-        afterValues.pool = _getStorage_DelegationPoolInternal(
+        afterValues.pool = _getStorageDelegationPoolInternal(
             beforeValues.allocation.indexer,
             subgraphDataServiceLegacyAddress,
             true
         );
-        afterValues.serviceProvider = _getStorage_ServiceProviderInternal(beforeValues.allocation.indexer);
+        afterValues.serviceProvider = _getStorageServiceProviderInternal(beforeValues.allocation.indexer);
         afterValues.stakingBalance = token.balanceOf(address(staking));
         afterValues.senderBalance = token.balanceOf(msgSender);
         afterValues.curationBalance = token.balanceOf(address(curation));
@@ -1934,7 +1923,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     /*
      * STORAGE HELPERS
      */
-    function _getStorage_ServiceProviderInternal(
+    function _getStorageServiceProviderInternal(
         address serviceProvider
     ) internal view returns (ServiceProviderInternal memory) {
         uint256 slotNumber = 14;
@@ -1951,7 +1940,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         return serviceProviderInternal;
     }
 
-    function _getStorage_OperatorAuth(
+    function _getStorageOperatorAuth(
         address serviceProvider,
         address verifier,
         address operator,
@@ -1975,7 +1964,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         return vm.load(address(staking), bytes32(slot)) == bytes32(uint256(1));
     }
 
-    function _setStorage_DeprecatedThawingPeriod(uint32 _thawingPeriod) internal {
+    function _setStorageDeprecatedThawingPeriod(uint32 _thawingPeriod) internal {
         uint256 slot = 13;
 
         // Read the current value of the slot
@@ -1991,7 +1980,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         vm.store(address(staking), bytes32(slot), bytes32(newSlotValue));
     }
 
-    function _setStorage_ServiceProvider(
+    function _setStorageServiceProvider(
         address _indexer,
         uint256 _tokensStaked,
         uint256 _tokensAllocated,
@@ -2013,18 +2002,23 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     // So we use a custom struct here and remove the nested mapping which we don't need anyways
     struct DelegationPoolInternalTest {
         // (Deprecated) Time, in blocks, an indexer must wait before updating delegation parameters
+        // forge-lint: disable-next-line(mixed-case-variable)
         uint32 __DEPRECATED_cooldownBlocks;
         // (Deprecated) Percentage of indexing rewards for the service provider, in PPM
+        // forge-lint: disable-next-line(mixed-case-variable)
         uint32 __DEPRECATED_indexingRewardCut;
         // (Deprecated) Percentage of query fees for the service provider, in PPM
+        // forge-lint: disable-next-line(mixed-case-variable)
         uint32 __DEPRECATED_queryFeeCut;
         // (Deprecated) Block when the delegation parameters were last updated
+        // forge-lint: disable-next-line(mixed-case-variable)
         uint256 __DEPRECATED_updatedAtBlock;
         // Total tokens as pool reserves
         uint256 tokens;
         // Total shares minted in the pool
         uint256 shares;
         // Delegation details by delegator
+        // forge-lint: disable-next-line(mixed-case-variable)
         uint256 _gap_delegators_mapping;
         // Tokens thawing in the pool
         uint256 tokensThawing;
@@ -2034,7 +2028,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         uint256 thawingNonce;
     }
 
-    function _getStorage_DelegationPoolInternal(
+    function _getStorageDelegationPoolInternal(
         address serviceProvider,
         address verifier,
         bool legacy
@@ -2050,6 +2044,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         uint256 packedData = uint256(vm.load(address(staking), bytes32(baseSlot)));
 
         DelegationPoolInternalTest memory delegationPoolInternal = DelegationPoolInternalTest({
+            // forge-lint: disable-next-line(unsafe-typecast)
             __DEPRECATED_cooldownBlocks: uint32(packedData & 0xFFFFFFFF),
             __DEPRECATED_indexingRewardCut: uint32((packedData >> 32) & 0xFFFFFFFF),
             __DEPRECATED_queryFeeCut: uint32((packedData >> 64) & 0xFFFFFFFF),
@@ -2065,7 +2060,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         return delegationPoolInternal;
     }
 
-    function _getStorage_Delegation(
+    function _getStorageDelegation(
         address serviceProvider,
         address verifier,
         address delegator,
@@ -2096,7 +2091,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         return delegation;
     }
 
-    function _setStorage_allocation(
+    function _setStorageAllocation(
         IHorizonStakingExtension.Allocation memory allocation,
         address allocationId,
         uint256 tokens
@@ -2149,25 +2144,25 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         vm.store(address(staking), subgraphAllocationsBaseSlot, bytes32(currentAllocatedTokens + tokens));
     }
 
-    function _getStorage_SubgraphAllocations(bytes32 subgraphDeploymentID) internal view returns (uint256) {
+    function _getStorageSubgraphAllocations(bytes32 subgraphDeploymentId) internal view returns (uint256) {
         uint256 subgraphsAllocationsSlot = 16;
-        bytes32 subgraphAllocationsBaseSlot = keccak256(abi.encode(subgraphDeploymentID, subgraphsAllocationsSlot));
+        bytes32 subgraphAllocationsBaseSlot = keccak256(abi.encode(subgraphDeploymentId, subgraphsAllocationsSlot));
         return uint256(vm.load(address(staking), subgraphAllocationsBaseSlot));
     }
 
-    function _setStorage_RewardsDestination(address serviceProvider, address destination) internal {
+    function _setStorageRewardsDestination(address serviceProvider, address destination) internal {
         uint256 rewardsDestinationSlot = 23;
         bytes32 rewardsDestinationSlotBaseSlot = keccak256(abi.encode(serviceProvider, rewardsDestinationSlot));
         vm.store(address(staking), rewardsDestinationSlotBaseSlot, bytes32(uint256(uint160(destination))));
     }
 
-    function _getStorage_RewardsDestination(address serviceProvider) internal view returns (address) {
+    function _getStorageRewardsDestination(address serviceProvider) internal view returns (address) {
         uint256 rewardsDestinationSlot = 23;
         bytes32 rewardsDestinationSlotBaseSlot = keccak256(abi.encode(serviceProvider, rewardsDestinationSlot));
         return address(uint160(uint256(vm.load(address(staking), rewardsDestinationSlotBaseSlot))));
     }
 
-    function _setStorage_MaxAllocationEpochs(uint256 maxAllocationEpochs) internal {
+    function _setStorageMaxAllocationEpochs(uint256 maxAllocationEpochs) internal {
         uint256 slot = 13;
 
         // Read the current value of the storage slot
@@ -2182,11 +2177,11 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         // Store the updated value back into the slot
         vm.store(address(staking), bytes32(slot), bytes32(newSlotValue));
 
-        uint256 readMaxAllocationEpochs = _getStorage_MaxAllocationEpochs();
+        uint256 readMaxAllocationEpochs = _getStorageMaxAllocationEpochs();
         assertEq(readMaxAllocationEpochs, maxAllocationEpochs);
     }
 
-    function _getStorage_MaxAllocationEpochs() internal view returns (uint256) {
+    function _getStorageMaxAllocationEpochs() internal view returns (uint256) {
         uint256 slot = 13;
 
         // Read the current value of the storage slot
@@ -2201,7 +2196,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         return maxAllocationEpochs;
     }
 
-    function _setStorage_DelegationPool(
+    function _setStorageDelegationPool(
         address serviceProvider,
         uint256 tokens,
         uint32 indexingRewardCut,
@@ -2216,7 +2211,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         vm.store(address(staking), tokensSlot, bytes32(tokens));
     }
 
-    function _setStorage_RebateParameters(
+    function _setStorageRebateParameters(
         uint32 alphaNumerator_,
         uint32 alphaDenominator_,
         uint32 lambdaNumerator_,
@@ -2278,30 +2273,34 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             uint32 readAlphaDenominator,
             uint32 readLambdaNumerator,
             uint32 readLambdaDenominator
-        ) = _getStorage_RebateParameters();
+        ) = _getStorageRebateParameters();
         assertEq(readAlphaNumerator, alphaNumerator_);
         assertEq(readAlphaDenominator, alphaDenominator_);
         assertEq(readLambdaNumerator, lambdaNumerator_);
         assertEq(readLambdaDenominator, lambdaDenominator_);
     }
 
-    function _getStorage_RebateParameters() internal view returns (uint32, uint32, uint32, uint32) {
+    function _getStorageRebateParameters() internal view returns (uint32, uint32, uint32, uint32) {
         // Read alpha numerator and denominator
         uint256 alphaSlot = 13;
         uint256 alphaValues = uint256(vm.load(address(staking), bytes32(alphaSlot)));
+        // forge-lint: disable-next-line(unsafe-typecast)
         uint32 alphaNumerator_ = uint32(alphaValues >> 160);
+        // forge-lint: disable-next-line(unsafe-typecast)
         uint32 alphaDenominator_ = uint32(alphaValues >> 192);
 
         // Read lambda numerator and denominator
         uint256 lambdaSlot = 25;
         uint256 lambdaValues = uint256(vm.load(address(staking), bytes32(lambdaSlot)));
+        // forge-lint: disable-next-line(unsafe-typecast)
         uint32 lambdaNumerator_ = uint32(lambdaValues >> 160);
+        // forge-lint: disable-next-line(unsafe-typecast)
         uint32 lambdaDenominator_ = uint32(lambdaValues >> 192);
 
         return (alphaNumerator_, alphaDenominator_, lambdaNumerator_, lambdaDenominator_);
     }
 
-    // function _setStorage_ProtocolTaxAndCuration(uint32 curationPercentage, uint32 taxPercentage) private {
+    // function _setStorageProtocolTaxAndCuration(uint32 curationPercentage, uint32 taxPercentage) private {
     //     bytes32 slot = bytes32(uint256(13));
     //     uint256 curationOffset = 4;
     //     uint256 protocolTaxOffset = 8;
@@ -2315,11 +2314,11 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     //     );
     //     vm.store(address(staking), slot, newProtocolTaxValue);
 
-    //     (uint32 readCurationPercentage, uint32 readTaxPercentage) = _getStorage_ProtocolTaxAndCuration();
+    //     (uint32 readCurationPercentage, uint32 readTaxPercentage) = _getStorageProtocolTaxAndCuration();
     //     assertEq(readCurationPercentage, curationPercentage);
     // }
 
-    function _setStorage_ProtocolTaxAndCuration(uint32 curationPercentage, uint32 taxPercentage) internal {
+    function _setStorageProtocolTaxAndCuration(uint32 curationPercentage, uint32 taxPercentage) internal {
         bytes32 slot = bytes32(uint256(13));
 
         // Offsets for the percentages
@@ -2341,12 +2340,12 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         vm.store(address(staking), slot, bytes32(newSlotValue));
 
         // Verify the values were set correctly
-        (uint32 readCurationPercentage, uint32 readTaxPercentage) = _getStorage_ProtocolTaxAndCuration();
+        (uint32 readCurationPercentage, uint32 readTaxPercentage) = _getStorageProtocolTaxAndCuration();
         assertEq(readCurationPercentage, curationPercentage);
         assertEq(readTaxPercentage, taxPercentage);
     }
 
-    function _getStorage_ProtocolTaxAndCuration() internal view returns (uint32, uint32) {
+    function _getStorageProtocolTaxAndCuration() internal view returns (uint32, uint32) {
         bytes32 slot = bytes32(uint256(13));
         bytes32 value = vm.load(address(staking), slot);
         uint32 curationPercentage = uint32(uint256(value) >> 32);
@@ -2358,7 +2357,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
      * MISC: private functions to help with testing
      */
     // use struct to avoid 'stack too deep' error
-    struct CalcValues_ThawRequestData {
+    struct CalcValuesThawRequestData {
         uint256 tokensThawed;
         uint256 tokensThawing;
         uint256 sharesThawed;
@@ -2375,7 +2374,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         uint256 thawRequestsFulfilled;
     }
 
-    struct Params_CalcThawRequestData {
+    struct ParamsCalcThawRequestData {
         IHorizonStakingTypes.ThawRequestType thawRequestType;
         address serviceProvider;
         address verifier;
@@ -2385,8 +2384,8 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     }
 
     function calcThawRequestData(
-        Params_CalcThawRequestData memory params
-    ) private view returns (CalcValues_ThawRequestData memory) {
+        ParamsCalcThawRequestData memory params
+    ) private view returns (CalcValuesThawRequestData memory) {
         ILinkedList.List memory thawRequestList = _getThawRequestList(
             params.thawRequestType,
             params.serviceProvider,
@@ -2394,7 +2393,16 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             params.owner
         );
         if (thawRequestList.count == 0) {
-            return CalcValues_ThawRequestData(0, 0, 0, 0, new ThawRequest[](0), new bytes32[](0), new uint256[](0));
+            return
+                CalcValuesThawRequestData({
+                    tokensThawed: 0,
+                    tokensThawing: 0,
+                    sharesThawed: 0,
+                    sharesThawing: 0,
+                    thawRequestsFulfilledList: new ThawRequest[](0),
+                    thawRequestsFulfilledListIds: new bytes32[](0),
+                    thawRequestsFulfilledListTokens: new uint256[](0)
+                });
         }
 
         Provision memory prov = staking.getProvision(params.serviceProvider, params.verifier);
@@ -2429,7 +2437,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         }
 
         // we need to do a second pass because solidity doesnt allow dynamic arrays on memory
-        CalcValues_ThawRequestData memory thawRequestData;
+        CalcValuesThawRequestData memory thawRequestData;
         thawRequestData.tokensThawed = tokensThawed;
         thawRequestData.tokensThawing = tokensThawing;
         thawRequestData.sharesThawed = sharesThawed;
