@@ -15,7 +15,7 @@
     "extract": "node scripts/extract-graphclient.js",
     "clean": "rm -rf build/ cache/ dist/ .graphclient/ reports/ types/",
     "clean:extracted": "rm -rf .graphclient-extracted/",
-    "clean:all": "rm -rf build/ cache/ dist/ .graphclient/ .graphclient-extracted/",
+    "clean:all": "pnpm clean && pnpm clean:extracted",
     "compile": "hardhat compile --quiet",
     "deploy": "pnpm run build && hardhat deploy",
     "test": "pnpm build && pnpm test:self",
