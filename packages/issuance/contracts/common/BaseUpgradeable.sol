@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity 0.8.33;
+pragma solidity 0.8.27;
 
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
-import { AccessControlEnumerableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/extensions/AccessControlEnumerableUpgradeable.sol";
-import { IGraphToken } from "./IGraphToken.sol";
+import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
 import { IPausableControl } from "@graphprotocol/interfaces/contracts/issuance/common/IPausableControl.sol";
 
 /**
@@ -13,21 +13,13 @@ import { IPausableControl } from "@graphprotocol/interfaces/contracts/issuance/c
  * @author Edge & Node
  * @notice A base contract that provides role-based access control and pausability.
  *
- * @dev This contract combines OpenZeppelin's AccessControlEnumerable and Pausable
+ * @dev This contract combines OpenZeppelin's AccessControl and Pausable
  * to provide a standardized way to manage access control and pausing functionality.
- * Using AccessControlEnumerable (rather than base AccessControl) enables on-chain
- * enumeration of role members via getRoleMemberCount() and getRoleMember(), which
- * is useful for deployment verification and auditing.
  * It uses ERC-7201 namespaced storage pattern for better storage isolation.
  * This contract is abstract and meant to be inherited by other contracts.
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any bugs. We might have an active bug bounty program.
  */
-abstract contract BaseUpgradeable is
-    Initializable,
-    AccessControlEnumerableUpgradeable,
-    PausableUpgradeable,
-    IPausableControl
-{
+abstract contract BaseUpgradeable is Initializable, AccessControlUpgradeable, PausableUpgradeable, IPausableControl {
     // -- Constants --
 
     /// @notice One million - used as the denominator for values provided as Parts Per Million (PPM)
@@ -98,15 +90,15 @@ abstract contract BaseUpgradeable is
 
     // -- Initialization --
 
-    // solhint-disable-next-line func-name-mixedcase
-    // forge-lint: disable-next-item(mixed-case-function)
     /**
      * @notice Internal function to initialize the BaseUpgradeable contract
      * @dev This function is used by child contracts to initialize the BaseUpgradeable contract
      * @param governor Address that will have the GOVERNOR_ROLE
      */
     function __BaseUpgradeable_init(address governor) internal {
-        __AccessControlEnumerable_init();
+        // solhint-disable-previous-line func-name-mixedcase
+
+        __AccessControl_init();
         __Pausable_init();
 
         __BaseUpgradeable_init_unchained(governor);
@@ -117,7 +109,6 @@ abstract contract BaseUpgradeable is
      * @dev This function sets up the governor role and role admin hierarchy
      * @param governor Address that will have the GOVERNOR_ROLE
      */
-    // forge-lint: disable-next-line(mixed-case-function)
     function __BaseUpgradeable_init_unchained(address governor) internal {
         // solhint-disable-previous-line func-name-mixedcase
 
