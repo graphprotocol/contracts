@@ -1,6 +1,9 @@
 packages:
   - packages/*
   - packages/*/*
+  - '!packages/issuance'
+  - '!packages/issuance/*'
+  - '!packages/deployment'
 
 catalog:
   '@changesets/cli': ^2.29.7
