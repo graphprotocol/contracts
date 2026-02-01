@@ -17,6 +17,9 @@ const { HashZero } = constants
 const INDEXER_INELIGIBLE = utils.id('INDEXER_INELIGIBLE')
 const SUBGRAPH_DENIED = utils.id('SUBGRAPH_DENIED')
 const CLOSE_ALLOCATION = utils.id('CLOSE_ALLOCATION')
+const NO_SIGNAL = utils.id('NO_SIGNAL')
+const NO_ALLOCATION = utils.id('NO_ALLOCATION')
+const BELOW_MINIMUM_SIGNAL = utils.id('BELOW_MINIMUM_SIGNAL')
 
 describe('Rewards - Reclaim Addresses', () => {
   const graph = hre.graph()
@@ -223,7 +226,7 @@ describe('Rewards - Reclaim Addresses', () => {
       // RewardsReclaimed emitted with actual indexer/allocationID (allocation-level reclaim)
       await expect(tx)
         .emit(rewardsManager, 'RewardsReclaimed')
-        .withArgs(SUBGRAPH_DENIED, toGRT('1400'), indexer1.address, allocationID1, subgraphDeploymentID1, '0x')
+        .withArgs(SUBGRAPH_DENIED, toGRT('1400'), indexer1.address, allocationID1, subgraphDeploymentID1)
 
       // Reclaim wallet received the pre-denial rewards
       const balanceAfter = await grt.balanceOf(reclaimWallet.address)
@@ -289,7 +292,7 @@ describe('Rewards - Reclaim Addresses', () => {
         .withArgs(indexer1.address, allocationID1, expectedRewards)
       await expect(tx)
         .emit(rewardsManager, 'RewardsReclaimed')
-        .withArgs(INDEXER_INELIGIBLE, expectedRewards, indexer1.address, allocationID1, subgraphDeploymentID1, '0x')
+        .withArgs(INDEXER_INELIGIBLE, expectedRewards, indexer1.address, allocationID1, subgraphDeploymentID1)
 
       // Check reclaim wallet received the rewards
       const balanceAfter = await grt.balanceOf(reclaimWallet.address)
@@ -422,6 +425,56 @@ describe('Rewards - Reclaim Addresses', () => {
       expect(balanceAfter.sub(balanceBefore)).eq(0)
     })
 
+    it('should reclaim to INDEXER_INELIGIBLE when both fail but only INDEXER_INELIGIBLE address configured (pre-denial allocation)', async function () {
+      // This tests the ternary in _deniedRewards that falls back to INDEXER_INELIGIBLE
+      // when SUBGRAPH_DENIED address is not configured
+
+      // Setup ONLY INDEXER_INELIGIBLE reclaim address (not SUBGRAPH_DENIED)
+      await rewardsManager.connect(governor).setReclaimAddress(INDEXER_INELIGIBLE, reclaimWallet.address)
+      await rewardsManager.connect(governor).setSubgraphAvailabilityOracle(governor.address)
+
+      // Setup eligibility oracle that denies
+      const MockRewardsEligibilityOracleFactory = await hre.ethers.getContractFactory(
+        'contracts/tests/MockRewardsEligibilityOracle.sol:MockRewardsEligibilityOracle',
+      )
+      const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(false) // Deny
+      await mockOracle.deployed()
+      await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
+
+      // Align with the epoch boundary
+      await helpers.mineEpoch(epochManager)
+
+      // Create allocation FIRST (before denial) - this is the key difference
+      await setupIndexerAllocation()
+
+      // Mine blocks to accrue rewards
+      await helpers.mineEpoch(epochManager)
+
+      // NOW deny the subgraph (after allocation exists)
+      await rewardsManager.connect(governor).setDenied(subgraphDeploymentID1, true)
+
+      const expectedRewards = toGRT('1400')
+
+      // Check balance before
+      const balanceBefore = await grt.balanceOf(reclaimWallet.address)
+
+      // Close allocation - pre-denial rewards flow through _deniedRewards
+      // Both conditions are true, but SUBGRAPH_DENIED address is not set
+      // So it should fall back to INDEXER_INELIGIBLE
+      const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
+
+      // RewardsDenied IS emitted (allocation-level denial for pre-denial rewards)
+      await expect(tx).emit(rewardsManager, 'RewardsDenied').withArgs(indexer1.address, allocationID1)
+      // RewardsDeniedDueToEligibility IS emitted
+      await expect(tx).emit(rewardsManager, 'RewardsDeniedDueToEligibility')
+      // RewardsReclaimed should emit with INDEXER_INELIGIBLE reason (fallback)
+      await expect(tx).emit(rewardsManager, 'RewardsReclaimed')
+
+      // INDEXER_INELIGIBLE wallet should receive rewards (fallback from SUBGRAPH_DENIED)
+      const balanceAfter = await grt.balanceOf(reclaimWallet.address)
+      expect(balanceAfter.sub(balanceBefore)).gte(expectedRewards)
+    })
+
     it('should drop rewards when both fail and neither address configured', async function () {
       // Do NOT set any reclaim addresses
 
@@ -528,12 +581,7 @@ describe('Rewards - Reclaim Addresses', () => {
       const balanceBefore = await grt.balanceOf(reclaimWallet.address)
 
       // Call reclaimRewards via mock subgraph service
-      const tx = await mockSubgraphService.callReclaimRewards(
-        rewardsManager.address,
-        CLOSE_ALLOCATION,
-        allocationID1,
-        '0x',
-      )
+      const tx = await mockSubgraphService.callReclaimRewards(rewardsManager.address, CLOSE_ALLOCATION, allocationID1)
 
       // Verify event was emitted (don't check exact amount, it depends on rewards calculation)
       await expect(tx).emit(rewardsManager, 'RewardsReclaimed')
@@ -567,12 +615,7 @@ describe('Rewards - Reclaim Addresses', () => {
       await helpers.mineEpoch(epochManager)
 
       // Call reclaimRewards via mock subgraph service - should not emit RewardsReclaimed
-      const tx = await mockSubgraphService.callReclaimRewards(
-        rewardsManager.address,
-        CLOSE_ALLOCATION,
-        allocationID1,
-        '0x',
-      )
+      const tx = await mockSubgraphService.callReclaimRewards(rewardsManager.address, CLOSE_ALLOCATION, allocationID1)
       await expect(tx).to.not.emit(rewardsManager, 'RewardsReclaimed')
     })
 
@@ -597,26 +640,18 @@ describe('Rewards - Reclaim Addresses', () => {
         rewardsManager.address,
         CLOSE_ALLOCATION,
         allocationID1,
-        '0x',
       )
       expect(result).eq(0)
 
-      const tx = await mockSubgraphService.callReclaimRewards(
-        rewardsManager.address,
-        CLOSE_ALLOCATION,
-        allocationID1,
-        '0x',
-      )
+      const tx = await mockSubgraphService.callReclaimRewards(rewardsManager.address, CLOSE_ALLOCATION, allocationID1)
       await expect(tx).to.not.emit(rewardsManager, 'RewardsReclaimed')
     })
 
     it('should reject when called by unauthorized address', async function () {
       // Try to call reclaimRewards directly from indexer1 (not the subgraph service)
-      // Note: Contract types need to be regenerated after interface changes
-      // Using manual encoding for now
       const abiCoder = hre.ethers.utils.defaultAbiCoder
-      const selector = hre.ethers.utils.id('reclaimRewards(bytes32,address,bytes)').slice(0, 10)
-      const params = abiCoder.encode(['bytes32', 'address', 'bytes'], [CLOSE_ALLOCATION, allocationID1, '0x'])
+      const selector = hre.ethers.utils.id('reclaimRewards(bytes32,address)').slice(0, 10)
+      const params = abiCoder.encode(['bytes32', 'address'], [CLOSE_ALLOCATION, allocationID1])
       const data = selector + params.slice(2)
 
       const tx = indexer1.sendTransaction({
@@ -624,6 +659,339 @@ describe('Rewards - Reclaim Addresses', () => {
         data: data,
       })
       await expect(tx).revertedWith('Not a rewards issuer')
+    })
+  })
+
+  describe('setDefaultReclaimAddress', function () {
+    it('should reject if not governor', async function () {
+      const tx = rewardsManager.connect(indexer1).setDefaultReclaimAddress(reclaimWallet.address)
+      await expect(tx).revertedWith('Only Controller governor')
+    })
+
+    it('should set default reclaim address if governor', async function () {
+      const tx = rewardsManager.connect(governor).setDefaultReclaimAddress(reclaimWallet.address)
+      await expect(tx)
+        .emit(rewardsManager, 'DefaultReclaimAddressSet')
+        .withArgs(constants.AddressZero, reclaimWallet.address)
+
+      // Verify the getter returns the correct value
+      expect(await rewardsManager.getDefaultReclaimAddress()).eq(reclaimWallet.address)
+    })
+
+    it('should allow setting to zero address', async function () {
+      await rewardsManager.connect(governor).setDefaultReclaimAddress(reclaimWallet.address)
+
+      const tx = rewardsManager.connect(governor).setDefaultReclaimAddress(constants.AddressZero)
+      await expect(tx)
+        .emit(rewardsManager, 'DefaultReclaimAddressSet')
+        .withArgs(reclaimWallet.address, constants.AddressZero)
+    })
+
+    it('should not emit event when setting same address', async function () {
+      await rewardsManager.connect(governor).setDefaultReclaimAddress(reclaimWallet.address)
+
+      const tx = rewardsManager.connect(governor).setDefaultReclaimAddress(reclaimWallet.address)
+      await expect(tx).to.not.emit(rewardsManager, 'DefaultReclaimAddressSet')
+    })
+  })
+
+  describe('default reclaim address fallback', function () {
+    beforeEach(async function () {
+      await setupIndexerAllocation()
+      // Set governor as the subgraph availability oracle for setDenied calls
+      await rewardsManager.connect(governor).setSubgraphAvailabilityOracle(governor.address)
+    })
+
+    it('should use default reclaim address when reason-specific not set', async function () {
+      // Set default but NOT SUBGRAPH_DENIED specific
+      await rewardsManager.connect(governor).setDefaultReclaimAddress(reclaimWallet.address)
+
+      // Deny the subgraph
+      await rewardsManager.connect(governor).setDenied(subgraphDeploymentID1, true)
+
+      // Mine blocks to accrue rewards
+      await helpers.mine(5)
+
+      const balanceBefore = await grt.balanceOf(reclaimWallet.address)
+
+      // Trigger reclaim via onSubgraphAllocationUpdate
+      const tx = rewardsManager.connect(governor).onSubgraphAllocationUpdate(subgraphDeploymentID1)
+
+      // Should reclaim to default address with SUBGRAPH_DENIED reason
+      await expect(tx).emit(rewardsManager, 'RewardsReclaimed')
+
+      const balanceAfter = await grt.balanceOf(reclaimWallet.address)
+      expect(balanceAfter).gt(balanceBefore)
+    })
+
+    it('should prefer reason-specific address over default', async function () {
+      // Set both default AND SUBGRAPH_DENIED specific
+      await rewardsManager.connect(governor).setDefaultReclaimAddress(otherWallet.address)
+      await rewardsManager.connect(governor).setReclaimAddress(SUBGRAPH_DENIED, reclaimWallet.address)
+
+      // Deny the subgraph
+      await rewardsManager.connect(governor).setDenied(subgraphDeploymentID1, true)
+
+      // Mine blocks to accrue rewards
+      await helpers.mine(5)
+
+      const balanceBefore = await grt.balanceOf(reclaimWallet.address)
+      const otherBalanceBefore = await grt.balanceOf(otherWallet.address)
+
+      // Trigger reclaim
+      await rewardsManager.connect(governor).onSubgraphAllocationUpdate(subgraphDeploymentID1)
+
+      const balanceAfter = await grt.balanceOf(reclaimWallet.address)
+      const otherBalanceAfter = await grt.balanceOf(otherWallet.address)
+
+      // Should go to reason-specific, not default
+      expect(balanceAfter).gt(balanceBefore)
+      expect(otherBalanceAfter).eq(otherBalanceBefore)
+    })
+  })
+
+  describe('reclaim NO_SIGNAL - zero total signal', function () {
+    it('should reclaim when no signal and NO_SIGNAL address set', async function () {
+      // Set reclaim address for NO_SIGNAL
+      await rewardsManager.connect(governor).setReclaimAddress(NO_SIGNAL, reclaimWallet.address)
+
+      // Don't create any signal - just mine blocks
+      await helpers.mine(5)
+
+      const balanceBefore = await grt.balanceOf(reclaimWallet.address)
+
+      // Trigger updateAccRewardsPerSignal (called internally when signal changes, or directly)
+      const tx = rewardsManager.connect(governor).updateAccRewardsPerSignal()
+
+      await expect(tx).emit(rewardsManager, 'RewardsReclaimed')
+
+      const balanceAfter = await grt.balanceOf(reclaimWallet.address)
+      expect(balanceAfter).gt(balanceBefore)
+    })
+
+    it('should drop rewards when no signal and no reclaim address', async function () {
+      // Don't set any reclaim address - just mine blocks
+      await helpers.mine(5)
+
+      // Trigger updateAccRewardsPerSignal
+      const tx = rewardsManager.connect(governor).updateAccRewardsPerSignal()
+
+      // Should not emit RewardsReclaimed (dropped)
+      await expect(tx).to.not.emit(rewardsManager, 'RewardsReclaimed')
+    })
+
+    it('should use default reclaim address for NO_SIGNAL when specific not set', async function () {
+      // Set default but NOT NO_SIGNAL specific
+      await rewardsManager.connect(governor).setDefaultReclaimAddress(reclaimWallet.address)
+
+      await helpers.mine(5)
+
+      const balanceBefore = await grt.balanceOf(reclaimWallet.address)
+
+      const tx = rewardsManager.connect(governor).updateAccRewardsPerSignal()
+
+      await expect(tx).emit(rewardsManager, 'RewardsReclaimed')
+
+      const balanceAfter = await grt.balanceOf(reclaimWallet.address)
+      expect(balanceAfter).gt(balanceBefore)
+    })
+  })
+
+  describe('reclaim NO_ALLOCATION - signal but no allocations', function () {
+    it('should reclaim when signal exists but no allocations and NO_ALLOCATION address set', async function () {
+      // Set reclaim address for NO_ALLOCATION
+      await rewardsManager.connect(governor).setReclaimAddress(NO_ALLOCATION, reclaimWallet.address)
+
+      // Create signal but NO allocation
+      const signalled1 = toGRT('1500')
+      await curation.connect(curator1).mint(subgraphDeploymentID1, signalled1, 0)
+
+      // Mine blocks to accrue rewards
+      await helpers.mine(5)
+
+      const balanceBefore = await grt.balanceOf(reclaimWallet.address)
+
+      // Trigger onSubgraphAllocationUpdate - will see signal but no allocations
+      const tx = rewardsManager.connect(governor).onSubgraphAllocationUpdate(subgraphDeploymentID1)
+
+      await expect(tx).emit(rewardsManager, 'RewardsReclaimed')
+
+      const balanceAfter = await grt.balanceOf(reclaimWallet.address)
+      expect(balanceAfter).gt(balanceBefore)
+    })
+
+    it('should drop rewards when no allocations and no reclaim address', async function () {
+      // Create signal but NO allocation, and don't set reclaim address
+      const signalled1 = toGRT('1500')
+      await curation.connect(curator1).mint(subgraphDeploymentID1, signalled1, 0)
+
+      await helpers.mine(5)
+
+      // Trigger onSubgraphAllocationUpdate
+      const tx = rewardsManager.connect(governor).onSubgraphAllocationUpdate(subgraphDeploymentID1)
+
+      // Should not emit RewardsReclaimed (dropped)
+      await expect(tx).to.not.emit(rewardsManager, 'RewardsReclaimed')
+    })
+  })
+
+  describe('reclaim BELOW_MINIMUM_SIGNAL', function () {
+    const MINIMUM_SIGNAL = toGRT('1000')
+
+    beforeEach(async function () {
+      // Set minimum signal threshold
+      await rewardsManager.connect(governor).setMinimumSubgraphSignal(MINIMUM_SIGNAL)
+    })
+
+    it('should reclaim when signal below minimum and BELOW_MINIMUM_SIGNAL address set', async function () {
+      // Set reclaim address for BELOW_MINIMUM_SIGNAL
+      await rewardsManager.connect(governor).setReclaimAddress(BELOW_MINIMUM_SIGNAL, reclaimWallet.address)
+
+      // Create signal BELOW minimum (minimum is 1000, we signal 500)
+      const signalled1 = toGRT('500')
+      await curation.connect(curator1).mint(subgraphDeploymentID1, signalled1, 0)
+
+      // Mine blocks
+      await helpers.mine(5)
+
+      const balanceBefore = await grt.balanceOf(reclaimWallet.address)
+
+      // Trigger onSubgraphAllocationUpdate
+      const tx = rewardsManager.connect(governor).onSubgraphAllocationUpdate(subgraphDeploymentID1)
+
+      await expect(tx).emit(rewardsManager, 'RewardsReclaimed')
+
+      const balanceAfter = await grt.balanceOf(reclaimWallet.address)
+      expect(balanceAfter).gt(balanceBefore)
+    })
+
+    it('should not reclaim when signal at or above minimum', async function () {
+      // Set reclaim address
+      await rewardsManager.connect(governor).setReclaimAddress(BELOW_MINIMUM_SIGNAL, reclaimWallet.address)
+
+      // Create signal AT minimum
+      const signalled1 = MINIMUM_SIGNAL
+      await curation.connect(curator1).mint(subgraphDeploymentID1, signalled1, 0)
+
+      // Also need an allocation for rewards to accumulate normally
+      const tokensToAllocate = toGRT('12500')
+      await staking.connect(indexer1).stake(tokensToAllocate)
+      await staking
+        .connect(indexer1)
+        .allocateFrom(
+          indexer1.address,
+          subgraphDeploymentID1,
+          tokensToAllocate,
+          allocationID1,
+          metadata,
+          await channelKey1.generateProof(indexer1.address),
+        )
+
+      await helpers.mine(5)
+
+      // Trigger onSubgraphAllocationUpdate
+      const tx = rewardsManager.connect(governor).onSubgraphAllocationUpdate(subgraphDeploymentID1)
+
+      // Should NOT emit RewardsReclaimed for BELOW_MINIMUM_SIGNAL
+      await expect(tx).to.not.emit(rewardsManager, 'RewardsReclaimed')
+    })
+
+    it('should drop rewards when below minimum and no reclaim address', async function () {
+      // Don't set reclaim address
+      // Create signal BELOW minimum
+      const signalled1 = toGRT('500')
+      await curation.connect(curator1).mint(subgraphDeploymentID1, signalled1, 0)
+
+      await helpers.mine(5)
+
+      const tx = rewardsManager.connect(governor).onSubgraphAllocationUpdate(subgraphDeploymentID1)
+
+      // Should not emit RewardsReclaimed (dropped)
+      await expect(tx).to.not.emit(rewardsManager, 'RewardsReclaimed')
+    })
+
+    it('should use BELOW_MINIMUM_SIGNAL when denied but SUBGRAPH_DENIED address not configured', async function () {
+      // This tests line 574: the branch where subgraph is denied but reclaim address is zero,
+      // so it falls back to BELOW_MINIMUM_SIGNAL
+
+      // Set BELOW_MINIMUM_SIGNAL address but NOT SUBGRAPH_DENIED
+      await rewardsManager.connect(governor).setReclaimAddress(BELOW_MINIMUM_SIGNAL, reclaimWallet.address)
+
+      // Setup denylist
+      await rewardsManager.connect(governor).setSubgraphAvailabilityOracle(governor.address)
+      await rewardsManager.connect(governor).setDenied(subgraphDeploymentID1, true)
+
+      // Create signal BELOW minimum (minimum is 1000, we signal 500)
+      const signalled1 = toGRT('500')
+      await curation.connect(curator1).mint(subgraphDeploymentID1, signalled1, 0)
+
+      // Mine blocks
+      await helpers.mine(5)
+
+      const balanceBefore = await grt.balanceOf(reclaimWallet.address)
+
+      // Trigger onSubgraphAllocationUpdate
+      // Subgraph is denied but no SUBGRAPH_DENIED address, so should fall back to BELOW_MINIMUM_SIGNAL
+      const tx = rewardsManager.connect(governor).onSubgraphAllocationUpdate(subgraphDeploymentID1)
+
+      // Should reclaim to BELOW_MINIMUM_SIGNAL address
+      await expect(tx).emit(rewardsManager, 'RewardsReclaimed')
+
+      const balanceAfter = await grt.balanceOf(reclaimWallet.address)
+      expect(balanceAfter).gt(balanceBefore)
+    })
+  })
+
+  describe('dual denial - SUBGRAPH_DENIED takes precedence when configured', function () {
+    it('should reclaim to SUBGRAPH_DENIED when both conditions true and SUBGRAPH_DENIED address configured (pre-denial allocation)', async function () {
+      // This tests line 747-748: when both denied and ineligible, and SUBGRAPH_DENIED IS configured
+
+      // Setup BOTH reclaim addresses
+      await rewardsManager.connect(governor).setReclaimAddress(SUBGRAPH_DENIED, reclaimWallet.address)
+      await rewardsManager.connect(governor).setReclaimAddress(INDEXER_INELIGIBLE, otherWallet.address)
+      await rewardsManager.connect(governor).setSubgraphAvailabilityOracle(governor.address)
+
+      // Setup eligibility oracle that denies
+      const MockRewardsEligibilityOracleFactory = await hre.ethers.getContractFactory(
+        'contracts/tests/MockRewardsEligibilityOracle.sol:MockRewardsEligibilityOracle',
+      )
+      const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(false) // Deny
+      await mockOracle.deployed()
+      await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
+
+      // Align with the epoch boundary
+      await helpers.mineEpoch(epochManager)
+
+      // Create allocation FIRST (before denial)
+      await setupIndexerAllocation()
+
+      // Mine blocks to accrue rewards
+      await helpers.mineEpoch(epochManager)
+
+      // NOW deny the subgraph (after allocation exists)
+      await rewardsManager.connect(governor).setDenied(subgraphDeploymentID1, true)
+
+      // Check balances before
+      const subgraphDeniedBalanceBefore = await grt.balanceOf(reclaimWallet.address)
+      const indexerIneligibleBalanceBefore = await grt.balanceOf(otherWallet.address)
+
+      // Close allocation - pre-denial rewards flow through _deniedRewards
+      // Both conditions are true, SUBGRAPH_DENIED IS configured, so it should use SUBGRAPH_DENIED
+      const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
+
+      // RewardsDenied IS emitted
+      await expect(tx).emit(rewardsManager, 'RewardsDenied').withArgs(indexer1.address, allocationID1)
+      // RewardsDeniedDueToEligibility IS emitted
+      await expect(tx).emit(rewardsManager, 'RewardsDeniedDueToEligibility')
+      // RewardsReclaimed should emit with SUBGRAPH_DENIED reason
+      await expect(tx).emit(rewardsManager, 'RewardsReclaimed')
+
+      // SUBGRAPH_DENIED wallet should receive rewards (not INDEXER_INELIGIBLE)
+      const subgraphDeniedBalanceAfter = await grt.balanceOf(reclaimWallet.address)
+      const indexerIneligibleBalanceAfter = await grt.balanceOf(otherWallet.address)
+
+      expect(subgraphDeniedBalanceAfter.sub(subgraphDeniedBalanceBefore)).gt(0)
+      expect(indexerIneligibleBalanceAfter.sub(indexerIneligibleBalanceBefore)).eq(0)
     })
   })
 })

@@ -479,7 +479,8 @@ describe('Rewards', () => {
         await helpers.mine(ISSUANCE_RATE_PERIODS)
 
         // Prepare expected results
-        const expectedSubgraphRewards = toGRT('1400') // 7 blocks since signaling to when we do getAccRewardsForSubgraph
+        // Note: rewards from signal to allocation (2 blocks) are reclaimed since no allocations exist yet
+        const expectedSubgraphRewards = toGRT('1000') // 5 blocks since allocation to when we do getAccRewardsForSubgraph
         const expectedRewardsAT = toGRT('0.08') // allocated during 5 blocks: 1000 GRT, divided by 12500 allocated tokens
 
         // Update
@@ -1313,12 +1314,12 @@ describe('Rewards', () => {
 
       // signal in two subgraphs in the same block
       const subgraphs = [subgraphDeploymentID1, subgraphDeploymentID2]
+      await hre.network.provider.send('evm_setAutomine', [false])
       for (const sub of subgraphs) {
         await curation.connect(curator1).mint(sub, toGRT('1500'), 0)
       }
-
-      // snapshot block before any accrual (we substract 1 because accrual starts after the first mint happens)
-      const b1 = await epochManager.blockNum().then((x) => x.toNumber() - 1)
+      await hre.network.provider.send('evm_mine')
+      await hre.network.provider.send('evm_setAutomine', [true])
 
       // allocate
       const tokensToAllocate = toGRT('12500')
@@ -1338,6 +1339,9 @@ describe('Rewards', () => {
             .then((tx) => tx.data),
         ])
 
+      // snapshot block after allocation (rewards before allocation were reclaimed for subgraph1)
+      const b1 = await epochManager.blockNum().then((x) => x.toNumber())
+
       // move time fwd
       await helpers.mineEpoch(epochManager)
 
@@ -1351,8 +1355,12 @@ describe('Rewards', () => {
       const accrual = await getRewardsAccrual(subgraphs)
       const b2 = await epochManager.blockNum().then((x) => x.toNumber())
 
-      // round comparison because there is a small precision error due to dividing and accrual per signal
-      expect(toRound(accrual.all)).eq(toRound(ISSUANCE_PER_BLOCK.mul(b2 - b1)))
+      // Only check subgraph1 (with allocation) - subgraph2 has no allocation so its rewards
+      // are calculated from signal time, not from allocation time
+      // Each subgraph gets half the issuance (equal signal)
+      // Small tolerance for fixed-point arithmetic rounding
+      const expectedSg1Rewards = ISSUANCE_PER_BLOCK.div(2).mul(b2 - b1)
+      expect(toRound(accrual.sg1.mul(100).div(expectedSg1Rewards))).eq(toRound(BigNumber.from(100)))
     })
   })
 })

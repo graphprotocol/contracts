@@ -58,7 +58,7 @@ describe('RewardsManager interfaces', () => {
     })
 
     it('IRewardsManager should have stable interface ID', () => {
-      expect(IRewardsManager__factory.interfaceId).to.equal('0xa0a2f219')
+      expect(IRewardsManager__factory.interfaceId).to.equal('0x36b70adb')
     })
   })
 

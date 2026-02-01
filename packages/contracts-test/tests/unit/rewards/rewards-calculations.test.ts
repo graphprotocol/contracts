@@ -370,7 +370,8 @@ describe('Rewards - Calculations', () => {
         await helpers.mine(ISSUANCE_RATE_PERIODS)
 
         // Prepare expected results
-        const expectedSubgraphRewards = toGRT('1400') // 7 blocks since signaling to when we do getAccRewardsForSubgraph
+        // Note: rewards from signal to allocation (2 blocks) are reclaimed since no allocations exist yet
+        const expectedSubgraphRewards = toGRT('1000') // 5 blocks since allocation to when we do getAccRewardsForSubgraph
         const expectedRewardsAT = toGRT('0.08') // allocated during 5 blocks: 1000 GRT, divided by 12500 allocated tokens
 
         // Update

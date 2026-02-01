@@ -51,7 +51,9 @@ contract MockRewardsManager is IRewardsManager {
 
     function setReclaimAddress(bytes32, address) external {}
 
-    function reclaimRewards(bytes32, address _allocationId, bytes calldata) external view returns (uint256) {
+    function setDefaultReclaimAddress(address) external {}
+
+    function reclaimRewards(bytes32, address _allocationId) external view returns (uint256) {
         address rewardsIssuer = msg.sender;
         (bool isActive, , , uint256 tokens, uint256 accRewardsPerAllocatedToken, ) = IRewardsIssuer(rewardsIssuer)
             .getAllocationData(_allocationId);
@@ -75,6 +77,10 @@ contract MockRewardsManager is IRewardsManager {
     }
 
     function getReclaimAddress(bytes32) external pure returns (address) {
+        return address(0);
+    }
+
+    function getDefaultReclaimAddress() external pure returns (address) {
         return address(0);
     }
 
