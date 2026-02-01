@@ -301,4 +301,33 @@ interface ISubgraphService is IDataServiceFees {
      * @return The address of the curation contract
      */
     function getCuration() external view returns (address);
+
+    /**
+     * @notice Gets the indexer details
+     * @dev Note that this storage getter actually returns a {Indexer} struct, but ethers v6 is not
+     *      good at dealing with dynamic types on return values.
+     * @param indexer The address of the indexer
+     * @return url The URL where the indexer can be reached at for queries
+     * @return geoHash The indexer's geo location, expressed as a geo hash
+     */
+    function indexers(address indexer) external view returns (string memory url, string memory geoHash);
+
+    /**
+     * @notice Gets the stake to fees ratio
+     * @return The stake to fees ratio
+     */
+    function stakeToFeesRatio() external view returns (uint256);
+
+    /**
+     * @notice Gets the curation fees cut
+     * @return The curation fees cut
+     */
+    function curationFeesCut() external view returns (uint256);
+
+    /**
+     * @notice Gets the payments destination
+     * @param indexer The address of the indexer
+     * @return The payments destination
+     */
+    function paymentsDestination(address indexer) external view returns (address);
 }

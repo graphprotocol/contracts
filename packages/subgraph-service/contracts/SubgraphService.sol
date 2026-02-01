@@ -40,9 +40,9 @@ contract SubgraphService is
     DataServiceFees,
     Directory,
     AllocationManager,
-    SubgraphServiceV1Storage,
     IRewardsIssuer,
-    ISubgraphService
+    ISubgraphService,
+    SubgraphServiceV1Storage
 {
     using PPMMath for uint256;
     using Allocation for mapping(address => IAllocation.State);
