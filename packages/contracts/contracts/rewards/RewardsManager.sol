@@ -428,7 +428,7 @@ contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, IERC165, I
         // - the new allocations on the subgraph service
         uint256 subgraphAllocatedTokens = 0;
         address[2] memory rewardsIssuers = [address(staking()), address(subgraphService)];
-        for (uint256 i = 0; i < rewardsIssuers.length; i++) {
+        for (uint256 i = 0; i < rewardsIssuers.length; ++i) {
             if (rewardsIssuers[i] != address(0)) {
                 subgraphAllocatedTokens += IRewardsIssuer(rewardsIssuers[i]).getSubgraphAllocatedTokens(
                     _subgraphDeploymentID

@@ -54,7 +54,7 @@ contract SubgraphService is
      * @param indexer The address of the indexer
      */
     modifier onlyRegisteredIndexer(address indexer) {
-        require(bytes(indexers[indexer].url).length > 0, SubgraphServiceIndexerNotRegistered(indexer));
+        _checkRegisteredIndexer(indexer);
         _;
     }
 
@@ -459,6 +459,14 @@ contract SubgraphService is
     }
 
     /**
+     * @notice Checks that an indexer is registered
+     * @param indexer The address of the indexer
+     */
+    function _checkRegisteredIndexer(address indexer) private view {
+        require(bytes(indexers[indexer].url).length > 0, SubgraphServiceIndexerNotRegistered(indexer));
+    }
+
+    /**
      * @notice Collect query fees
      * Stake equal to the amount being collected times the `stakeToFeesRatio` is locked into a stake claim.
      * This claim can be released at a later stage once expired.
@@ -501,11 +509,11 @@ contract SubgraphService is
 
         // Check that collectionId (256 bits) is a valid address (160 bits)
         // collectionId is expected to be a zero padded address so it's safe to cast to uint160
-        require(
-            uint256(signedRav.rav.collectionId) <= type(uint160).max,
-            SubgraphServiceInvalidCollectionId(signedRav.rav.collectionId)
-        );
-        address allocationId = address(uint160(uint256(signedRav.rav.collectionId)));
+        uint256 ravCollectionId = uint256(signedRav.rav.collectionId);
+        // solhint-disable-next-line gas-strict-inequalities
+        require(ravCollectionId <= type(uint160).max, SubgraphServiceInvalidCollectionId(signedRav.rav.collectionId));
+        // forge-lint: disable-next-line(unsafe-typecast)
+        address allocationId = address(uint160(ravCollectionId));
         IAllocation.State memory allocation = _allocations.get(allocationId);
 
         // Check RAV is consistent - RAV indexer must match the allocation's indexer
