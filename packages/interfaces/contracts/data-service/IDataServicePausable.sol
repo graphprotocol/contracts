@@ -53,4 +53,11 @@ interface IDataServicePausable is IDataService {
      * - The contract must be paused
      */
     function unpause() external;
+
+    /**
+     * @notice Gets the allowed status of a pause guardian
+     * @param pauseGuardian The address of the pause guardian
+     * @return The allowed status of the pause guardian
+     */
+    function pauseGuardians(address pauseGuardian) external view returns (bool);
 }

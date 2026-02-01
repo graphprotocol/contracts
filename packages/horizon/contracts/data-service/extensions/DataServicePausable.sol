@@ -22,7 +22,7 @@ import { DataService } from "../DataService.sol";
  */
 abstract contract DataServicePausable is Pausable, DataService, IDataServicePausable {
     /// @notice List of pause guardians and their allowed status
-    mapping(address pauseGuardian => bool allowed) public pauseGuardians;
+    mapping(address pauseGuardian => bool allowed) public override pauseGuardians;
 
     // forge-lint: disable-next-item(unwrapped-modifier-logic)
     /**
