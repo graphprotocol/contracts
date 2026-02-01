@@ -18,7 +18,7 @@ import { IRewardsManagerDeprecated } from "@graphprotocol/interfaces/contracts/c
 import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationDistribution.sol";
 import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceTarget.sol";
 import { IRewardsEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibility.sol";
-import { RewardsReclaim } from "@graphprotocol/interfaces/contracts/contracts/rewards/RewardsReclaim.sol";
+import { RewardsCondition } from "@graphprotocol/interfaces/contracts/contracts/rewards/RewardsCondition.sol";
 
 /**
  * @title Rewards Manager Contract
@@ -572,7 +572,7 @@ contract RewardsManager is
             if (
                 0 <
                 _reclaimRewards(
-                    RewardsReclaim.SUBGRAPH_DENIED,
+                    RewardsCondition.SUBGRAPH_DENIED,
                     rewards,
                     indexer,
                     allocationID,
@@ -590,7 +590,7 @@ contract RewardsManager is
             if (
                 0 <
                 _reclaimRewards(
-                    RewardsReclaim.INDEXER_INELIGIBLE,
+                    RewardsCondition.INDEXER_INELIGIBLE,
                     rewards,
                     indexer,
                     allocationID,

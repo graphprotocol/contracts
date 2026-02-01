@@ -132,7 +132,7 @@ interface IRewardsManager {
      * previous periods will be sent to the new reclaim address when they are eventually reclaimed,
      * regardless of which address was configured when the rewards were originally accrued.
      *
-     * @param reason The reclaim reason identifier (see RewardsReclaim library for canonical reasons)
+     * @param reason The reclaim reason identifier (see RewardsCondition library for canonical reasons)
      * @param newReclaimAddress The address to receive tokens
      */
     function setReclaimAddress(bytes32 reason, address newReclaimAddress) external;
@@ -261,7 +261,7 @@ interface IRewardsManager {
      * @notice Reclaim rewards for an allocation
      * @dev This function can only be called by an authorized rewards issuer.
      * Calculates pending rewards and mints them to the configured reclaim address.
-     * @param reason The reclaim reason identifier (see RewardsReclaim library for canonical reasons)
+     * @param reason The reclaim reason identifier (see RewardsCondition library for canonical reasons)
      * @param allocationID Allocation
      * @param data Arbitrary data to include in the RewardsReclaimed event for additional context
      * @return The amount of rewards that were reclaimed (0 if no reclaim address set)

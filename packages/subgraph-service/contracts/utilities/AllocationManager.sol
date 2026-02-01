@@ -7,7 +7,7 @@ import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizo
 import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
 import { IAllocationManager } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocationManager.sol";
 import { ILegacyAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/ILegacyAllocation.sol";
-import { RewardsReclaim } from "@graphprotocol/interfaces/contracts/contracts/rewards/RewardsReclaim.sol";
+import { RewardsCondition } from "@graphprotocol/interfaces/contracts/contracts/rewards/RewardsCondition.sol";
 
 import { GraphDirectory } from "@graphprotocol/horizon/contracts/utilities/GraphDirectory.sol";
 import { AllocationManagerV1Storage } from "./AllocationManagerStorage.sol";
@@ -186,14 +186,14 @@ abstract contract AllocationManager is
         // Mint indexing rewards if all conditions are met, otherwise reclaim with specific reason
         uint256 tokensRewards;
         if (allocation.isStale(maxPOIStaleness)) {
-            _graphRewardsManager().reclaimRewards(RewardsReclaim.STALE_POI, _allocationId, "");
+            _graphRewardsManager().reclaimRewards(RewardsCondition.STALE_POI, _allocationId, "");
         } else if (allocation.isAltruistic()) {
-            _graphRewardsManager().reclaimRewards(RewardsReclaim.ALTRUISTIC_ALLOCATION, _allocationId, "");
+            _graphRewardsManager().reclaimRewards(RewardsCondition.ALTRUISTIC_ALLOCATION, _allocationId, "");
         } else if (_poi == bytes32(0)) {
-            _graphRewardsManager().reclaimRewards(RewardsReclaim.ZERO_POI, _allocationId, "");
+            _graphRewardsManager().reclaimRewards(RewardsCondition.ZERO_POI, _allocationId, "");
             // solhint-disable-next-line gas-strict-inequalities
         } else if (_graphEpochManager().currentEpoch() <= allocation.createdAtEpoch) {
-            _graphRewardsManager().reclaimRewards(RewardsReclaim.ALLOCATION_TOO_YOUNG, _allocationId, "");
+            _graphRewardsManager().reclaimRewards(RewardsCondition.ALLOCATION_TOO_YOUNG, _allocationId, "");
         } else {
             tokensRewards = _graphRewardsManager().takeRewards(_allocationId);
         }
@@ -333,7 +333,7 @@ abstract contract AllocationManager is
 
         // Reclaim uncollected rewards before closing
         uint256 reclaimedRewards = _graphRewardsManager().reclaimRewards(
-            RewardsReclaim.CLOSE_ALLOCATION,
+            RewardsCondition.CLOSE_ALLOCATION,
             _allocationId,
             ""
         );
