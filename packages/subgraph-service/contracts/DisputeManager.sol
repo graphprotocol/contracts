@@ -47,12 +47,12 @@ import { AttestationManager } from "./utilities/AttestationManager.sol";
  * bugs. We may have an active bug bounty program.
  */
 contract DisputeManager is
+    IDisputeManager,
     Initializable,
     OwnableUpgradeable,
     GraphDirectory,
     AttestationManager,
-    DisputeManagerV1Storage,
-    IDisputeManager
+    DisputeManagerV1Storage
 {
     using TokenUtils for IGraphToken;
     using PPMMath for uint256;

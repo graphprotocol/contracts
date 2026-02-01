@@ -3,6 +3,7 @@
 pragma solidity ^0.8.22;
 
 import { IAttestation } from "./internal/IAttestation.sol";
+import { ISubgraphService } from "./ISubgraphService.sol";
 
 /**
  * @title IDisputeManager
@@ -618,4 +619,72 @@ interface IDisputeManager {
         IAttestation.State memory attestation1,
         IAttestation.State memory attestation2
     ) external pure returns (bool);
+
+    // -- Storage Getters --
+
+    /**
+     * @notice Get the dispute period.
+     * @return Dispute period in seconds
+     */
+    function disputePeriod() external view returns (uint64);
+
+    /**
+     * @notice Get the fisherman reward cut.
+     * @return Fisherman reward cut in percentage (ppm)
+     */
+    function fishermanRewardCut() external view returns (uint32);
+
+    /**
+     * @notice Get the maximum percentage that can be used for slashing indexers.
+     * @return Max percentage slashing for disputes
+     */
+    function maxSlashingCut() external view returns (uint32);
+
+    /**
+     * @notice Get the dispute deposit.
+     * @return Dispute deposit
+     */
+    function disputeDeposit() external view returns (uint256);
+
+    /**
+     * @notice Get the subgraph service address.
+     * @return Subgraph service address
+     */
+    function subgraphService() external view returns (ISubgraphService);
+
+    /**
+     * @notice Get the arbitrator address.
+     * @return Arbitrator address
+     */
+    function arbitrator() external view returns (address);
+
+    /**
+     * @notice Get dispute details.
+     * @param disputeId The dispute ID
+     * @return indexer The indexer that is being disputed
+     * @return fisherman The fisherman that created the dispute
+     * @return deposit The amount of tokens deposited by the fisherman
+     * @return relatedDisputeId The link to a related dispute
+     * @return disputeType The type of dispute
+     * @return status The status of the dispute
+     * @return createdAt The timestamp when the dispute was created
+     * @return cancellableAt The timestamp when the dispute can be cancelled
+     * @return stakeSnapshot The stake snapshot of the indexer at the time of the dispute
+     */
+    function disputes(
+        bytes32 disputeId
+    )
+        external
+        view
+        returns (
+            address indexer,
+            address fisherman,
+            uint256 deposit,
+            bytes32 relatedDisputeId,
+            DisputeType disputeType,
+            DisputeStatus status,
+            uint256 createdAt,
+            uint256 cancellableAt,
+            uint256 stakeSnapshot
+        );
 }
