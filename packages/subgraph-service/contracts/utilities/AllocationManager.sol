@@ -132,45 +132,29 @@ abstract contract AllocationManager is
 
     /**
      * @notice Present a POI to collect indexing rewards for an allocation
-     * This function will mint indexing rewards using the {RewardsManager} and distribute them to the indexer and delegators.
+     * Mints indexing rewards using the {RewardsManager} and distributes them to the indexer and delegators.
      *
-     * Conditions to qualify for indexing rewards:
+     * Requirements for indexing rewards:
      * - POI must be non-zero
-     * - POI must not be stale, i.e: older than `maxPOIStaleness`
-     * - allocation must not be altruistic (allocated tokens = 0)
-     * - allocation must be open for at least one epoch
+     * - POI must not be stale (older than `maxPOIStaleness`)
+     * - Allocation must be open for at least one epoch (returns early with 0 if too young)
      *
-     * Note that indexers are required to periodically (at most every `maxPOIStaleness`) present POIs to collect rewards.
-     * Rewards will not be issued to stale POIs, which means that indexers are advised to present a zero POI if they are
-     * unable to present a valid one to prevent being locked out of future rewards.
+     * When rewards cannot be claimed, they are reclaimed with reason STALE_POI or ZERO_POI.
+     * Altruistic allocations and too-young allocations skip reclaim (nothing to reclaim / allow claiming later).
      *
-     * Note on allocation duration restriction: this is required to ensure that non protocol chains have a valid block number for
-     * which to calculate POIs. EBO posts once per epoch typically at each epoch change, so we restrict rewards to allocations
-     * that have gone through at least one epoch change.
+     * Note: Indexers should present POIs at least every `maxPOIStaleness` to avoid being locked out of rewards.
+     * A zero POI can be presented if a valid one is unavailable, to prevent staleness and slashing.
      *
-     * Reclaim target hierarchy:
-     * When rewards cannot be minted, they are reclaimed with a specific reason. The following conditions are checked
-     * in order, and the first matching condition determines which reclaim reason is used:
-     * 1. STALE_POI - if allocation is stale (lastPOI older than maxPOIStaleness)
-     * 2. ALTRUISTIC_ALLOCATION - if allocation has zero tokens
-     * 3. ZERO_POI - if POI is bytes32(0)
-     * 4. ALLOCATION_TOO_YOUNG - if allocation was created in the current epoch
-     * Each reason may have a different reclaim address configured in the RewardsManager. If multiple conditions
-     * apply simultaneously, only the first matching condition's reclaim address receives the rewards.
-     *
-     * Retroactive reclaim address changes:
-     * Any change to a reclaim address in the RewardsManager takes effect immediately and retroactively.
-     * All unclaimed rewards from previous periods will be sent to the new reclaim address when they are
-     * eventually reclaimed, regardless of which address was configured when the rewards were originally accrued.
+     * Note: Reclaim address changes in RewardsManager apply retroactively to all unclaimed rewards.
      *
      * Emits a {IndexingRewardsCollected} event.
      *
      * @param _allocationId The id of the allocation to collect rewards for
      * @param _poi The POI being presented
-     * @param _poiMetadata The metadata associated with the POI. The data and encoding format is for off-chain components to define, this function will only emit the value in an event as-is.
+     * @param _poiMetadata Metadata associated with the POI, emitted as-is for off-chain components
      * @param _delegationRatio The delegation ratio to consider when locking tokens
      * @param _paymentsDestination The address where indexing rewards should be sent
-     * @return The amount of tokens collected
+     * @return rewardsCollected Indexing rewards collected
      */
     // solhint-disable-next-line function-max-lines
     function _presentPoi(
@@ -179,85 +163,70 @@ abstract contract AllocationManager is
         bytes memory _poiMetadata,
         uint32 _delegationRatio,
         address _paymentsDestination
-    ) internal returns (uint256) {
+    ) internal returns (uint256 rewardsCollected) {
         IAllocation.State memory allocation = _allocations.get(_allocationId);
         require(allocation.isOpen(), AllocationManagerAllocationClosed(_allocationId));
+        _allocations.presentPOI(_allocationId); // Always record POI presentation to prevent staleness
+        // Scoped for stack management
+        {
+            // Determine rewards condition
+            bytes32 condition = RewardsCondition.NONE;
+            if (allocation.isStale(maxPOIStaleness)) condition = RewardsCondition.STALE_POI;
+            else if (_poi == bytes32(0))
+                condition = RewardsCondition.ZERO_POI;
+                // solhint-disable-next-line gas-strict-inequalities
+            else if (_graphEpochManager().currentEpoch() <= allocation.createdAtEpoch)
+                condition = RewardsCondition.ALLOCATION_TOO_YOUNG;
+            else if (_graphRewardsManager().isDenied(allocation.subgraphDeploymentId))
+                condition = RewardsCondition.SUBGRAPH_DENIED;
 
-        // Mint indexing rewards if all conditions are met, otherwise reclaim with specific reason
-        uint256 tokensRewards;
-        if (allocation.isStale(maxPOIStaleness)) {
-            _graphRewardsManager().reclaimRewards(RewardsCondition.STALE_POI, _allocationId);
-        } else if (allocation.isAltruistic()) {
-            _graphRewardsManager().reclaimRewards(RewardsCondition.ALTRUISTIC_ALLOCATION, _allocationId);
-        } else if (_poi == bytes32(0)) {
-            _graphRewardsManager().reclaimRewards(RewardsCondition.ZERO_POI, _allocationId);
-            // solhint-disable-next-line gas-strict-inequalities
-        } else if (_graphEpochManager().currentEpoch() <= allocation.createdAtEpoch) {
-            _graphRewardsManager().reclaimRewards(RewardsCondition.ALLOCATION_TOO_YOUNG, _allocationId);
-        } else {
-            tokensRewards = _graphRewardsManager().takeRewards(_allocationId);
+            emit POIPresented(
+                allocation.indexer,
+                _allocationId,
+                allocation.subgraphDeploymentId,
+                _poi,
+                _poiMetadata,
+                condition
+            );
+
+            // Early return skips the overallocation check intentionally to avoid loss of uncollected rewards
+            if (condition == RewardsCondition.ALLOCATION_TOO_YOUNG || condition == RewardsCondition.SUBGRAPH_DENIED)
+                return 0;
+
+            bool rewardsReclaimable = condition == RewardsCondition.STALE_POI || condition == RewardsCondition.ZERO_POI;
+            if (rewardsReclaimable) _graphRewardsManager().reclaimRewards(condition, _allocationId);
+            else rewardsCollected = _graphRewardsManager().takeRewards(_allocationId);
         }
 
-        // ... but we still take a snapshot to ensure the rewards are not accumulated for the next valid POI
+        // Snapshot rewards to prevent accumulation for next POI, then clear pending
         _allocations.snapshotRewards(
             _allocationId,
             _graphRewardsManager().onSubgraphAllocationUpdate(allocation.subgraphDeploymentId)
         );
-        _allocations.presentPOI(_allocationId);
-
-        // Any pending rewards should have been collected now
         _allocations.clearPendingRewards(_allocationId);
 
-        uint256 tokensIndexerRewards = 0;
-        uint256 tokensDelegationRewards = 0;
-        if (tokensRewards != 0) {
-            // Distribute rewards to delegators
-            uint256 delegatorCut = _graphStaking().getDelegationFeeCut(
-                allocation.indexer,
-                address(this),
-                IGraphPayments.PaymentTypes.IndexingRewards
+        // Scoped for stack management
+        {
+            (uint256 tokensIndexerRewards, uint256 tokensDelegationRewards) = _distributeIndexingRewards(
+                allocation,
+                rewardsCollected,
+                _paymentsDestination
             );
-            IHorizonStakingTypes.DelegationPool memory delegationPool = _graphStaking().getDelegationPool(
-                allocation.indexer,
-                address(this)
-            );
-            // If delegation pool has no shares then we don't need to distribute rewards to delegators
-            tokensDelegationRewards = delegationPool.shares > 0 ? tokensRewards.mulPPM(delegatorCut) : 0;
-            if (tokensDelegationRewards > 0) {
-                _graphToken().approve(address(_graphStaking()), tokensDelegationRewards);
-                _graphStaking().addToDelegationPool(allocation.indexer, address(this), tokensDelegationRewards);
-            }
 
-            // Distribute rewards to indexer
-            tokensIndexerRewards = tokensRewards - tokensDelegationRewards;
-            if (tokensIndexerRewards > 0) {
-                if (_paymentsDestination == address(0)) {
-                    _graphToken().approve(address(_graphStaking()), tokensIndexerRewards);
-                    _graphStaking().stakeToProvision(allocation.indexer, address(this), tokensIndexerRewards);
-                } else {
-                    _graphToken().pushTokens(_paymentsDestination, tokensIndexerRewards);
-                }
-            }
+            emit IndexingRewardsCollected(
+                allocation.indexer,
+                _allocationId,
+                allocation.subgraphDeploymentId,
+                rewardsCollected,
+                tokensIndexerRewards,
+                tokensDelegationRewards,
+                _poi,
+                _poiMetadata,
+                _graphEpochManager().currentEpoch()
+            );
         }
 
-        emit IndexingRewardsCollected(
-            allocation.indexer,
-            _allocationId,
-            allocation.subgraphDeploymentId,
-            tokensRewards,
-            tokensIndexerRewards,
-            tokensDelegationRewards,
-            _poi,
-            _poiMetadata,
-            _graphEpochManager().currentEpoch()
-        );
-
-        // Check if the indexer is over-allocated and force close the allocation if necessary
-        if (_isOverAllocated(allocation.indexer, _delegationRatio)) {
-            _closeAllocation(_allocationId, true);
-        }
-
-        return tokensRewards;
+        if (_isOverAllocated(allocation.indexer, _delegationRatio)) _closeAllocation(_allocationId, true);
     }
 
     /**
@@ -393,6 +362,49 @@ abstract contract AllocationManager is
      */
     function _isOverAllocated(address _indexer, uint32 _delegationRatio) internal view returns (bool) {
         return !allocationProvisionTracker.check(_graphStaking(), _indexer, _delegationRatio);
+    }
+
+    /**
+     * @notice Distributes indexing rewards to delegators and indexer
+     * @param _allocation The allocation state
+     * @param _rewardsCollected Total rewards to distribute
+     * @param _paymentsDestination Where to send indexer rewards (0 = stake)
+     * @return tokensIndexerRewards Amount sent to indexer
+     * @return tokensDelegationRewards Amount sent to delegation pool
+     */
+    function _distributeIndexingRewards(
+        IAllocation.State memory _allocation,
+        uint256 _rewardsCollected,
+        address _paymentsDestination
+    ) private returns (uint256 tokensIndexerRewards, uint256 tokensDelegationRewards) {
+        if (_rewardsCollected == 0) return (0, 0);
+
+        // Calculate and distribute delegator share
+        uint256 delegatorCut = _graphStaking().getDelegationFeeCut(
+            _allocation.indexer,
+            address(this),
+            IGraphPayments.PaymentTypes.IndexingRewards
+        );
+        IHorizonStakingTypes.DelegationPool memory pool = _graphStaking().getDelegationPool(
+            _allocation.indexer,
+            address(this)
+        );
+        tokensDelegationRewards = pool.shares > 0 ? _rewardsCollected.mulPPM(delegatorCut) : 0;
+        if (tokensDelegationRewards > 0) {
+            _graphToken().approve(address(_graphStaking()), tokensDelegationRewards);
+            _graphStaking().addToDelegationPool(_allocation.indexer, address(this), tokensDelegationRewards);
+        }
+
+        // Distribute indexer share
+        tokensIndexerRewards = _rewardsCollected - tokensDelegationRewards;
+        if (tokensIndexerRewards > 0) {
+            if (_paymentsDestination == address(0)) {
+                _graphToken().approve(address(_graphStaking()), tokensIndexerRewards);
+                _graphStaking().stakeToProvision(_allocation.indexer, address(this), tokensIndexerRewards);
+            } else {
+                _graphToken().pushTokens(_paymentsDestination, tokensIndexerRewards);
+            }
+        }
     }
 
     /**
