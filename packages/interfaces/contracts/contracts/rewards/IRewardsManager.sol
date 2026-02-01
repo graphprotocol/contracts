@@ -228,7 +228,15 @@ interface IRewardsManager {
      * Otherwise falls back to the raw storage value.
      * @return The effective issuance per block
      */
-    function getRewardsIssuancePerBlock() external view returns (uint256);
+    function getAllocatedIssuancePerBlock() external view returns (uint256);
+
+    /**
+     * @notice Gets the raw issuance per block value from contract storage
+     * @dev This returns the storage value directly, ignoring the issuance allocator.
+     * Prefer {getAllocatedIssuancePerBlock} for the effective protocol rate.
+     * @return The raw issuance per block from storage
+     */
+    function getRawIssuancePerBlock() external view returns (uint256);
 
     /**
      * @notice Gets the issuance of rewards per signal since last updated

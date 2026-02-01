@@ -279,13 +279,19 @@ contract RewardsManager is
 
     /**
      * @inheritdoc IRewardsManager
-     * @dev Gets the effective issuance per block, taking into account the IssuanceAllocator if set
      */
-    function getRewardsIssuancePerBlock() public view override returns (uint256) {
+    function getAllocatedIssuancePerBlock() public view override returns (uint256) {
         return
             address(issuanceAllocator) != address(0)
                 ? issuanceAllocator.getTargetIssuancePerBlock(address(this)).selfIssuanceRate
                 : issuancePerBlock;
+    }
+
+    /**
+     * @inheritdoc IRewardsManager
+     */
+    function getRawIssuancePerBlock() external view override returns (uint256) {
+        return issuancePerBlock;
     }
 
     /**
@@ -334,7 +340,7 @@ contract RewardsManager is
             return 0;
         }
 
-        uint256 rewardsIssuancePerBlock = getRewardsIssuancePerBlock();
+        uint256 rewardsIssuancePerBlock = getAllocatedIssuancePerBlock();
 
         if (rewardsIssuancePerBlock == 0) {
             return 0;
