@@ -330,34 +330,42 @@ contract RewardsManager is
      * t: time steps are in blocks since last updated
      * x: newly accrued rewards tokens for the period `t`
      *
-     * @return newly accrued rewards per signal since last update, scaled by FIXED_POINT_SCALING_FACTOR
+     * @return claimablePerSignal accrued rewards per signal since last update, scaled by FIXED_POINT_SCALING_FACTOR
      */
-    function getNewRewardsPerSignal() public view override returns (uint256) {
+    function getNewRewardsPerSignal() public view override returns (uint256 claimablePerSignal) {
+        (claimablePerSignal, ) = _getNewRewardsPerSignal();
+    }
+
+    /**
+     * @notice Calculate new rewards per signal, split into claimable and unclaimable portions
+     * @dev Linear formula: `x = r * t`
+     *
+     * Notation:
+     * t: time steps are in blocks since last updated
+     * x: newly accrued rewards tokens for the period `t`
+     *
+     * @return claimablePerSignal Rewards per signal when signal exists, scaled by FIXED_POINT_SCALING_FACTOR
+     * @return unclaimableTokens Raw token amount that cannot be distributed due to zero signal
+     */
+    function _getNewRewardsPerSignal() private view returns (uint256 claimablePerSignal, uint256 unclaimableTokens) {
         // Calculate time steps
         uint256 t = block.number.sub(accRewardsPerSignalLastBlockUpdated);
         // Optimization to skip calculations if zero time steps elapsed
-        if (t == 0) {
-            return 0;
-        }
+        if (t == 0) return (0, 0);
 
         uint256 rewardsIssuancePerBlock = getAllocatedIssuancePerBlock();
 
-        if (rewardsIssuancePerBlock == 0) {
-            return 0;
-        }
-
-        // Zero issuance if no signalled tokens
-        IGraphToken graphToken = graphToken();
-        uint256 signalledTokens = graphToken.balanceOf(address(curation()));
-        if (signalledTokens == 0) {
-            return 0;
-        }
+        if (rewardsIssuancePerBlock == 0) return (0, 0);
 
         uint256 x = rewardsIssuancePerBlock.mul(t);
 
+        // Check signalled tokens
+        uint256 signalledTokens = graphToken().balanceOf(address(curation()));
+        if (signalledTokens == 0) return (0, x); // All unclaimable when no signal
+
         // Get the new issuance per signalled token
         // We multiply the decimals to keep the precision as fixed-point number
-        return x.mul(FIXED_POINT_SCALING_FACTOR).div(signalledTokens);
+        return (x.mul(FIXED_POINT_SCALING_FACTOR).div(signalledTokens), 0);
     }
 
     /// @inheritdoc IRewardsManager
