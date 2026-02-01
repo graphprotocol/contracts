@@ -90,13 +90,6 @@ contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, IERC165, I
     event SubgraphServiceSet(address indexed oldSubgraphService, address indexed newSubgraphService);
 
     /**
-     * @notice Emitted when the issuance allocator is set
-     * @param oldIssuanceAllocator Previous issuance allocator address
-     * @param newIssuanceAllocator New issuance allocator address
-     */
-    event IssuanceAllocatorSet(address indexed oldIssuanceAllocator, address indexed newIssuanceAllocator);
-
-    /**
      * @notice Emitted when the rewards eligibility oracle contract is set
      * @param oldRewardsEligibilityOracle Previous rewards eligibility oracle address
      * @param newRewardsEligibilityOracle New rewards eligibility oracle address

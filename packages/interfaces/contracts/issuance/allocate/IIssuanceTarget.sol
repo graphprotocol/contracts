@@ -9,6 +9,13 @@ pragma solidity ^0.7.6 || ^0.8.0;
  */
 interface IIssuanceTarget {
     /**
+     * @notice New issuance allocator set
+     * @param oldIssuanceAllocator Old issuance allocator address
+     * @param newIssuanceAllocator New issuance allocator address
+     */
+    event IssuanceAllocatorSet(address indexed oldIssuanceAllocator, address indexed newIssuanceAllocator);
+
+    /**
      * @notice Called by the issuance allocator before the target's issuance allocation changes
      * @dev The target should ensure that all issuance related calculations are up-to-date
      * with the current block so that an allocation change can be applied correctly.
