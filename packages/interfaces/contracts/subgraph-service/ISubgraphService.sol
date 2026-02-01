@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.22;
 
-// TODO: Re-enable and fix issues when publishing a new version
-// solhint-disable gas-indexed-events
-
 import { IDataServiceFees } from "../data-service/IDataServiceFees.sol";
 import { IGraphPayments } from "../horizon/IGraphPayments.sol";
 
@@ -62,12 +59,14 @@ interface ISubgraphService is IDataServiceFees {
      * @param ratio The stake to fees ratio
      */
     event StakeToFeesRatioSet(uint256 ratio);
+    // solhint-disable-previous-line gas-indexed-events
 
     /**
      * @notice Emitted when curator cuts are set
      * @param curationCut The curation cut
      */
     event CurationCutSet(uint256 curationCut);
+    // solhint-disable-previous-line gas-indexed-events
 
     /**
      * @notice Thrown when trying to set a curation cut that is not a valid PPM value
@@ -229,16 +228,16 @@ interface ISubgraphService is IDataServiceFees {
 
     /**
      * @notice Sets the stake to fees ratio
-     * @param stakeToFeesRatio The stake to fees ratio
+     * @param newStakeToFeesRatio The stake to fees ratio
      */
-    function setStakeToFeesRatio(uint256 stakeToFeesRatio) external;
+    function setStakeToFeesRatio(uint256 newStakeToFeesRatio) external;
 
     /**
      * @notice Sets the max POI staleness
      * See {AllocationManagerV1Storage-maxPOIStaleness} for more details.
-     * @param maxPOIStaleness The max POI staleness in seconds
+     * @param newMaxPoiStaleness The max POI staleness in seconds
      */
-    function setMaxPOIStaleness(uint256 maxPOIStaleness) external;
+    function setMaxPOIStaleness(uint256 newMaxPoiStaleness) external;
 
     /**
      * @notice Sets the curators payment cut for query fees
@@ -250,9 +249,9 @@ interface ISubgraphService is IDataServiceFees {
     /**
      * @notice Sets the payments destination for an indexer to receive payments
      * @dev Emits a {PaymentsDestinationSet} event
-     * @param paymentsDestination The address where payments should be sent
+     * @param newPaymentsDestination The address where payments should be sent
      */
-    function setPaymentsDestination(address paymentsDestination) external;
+    function setPaymentsDestination(address newPaymentsDestination) external;
 
     /**
      * @notice Gets the details of an allocation

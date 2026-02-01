@@ -3,6 +3,7 @@ pragma solidity 0.8.27;
 
 // TODO: Re-enable and fix issues when publishing a new version
 // solhint-disable function-max-lines, gas-strict-inequalities
+// forge-lint: disable-start(unwrapped-modifier-logic, asm-keccak256, named-struct-fields, mixed-case-variable)
 
 import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
 import { IHorizonStaking } from "@graphprotocol/interfaces/contracts/horizon/IHorizonStaking.sol";
@@ -303,18 +304,18 @@ contract DisputeManager is
     }
 
     /// @inheritdoc IDisputeManager
-    function setArbitrator(address arbitrator) external override onlyOwner {
-        _setArbitrator(arbitrator);
+    function setArbitrator(address newArbitrator) external override onlyOwner {
+        _setArbitrator(newArbitrator);
     }
 
     /// @inheritdoc IDisputeManager
-    function setDisputePeriod(uint64 disputePeriod) external override onlyOwner {
-        _setDisputePeriod(disputePeriod);
+    function setDisputePeriod(uint64 newDisputePeriod) external override onlyOwner {
+        _setDisputePeriod(newDisputePeriod);
     }
 
     /// @inheritdoc IDisputeManager
-    function setDisputeDeposit(uint256 disputeDeposit) external override onlyOwner {
-        _setDisputeDeposit(disputeDeposit);
+    function setDisputeDeposit(uint256 newDisputeDeposit) external override onlyOwner {
+        _setDisputeDeposit(newDisputeDeposit);
     }
 
     /// @inheritdoc IDisputeManager
@@ -328,8 +329,8 @@ contract DisputeManager is
     }
 
     /// @inheritdoc IDisputeManager
-    function setSubgraphService(address subgraphService_) external override onlyOwner {
-        _setSubgraphService(subgraphService_);
+    function setSubgraphService(address newSubgraphService) external override onlyOwner {
+        _setSubgraphService(newSubgraphService);
     }
 
     /// @inheritdoc IDisputeManager

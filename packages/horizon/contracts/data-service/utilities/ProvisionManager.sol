@@ -111,6 +111,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      */
     error ProvisionManagerProvisionNotFound(address serviceProvider);
 
+    // forge-lint: disable-next-item(unwrapped-modifier-logic)
     /**
      * @notice Checks if the caller is authorized to manage the provision of a service provider.
      * @param serviceProvider The address of the service provider.
@@ -123,6 +124,8 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
         _;
     }
 
+    // Warning: Virtual modifiers are deprecated and scheduled for removal.
+    // forge-lint: disable-next-item(unwrapped-modifier-logic)
     /**
      * @notice Checks if a provision of a service provider is valid according
      * to the parameter ranges established.
@@ -135,6 +138,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
         _;
     }
 
+    // forge-lint: disable-next-item(mixed-case-function)
     /**
      * @notice Initializes the contract and any parent contracts.
      */
@@ -142,6 +146,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
         __ProvisionManager_init_unchained();
     }
 
+    // forge-lint: disable-next-item(mixed-case-function)
     /**
      * @notice Initializes the contract.
      * @dev All parameters set to their entire range as valid.

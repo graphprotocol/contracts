@@ -90,14 +90,14 @@ abstract contract BaseUpgradeable is Initializable, AccessControlUpgradeable, Pa
 
     // -- Initialization --
 
+    // solhint-disable-next-line func-name-mixedcase
+    // forge-lint: disable-next-item(mixed-case-function)
     /**
      * @notice Internal function to initialize the BaseUpgradeable contract
      * @dev This function is used by child contracts to initialize the BaseUpgradeable contract
      * @param governor Address that will have the GOVERNOR_ROLE
      */
     function __BaseUpgradeable_init(address governor) internal {
-        // solhint-disable-previous-line func-name-mixedcase
-
         __AccessControl_init();
         __Pausable_init();
 
@@ -109,6 +109,7 @@ abstract contract BaseUpgradeable is Initializable, AccessControlUpgradeable, Pa
      * @dev This function sets up the governor role and role admin hierarchy
      * @param governor Address that will have the GOVERNOR_ROLE
      */
+    // forge-lint: disable-next-line(mixed-case-function)
     function __BaseUpgradeable_init_unchained(address governor) internal {
         // solhint-disable-previous-line func-name-mixedcase
 

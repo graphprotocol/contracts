@@ -143,6 +143,7 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
         return claims[_claimId].nextClaim;
     }
 
+    // forge-lint: disable-next-item(asm-keccak256)
     /**
      * @notice Builds a stake claim ID
      * @param _serviceProvider The address of the service provider

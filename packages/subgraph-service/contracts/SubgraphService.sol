@@ -1,10 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.27;
 
-// TODO: Re-enable and fix issues when publishing a new version
-// solhint-disable gas-strict-inequalities
-// solhint-disable function-max-lines
-
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
 import { IGraphTallyCollector } from "@graphprotocol/interfaces/contracts/horizon/IGraphTallyCollector.sol";
@@ -331,9 +327,9 @@ contract SubgraphService is
     function migrateLegacyAllocation(
         address indexer,
         address allocationId,
-        bytes32 subgraphDeploymentID
+        bytes32 subgraphDeploymentId
     ) external override onlyOwner {
-        _migrateLegacyAllocation(indexer, allocationId, subgraphDeploymentID);
+        _migrateLegacyAllocation(indexer, allocationId, subgraphDeploymentId);
     }
 
     /// @inheritdoc ISubgraphService
@@ -361,9 +357,10 @@ contract SubgraphService is
         _setStakeToFeesRatio(stakeToFeesRatio_);
     }
 
+    // forge-lint: disable-next-item(mixed-case-function)
     /// @inheritdoc ISubgraphService
-    function setMaxPOIStaleness(uint256 maxPOIStaleness_) external override onlyOwner {
-        _setMaxPOIStaleness(maxPOIStaleness_);
+    function setMaxPOIStaleness(uint256 maxPoiStaleness_) external override onlyOwner {
+        _setMaxPoiStaleness(maxPoiStaleness_);
     }
 
     /// @inheritdoc ISubgraphService
@@ -491,6 +488,7 @@ contract SubgraphService is
      * be collected.
      * @return The amount of fees collected
      */
+    // solhint-disable-next-line function-max-lines
     function _collectQueryFees(address _indexer, bytes calldata _data) private returns (uint256) {
         (IGraphTallyCollector.SignedRAV memory signedRav, uint256 tokensToCollect) = abi.decode(
             _data,
@@ -530,6 +528,7 @@ contract SubgraphService is
             );
 
             uint256 balanceAfter = _graphToken().balanceOf(address(this));
+            // solhint-disable-next-line gas-strict-inequalities
             require(balanceAfter >= balanceBefore, SubgraphServiceInconsistentCollection(balanceBefore, balanceAfter));
             tokensCurators = balanceAfter - balanceBefore;
         }
@@ -578,7 +577,7 @@ contract SubgraphService is
             _allocations.get(allocationId).indexer == _indexer,
             SubgraphServiceAllocationNotAuthorized(_indexer, allocationId)
         );
-        return _presentPOI(allocationId, poi_, poiMetadata_, _delegationRatio, paymentsDestination[_indexer]);
+        return _presentPoi(allocationId, poi_, poiMetadata_, _delegationRatio, paymentsDestination[_indexer]);
     }
 
     /**

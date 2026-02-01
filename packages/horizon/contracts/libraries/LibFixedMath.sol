@@ -22,6 +22,7 @@ pragma solidity 0.8.27;
 
 // TODO: Re-enable and fix issues when publishing a new version
 // solhint-disable function-max-lines, gas-strict-inequalities
+// forge-lint: disable-start(unsafe-typecast)
 
 /**
  * @title LibFixedMath

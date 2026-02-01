@@ -1,11 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.27;
 
-// TODO: Re-enable and fix issues when publishing a new version
-// solhint-disable gas-indexed-events
-// solhint-disable gas-small-strings
-// solhint-disable function-max-lines
-
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
 import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
@@ -171,6 +166,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         __AllocationManager_init_unchained();
     }
 
+    // forge-lint: disable-next-item(mixed-case-function)
     /**
      * @notice Initializes the contract
      */
@@ -284,7 +280,8 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * @param _paymentsDestination The address where indexing rewards should be sent
      * @return The amount of tokens collected
      */
-    function _presentPOI(
+    // solhint-disable-next-line function-max-lines
+    function _presentPoi(
         address _allocationId,
         bytes32 _poi,
         bytes memory _poiMetadata,
@@ -480,11 +477,11 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     /**
      * @notice Sets the maximum amount of time, in seconds, allowed between presenting POIs to qualify for indexing rewards
      * @dev Emits a {MaxPOIStalenessSet} event
-     * @param _maxPOIStaleness The max POI staleness in seconds
+     * @param _maxPoiStaleness The max POI staleness in seconds
      */
-    function _setMaxPOIStaleness(uint256 _maxPOIStaleness) internal {
-        maxPOIStaleness = _maxPOIStaleness;
-        emit MaxPOIStalenessSet(_maxPOIStaleness);
+    function _setMaxPoiStaleness(uint256 _maxPoiStaleness) internal {
+        maxPOIStaleness = _maxPoiStaleness;
+        emit MaxPOIStalenessSet(_maxPoiStaleness);
     }
 
     /**

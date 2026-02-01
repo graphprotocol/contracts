@@ -126,6 +126,7 @@ abstract contract Authorizable is IAuthorizable {
         );
 
         // Generate the message hash
+        // forge-lint: disable-next-item(asm-keccak256)
         bytes32 messageHash = keccak256(
             abi.encodePacked(block.chainid, address(this), "authorizeSignerProof", _proofDeadline, msg.sender)
         );

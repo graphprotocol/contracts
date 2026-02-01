@@ -39,9 +39,9 @@ interface IRewardsManager {
 
     /**
      * @notice Set the subgraph service address
-     * @param subgraphService Address of the subgraph service contract
+     * @param newSubgraphService Address of the subgraph service contract
      */
-    function setSubgraphService(address subgraphService) external;
+    function setSubgraphService(address newSubgraphService) external;
 
     /**
      * @notice Set the rewards eligibility oracle address

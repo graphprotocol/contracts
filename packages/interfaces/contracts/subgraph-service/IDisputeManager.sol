@@ -2,9 +2,6 @@
 
 pragma solidity ^0.8.22;
 
-// TODO: Re-enable and fix issues when publishing a new version
-// solhint-disable gas-indexed-events
-
 import { IAttestation } from "./internal/IAttestation.sol";
 
 /**
@@ -68,24 +65,28 @@ interface IDisputeManager {
      * @param disputePeriod The dispute period in seconds.
      */
     event DisputePeriodSet(uint64 disputePeriod);
+    // solhint-disable-previous-line gas-indexed-events
 
     /**
      * @notice Emitted when dispute deposit is set.
      * @param disputeDeposit The dispute deposit required to create a dispute.
      */
     event DisputeDepositSet(uint256 disputeDeposit);
+    // solhint-disable-previous-line gas-indexed-events
 
     /**
      * @notice Emitted when max slashing cut is set.
      * @param maxSlashingCut The maximum slashing cut that can be set.
      */
     event MaxSlashingCutSet(uint32 maxSlashingCut);
+    // solhint-disable-previous-line gas-indexed-events
 
     /**
      * @notice Emitted when fisherman reward cut is set.
      * @param fishermanRewardCut The fisherman reward cut.
      */
     event FishermanRewardCutSet(uint32 fishermanRewardCut);
+    // solhint-disable-previous-line gas-indexed-events
 
     /**
      * @notice Emitted when subgraph service is set.
@@ -359,17 +360,17 @@ interface IDisputeManager {
     /**
      * @notice Initialize this contract.
      * @param owner The owner of the contract
-     * @param arbitrator Arbitrator role
-     * @param disputePeriod Dispute period in seconds
-     * @param disputeDeposit Deposit required to create a Dispute
+     * @param arbitrator_ Arbitrator role
+     * @param disputePeriod_ Dispute period in seconds
+     * @param disputeDeposit_ Deposit required to create a Dispute
      * @param fishermanRewardCut_ Percent of slashed funds for fisherman (ppm)
      * @param maxSlashingCut_ Maximum percentage of indexer stake that can be slashed (ppm)
      */
     function initialize(
         address owner,
-        address arbitrator,
-        uint64 disputePeriod,
-        uint256 disputeDeposit,
+        address arbitrator_,
+        uint64 disputePeriod_,
+        uint256 disputeDeposit_,
         uint32 fishermanRewardCut_,
         uint32 maxSlashingCut_
     ) external;
@@ -377,23 +378,23 @@ interface IDisputeManager {
     /**
      * @notice Set the dispute period.
      * @dev Update the dispute period to `_disputePeriod` in seconds
-     * @param disputePeriod Dispute period in seconds
+     * @param newDisputePeriod Dispute period in seconds
      */
-    function setDisputePeriod(uint64 disputePeriod) external;
+    function setDisputePeriod(uint64 newDisputePeriod) external;
 
     /**
      * @notice Set the arbitrator address.
      * @dev Update the arbitrator to `_arbitrator`
-     * @param arbitrator The address of the arbitration contract or party
+     * @param newArbitrator The address of the arbitration contract or party
      */
-    function setArbitrator(address arbitrator) external;
+    function setArbitrator(address newArbitrator) external;
 
     /**
      * @notice Set the dispute deposit required to create a dispute.
      * @dev Update the dispute deposit to `_disputeDeposit` Graph Tokens
-     * @param disputeDeposit The dispute deposit in Graph Tokens
+     * @param newDisputeDeposit The dispute deposit in Graph Tokens
      */
-    function setDisputeDeposit(uint256 disputeDeposit) external;
+    function setDisputeDeposit(uint256 newDisputeDeposit) external;
 
     /**
      * @notice Set the percent reward that the fisherman gets when slashing occurs.
@@ -411,9 +412,9 @@ interface IDisputeManager {
     /**
      * @notice Set the subgraph service address.
      * @dev Update the subgraph service to `_subgraphService`
-     * @param subgraphService The address of the subgraph service contract
+     * @param newSubgraphService The address of the subgraph service contract
      */
-    function setSubgraphService(address subgraphService) external;
+    function setSubgraphService(address newSubgraphService) external;
 
     // -- Dispute --
 

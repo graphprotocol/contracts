@@ -3,9 +3,6 @@
 pragma solidity 0.7.6;
 pragma abicoder v2;
 
-// TODO: Re-enable and fix issues when publishing a new version
-// solhint-disable gas-increment-by-one, gas-indexed-events, gas-small-strings, gas-strict-inequalities
-
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { IERC165 } from "@openzeppelin/contracts/introspection/IERC165.sol";
 
@@ -141,6 +138,7 @@ contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, IERC165, I
      * @dev Modifier to restrict access to the subgraph availability oracle only
      */
     modifier onlySubgraphAvailabilityOracle() {
+        // solhint-disable-next-line gas-small-strings
         require(msg.sender == address(subgraphAvailabilityOracle), "Caller must be the subgraph availability oracle");
         _;
     }
@@ -242,6 +240,7 @@ contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, IERC165, I
             // Check that the contract supports the IIssuanceAllocationDistribution interface
             // Allow zero address to disable the allocator
             if (newIssuanceAllocator != address(0)) {
+                // solhint-disable-next-line gas-small-strings
                 require(
                     IERC165(newIssuanceAllocator).supportsInterface(type(IIssuanceAllocationDistribution).interfaceId),
                     "Contract does not support IIssuanceAllocationDistribution interface"
@@ -279,6 +278,7 @@ contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, IERC165, I
             // Check that the contract supports the IRewardsEligibility interface
             // Allow zero address to disable the oracle
             if (newRewardsEligibilityOracle != address(0)) {
+                // solhint-disable-next-line gas-small-strings
                 require(
                     IERC165(newRewardsEligibilityOracle).supportsInterface(type(IRewardsEligibility).interfaceId),
                     "Contract does not support IRewardsEligibility interface"
@@ -301,6 +301,7 @@ contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, IERC165, I
      * regardless of which address was configured when the rewards were originally accrued.
      */
     function setReclaimAddress(bytes32 reason, address newAddress) external override onlyGovernor {
+        // solhint-disable-next-line gas-small-strings
         require(reason != bytes32(0), "Cannot set reclaim address for (bytes32(0))");
 
         address oldAddress = reclaimAddresses[reason];
@@ -317,19 +318,19 @@ contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, IERC165, I
      * @inheritdoc IRewardsManager
      * @dev Can only be called by the subgraph availability oracle
      */
-    function setDenied(bytes32 _subgraphDeploymentID, bool _deny) external override onlySubgraphAvailabilityOracle {
-        _setDenied(_subgraphDeploymentID, _deny);
+    function setDenied(bytes32 subgraphDeploymentId, bool deny) external override onlySubgraphAvailabilityOracle {
+        _setDenied(subgraphDeploymentId, deny);
     }
 
     /**
      * @notice Internal: Denies to claim rewards for a subgraph.
-     * @param _subgraphDeploymentID Subgraph deployment ID
-     * @param _deny Whether to set the subgraph as denied for claiming rewards or not
+     * @param subgraphDeploymentId Subgraph deployment ID
+     * @param deny Whether to set the subgraph as denied for claiming rewards or not
      */
-    function _setDenied(bytes32 _subgraphDeploymentID, bool _deny) private {
-        uint256 sinceBlock = _deny ? block.number : 0;
-        denylist[_subgraphDeploymentID] = sinceBlock;
-        emit RewardsDenylistUpdated(_subgraphDeploymentID, sinceBlock);
+    function _setDenied(bytes32 subgraphDeploymentId, bool deny) private {
+        uint256 sinceBlock = deny ? block.number : 0;
+        denylist[subgraphDeploymentId] = sinceBlock;
+        emit RewardsDenylistUpdated(subgraphDeploymentId, sinceBlock);
     }
 
     /// @inheritdoc IRewardsManager
@@ -401,6 +402,7 @@ contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, IERC165, I
         uint256 subgraphSignalledTokens = curation().getCurationPoolTokens(_subgraphDeploymentID);
 
         // Only accrue rewards if over a threshold
+        // solhint-disable-next-line gas-strict-inequalities
         uint256 newRewards = (subgraphSignalledTokens >= minimumSubgraphSignal) // Accrue new rewards since last snapshot
             ? getAccRewardsPerSignal().sub(subgraph.accRewardsPerSignalSnapshot).mul(subgraphSignalledTokens).div(
                 FIXED_POINT_SCALING_FACTOR
