@@ -261,13 +261,21 @@ contract RewardsManager is
 
     /**
      * @notice Internal: Denies to claim rewards for a subgraph.
+     * @dev Idempotent: redundant calls (deny when already denied, undeny when already allowed)
+     * skip the denylist update and event emission (but still call `onSubgraphAllocationUpdate`).
+     * This preserves the original deny block number on repeated deny calls.
      * @param subgraphDeploymentId Subgraph deployment ID
      * @param deny Whether to set the subgraph as denied for claiming rewards or not
      */
     function _setDenied(bytes32 subgraphDeploymentId, bool deny) private {
-        uint256 sinceBlock = deny ? block.number : 0;
-        denylist[subgraphDeploymentId] = sinceBlock;
-        emit RewardsDenylistUpdated(subgraphDeploymentId, sinceBlock);
+        onSubgraphAllocationUpdate(subgraphDeploymentId);
+
+        bool stateChange = deny == (denylist[subgraphDeploymentId] == 0);
+        if (stateChange) {
+            uint256 sinceBlock = deny ? block.number : 0;
+            denylist[subgraphDeploymentId] = sinceBlock;
+            emit RewardsDenylistUpdated(subgraphDeploymentId, sinceBlock);
+        }
     }
 
     /// @inheritdoc IRewardsManager
@@ -463,7 +471,20 @@ contract RewardsManager is
         (uint256 accRewardsPerAllocatedToken, uint256 accRewardsForSubgraph) = getAccRewardsPerAllocatedToken(
             _subgraphDeploymentID
         );
-        subgraph.accRewardsPerAllocatedToken = accRewardsPerAllocatedToken;
+
+        if (isDenied(_subgraphDeploymentID)) {
+            if (subgraph.accRewardsForSubgraphSnapshot < accRewardsForSubgraph)
+                _reclaimRewards(
+                    RewardsCondition.SUBGRAPH_DENIED,
+                    accRewardsForSubgraph - subgraph.accRewardsForSubgraphSnapshot,
+                    address(0),
+                    address(0),
+                    _subgraphDeploymentID,
+                    ""
+                );
+        } else {
+            subgraph.accRewardsPerAllocatedToken = accRewardsPerAllocatedToken;
+        }
         subgraph.accRewardsForSubgraphSnapshot = accRewardsForSubgraph;
         return subgraph.accRewardsPerAllocatedToken;
     }
