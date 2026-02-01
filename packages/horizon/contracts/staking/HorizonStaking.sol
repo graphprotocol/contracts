@@ -5,7 +5,7 @@
 // solhint-disable gas-increment-by-one
 // solhint-disable function-max-lines
 
-pragma solidity 0.8.27;
+pragma solidity 0.8.27 || 0.8.33;
 
 import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
 import { IHorizonStakingMain } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingMain.sol";
