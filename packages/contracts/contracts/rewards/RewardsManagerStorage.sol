@@ -11,6 +11,7 @@ import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contr
 import { IRewardsEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibility.sol";
 import { IRewardsIssuer } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsIssuer.sol";
 import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManager.sol";
+import { IRewardsManagerDeprecated } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManagerDeprecated.sol";
 import { Managed } from "../governance/Managed.sol";
 
 /**
@@ -63,10 +64,10 @@ contract RewardsManagerV3Storage is RewardsManagerV2Storage {
  * @author Edge & Node
  * @notice Storage layout for RewardsManager V4
  */
-contract RewardsManagerV4Storage is RewardsManagerV3Storage {
+abstract contract RewardsManagerV4Storage is IRewardsManagerDeprecated, RewardsManagerV3Storage {
     /// @notice GRT issued for indexer rewards per block
     /// @dev Only used when issuanceAllocator is zero address.
-    uint256 public issuancePerBlock;
+    uint256 public override issuancePerBlock;
 }
 
 /**
@@ -74,9 +75,9 @@ contract RewardsManagerV4Storage is RewardsManagerV3Storage {
  * @author Edge & Node
  * @notice Storage layout for RewardsManager V5
  */
-contract RewardsManagerV5Storage is RewardsManagerV4Storage {
+abstract contract RewardsManagerV5Storage is IRewardsManager, RewardsManagerV4Storage {
     /// @notice Address of the subgraph service
-    IRewardsIssuer public subgraphService;
+    IRewardsIssuer public override subgraphService;
 }
 
 /**
@@ -85,12 +86,12 @@ contract RewardsManagerV5Storage is RewardsManagerV4Storage {
  * @notice Storage layout for RewardsManager V6
  * Includes support for Rewards Eligibility Oracle, Issuance Allocator, and reclaim addresses.
  */
-contract RewardsManagerV6Storage is RewardsManagerV5Storage {
-    /// @notice Address of the rewards eligibility oracle contract
-    IRewardsEligibility public rewardsEligibilityOracle;
-    /// @notice Address of the issuance allocator
-    IIssuanceAllocationDistribution public issuanceAllocator;
-    /// @notice Mapping of reclaim reason identifiers to reclaim addresses
+abstract contract RewardsManagerV6Storage is RewardsManagerV5Storage {
+    /// @dev Address of the rewards eligibility oracle contract
+    IRewardsEligibility internal rewardsEligibilityOracle;
+    /// @dev Address of the issuance allocator
+    IIssuanceAllocationDistribution internal issuanceAllocator;
+    /// @dev Mapping of reclaim reason identifiers to reclaim addresses
     /// @dev Uses bytes32 for extensibility. See RewardsReclaim library for canonical reasons.
-    mapping(bytes32 => address) public reclaimAddresses;
+    mapping(bytes32 => address) internal reclaimAddresses;
 }

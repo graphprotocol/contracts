@@ -14,6 +14,7 @@ import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token
 import { RewardsManagerV6Storage } from "./RewardsManagerStorage.sol";
 import { IRewardsIssuer } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsIssuer.sol";
 import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManager.sol";
+import { IRewardsManagerDeprecated } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManagerDeprecated.sol";
 import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationDistribution.sol";
 import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceTarget.sol";
 import { IRewardsEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibility.sol";
@@ -43,87 +44,18 @@ import { RewardsReclaim } from "@graphprotocol/interfaces/contracts/contracts/re
  * until the actual takeRewards function is called.
  * custom:security-contact Please email security+contracts@ thegraph.com (remove space) if you find any bugs. We might have an active bug bounty program.
  */
-contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, IERC165, IRewardsManager, IIssuanceTarget {
+contract RewardsManager is
+    GraphUpgradeable,
+    IERC165,
+    IRewardsManager,
+    IIssuanceTarget,
+    IRewardsManagerDeprecated,
+    RewardsManagerV6Storage
+{
     using SafeMath for uint256;
 
     /// @dev Fixed point scaling factor used for decimals in reward calculations
     uint256 private constant FIXED_POINT_SCALING_FACTOR = 1e18;
-
-    // -- Events --
-
-    /**
-     * @notice Emitted when rewards are assigned to an indexer.
-     * @dev We use the Horizon prefix to change the event signature which makes network subgraph development much easier
-     * @param indexer Address of the indexer receiving rewards
-     * @param allocationID Address of the allocation receiving rewards
-     * @param amount Amount of rewards assigned
-     */
-    event HorizonRewardsAssigned(address indexed indexer, address indexed allocationID, uint256 amount);
-
-    /**
-     * @notice Emitted when rewards are denied to an indexer
-     * @param indexer Address of the indexer being denied rewards
-     * @param allocationID Address of the allocation being denied rewards
-     */
-    event RewardsDenied(address indexed indexer, address indexed allocationID);
-
-    /**
-     * @notice Emitted when rewards are denied to an indexer due to eligibility
-     * @param indexer Address of the indexer being denied rewards
-     * @param allocationID Address of the allocation being denied rewards
-     * @param amount Amount of rewards that would have been assigned
-     */
-    event RewardsDeniedDueToEligibility(address indexed indexer, address indexed allocationID, uint256 amount);
-
-    /**
-     * @notice Emitted when a subgraph is denied for claiming rewards
-     * @param subgraphDeploymentID Subgraph deployment ID being denied
-     * @param sinceBlock Block number since when the subgraph is denied
-     */
-    event RewardsDenylistUpdated(bytes32 indexed subgraphDeploymentID, uint256 sinceBlock);
-
-    /**
-     * @notice Emitted when the subgraph service is set
-     * @param oldSubgraphService Previous subgraph service address
-     * @param newSubgraphService New subgraph service address
-     */
-    event SubgraphServiceSet(address indexed oldSubgraphService, address indexed newSubgraphService);
-
-    /**
-     * @notice Emitted when the rewards eligibility oracle contract is set
-     * @param oldRewardsEligibilityOracle Previous rewards eligibility oracle address
-     * @param newRewardsEligibilityOracle New rewards eligibility oracle address
-     */
-    event RewardsEligibilityOracleSet(
-        address indexed oldRewardsEligibilityOracle,
-        address indexed newRewardsEligibilityOracle
-    );
-
-    /**
-     * @notice Emitted when a reclaim address is set
-     * @param reason The reclaim reason identifier
-     * @param oldAddress Previous address
-     * @param newAddress New address
-     */
-    event ReclaimAddressSet(bytes32 indexed reason, address indexed oldAddress, address indexed newAddress);
-
-    /**
-     * @notice Emitted when rewards are reclaimed to a configured address
-     * @param reason The reclaim reason identifier
-     * @param amount Amount of rewards reclaimed
-     * @param indexer Address of the indexer
-     * @param allocationID Address of the allocation
-     * @param subgraphDeploymentID Subgraph deployment ID for the allocation
-     * @param data Additional context data for the reclaim
-     */
-    event RewardsReclaimed(
-        bytes32 indexed reason,
-        uint256 amount,
-        address indexed indexer,
-        address indexed allocationID,
-        bytes32 subgraphDeploymentID,
-        bytes data
-    );
 
     // -- Modifiers --
 
@@ -160,7 +92,7 @@ contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, IERC165, I
     // -- Config --
 
     /**
-     * @inheritdoc IRewardsManager
+     * @inheritdoc IRewardsManagerDeprecated
      * @dev When an IssuanceAllocator is set, the effective issuance will be determined by the allocator,
      * but this local value can still be updated for cases when the allocator is later removed.
      *
@@ -342,6 +274,27 @@ contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, IERC165, I
             address(issuanceAllocator) != address(0)
                 ? issuanceAllocator.getTargetIssuancePerBlock(address(this)).selfIssuanceRate
                 : issuancePerBlock;
+    }
+
+    /**
+     * @inheritdoc IRewardsManager
+     */
+    function getIssuanceAllocator() external view override returns (IIssuanceAllocationDistribution) {
+        return issuanceAllocator;
+    }
+
+    /**
+     * @inheritdoc IRewardsManager
+     */
+    function getReclaimAddress(bytes32 reason) external view override returns (address) {
+        return reclaimAddresses[reason];
+    }
+
+    /**
+     * @inheritdoc IRewardsManager
+     */
+    function getRewardsEligibilityOracle() external view override returns (IRewardsEligibility) {
+        return rewardsEligibilityOracle;
     }
 
     /**
