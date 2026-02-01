@@ -5,7 +5,7 @@ pragma solidity 0.8.33;
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
+import { IGraphToken } from "./IGraphToken.sol";
 import { IPausableControl } from "@graphprotocol/interfaces/contracts/issuance/common/IPausableControl.sol";
 
 /**
@@ -13,13 +13,21 @@ import { IPausableControl } from "@graphprotocol/interfaces/contracts/issuance/c
  * @author Edge & Node
  * @notice A base contract that provides role-based access control and pausability.
  *
- * @dev This contract combines OpenZeppelin's AccessControl and Pausable
+ * @dev This contract combines OpenZeppelin's AccessControlEnumerable and Pausable
  * to provide a standardized way to manage access control and pausing functionality.
+ * Using AccessControlEnumerable (rather than base AccessControl) enables on-chain
+ * enumeration of role members via getRoleMemberCount() and getRoleMember(), which
+ * is useful for deployment verification and auditing.
  * It uses ERC-7201 namespaced storage pattern for better storage isolation.
  * This contract is abstract and meant to be inherited by other contracts.
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any bugs. We might have an active bug bounty program.
  */
-abstract contract BaseUpgradeable is Initializable, AccessControlUpgradeable, PausableUpgradeable, IPausableControl {
+abstract contract BaseUpgradeable is
+    Initializable,
+    AccessControlEnumerableUpgradeable,
+    PausableUpgradeable,
+    IPausableControl
+{
     // -- Constants --
 
     /// @notice One million - used as the denominator for values provided as Parts Per Million (PPM)
@@ -98,7 +106,7 @@ abstract contract BaseUpgradeable is Initializable, AccessControlUpgradeable, Pa
      * @param governor Address that will have the GOVERNOR_ROLE
      */
     function __BaseUpgradeable_init(address governor) internal {
-        __AccessControl_init();
+        __AccessControlEnumerable_init();
         __Pausable_init();
 
         __BaseUpgradeable_init_unchained(governor);
