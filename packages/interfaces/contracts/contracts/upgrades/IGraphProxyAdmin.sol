@@ -66,16 +66,18 @@ interface IGraphProxyAdmin is IGoverned {
 
     /**
      * @notice Accept ownership of a proxy contract
+     * @param implementation The implementation contract accepting the proxy
      * @param proxy The proxy contract to accept
      */
-    function acceptProxy(IGraphProxy proxy) external;
+    function acceptProxy(address implementation, IGraphProxy proxy) external;
 
     /**
      * @notice Accept ownership of a proxy contract and call a function
+     * @param implementation The implementation contract accepting the proxy
      * @param proxy The proxy contract to accept
      * @param data The calldata to execute after accepting
      */
-    function acceptProxyAndCall(IGraphProxy proxy, bytes calldata data) external;
+    function acceptProxyAndCall(address implementation, IGraphProxy proxy, bytes calldata data) external;
 
     // storage
 
