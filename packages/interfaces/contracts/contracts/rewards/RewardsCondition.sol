@@ -66,4 +66,22 @@ library RewardsCondition {
      * @dev Allocation was closed without providing a Proof of Indexing
      */
     bytes32 public constant CLOSE_ALLOCATION = keccak256("CLOSE_ALLOCATION");
+
+    /**
+     * @notice Condition - no curation signal exists
+     * @dev Total signalled tokens is zero, so rewards cannot be distributed
+     */
+    bytes32 public constant NO_SIGNAL = keccak256("NO_SIGNAL");
+
+    /**
+     * @notice Condition - subgraph signal below minimum threshold
+     * @dev Subgraph has curation signal but it's below the minimumSubgraphSignal threshold
+     */
+    bytes32 public constant BELOW_MINIMUM_SIGNAL = keccak256("BELOW_MINIMUM_SIGNAL");
+
+    /**
+     * @notice Condition - no allocations exist for subgraph
+     * @dev Subgraph has no indexer allocations, so rewards cannot be distributed for this subgraph
+     */
+    bytes32 public constant NO_ALLOCATION = keccak256("NO_ALLOCATION");
 }
