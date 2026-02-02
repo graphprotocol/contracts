@@ -139,8 +139,32 @@ abstract contract AllocationManager is
      * - POI must not be stale (older than `maxPOIStaleness`)
      * - Allocation must be open for at least one epoch (returns early with 0 if too young)
      *
-     * When rewards cannot be claimed, they are reclaimed with reason STALE_POI or ZERO_POI.
-     * Altruistic allocations and too-young allocations skip reclaim (nothing to reclaim / allow claiming later).
+     * ## Reward Paths
+     *
+     * Rewards follow one of three paths based on allocation and POI state:
+     *
+     * **CLAIMED** (normal path): Valid POI, not stale, allocation mature, subgraph not denied
+     * - Calls `takeRewards()` to mint tokens to this contract
+     * - Distributes to indexer (stake or payments destination) and delegators
+     * - Snapshots allocation to prevent double-counting
+     *
+     * **RECLAIMED** (redirect path): STALE_POI or ZERO_POI conditions
+     * - Calls `reclaimRewards()` to mint tokens to configured reclaim address
+     * - If no reclaim address configured, rewards are dropped (not minted)
+     * - Snapshots allocation to prevent double-counting
+     *
+     * **DEFERRED** (early return): ALLOCATION_TOO_YOUNG or SUBGRAPH_DENIED conditions
+     * - Returns 0 without calling take or reclaim
+     * - Does NOT snapshot allocation (preserves rewards for later collection)
+     * - Allows rewards to be claimed when condition clears
+     *
+     * ## Subgraph Denial (Soft Deny)
+     *
+     * When a subgraph is denied, this function implements "soft deny":
+     * - Returns early without claiming or reclaiming
+     * - Allocation state is preserved (pending rewards not cleared)
+     * - Pre-denial rewards remain claimable after undeny
+     * - Ongoing issuance during denial is reclaimed at RewardsManager level (hard deny)
      *
      * Note: Indexers should present POIs at least every `maxPOIStaleness` to avoid being locked out of rewards.
      * A zero POI can be presented if a valid one is unavailable, to prevent staleness and slashing.
@@ -288,9 +312,19 @@ abstract contract AllocationManager is
     /**
      * @notice Close an allocation
      * Does not require presenting a POI, use {_collectIndexingRewards} to present a POI and collect rewards
-     * @dev Note that allocations are nowlong lived. All service payments, including indexing rewards, should be collected periodically
-     * without the need of closing the allocation. Allocations should only be closed when indexers want to reclaim the allocated
-     * tokens for other purposes.
+     * @dev Allocations are long-lived. All service payments, including indexing rewards, should be collected
+     * periodically without closing. Allocations should only be closed when indexers want to reclaim tokens.
+     *
+     * ## Reward Handling on Close
+     *
+     * Uncollected rewards are reclaimed with CLOSE_ALLOCATION reason:
+     * - If reclaim address configured: tokens minted to that address
+     * - If no reclaim address: rewards are dropped (not minted anywhere)
+     *
+     * ## Known Limitation
+     *
+     * `clearPendingRewards()` is only called when `0 < reclaimedRewards`. This means:
+     * - If no reclaim address is configured, `accRewardsPending` may remain non-zero
      *
      * Emits a {AllocationClosed} event
      *
