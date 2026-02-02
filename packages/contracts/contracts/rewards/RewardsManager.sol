@@ -9,7 +9,6 @@ import { IERC165 } from "@openzeppelin/contracts/introspection/IERC165.sol";
 import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
 import { Managed } from "../governance/Managed.sol";
 import { MathUtils } from "../staking/libs/MathUtils.sol";
-import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
 
 import { RewardsManagerV6Storage } from "./RewardsManagerStorage.sol";
 import { IRewardsIssuer } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsIssuer.sol";
@@ -469,6 +468,24 @@ contract RewardsManager is
         }
     }
 
+    /**
+     * @notice Get total allocated tokens for a subgraph across all issuers
+     * @param _subgraphDeploymentID Subgraph deployment
+     * @return Total tokens allocated to this subgraph
+     */
+    function _getSubgraphAllocatedTokens(bytes32 _subgraphDeploymentID) private view returns (uint256) {
+        uint256 subgraphAllocatedTokens = 0;
+        address[2] memory rewardsIssuers = [address(staking()), address(subgraphService)];
+        for (uint256 i = 0; i < rewardsIssuers.length; ++i) {
+            if (rewardsIssuers[i] != address(0)) {
+                subgraphAllocatedTokens += IRewardsIssuer(rewardsIssuers[i]).getSubgraphAllocatedTokens(
+                    _subgraphDeploymentID
+                );
+            }
+        }
+        return subgraphAllocatedTokens;
+    }
+
     // -- Updates --
 
     /**
@@ -512,28 +529,58 @@ contract RewardsManager is
     /**
      * @inheritdoc IRewardsManager
      * @dev Hook called from the Staking contract on allocate() and close()
+     *
+     * ## Claimability Behavior
+     *
+     * When a subgraph is not claimable (denied or below minimum signal):
+     * - `accRewardsPerAllocatedToken` is NOT updated (frozen)
+     * - New rewards are reclaimed with the appropriate reason (SUBGRAPH_DENIED or BELOW_MINIMUM_SIGNAL)
+     * - `accRewardsPerSignalSnapshot` is updated to prevent double-reclaim
+     *
+     * When claimable:
+     * - `accRewardsForSubgraph` and `accRewardsPerAllocatedToken` are updated normally
+     * - Allocations can claim their proportional share
+     *
+     * @return accRewardsPerAllocatedToken Current `accRewardsPerAllocatedToken` (frozen while subgraph is not claimable)
      */
-    function onSubgraphAllocationUpdate(bytes32 _subgraphDeploymentID) public override returns (uint256) {
+    function onSubgraphAllocationUpdate(
+        bytes32 _subgraphDeploymentID
+    ) public override returns (uint256 accRewardsPerAllocatedToken) {
         Subgraph storage subgraph = subgraphs[_subgraphDeploymentID];
-        (uint256 accRewardsPerAllocatedToken, uint256 accRewardsForSubgraph) = getAccRewardsPerAllocatedToken(
+
+        (uint256 newRewards, uint256 signalledTokens, bytes32 condition) = _getSubgraphRewardsState(
             _subgraphDeploymentID
         );
+        subgraph.accRewardsPerSignalSnapshot = getAccRewardsPerSignal();
+        accRewardsPerAllocatedToken = subgraph.accRewardsPerAllocatedToken;
+        if (newRewards == 0) return accRewardsPerAllocatedToken;
 
-        if (isDenied(_subgraphDeploymentID)) {
-            if (subgraph.accRewardsForSubgraphSnapshot < accRewardsForSubgraph)
-                _reclaimRewards(
-                    RewardsCondition.SUBGRAPH_DENIED,
-                    accRewardsForSubgraph - subgraph.accRewardsForSubgraphSnapshot,
-                    address(0),
-                    address(0),
-                    _subgraphDeploymentID,
-                    ""
-                );
-        } else {
-            subgraph.accRewardsPerAllocatedToken = accRewardsPerAllocatedToken;
+        // Fallback: if denied but no reclaim address, try BELOW_MINIMUM_SIGNAL instead
+        if (
+            condition == RewardsCondition.SUBGRAPH_DENIED &&
+            reclaimAddresses[condition] == address(0) &&
+            signalledTokens < minimumSubgraphSignal
+        ) {
+            condition = RewardsCondition.BELOW_MINIMUM_SIGNAL;
         }
-        subgraph.accRewardsForSubgraphSnapshot = accRewardsForSubgraph;
-        return subgraph.accRewardsPerAllocatedToken;
+
+        if (condition != RewardsCondition.NONE) {
+            _reclaimRewards(condition, newRewards, address(0), address(0), _subgraphDeploymentID);
+            return accRewardsPerAllocatedToken;
+        }
+
+        uint256 subgraphAllocatedTokens = _getSubgraphAllocatedTokens(_subgraphDeploymentID);
+        if (subgraphAllocatedTokens == 0) {
+            _reclaimRewards(RewardsCondition.NO_ALLOCATION, newRewards, address(0), address(0), _subgraphDeploymentID);
+            return accRewardsPerAllocatedToken;
+        }
+
+        subgraph.accRewardsForSubgraph = subgraph.accRewardsForSubgraph.add(newRewards);
+        accRewardsPerAllocatedToken = subgraph.accRewardsPerAllocatedToken.add(
+            newRewards.mul(FIXED_POINT_SCALING_FACTOR).div(subgraphAllocatedTokens)
+        );
+        subgraph.accRewardsPerAllocatedToken = accRewardsPerAllocatedToken;
+        subgraph.accRewardsForSubgraphSnapshot = subgraph.accRewardsForSubgraph;
     }
 
     /// @inheritdoc IRewardsManager
