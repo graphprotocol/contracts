@@ -24,18 +24,30 @@ contract RewardsManagerV1Storage is Managed {
 
     /// @dev Deprecated issuance rate variable (no longer used)
     uint256 private __DEPRECATED_issuanceRate; // solhint-disable-line var-name-mixedcase
-    /// @notice Accumulated rewards per signal
+
+    /// @notice Accumulated rewards per signal (fixed-point, scaled by 1e18)
+    /// @dev Never decreases. Only increases via updateAccRewardsPerSignal().
+    /// Represents the cumulative GRT rewards per signaled token since contract deployment.
     uint256 public accRewardsPerSignal;
+
     /// @notice Block number when accumulated rewards per signal was last updated
+    /// @dev Used to calculate time delta for new reward accrual. Must be updated atomically
+    /// with accRewardsPerSignal to maintain accounting consistency.
     uint256 public accRewardsPerSignalLastBlockUpdated;
 
     /// @notice Address of role allowed to deny rewards on subgraphs
     address public subgraphAvailabilityOracle;
 
     /// @notice Subgraph related rewards: subgraph deployment ID => subgraph rewards
+    /// @dev Accumulation state tracked per subgraph.
     mapping(bytes32 => IRewardsManager.Subgraph) public subgraphs;
 
     /// @notice Subgraph denylist: subgraph deployment ID => block when added or zero (if not denied)
+    /// @dev **Denial Semantics**:
+    /// - Non-zero value: subgraph is denied since that block number
+    /// - Zero value: subgraph is not denied
+    /// - When denied: accRewardsPerAllocatedToken freezes (stops updating)
+    /// - New rewards during denial are reclaimed (if reclaim address configured) or dropped
     mapping(bytes32 => uint256) public denylist;
 }
 
@@ -88,11 +100,21 @@ abstract contract RewardsManagerV5Storage is IRewardsManager, RewardsManagerV4St
  */
 abstract contract RewardsManagerV6Storage is RewardsManagerV5Storage {
     /// @dev Address of the rewards eligibility oracle contract
+    /// When set, indexers must pass eligibility check to claim rewards.
+    /// Zero address disables eligibility checks.
     IRewardsEligibility internal rewardsEligibilityOracle;
+
     /// @dev Address of the issuance allocator
+    /// When set, determines GRT issued per block. Zero address uses issuancePerBlock storage value.
     IIssuanceAllocationDistribution internal issuanceAllocator;
+
     /// @dev Mapping of reclaim reason identifiers to reclaim addresses
-    /// @dev Uses bytes32 for extensibility. See RewardsReclaim library for canonical reasons.
+    /// @dev Uses bytes32 for extensibility. See RewardsCondition library for canonical reasons.
+    /// **IMPORTANT**: Changes to reclaim addresses are retroactive. When an address is changed,
+    /// ALL future reclaims for that reason go to the new address, regardless of when the
+    /// rewards were originally accrued. Zero address means rewards are dropped (not minted).
     mapping(bytes32 => address) internal reclaimAddresses;
+    /// @dev Default fallback address for reclaiming rewards when no reason-specific address is configured.
+    /// Zero address means rewards are dropped (not minted) if no specific reclaim address matches.
     address internal defaultReclaimAddress;
 }
