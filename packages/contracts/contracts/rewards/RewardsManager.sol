@@ -506,9 +506,10 @@ contract RewardsManager is
         if (0 < unclaimableTokens)
             _reclaimRewards(RewardsCondition.NO_SIGNAL, unclaimableTokens, address(0), address(0), bytes32(0));
 
-        accRewardsPerSignal = accRewardsPerSignal.add(claimablePerSignal);
+        uint256 newAccRewardsPerSignal = accRewardsPerSignal.add(claimablePerSignal);
+        accRewardsPerSignal = newAccRewardsPerSignal;
         accRewardsPerSignalLastBlockUpdated = block.number;
-        return accRewardsPerSignal;
+        return newAccRewardsPerSignal;
     }
 
     /**
@@ -522,9 +523,10 @@ contract RewardsManager is
 
         // Updates the accumulated rewards for a subgraph
         Subgraph storage subgraph = subgraphs[_subgraphDeploymentID];
-        subgraph.accRewardsForSubgraph = getAccRewardsForSubgraph(_subgraphDeploymentID);
+        uint256 accRewardsForSubgraph = getAccRewardsForSubgraph(_subgraphDeploymentID);
+        subgraph.accRewardsForSubgraph = accRewardsForSubgraph;
         subgraph.accRewardsPerSignalSnapshot = accRewardsPerSignal;
-        return subgraph.accRewardsForSubgraph;
+        return accRewardsForSubgraph;
     }
 
     /**
