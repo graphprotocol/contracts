@@ -15,6 +15,7 @@ import executeGovernanceTask from './tasks/execute-governance.js'
 import grantRoleTask from './tasks/grant-role.js'
 import listPendingTask from './tasks/list-pending-implementations.js'
 import listRolesTask from './tasks/list-roles.js'
+import { reoDisableTask, reoEnableTask, reoStatusTask } from './tasks/reo-tasks.js'
 import resetForkTask from './tasks/reset-fork.js'
 import revokeRoleTask from './tasks/revoke-role.js'
 import verifyContractTask from './tasks/verify-contract.js'
@@ -71,6 +72,9 @@ const config: HardhatUserConfig = {
     grantRoleTask,
     listPendingTask,
     listRolesTask,
+    reoDisableTask,
+    reoEnableTask,
+    reoStatusTask,
     resetForkTask,
     revokeRoleTask,
     verifyContractTask,
