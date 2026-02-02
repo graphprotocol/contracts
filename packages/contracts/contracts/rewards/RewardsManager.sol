@@ -475,9 +475,20 @@ contract RewardsManager is
      * @inheritdoc IRewardsManager
      * @dev Must be called before `issuancePerBlock` or `total signalled GRT` changes.
      * Called from the Curation contract on mint() and burn()
+     *
+     * ## Zero Signal Handling
+     *
+     * When total signalled tokens is zero, issuance for the period is reclaimed
+     * (if NO_SIGNAL reclaim address is configured) rather than being lost.
      */
     function updateAccRewardsPerSignal() public override returns (uint256) {
-        accRewardsPerSignal = getAccRewardsPerSignal();
+        (uint256 claimablePerSignal, uint256 unclaimableTokens) = _getNewRewardsPerSignal();
+        if (claimablePerSignal == 0 && unclaimableTokens == 0) return accRewardsPerSignal;
+
+        if (0 < unclaimableTokens)
+            _reclaimRewards(RewardsCondition.NO_SIGNAL, unclaimableTokens, address(0), address(0), bytes32(0));
+
+        accRewardsPerSignal = accRewardsPerSignal.add(claimablePerSignal);
         accRewardsPerSignalLastBlockUpdated = block.number;
         return accRewardsPerSignal;
     }
