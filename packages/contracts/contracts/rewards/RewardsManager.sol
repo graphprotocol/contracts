@@ -237,6 +237,18 @@ contract RewardsManager is
         }
     }
 
+    /**
+     * @inheritdoc IRewardsManager
+     */
+    function setDefaultReclaimAddress(address newAddress) external override onlyGovernor {
+        address oldAddress = defaultReclaimAddress;
+
+        if (oldAddress != newAddress) {
+            defaultReclaimAddress = newAddress;
+            emit DefaultReclaimAddressSet(oldAddress, newAddress);
+        }
+    }
+
     // -- Denylist --
 
     /**
@@ -288,6 +300,13 @@ contract RewardsManager is
      */
     function getReclaimAddress(bytes32 reason) external view override returns (address) {
         return reclaimAddresses[reason];
+    }
+
+    /**
+     * @inheritdoc IRewardsManager
+     */
+    function getDefaultReclaimAddress() external view override returns (address) {
+        return defaultReclaimAddress;
     }
 
     /**

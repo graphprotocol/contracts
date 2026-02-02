@@ -94,4 +94,5 @@ abstract contract RewardsManagerV6Storage is RewardsManagerV5Storage {
     /// @dev Mapping of reclaim reason identifiers to reclaim addresses
     /// @dev Uses bytes32 for extensibility. See RewardsReclaim library for canonical reasons.
     mapping(bytes32 => address) internal reclaimAddresses;
+    address internal defaultReclaimAddress;
 }

@@ -72,6 +72,13 @@ interface IRewardsManager {
     event ReclaimAddressSet(bytes32 indexed reason, address indexed oldAddress, address indexed newAddress);
 
     /**
+     * @notice Default reclaim address changed
+     * @param oldAddress Previous default reclaim address
+     * @param newAddress New default reclaim address
+     */
+    event DefaultReclaimAddressSet(address indexed oldAddress, address indexed newAddress);
+
+    /**
      * @notice Rewards reclaimed to a configured address
      * @param reason The reclaim reason identifier
      * @param amount Amount of rewards reclaimed
@@ -137,6 +144,14 @@ interface IRewardsManager {
      */
     function setReclaimAddress(bytes32 reason, address newReclaimAddress) external;
 
+    /**
+     * @notice Set the default reclaim address used when no reason-specific address is configured
+     * @dev This is the fallback address used after trying all applicable reason-specific addresses.
+     * Set to zero to disable (rewards will be dropped if no specific address matches).
+     * @param newDefaultReclaimAddress The fallback address for reclaims
+     */
+    function setDefaultReclaimAddress(address newDefaultReclaimAddress) external;
+
     // -- Denylist --
 
     /**
@@ -180,6 +195,12 @@ interface IRewardsManager {
      * @return The address that receives reclaimed tokens for this reason (zero address if not set)
      */
     function getReclaimAddress(bytes32 reason) external view returns (address);
+
+    /**
+     * @notice Get the default reclaim address
+     * @return The fallback address for reclaims when no reason-specific address is configured
+     */
+    function getDefaultReclaimAddress() external view returns (address);
 
     /**
      * @notice Get the rewards eligibility oracle address
