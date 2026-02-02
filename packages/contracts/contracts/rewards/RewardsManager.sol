@@ -642,12 +642,12 @@ contract RewardsManager is
      * @param indexer Address of the indexer
      * @param allocationID Address of the allocation
      * @param subgraphDeploymentID Subgraph deployment ID for the allocation
-     * @return denied True if rewards should be denied (either reclaimed or dropped), false if they should be minted
-     * @dev First successful reclaim wins - checks performed in order with short-circuit on reclaim:
-     * 1. Subgraph deny list: emit RewardsDenied. If reclaim address set → reclaim and return (STOP, eligibility not checked)
-     * 2. Indexer eligibility: Checked if subgraph not denied OR denied without reclaim address. Emit RewardsDeniedDueToEligibility. If reclaim address set → reclaim and return
-     * Multiple denial events may be emitted only when multiple checks fail without reclaim addresses configured.
-     * Any failing check without a reclaim address still denies rewards (drops them without minting).
+     * @return denied True if rewards are denied (either reclaimed or dropped), false if they should be minted
+     * @dev Emits denial events, then attempts reclaim.
+     * Prefers subgraph denial over indexer ineligibility as reason when both apply.
+     * First configured applicable reclaim address is used.
+     * If rewards denied but no specific address is configured, the default reclaim address is used.
+     * If no applicable reclaim address is configured, rewards are not minted.
      */
     function _deniedRewards(
         uint256 rewards,
@@ -655,39 +655,20 @@ contract RewardsManager is
         address allocationID,
         bytes32 subgraphDeploymentID
     ) private returns (bool denied) {
-        if (isDenied(subgraphDeploymentID)) {
-            emit RewardsDenied(indexer, allocationID);
-            if (
-                0 <
-                _reclaimRewards(
-                    RewardsCondition.SUBGRAPH_DENIED,
-                    rewards,
-                    indexer,
-                    allocationID,
-                    subgraphDeploymentID
-                )
-            ) {
-                return true; // Successfully reclaimed, deny rewards
-            }
-            denied = true; // Denied but no reclaim address
-        }
+        bool isDeniedSubgraph = isDenied(subgraphDeploymentID);
+        bool isIneligible = address(rewardsEligibilityOracle) != address(0) &&
+            !rewardsEligibilityOracle.isEligible(indexer);
+        if (!isDeniedSubgraph && !isIneligible) return false;
 
-        if (address(rewardsEligibilityOracle) != address(0) && !rewardsEligibilityOracle.isEligible(indexer)) {
-            emit RewardsDeniedDueToEligibility(indexer, allocationID, rewards);
-            if (
-                0 <
-                _reclaimRewards(
-                    RewardsCondition.INDEXER_INELIGIBLE,
-                    rewards,
-                    indexer,
-                    allocationID,
-                    subgraphDeploymentID
-                )
-            ) {
-                return true; // Successfully reclaimed, deny rewards
-            }
-            denied = true; // Denied but no reclaim address
-        }
+        if (isDeniedSubgraph) emit RewardsDenied(indexer, allocationID);
+        if (isIneligible) emit RewardsDeniedDueToEligibility(indexer, allocationID, rewards);
+
+        bytes32 reason = isDeniedSubgraph ? RewardsCondition.SUBGRAPH_DENIED : RewardsCondition.NONE;
+        if (isIneligible && (!isDeniedSubgraph || reclaimAddresses[reason] == address(0)))
+            reason = RewardsCondition.INDEXER_INELIGIBLE;
+
+        _reclaimRewards(reason, rewards, indexer, allocationID, subgraphDeploymentID);
+        return true;
     }
 
     /**
