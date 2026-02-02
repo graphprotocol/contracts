@@ -33,6 +33,7 @@
     "test:self": "forge test",
     "test:deployment": "SECURE_ACCOUNTS_DISABLE_PROVIDER=true hardhat test test/deployment/*.ts",
     "test:integration": "./scripts/integration",
+    "test:ops": "./scripts/ops-test",
     "test:coverage": "pnpm build && pnpm test:coverage:self",
     "test:coverage:self": "forge coverage",
     "prepublishOnly": "pnpm run build"
