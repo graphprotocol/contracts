@@ -613,27 +613,36 @@ contract RewardsManager is
     }
 
     /**
-     * @notice Common function to reclaim rewards to a configured address
-     * @param reason The reclaim reason identifier
+     * @notice Reclaim rewards to reason-specific address or default fallback
+     * @param reason Reclaim reason identifier
      * @param rewards Amount of rewards to reclaim
      * @param indexer Address of the indexer
-     * @param allocationID Address of the allocation
-     * @param subgraphDeploymentID Subgraph deployment ID for the allocation
-     * @return reclaimed The amount of rewards that were reclaimed (0 if no reclaim address set)
+     * @param allocationId Address of the allocation
+     * @param subgraphDeploymentId Subgraph deployment ID for the allocation
+     * @return Amount reclaimed (0 if no target address configured)
+     *
+     * @dev ## Reclaim Priority
+     *
+     * 1. Try the reason-specific address
+     * 2. If not configured, try defaultReclaimAddress
+     * 3. If neither configured, rewards are dropped (not minted), returns 0
      */
     function _reclaimRewards(
         bytes32 reason,
         uint256 rewards,
         address indexer,
-        address allocationID,
-        bytes32 subgraphDeploymentID
-    ) private returns (uint256 reclaimed) {
+        address allocationId,
+        bytes32 subgraphDeploymentId
+    ) private returns (uint256) {
+        if (rewards == 0) return 0;
+
         address target = reclaimAddresses[reason];
-        if (0 < rewards && target != address(0)) {
-            graphToken().mint(target, rewards);
-            emit RewardsReclaimed(reason, rewards, indexer, allocationID, subgraphDeploymentID);
-            reclaimed = rewards;
-        }
+        if (target == address(0)) target = defaultReclaimAddress;
+        if (target == address(0)) return 0; // Dropped, not reclaimed
+
+        graphToken().mint(target, rewards);
+        emit RewardsReclaimed(reason, rewards, indexer, allocationId, subgraphDeploymentId);
+        return rewards;
     }
 
     /**
