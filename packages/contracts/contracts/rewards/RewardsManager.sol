@@ -576,12 +576,13 @@ contract RewardsManager is
             return accRewardsPerAllocatedToken;
         }
 
-        subgraph.accRewardsForSubgraph = subgraph.accRewardsForSubgraph.add(newRewards);
-        accRewardsPerAllocatedToken = subgraph.accRewardsPerAllocatedToken.add(
+        uint256 accRewardsForSubgraph = subgraph.accRewardsForSubgraph.add(newRewards);
+        accRewardsPerAllocatedToken = accRewardsPerAllocatedToken.add(
             newRewards.mul(FIXED_POINT_SCALING_FACTOR).div(subgraphAllocatedTokens)
         );
+        subgraph.accRewardsForSubgraph = accRewardsForSubgraph;
         subgraph.accRewardsPerAllocatedToken = accRewardsPerAllocatedToken;
-        subgraph.accRewardsForSubgraphSnapshot = subgraph.accRewardsForSubgraph;
+        subgraph.accRewardsForSubgraphSnapshot = accRewardsForSubgraph;
     }
 
     /// @inheritdoc IRewardsManager
