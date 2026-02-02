@@ -24,14 +24,27 @@ import { RewardsCondition } from "@graphprotocol/interfaces/contracts/contracts/
  * @title Rewards Manager Contract
  * @author Edge & Node
  * @notice Manages rewards distribution for indexers and delegators in the Graph Protocol
- * @dev Tracks how inflationary GRT rewards should be handed out. Relies on the Curation contract
- * and the Staking contract. Signaled GRT in Curation determine what percentage of the tokens go
- * towards each subgraph. Then each Subgraph can have multiple Indexers Staked on it. Thus, the
- * total rewards for the Subgraph are split up for each Indexer based on much they have Staked on
- * that Subgraph.
  *
- * @dev If an `issuanceAllocator` is set, it is used to determine the amount of GRT to be issued per block.
- * Otherwise, the `issuancePerBlock` variable is used. In relation to the IssuanceAllocator, this contract
+ * @dev ## Token Accounting Model
+ *
+ * Rewards use a two-level accumulation model with snapshot-based safety:
+ *
+ * **Level 1 - Signal Distribution (cross-subgraph):**
+ * - `accRewardsPerSignal` accumulates rewards per signaled token globally
+ * - Each subgraph gets rewards proportional to its curation signal
+ * - `accRewardsForSubgraph` tracks total rewards allocated to each subgraph
+ *
+ * **Level 2 - Allocation Distribution (within-subgraph):**
+ * - `accRewardsPerAllocatedToken` scales subgraph rewards to indexer allocations
+ * - Each allocation tracks its starting snapshot to calculate its share
+ *
+ * Accumulation invariants:
+ * - Snapshots prevent double-counting: each allocation's reward = (current - snapshot) × tokens
+ * - Accumulator values never decrease
+ * - Tokens are minted at claim time
+ *
+ * @dev If an `issuanceAllocator` is set, it determines GRT issued per block.
+ * Otherwise, the `issuancePerBlock` storage value is used. This contract
  * is a self-minting target responsible for directly minting allocated GRT.
  *
  * Note:
@@ -381,7 +394,12 @@ contract RewardsManager is
         return accRewardsPerSignal.add(getNewRewardsPerSignal());
     }
 
-    /// @inheritdoc IRewardsManager
+    /**
+     * @inheritdoc IRewardsManager
+     * @dev Returns accumulated rewards for external callers.
+     * New rewards are only included if the subgraph is claimable (neither denied nor below minimum signal).
+     * Reclaim for non-claimable subgraphs is handled in `onSubgraphAllocationUpdate()`.
+     */
     function getAccRewardsForSubgraph(bytes32 _subgraphDeploymentID) public view override returns (uint256) {
         Subgraph storage subgraph = subgraphs[_subgraphDeploymentID];
 
