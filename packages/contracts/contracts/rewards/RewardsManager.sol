@@ -499,8 +499,9 @@ contract RewardsManager is
      * (if NO_SIGNAL reclaim address is configured) rather than being lost.
      */
     function updateAccRewardsPerSignal() public override returns (uint256) {
+        if (accRewardsPerSignalLastBlockUpdated == block.number) return accRewardsPerSignal;
+
         (uint256 claimablePerSignal, uint256 unclaimableTokens) = _getNewRewardsPerSignal();
-        if (claimablePerSignal == 0 && unclaimableTokens == 0) return accRewardsPerSignal;
 
         if (0 < unclaimableTokens)
             _reclaimRewards(RewardsCondition.NO_SIGNAL, unclaimableTokens, address(0), address(0), bytes32(0));
