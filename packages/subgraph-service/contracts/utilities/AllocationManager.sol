@@ -186,14 +186,14 @@ abstract contract AllocationManager is
         // Mint indexing rewards if all conditions are met, otherwise reclaim with specific reason
         uint256 tokensRewards;
         if (allocation.isStale(maxPOIStaleness)) {
-            _graphRewardsManager().reclaimRewards(RewardsCondition.STALE_POI, _allocationId, "");
+            _graphRewardsManager().reclaimRewards(RewardsCondition.STALE_POI, _allocationId);
         } else if (allocation.isAltruistic()) {
-            _graphRewardsManager().reclaimRewards(RewardsCondition.ALTRUISTIC_ALLOCATION, _allocationId, "");
+            _graphRewardsManager().reclaimRewards(RewardsCondition.ALTRUISTIC_ALLOCATION, _allocationId);
         } else if (_poi == bytes32(0)) {
-            _graphRewardsManager().reclaimRewards(RewardsCondition.ZERO_POI, _allocationId, "");
+            _graphRewardsManager().reclaimRewards(RewardsCondition.ZERO_POI, _allocationId);
             // solhint-disable-next-line gas-strict-inequalities
         } else if (_graphEpochManager().currentEpoch() <= allocation.createdAtEpoch) {
-            _graphRewardsManager().reclaimRewards(RewardsCondition.ALLOCATION_TOO_YOUNG, _allocationId, "");
+            _graphRewardsManager().reclaimRewards(RewardsCondition.ALLOCATION_TOO_YOUNG, _allocationId);
         } else {
             tokensRewards = _graphRewardsManager().takeRewards(_allocationId);
         }
@@ -334,8 +334,7 @@ abstract contract AllocationManager is
         // Reclaim uncollected rewards before closing
         uint256 reclaimedRewards = _graphRewardsManager().reclaimRewards(
             RewardsCondition.CLOSE_ALLOCATION,
-            _allocationId,
-            ""
+            _allocationId
         );
 
         // Take rewards snapshot to prevent other allos from counting tokens from this allo

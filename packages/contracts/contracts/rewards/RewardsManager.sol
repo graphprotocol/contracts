@@ -562,7 +562,6 @@ contract RewardsManager is
      * @param indexer Address of the indexer
      * @param allocationID Address of the allocation
      * @param subgraphDeploymentID Subgraph deployment ID for the allocation
-     * @param data Additional context data for the reclaim
      * @return reclaimed The amount of rewards that were reclaimed (0 if no reclaim address set)
      */
     function _reclaimRewards(
@@ -570,13 +569,12 @@ contract RewardsManager is
         uint256 rewards,
         address indexer,
         address allocationID,
-        bytes32 subgraphDeploymentID,
-        bytes memory data
+        bytes32 subgraphDeploymentID
     ) private returns (uint256 reclaimed) {
         address target = reclaimAddresses[reason];
         if (0 < rewards && target != address(0)) {
             graphToken().mint(target, rewards);
-            emit RewardsReclaimed(reason, rewards, indexer, allocationID, subgraphDeploymentID, data);
+            emit RewardsReclaimed(reason, rewards, indexer, allocationID, subgraphDeploymentID);
             reclaimed = rewards;
         }
     }
@@ -609,8 +607,7 @@ contract RewardsManager is
                     rewards,
                     indexer,
                     allocationID,
-                    subgraphDeploymentID,
-                    ""
+                    subgraphDeploymentID
                 )
             ) {
                 return true; // Successfully reclaimed, deny rewards
@@ -627,8 +624,7 @@ contract RewardsManager is
                     rewards,
                     indexer,
                     allocationID,
-                    subgraphDeploymentID,
-                    ""
+                    subgraphDeploymentID
                 )
             ) {
                 return true; // Successfully reclaimed, deny rewards
@@ -673,11 +669,7 @@ contract RewardsManager is
      * @inheritdoc IRewardsManager
      * @dev bytes32(0) as a reason is reserved as a no-op and will not be reclaimed.
      */
-    function reclaimRewards(
-        bytes32 reason,
-        address allocationID,
-        bytes calldata data
-    ) external override returns (uint256) {
+    function reclaimRewards(bytes32 reason, address allocationID) external override returns (uint256) {
         address rewardsIssuer = msg.sender;
         require(rewardsIssuer == address(subgraphService), "Not a rewards issuer");
 
@@ -686,6 +678,6 @@ contract RewardsManager is
             allocationID
         );
 
-        return _reclaimRewards(reason, rewards, indexer, allocationID, subgraphDeploymentID, data);
+        return _reclaimRewards(reason, rewards, indexer, allocationID, subgraphDeploymentID);
     }
 }

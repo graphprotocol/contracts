@@ -85,15 +85,13 @@ interface IRewardsManager {
      * @param indexer Address of the indexer
      * @param allocationID Address of the allocation
      * @param subgraphDeploymentID Subgraph deployment ID for the allocation
-     * @param data Additional context data for the reclaim
      */
     event RewardsReclaimed(
         bytes32 indexed reason,
         uint256 amount,
         address indexed indexer,
         address indexed allocationID,
-        bytes32 subgraphDeploymentID,
-        bytes data
+        bytes32 subgraphDeploymentID
     );
 
     /**
@@ -306,10 +304,9 @@ interface IRewardsManager {
      * Calculates pending rewards and mints them to the configured reclaim address.
      * @param reason The reclaim reason identifier (see RewardsCondition library for canonical reasons)
      * @param allocationID Allocation
-     * @param data Arbitrary data to include in the RewardsReclaimed event for additional context
      * @return The amount of rewards that were reclaimed (0 if no reclaim address set)
      */
-    function reclaimRewards(bytes32 reason, address allocationID, bytes calldata data) external returns (uint256);
+    function reclaimRewards(bytes32 reason, address allocationID) external returns (uint256);
 
     // -- Hooks --
 
