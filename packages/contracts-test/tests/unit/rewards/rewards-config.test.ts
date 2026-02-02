@@ -5,6 +5,7 @@ import { RewardsManager } from '@graphprotocol/contracts'
 import { GraphNetworkContracts, helpers, randomHexBytes, toBN, toGRT } from '@graphprotocol/sdk'
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
+import { BigNumber } from 'ethers'
 import hre from 'hardhat'
 
 import { NetworkFixture } from '../lib/fixtures'
@@ -88,6 +89,92 @@ describe('Rewards - Configuration', () => {
         await rewardsManager.connect(governor).setIssuancePerBlock(newIssuancePerBlock)
         expect(await rewardsManager.issuancePerBlock()).eq(newIssuancePerBlock)
         expect(await rewardsManager.accRewardsPerSignalLastBlockUpdated()).eq(await helpers.latestBlock())
+      })
+
+      it('should update timestamp when transitioning from zero to non-zero issuance', async function () {
+        // Add some signal so rewards can be calculated
+        await curation.connect(curator1).mint(subgraphDeploymentID1, toGRT('10000'), 0)
+
+        // Mine some blocks with rewards active
+        await helpers.mine(10)
+
+        // Set issuance to zero - this updates timestamp correctly
+        await rewardsManager.connect(governor).setIssuancePerBlock(0)
+        const blockAfterZeroIssuance = await helpers.latestBlock()
+
+        // Verify timestamp was updated
+        const timestampAfterZero = await rewardsManager.accRewardsPerSignalLastBlockUpdated()
+        expect(timestampAfterZero).to.equal(blockAfterZeroIssuance)
+
+        // Mine blocks during zero issuance period
+        await helpers.mine(10)
+
+        // Set issuance back to non-zero
+        await rewardsManager.connect(governor).setIssuancePerBlock(ISSUANCE_PER_BLOCK)
+        const blockAfterRestore = await helpers.latestBlock()
+
+        // Timestamp should be updated when transitioning from zero issuance
+        const timestampAfterRestore = await rewardsManager.accRewardsPerSignalLastBlockUpdated()
+        expect(timestampAfterRestore).to.equal(
+          blockAfterRestore,
+          'Timestamp should be updated when transitioning from zero issuance',
+        )
+      })
+
+      it('should not over-issue rewards after zero issuance period', async function () {
+        // Add signal
+        await curation.connect(curator1).mint(subgraphDeploymentID1, toGRT('10000'), 0)
+
+        // Get signalled tokens for calculation
+        const signalledTokens = await grt.balanceOf(curation.address)
+
+        // Mine some blocks with rewards active
+        await helpers.mine(10)
+
+        // Capture rewards and timestamp before zero issuance period
+        await rewardsManager.connect(governor).updateAccRewardsPerSignal()
+        const rewardsAfterFirstPeriod = await rewardsManager.accRewardsPerSignal()
+
+        // Set issuance to zero
+        await rewardsManager.connect(governor).setIssuancePerBlock(0)
+        const timestampAfterZeroSet = await rewardsManager.accRewardsPerSignalLastBlockUpdated()
+
+        // Mine blocks during zero issuance - NO rewards should accumulate
+        await helpers.mine(10)
+
+        // Restore issuance - record the block when non-zero issuance starts
+        await rewardsManager.connect(governor).setIssuancePerBlock(ISSUANCE_PER_BLOCK)
+        const timestampAfterRestore = await rewardsManager.accRewardsPerSignalLastBlockUpdated()
+
+        // Mine more blocks with rewards active
+        await helpers.mine(10)
+
+        // Update and check final rewards
+        await rewardsManager.connect(governor).updateAccRewardsPerSignal()
+        const finalRewards = await rewardsManager.accRewardsPerSignal()
+        const finalTimestamp = await rewardsManager.accRewardsPerSignalLastBlockUpdated()
+
+        // The actual rewards increase from first period to final
+        const rewardsIncrease = finalRewards.sub(rewardsAfterFirstPeriod)
+
+        // Calculate expected rewards based on ACTUAL blocks where issuance was active
+        const FIXED_POINT_SCALING_FACTOR = BigNumber.from(10).pow(18)
+        const activeBlocksAfterRestore = finalTimestamp.sub(timestampAfterRestore)
+        const expectedIncrease = ISSUANCE_PER_BLOCK.mul(activeBlocksAfterRestore)
+          .mul(FIXED_POINT_SCALING_FACTOR)
+          .div(signalledTokens)
+
+        // Key assertion: timestamp should advance during zero issuance period
+        expect(timestampAfterRestore.toNumber()).to.be.greaterThan(
+          timestampAfterZeroSet.toNumber(),
+          'Timestamp should advance when setting non-zero issuance',
+        )
+
+        // Allow some tolerance for block timing (1 block variance)
+        const tolerance = ISSUANCE_PER_BLOCK.mul(1).mul(FIXED_POINT_SCALING_FACTOR).div(signalledTokens)
+
+        // Rewards should match the active period only
+        expect(rewardsIncrease).to.be.closeTo(expectedIncrease, tolerance, 'Rewards should match active period only')
       })
     })
 
