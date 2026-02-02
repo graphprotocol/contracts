@@ -402,18 +402,8 @@ contract RewardsManager is
      */
     function getAccRewardsForSubgraph(bytes32 _subgraphDeploymentID) public view override returns (uint256) {
         Subgraph storage subgraph = subgraphs[_subgraphDeploymentID];
-
-        // Get tokens signalled on the subgraph
-        uint256 subgraphSignalledTokens = curation().getCurationPoolTokens(_subgraphDeploymentID);
-
-        // Only accrue rewards if over a threshold
-        // solhint-disable-next-line gas-strict-inequalities
-        uint256 newRewards = (subgraphSignalledTokens >= minimumSubgraphSignal) // Accrue new rewards since last snapshot
-            ? getAccRewardsPerSignal().sub(subgraph.accRewardsPerSignalSnapshot).mul(subgraphSignalledTokens).div(
-                FIXED_POINT_SCALING_FACTOR
-            )
-            : 0;
-        return subgraph.accRewardsForSubgraph.add(newRewards);
+        (uint256 newRewards, , bytes32 condition) = _getSubgraphRewardsState(_subgraphDeploymentID);
+        return subgraph.accRewardsForSubgraph.add(condition == RewardsCondition.NONE ? newRewards : 0);
     }
 
     /// @inheritdoc IRewardsManager
@@ -449,6 +439,34 @@ contract RewardsManager is
             subgraphAllocatedTokens
         );
         return (subgraph.accRewardsPerAllocatedToken.add(newRewardsPerAllocatedToken), accRewardsForSubgraph);
+    }
+
+    // -- Internal Helpers --
+
+    /**
+     * @notice Calculate new rewards and claimability state for a subgraph
+     * @dev Returns the new rewards based on signal and the condition indicating why rewards
+     * may not be claimable (SUBGRAPH_DENIED, BELOW_MINIMUM_SIGNAL, or NONE if claimable).
+     * @param _subgraphDeploymentID Subgraph deployment
+     * @return newRewards The rewards that would accrue based on signal (may not be claimable)
+     * @return signalledTokens The subgraph's current signal
+     * @return condition The condition: NONE if claimable, otherwise the denial reason
+     */
+    function _getSubgraphRewardsState(
+        bytes32 _subgraphDeploymentID
+    ) private view returns (uint256 newRewards, uint256 signalledTokens, bytes32 condition) {
+        Subgraph storage subgraph = subgraphs[_subgraphDeploymentID];
+        signalledTokens = curation().getCurationPoolTokens(_subgraphDeploymentID);
+        uint256 accRewardsPerSignalDelta = getAccRewardsPerSignal().sub(subgraph.accRewardsPerSignalSnapshot);
+        newRewards = accRewardsPerSignalDelta.mul(signalledTokens).div(FIXED_POINT_SCALING_FACTOR);
+
+        if (isDenied(_subgraphDeploymentID)) {
+            condition = RewardsCondition.SUBGRAPH_DENIED;
+        } else if (signalledTokens < minimumSubgraphSignal) {
+            condition = RewardsCondition.BELOW_MINIMUM_SIGNAL;
+        } else {
+            condition = RewardsCondition.NONE;
+        }
     }
 
     // -- Updates --
