@@ -125,9 +125,9 @@ describe('Rewards - Reclaim Addresses', () => {
       await expect(tx).revertedWith('Only Controller governor')
     })
 
-    it('should reject setting reclaim address for bytes32(0)', async function () {
+    it('should reject setting reclaim address for NONE', async function () {
       const tx = rewardsManager.connect(governor).setReclaimAddress(HashZero, reclaimWallet.address)
-      await expect(tx).revertedWith('Cannot set reclaim address for (bytes32(0))')
+      await expect(tx).revertedWith('Cannot set reclaim address for NONE')
     })
 
     it('should set eligibility reclaim address if governor', async function () {

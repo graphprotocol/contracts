@@ -212,7 +212,7 @@ contract RewardsManager is
      */
     function setReclaimAddress(bytes32 reason, address newAddress) external override onlyGovernor {
         // solhint-disable-next-line gas-small-strings
-        require(reason != bytes32(0), "Cannot set reclaim address for (bytes32(0))");
+        require(reason != RewardsCondition.NONE, "Cannot set reclaim address for NONE");
 
         address oldAddress = reclaimAddresses[reason];
 
