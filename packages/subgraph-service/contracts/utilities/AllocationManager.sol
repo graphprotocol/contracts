@@ -191,6 +191,8 @@ abstract contract AllocationManager is
         IAllocation.State memory allocation = _allocations.get(_allocationId);
         require(allocation.isOpen(), AllocationManagerAllocationClosed(_allocationId));
         _allocations.presentPOI(_allocationId); // Always record POI presentation to prevent staleness
+
+        uint256 currentEpoch = _graphEpochManager().currentEpoch();
         // Scoped for stack management
         {
             // Determine rewards condition
@@ -199,8 +201,7 @@ abstract contract AllocationManager is
             else if (_poi == bytes32(0))
                 condition = RewardsCondition.ZERO_POI;
                 // solhint-disable-next-line gas-strict-inequalities
-            else if (_graphEpochManager().currentEpoch() <= allocation.createdAtEpoch)
-                condition = RewardsCondition.ALLOCATION_TOO_YOUNG;
+            else if (currentEpoch <= allocation.createdAtEpoch) condition = RewardsCondition.ALLOCATION_TOO_YOUNG;
             else if (_graphRewardsManager().isDenied(allocation.subgraphDeploymentId))
                 condition = RewardsCondition.SUBGRAPH_DENIED;
 
@@ -214,8 +215,12 @@ abstract contract AllocationManager is
             );
 
             // Early return skips the overallocation check intentionally to avoid loss of uncollected rewards
-            if (condition == RewardsCondition.ALLOCATION_TOO_YOUNG || condition == RewardsCondition.SUBGRAPH_DENIED)
+            if (condition == RewardsCondition.ALLOCATION_TOO_YOUNG || condition == RewardsCondition.SUBGRAPH_DENIED) {
+                // Keep reward and reclaim accumulation current even if rewards are not collected
+                _graphRewardsManager().onSubgraphAllocationUpdate(allocation.subgraphDeploymentId);
+
                 return 0;
+            }
 
             bool rewardsReclaimable = condition == RewardsCondition.STALE_POI || condition == RewardsCondition.ZERO_POI;
             if (rewardsReclaimable) _graphRewardsManager().reclaimRewards(condition, _allocationId);
@@ -246,7 +251,7 @@ abstract contract AllocationManager is
                 tokensDelegationRewards,
                 _poi,
                 _poiMetadata,
-                _graphEpochManager().currentEpoch()
+                currentEpoch
             );
         }
 
