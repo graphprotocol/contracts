@@ -6,7 +6,7 @@ import { RewardsManager } from '@graphprotocol/contracts'
 import { deriveChannelKey, GraphNetworkContracts, helpers, randomHexBytes, toGRT } from '@graphprotocol/sdk'
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
-import { constants, utils } from 'ethers'
+import { BigNumber, constants, utils } from 'ethers'
 import hre from 'hardhat'
 
 import { NetworkFixture } from '../lib/fixtures'
@@ -18,6 +18,18 @@ const INDEXER_INELIGIBLE = utils.id('INDEXER_INELIGIBLE')
 const SUBGRAPH_DENIED = utils.id('SUBGRAPH_DENIED')
 const CLOSE_ALLOCATION = utils.id('CLOSE_ALLOCATION')
 const NO_SIGNAL = utils.id('NO_SIGNAL')
+
+// Tolerance for fixed-point arithmetic rounding errors (matching Foundry tests)
+const REWARDS_TOLERANCE = 20000
+
+// Helper to check approximate equality for rewards (allows for rounding errors in fixed-point math)
+function expectApproxEq(actual: BigNumber, expected: BigNumber, message: string) {
+  const diff = actual.sub(expected).abs()
+  expect(
+    diff.lte(REWARDS_TOLERANCE),
+    `${message}: difference ${diff.toString()} exceeds tolerance ${REWARDS_TOLERANCE}`,
+  ).to.be.true
+}
 const NO_ALLOCATION = utils.id('NO_ALLOCATION')
 const BELOW_MINIMUM_SIGNAL = utils.id('BELOW_MINIMUM_SIGNAL')
 
@@ -193,9 +205,9 @@ describe('Rewards - Reclaim Addresses', () => {
       // RewardsReclaimed emitted with address(0) for indexer/allocationID (subgraph-level reclaim)
       await expect(tx).emit(rewardsManager, 'RewardsReclaimed')
 
-      // Check reclaim wallet received the rewards (use gte due to timing variations)
+      // Check reclaim wallet received the rewards (allow for rounding errors)
       const balanceAfter = await grt.balanceOf(reclaimWallet.address)
-      expect(balanceAfter.sub(balanceBefore)).gte(expectedRewards)
+      expectApproxEq(balanceAfter.sub(balanceBefore), expectedRewards, 'reclaimed rewards')
     })
 
     it('should reclaim pre-denial rewards via _deniedRewards when denied after allocation', async function () {
@@ -219,16 +231,39 @@ describe('Rewards - Reclaim Addresses', () => {
       const balanceBefore = await grt.balanceOf(reclaimWallet.address)
 
       // Close allocation — pre-denial rewards flow through _deniedRewards → _reclaimRewards
-      const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
+      const tx = await staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
+      const receipt = await tx.wait()
+
+      // Parse RewardsManager events from the transaction receipt
+      const parsedEvents = receipt.logs
+        .map((log) => {
+          try {
+            return rewardsManager.interface.parseLog(log)
+          } catch {
+            return null
+          }
+        })
+        .filter((e) => e !== null)
 
       // RewardsDenied IS emitted (allocation-level denial for pre-denial rewards)
-      await expect(tx).emit(rewardsManager, 'RewardsDenied').withArgs(indexer1.address, allocationID1)
-      // RewardsReclaimed emitted with actual indexer/allocationID (allocation-level reclaim)
-      await expect(tx)
-        .emit(rewardsManager, 'RewardsReclaimed')
-        .withArgs(SUBGRAPH_DENIED, toGRT('1400'), indexer1.address, allocationID1, subgraphDeploymentID1)
+      const deniedEvents = parsedEvents.filter((e) => e!.name === 'RewardsDenied')
+      expect(deniedEvents.length).to.equal(1, 'RewardsDenied event not found')
+      expect(deniedEvents[0]!.args[0]).to.equal(indexer1.address)
+      expect(deniedEvents[0]!.args[1]).to.equal(allocationID1)
 
-      // Reclaim wallet received the pre-denial rewards
+      // RewardsReclaimed emitted with actual indexer/allocationID (allocation-level reclaim)
+      const reclaimEvents = parsedEvents.filter((e) => e!.name === 'RewardsReclaimed')
+      expect(reclaimEvents.length).to.be.gte(1, 'RewardsReclaimed event not found')
+      // Find the allocation-level reclaim (has non-zero indexer and allocationID)
+      const allocationReclaim = reclaimEvents.find((e) => e!.args[2] !== constants.AddressZero)
+      expect(allocationReclaim).to.not.be.undefined
+      expect(allocationReclaim!.args[0]).to.equal(SUBGRAPH_DENIED)
+      expectApproxEq(allocationReclaim!.args[1], toGRT('1400'), 'reclaimed amount')
+      expect(allocationReclaim!.args[2]).to.equal(indexer1.address)
+      expect(allocationReclaim!.args[3]).to.equal(allocationID1)
+      expect(allocationReclaim!.args[4]).to.equal(subgraphDeploymentID1)
+
+      // Reclaim wallet received the pre-denial rewards (may receive additional rewards from subgraph-level reclaim)
       const balanceAfter = await grt.balanceOf(reclaimWallet.address)
       expect(balanceAfter.sub(balanceBefore)).gte(toGRT('1400'))
     })
@@ -286,17 +321,41 @@ describe('Rewards - Reclaim Addresses', () => {
       const balanceBefore = await grt.balanceOf(reclaimWallet.address)
 
       // Close allocation - should emit both denial and reclaim events
-      const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
-      await expect(tx)
-        .emit(rewardsManager, 'RewardsDeniedDueToEligibility')
-        .withArgs(indexer1.address, allocationID1, expectedRewards)
-      await expect(tx)
-        .emit(rewardsManager, 'RewardsReclaimed')
-        .withArgs(INDEXER_INELIGIBLE, expectedRewards, indexer1.address, allocationID1, subgraphDeploymentID1)
+      const tx = await staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
+      const receipt = await tx.wait()
+
+      // Parse RewardsManager events from the transaction receipt
+      const parsedEvents = receipt.logs
+        .map((log) => {
+          try {
+            return rewardsManager.interface.parseLog(log)
+          } catch {
+            return null
+          }
+        })
+        .filter((e) => e !== null)
+
+      // Check RewardsDeniedDueToEligibility event
+      const denialEvents = parsedEvents.filter((e) => e!.name === 'RewardsDeniedDueToEligibility')
+      expect(denialEvents.length).to.equal(1, 'RewardsDeniedDueToEligibility event not found')
+      expect(denialEvents[0]!.args[0]).to.equal(indexer1.address)
+      expect(denialEvents[0]!.args[1]).to.equal(allocationID1)
+      expectApproxEq(denialEvents[0]!.args[2], expectedRewards, 'denied rewards amount')
+
+      // Check RewardsReclaimed event exists and verify args
+      const reclaimEvents = parsedEvents.filter((e) => e!.name === 'RewardsReclaimed')
+      expect(reclaimEvents.length).to.be.gte(1, 'RewardsReclaimed event not found')
+      const reclaimEvent = reclaimEvents.find((e) => e!.args[0] === INDEXER_INELIGIBLE)
+      expect(reclaimEvent).to.not.be.undefined
+      expect(reclaimEvent!.args[0]).to.equal(INDEXER_INELIGIBLE)
+      expectApproxEq(reclaimEvent!.args[1], expectedRewards, 'reclaimed amount')
+      expect(reclaimEvent!.args[2]).to.equal(indexer1.address)
+      expect(reclaimEvent!.args[3]).to.equal(allocationID1)
+      expect(reclaimEvent!.args[4]).to.equal(subgraphDeploymentID1)
 
       // Check reclaim wallet received the rewards
       const balanceAfter = await grt.balanceOf(reclaimWallet.address)
-      expect(balanceAfter.sub(balanceBefore)).eq(expectedRewards)
+      expectApproxEq(balanceAfter.sub(balanceBefore), expectedRewards, 'wallet balance increase')
     })
 
     it('should not mint to reclaim address when reclaim address not set', async function () {
@@ -322,11 +381,30 @@ describe('Rewards - Reclaim Addresses', () => {
       const expectedRewards = toGRT('1400')
 
       // Close allocation - should only emit denial event, not reclaim
-      const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
-      await expect(tx)
-        .emit(rewardsManager, 'RewardsDeniedDueToEligibility')
-        .withArgs(indexer1.address, allocationID1, expectedRewards)
-      await expect(tx).to.not.emit(rewardsManager, 'RewardsReclaimed')
+      const tx = await staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
+      const receipt = await tx.wait()
+
+      // Parse RewardsManager events from the transaction receipt
+      const parsedEvents = receipt.logs
+        .map((log) => {
+          try {
+            return rewardsManager.interface.parseLog(log)
+          } catch {
+            return null
+          }
+        })
+        .filter((e) => e !== null)
+
+      // Check RewardsDeniedDueToEligibility event
+      const denialEvents = parsedEvents.filter((e) => e!.name === 'RewardsDeniedDueToEligibility')
+      expect(denialEvents.length).to.equal(1, 'RewardsDeniedDueToEligibility event not found')
+      expect(denialEvents[0]!.args[0]).to.equal(indexer1.address)
+      expect(denialEvents[0]!.args[1]).to.equal(allocationID1)
+      expectApproxEq(denialEvents[0]!.args[2], expectedRewards, 'denied rewards amount')
+
+      // Check no RewardsReclaimed event
+      const reclaimEvents = parsedEvents.filter((e) => e!.name === 'RewardsReclaimed')
+      expect(reclaimEvents.length).to.equal(0, 'RewardsReclaimed event should not be emitted')
     })
   })
 
@@ -375,11 +453,15 @@ describe('Rewards - Reclaim Addresses', () => {
       // RewardsReclaimed emitted (subgraph-level reclaim)
       await expect(tx).emit(rewardsManager, 'RewardsReclaimed')
 
-      // Only SUBGRAPH_DENIED wallet should receive rewards (use gte due to timing variations)
+      // Only SUBGRAPH_DENIED wallet should receive rewards (allow for rounding errors)
       const subgraphDeniedBalanceAfter = await grt.balanceOf(reclaimWallet.address)
       const indexerIneligibleBalanceAfter = await grt.balanceOf(otherWallet.address)
 
-      expect(subgraphDeniedBalanceAfter.sub(subgraphDeniedBalanceBefore)).gte(expectedRewards)
+      expectApproxEq(
+        subgraphDeniedBalanceAfter.sub(subgraphDeniedBalanceBefore),
+        expectedRewards,
+        'SUBGRAPH_DENIED wallet balance',
+      )
       expect(indexerIneligibleBalanceAfter.sub(indexerIneligibleBalanceBefore)).eq(0)
     })
 
@@ -472,7 +554,7 @@ describe('Rewards - Reclaim Addresses', () => {
 
       // INDEXER_INELIGIBLE wallet should receive rewards (fallback from SUBGRAPH_DENIED)
       const balanceAfter = await grt.balanceOf(reclaimWallet.address)
-      expect(balanceAfter.sub(balanceBefore)).gte(expectedRewards)
+      expectApproxEq(balanceAfter.sub(balanceBefore), expectedRewards, 'INDEXER_INELIGIBLE wallet balance')
     })
 
     it('should drop rewards when both fail and neither address configured', async function () {

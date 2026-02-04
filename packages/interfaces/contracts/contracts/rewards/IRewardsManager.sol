@@ -95,25 +95,12 @@ interface IRewardsManager {
     );
 
     /**
-     * @dev Stores accumulated rewards and snapshots related to a particular SubgraphDeployment
-     *
-     * ## Snapshot Semantics
-     *
-     * Snapshots prevent double-counting. After each update, snapshot = current value.
-     * New rewards = current - snapshot (delta since last update).
-     *
-     * ## Claimability
-     *
-     * When a subgraph is not claimable (denied or below minimum signal):
-     * - `accRewardsForSubgraph` FREEZES (no new rewards credited)
-     * - `accRewardsPerAllocatedToken` FREEZES (allocation-level)
-     * - New rewards are reclaimed via `onSubgraphAllocationUpdate()`
-     * - `accRewardsPerSignalSnapshot` still updates to prevent double-counting
-     *
-     * @param accRewardsForSubgraph Accumulated rewards for the subgraph
-     * @param accRewardsForSubgraphSnapshot Snapshot of accumulated rewards for the subgraph
-     * @param accRewardsPerSignalSnapshot Snapshot of accumulated rewards per signal
-     * @param accRewardsPerAllocatedToken Accumulated rewards per allocated token
+     * @dev Accumulated rewards and snapshots for a SubgraphDeployment.
+     * See `onSubgraphAllocationUpdate()` for claimability behavior.
+     * @param accRewardsForSubgraph Total rewards allocated to this subgraph (always increases)
+     * @param accRewardsForSubgraphSnapshot Snapshot for calculating new rewards since last update
+     * @param accRewardsPerSignalSnapshot Snapshot of global accRewardsPerSignal at last update
+     * @param accRewardsPerAllocatedToken Per-token rewards for allocations (frozen when not claimable)
      */
     struct Subgraph {
         uint256 accRewardsForSubgraph;
@@ -324,12 +311,13 @@ interface IRewardsManager {
      * @dev Must be called before allocation on a subgraph changes.
      * Hook called from the Staking contract on allocate() and close()
      *
-     * ## Denial Behavior
+     * ## Non-Claimable Behavior
      *
-     * When the subgraph is denied:
-     * - Does NOT update `accRewardsPerAllocatedToken` (keeps it frozen)
-     * - Reclaims new rewards accrued since last snapshot (if reclaim address configured)
-     * - Always updates `accRewardsForSubgraphSnapshot` to prevent double-counting
+     * When the subgraph is not claimable (denied or below minimum signal):
+     * - `accRewardsForSubgraph` increases (rewards continue accruing to the subgraph)
+     * - `accRewardsPerAllocatedToken` does NOT increase (rewards not distributed to allocations)
+     * - Accrued rewards are reclaimed (if reclaim address configured)
+     * - All snapshots update to track the reclaimed amounts
      *
      * @param subgraphDeploymentID Subgraph deployment
      * @return Accumulated rewards per allocated token for a subgraph

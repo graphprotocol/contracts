@@ -30,10 +30,10 @@ Each level uses the same pattern: an accumulator increases over time, and partic
 
 Snapshots prevent double-counting by recording each participant's starting point:
 
-| Component  | Accumulator                   | Snapshot                      | Prevents                                      |
-| ---------- | ----------------------------- | ----------------------------- | --------------------------------------------- |
-| Subgraph   | `accRewardsPerSignal`         | `accRewardsPerSignalSnapshot` | Same rewards credited to multiple subgraphs   |
-| Allocation | `accRewardsPerAllocatedToken` | Stored in allocation state    | Same rewards claimed twice by same allocation |
+| Component  | Accumulator                   | Snapshot                      | Prevents                                        |
+| ---------- | ----------------------------- | ----------------------------- | ----------------------------------------------- |
+| Subgraph   | `accRewardsPerSignal`         | `accRewardsPerSignalSnapshot` | Same subgraph counting same reward period twice |
+| Allocation | `accRewardsPerAllocatedToken` | Stored in allocation state    | Same allocation claiming same rewards twice     |
 
 After any update, snapshot = current accumulator. Next calculation starts from zero delta.
 
@@ -41,9 +41,15 @@ After any update, snapshot = current accumulator. Next calculation starts from z
 
 ### 1. Monotonic Accumulators
 
-`accRewardsPerSignal` and `accRewardsPerAllocatedToken` only increase (never decrease).
+All accumulators only increase (never decrease):
 
-**Exception**: `accRewardsPerAllocatedToken` freezes (stops increasing) when subgraph is denied or below minimum signal. It never decreases.
+| Accumulator                   | Behavior When Not Claimable                                 |
+| ----------------------------- | ----------------------------------------------------------- |
+| `accRewardsPerSignal`         | Always increases                                            |
+| `accRewardsForSubgraph`       | Stops increasing (rewards reclaimed, not accumulated)       |
+| `accRewardsPerAllocatedToken` | Stops increasing (rewards reclaimed instead of distributed) |
+
+When a subgraph is not claimable (denied or below minimum signal), rewards are reclaimed directly without updating `accRewardsForSubgraph`. This means `accRewardsForSubgraph` only tracks rewards that are actually distributed to allocations.
 
 **Why it matters**: Decreasing accumulators would cause negative reward calculations or allow re-claiming past rewards.
 
@@ -86,7 +92,7 @@ _allocations.snapshotRewards(..., onSubgraphAllocationUpdate()); // ③ Updates 
 
 ```solidity
 // In AllocationManager._presentPoi():
-rewards = takeRewards(_allocationId);                           // ① Mints rewards
+rewards = takeRewards(_allocationId);                            // ① Mints rewards
 snapshotRewards(_allocationId, onSubgraphAllocationUpdate(...)); // ② Updates snapshot
 clearPendingRewards(_allocationId);                              // ③ Clears pending
 ```
@@ -101,27 +107,27 @@ clearPendingRewards(_allocationId);                              // ③ Clears p
 
 Every reward path that cannot reach an allocation has a reclaim handler:
 
-| Condition            | When Triggered                                          | Reclaim Reason           |
-| -------------------- | ------------------------------------------------------- | ------------------------ |
-| No global signal     | `updateAccRewardsPerSignal()` with signalledTokens = 0  | `NO_SIGNAL`              |
-| Subgraph denied      | `onSubgraphAllocationUpdate()`                          | `SUBGRAPH_DENIED`        |
-| Below minimum signal | `onSubgraphAllocationUpdate()`                          | `BELOW_MINIMUM_SIGNAL`   |
-| No allocations       | `onSubgraphAllocationUpdate()` with allocatedTokens = 0 | `NO_ALLOCATION`          |
-| Indexer ineligible   | `takeRewards()`                                         | `INDEXER_INELIGIBLE`     |
-| Stale/zero POI       | `_presentPoi()`                                         | `STALE_POI` / `ZERO_POI` |
-| Allocation close     | `_closeAllocation()`                                    | `CLOSE_ALLOCATION`       |
+| Condition            | When Triggered                                               | Reclaim Reason           |
+| -------------------- | ------------------------------------------------------------ | ------------------------ |
+| No global signal     | `updateAccRewardsPerSignal()` with signalledTokens = 0       | `NO_SIGNAL`              |
+| Subgraph denied      | `onSubgraphSignalUpdate()` or `onSubgraphAllocationUpdate()` | `SUBGRAPH_DENIED`        |
+| Below minimum signal | `onSubgraphSignalUpdate()` or `onSubgraphAllocationUpdate()` | `BELOW_MINIMUM_SIGNAL`   |
+| No allocations       | `onSubgraphSignalUpdate()` or `onSubgraphAllocationUpdate()` | `NO_ALLOCATION`          |
+| Indexer ineligible   | `takeRewards()`                                              | `INDEXER_INELIGIBLE`     |
+| Stale/zero POI       | `_presentPoi()`                                              | `STALE_POI` / `ZERO_POI` |
+| Allocation close     | `_closeAllocation()`                                         | `CLOSE_ALLOCATION`       |
 
 **Reclaim priority**: reason-specific address → defaultReclaimAddress → dropped (no mint)
 
 ## Potential Failure Modes (Mitigated)
 
-| Failure Mode                 | How Prevented                                                                    |
-| ---------------------------- | -------------------------------------------------------------------------------- |
-| Double-mint same rewards     | Snapshot updated after every claim; same-block calls return ~0                   |
-| Rewards stuck in accumulator | NO_ALLOCATION reclaim before allocation creation                                 |
-| Gap period loss              | `_getAllocationData` calls `onSubgraphAllocationUpdate` before allocation exists |
-| Denial-period accumulation   | `accRewardsPerAllocatedToken` freezes; new rewards reclaimed                     |
-| Signal change mid-period     | `onSubgraphSignalUpdate` hook called before signal changes                       |
+| Failure Mode                 | How Prevented                                                                        |
+| ---------------------------- | ------------------------------------------------------------------------------------ |
+| Double-mint same rewards     | Snapshot updated after every claim; same-block calls return ~0                       |
+| Rewards stuck in accumulator | NO_ALLOCATION reclaim before allocation creation                                     |
+| Gap period loss              | `_getAllocationData` calls `onSubgraphAllocationUpdate` before allocation exists     |
+| Denial-period accumulation   | `accRewardsForSubgraph` tracks; `accRewardsPerAllocatedToken` frozen; diff reclaimed |
+| Signal change mid-period     | `onSubgraphSignalUpdate` hook called before signal changes                           |
 
 ## Division of Responsibility
 
@@ -139,12 +145,11 @@ RewardsManager and issuers share responsibility for correct reward accounting:
 - This preserves allocation state so rewards remain claimable after conditions change
 - RM cannot know issuer intent, so issuers must decide when to attempt claims
 
-**Example - Subgraph Denial**:
+**Example - Subgraph Denial** (see [RewardConditions.md](./RewardConditions.md#subgraph_denied) for full details):
 
-1. RM freezes `accRewardsPerAllocatedToken` and reclaims new subgraph-level rewards
-2. AM detects denial and skips `takeRewards()` call entirely (soft deny)
-3. Pre-denial rewards preserved in allocation snapshot
-4. After undeny, AM can claim the preserved rewards
+- RM: Reclaims new rewards; freezes `accRewardsPerAllocatedToken`
+- AM: Defers claim; preserves pre-denial rewards in allocation snapshot
+- After undeny: AM can claim the preserved pre-denial rewards
 
 ## Issuer Requirements
 

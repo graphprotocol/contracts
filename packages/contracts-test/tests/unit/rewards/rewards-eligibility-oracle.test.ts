@@ -6,12 +6,24 @@ import { RewardsManager } from '@graphprotocol/contracts'
 import { deriveChannelKey, GraphNetworkContracts, helpers, randomHexBytes, toGRT } from '@graphprotocol/sdk'
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
-import { constants } from 'ethers'
+import { BigNumber, constants } from 'ethers'
 import hre from 'hardhat'
 
 import { NetworkFixture } from '../lib/fixtures'
 
 const { HashZero } = constants
+
+// Tolerance for fixed-point arithmetic rounding errors (matching Foundry tests)
+const REWARDS_TOLERANCE = 20000
+
+// Helper to check approximate equality for rewards (allows for rounding errors in fixed-point math)
+function expectApproxEq(actual: BigNumber, expected: BigNumber, message: string) {
+  const diff = actual.sub(expected).abs()
+  expect(
+    diff.lte(REWARDS_TOLERANCE),
+    `${message}: difference ${diff.toString()} exceeds tolerance ${REWARDS_TOLERANCE}`,
+  ).to.be.true
+}
 
 describe('Rewards - Eligibility Oracle', () => {
   const graph = hre.graph()
@@ -195,10 +207,25 @@ describe('Rewards - Eligibility Oracle', () => {
       const expectedIndexingRewards = toGRT('1400')
 
       // Close allocation. At this point rewards should be denied due to eligibility
-      const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
-      await expect(tx)
-        .emit(rewardsManager, 'RewardsDeniedDueToEligibility')
-        .withArgs(indexer1.address, allocationID1, expectedIndexingRewards)
+      const tx = await staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
+      const receipt = await tx.wait()
+
+      // Parse RewardsManager events from the transaction receipt
+      const rewardsDeniedEvents = receipt.logs
+        .map((log) => {
+          try {
+            return rewardsManager.interface.parseLog(log)
+          } catch {
+            return null
+          }
+        })
+        .filter((event) => event?.name === 'RewardsDeniedDueToEligibility')
+
+      expect(rewardsDeniedEvents.length).to.equal(1, 'RewardsDeniedDueToEligibility event not found')
+      const event = rewardsDeniedEvents[0]!
+      expect(event.args[0]).to.equal(indexer1.address)
+      expect(event.args[1]).to.equal(allocationID1)
+      expectApproxEq(event.args[2], expectedIndexingRewards, 'rewards amount')
     })
 
     it('should allow rewards when rewards eligibility oracle approves', async function () {
@@ -225,10 +252,25 @@ describe('Rewards - Eligibility Oracle', () => {
       const expectedIndexingRewards = toGRT('1400')
 
       // Close allocation. At this point rewards should be assigned normally
-      const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
-      await expect(tx)
-        .emit(rewardsManager, 'HorizonRewardsAssigned')
-        .withArgs(indexer1.address, allocationID1, expectedIndexingRewards)
+      const tx = await staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
+      const receipt = await tx.wait()
+
+      // Parse RewardsManager events from the transaction receipt
+      const rewardsAssignedEvents = receipt.logs
+        .map((log) => {
+          try {
+            return rewardsManager.interface.parseLog(log)
+          } catch {
+            return null
+          }
+        })
+        .filter((event) => event?.name === 'HorizonRewardsAssigned')
+
+      expect(rewardsAssignedEvents.length).to.equal(1, 'HorizonRewardsAssigned event not found')
+      const event = rewardsAssignedEvents[0]!
+      expect(event.args[0]).to.equal(indexer1.address)
+      expect(event.args[1]).to.equal(allocationID1)
+      expectApproxEq(event.args[2], expectedIndexingRewards, 'rewards amount')
     })
   })
 
@@ -292,10 +334,25 @@ describe('Rewards - Eligibility Oracle', () => {
       const expectedIndexingRewards = toGRT('1400')
 
       // Close allocation - REO should be checked
-      const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
-      await expect(tx)
-        .emit(rewardsManager, 'RewardsDeniedDueToEligibility')
-        .withArgs(indexer1.address, allocationID1, expectedIndexingRewards)
+      const tx = await staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
+      const receipt = await tx.wait()
+
+      // Parse RewardsManager events from the transaction receipt
+      const rewardsDeniedEvents = receipt.logs
+        .map((log) => {
+          try {
+            return rewardsManager.interface.parseLog(log)
+          } catch {
+            return null
+          }
+        })
+        .filter((event) => event?.name === 'RewardsDeniedDueToEligibility')
+
+      expect(rewardsDeniedEvents.length).to.equal(1, 'RewardsDeniedDueToEligibility event not found')
+      const event = rewardsDeniedEvents[0]!
+      expect(event.args[0]).to.equal(indexer1.address)
+      expect(event.args[1]).to.equal(allocationID1)
+      expectApproxEq(event.args[2], expectedIndexingRewards, 'rewards amount')
     })
 
     it('should handle indexer becoming ineligible mid-allocation', async function () {
@@ -322,10 +379,25 @@ describe('Rewards - Eligibility Oracle', () => {
       const expectedIndexingRewards = toGRT('1600')
 
       // Close allocation - should be denied at close time (not creation time)
-      const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
-      await expect(tx)
-        .emit(rewardsManager, 'RewardsDeniedDueToEligibility')
-        .withArgs(indexer1.address, allocationID1, expectedIndexingRewards)
+      const tx = await staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
+      const receipt = await tx.wait()
+
+      // Parse RewardsManager events from the transaction receipt
+      const rewardsDeniedEvents = receipt.logs
+        .map((log) => {
+          try {
+            return rewardsManager.interface.parseLog(log)
+          } catch {
+            return null
+          }
+        })
+        .filter((event) => event?.name === 'RewardsDeniedDueToEligibility')
+
+      expect(rewardsDeniedEvents.length).to.equal(1, 'RewardsDeniedDueToEligibility event not found')
+      const event = rewardsDeniedEvents[0]!
+      expect(event.args[0]).to.equal(indexer1.address)
+      expect(event.args[1]).to.equal(allocationID1)
+      expectApproxEq(event.args[2], expectedIndexingRewards, 'rewards amount')
     })
 
     it('should handle indexer becoming eligible mid-allocation', async function () {
@@ -352,10 +424,25 @@ describe('Rewards - Eligibility Oracle', () => {
       const expectedIndexingRewards = toGRT('1600')
 
       // Close allocation - should now be allowed
-      const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
-      await expect(tx)
-        .emit(rewardsManager, 'HorizonRewardsAssigned')
-        .withArgs(indexer1.address, allocationID1, expectedIndexingRewards)
+      const tx = await staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
+      const receipt = await tx.wait()
+
+      // Parse RewardsManager events from the transaction receipt
+      const rewardsAssignedEvents = receipt.logs
+        .map((log) => {
+          try {
+            return rewardsManager.interface.parseLog(log)
+          } catch {
+            return null
+          }
+        })
+        .filter((event) => event?.name === 'HorizonRewardsAssigned')
+
+      expect(rewardsAssignedEvents.length).to.equal(1, 'HorizonRewardsAssigned event not found')
+      const event = rewardsAssignedEvents[0]!
+      expect(event.args[0]).to.equal(indexer1.address)
+      expect(event.args[1]).to.equal(allocationID1)
+      expectApproxEq(event.args[2], expectedIndexingRewards, 'rewards amount')
     })
 
     it('should handle denylist being added mid-allocation', async function () {
@@ -422,10 +509,25 @@ describe('Rewards - Eligibility Oracle', () => {
       const expectedIndexingRewards = toGRT('1400')
 
       // Close allocation - should get rewards (no eligibility check when REO is zero)
-      const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
-      await expect(tx)
-        .emit(rewardsManager, 'HorizonRewardsAssigned')
-        .withArgs(indexer1.address, allocationID1, expectedIndexingRewards)
+      const tx = await staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
+      const receipt = await tx.wait()
+
+      // Parse RewardsManager events from the transaction receipt
+      const rewardsAssignedEvents = receipt.logs
+        .map((log) => {
+          try {
+            return rewardsManager.interface.parseLog(log)
+          } catch {
+            return null
+          }
+        })
+        .filter((event) => event?.name === 'HorizonRewardsAssigned')
+
+      expect(rewardsAssignedEvents.length).to.equal(1, 'HorizonRewardsAssigned event not found')
+      const event = rewardsAssignedEvents[0]!
+      expect(event.args[0]).to.equal(indexer1.address)
+      expect(event.args[1]).to.equal(allocationID1)
+      expectApproxEq(event.args[2], expectedIndexingRewards, 'rewards amount')
     })
 
     it('should verify event structure differences between denial mechanisms', async function () {

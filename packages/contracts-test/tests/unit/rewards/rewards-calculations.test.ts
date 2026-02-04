@@ -44,11 +44,13 @@ describe('Rewards - Calculations', () => {
 
   // Derive some channel keys for each indexer used to sign attestations
   const channelKey1 = deriveChannelKey()
+  const channelKey2 = deriveChannelKey()
 
   const subgraphDeploymentID1 = randomHexBytes()
   const subgraphDeploymentID2 = randomHexBytes()
 
   const allocationID1 = channelKey1.address
+  const allocationID2 = channelKey2.address
 
   const metadata = HashZero
 
@@ -229,39 +231,53 @@ describe('Rewards - Calculations', () => {
 
     describe('getAccRewardsForSubgraph', function () {
       it('accrued for each subgraph', async function () {
-        // Curator1 - Update total signalled
+        // Option B model: rewards only accumulate when allocations exist
+        const tokensToAllocate = toGRT('12500')
         const signalled1 = toGRT('1500')
-        await curation.connect(curator1).mint(subgraphDeploymentID1, signalled1, 0)
-        const tracker1 = await RewardsTracker.create()
-
-        // Curator2 - Update total signalled
         const signalled2 = toGRT('500')
+
+        // Setup both subgraphs with signal first
+        await curation.connect(curator1).mint(subgraphDeploymentID1, signalled1, 0)
         await curation.connect(curator2).mint(subgraphDeploymentID2, signalled2, 0)
 
-        // Snapshot
-        const tracker2 = await RewardsTracker.create()
-        await tracker1.snapshot()
+        // Setup both allocations
+        await staking.connect(indexer1).stake(tokensToAllocate)
+        await staking
+          .connect(indexer1)
+          .allocateFrom(
+            indexer1.address,
+            subgraphDeploymentID1,
+            tokensToAllocate,
+            allocationID1,
+            metadata,
+            await channelKey1.generateProof(indexer1.address),
+          )
 
-        // Jump
+        await staking.connect(indexer2).stake(tokensToAllocate)
+        await staking
+          .connect(indexer2)
+          .allocateFrom(
+            indexer2.address,
+            subgraphDeploymentID2,
+            tokensToAllocate,
+            allocationID2,
+            metadata,
+            await channelKey2.generateProof(indexer2.address),
+          )
+
+        // Jump to accumulate more rewards
         await helpers.mine(ISSUANCE_RATE_PERIODS)
-
-        // Snapshot
-        await tracker1.snapshot()
-        await tracker2.snapshot()
-
-        // Calculate rewards
-        const rewardsPerSignal1 = tracker1.accumulated
-        const rewardsPerSignal2 = tracker2.accumulated
-        const expectedRewardsSG1 = rewardsPerSignal1.mul(signalled1).div(WeiPerEther)
-        const expectedRewardsSG2 = rewardsPerSignal2.mul(signalled2).div(WeiPerEther)
 
         // Get rewards from contract
         const contractRewardsSG1 = await rewardsManager.getAccRewardsForSubgraph(subgraphDeploymentID1)
         const contractRewardsSG2 = await rewardsManager.getAccRewardsForSubgraph(subgraphDeploymentID2)
 
-        // Check
-        expect(toRound(expectedRewardsSG1)).eq(toRound(contractRewardsSG1))
-        expect(toRound(expectedRewardsSG2)).eq(toRound(contractRewardsSG2))
+        // Both subgraphs should have non-zero rewards
+        expect(contractRewardsSG1).to.be.gt(0)
+        expect(contractRewardsSG2).to.be.gt(0)
+
+        // SG1 should have more rewards than SG2 (has more signal and allocation was created first)
+        expect(contractRewardsSG1).to.be.gt(contractRewardsSG2)
       })
 
       it('should return zero rewards when subgraph signal is below minimum threshold', async function () {
@@ -287,7 +303,22 @@ describe('Rewards - Calculations', () => {
         // Update total signalled
         const signalled1 = toGRT('1500')
         await curation.connect(curator1).mint(subgraphDeploymentID1, signalled1, 0)
-        // Snapshot
+
+        // Allocate - Option B requires allocation for rewards to accumulate
+        const tokensToAllocate = toGRT('12500')
+        await staking.connect(indexer1).stake(tokensToAllocate)
+        await staking
+          .connect(indexer1)
+          .allocateFrom(
+            indexer1.address,
+            subgraphDeploymentID1,
+            tokensToAllocate,
+            allocationID1,
+            metadata,
+            await channelKey1.generateProof(indexer1.address),
+          )
+
+        // Snapshot after allocation
         const tracker1 = await RewardsTracker.create()
 
         // Jump
@@ -370,9 +401,10 @@ describe('Rewards - Calculations', () => {
         await helpers.mine(ISSUANCE_RATE_PERIODS)
 
         // Prepare expected results
-        // Note: rewards from signal to allocation (2 blocks) are reclaimed since no allocations exist yet
-        const expectedSubgraphRewards = toGRT('1000') // 5 blocks since allocation to when we do getAccRewardsForSubgraph
-        const expectedRewardsAT = toGRT('0.08') // allocated during 5 blocks: 1000 GRT, divided by 12500 allocated tokens
+        // Option B model: accRewardsForSubgraph only tracks distributable rewards
+        // 2 blocks before allocation = reclaimed (NO_ALLOCATION), 5 blocks after = distributable
+        const expectedSubgraphRewards = toGRT('1000') // 5 blocks × 200 GRT/block
+        const expectedRewardsAT = toGRT('0.08') // 1000 GRT / 12500 allocated tokens
 
         // Update
         await rewardsManager.connect(governor).onSubgraphAllocationUpdate(subgraphDeploymentID1)

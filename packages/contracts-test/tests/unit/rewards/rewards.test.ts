@@ -338,39 +338,68 @@ describe('Rewards', () => {
 
     describe('getAccRewardsForSubgraph', function () {
       it('accrued for each subgraph', async function () {
-        // Curator1 - Update total signalled
+        // Setup: signal and allocations for two subgraphs
         const signalled1 = toGRT('1500')
-        await curation.connect(curator1).mint(subgraphDeploymentID1, signalled1, 0)
-        const tracker1 = await RewardsTracker.create()
-
-        // Curator2 - Update total signalled
         const signalled2 = toGRT('500')
+        const tokensToStake = toGRT('100000')
+        const tokensToAllocate = toGRT('10000')
+
+        // Mint signal for both subgraphs
+        await curation.connect(curator1).mint(subgraphDeploymentID1, signalled1, 0)
         await curation.connect(curator2).mint(subgraphDeploymentID2, signalled2, 0)
 
-        // Snapshot
-        const tracker2 = await RewardsTracker.create()
-        await tracker1.snapshot()
+        // Create allocations for both subgraphs so rewards are accumulated (not reclaimed as NO_ALLOCATION)
+        await grt.connect(governor).mint(indexer1.address, tokensToStake)
+        await grt.connect(indexer1).approve(staking.address, tokensToStake)
+        await staking.connect(indexer1).stake(tokensToStake)
 
-        // Jump
+        const channelKey1 = deriveChannelKey()
+        await staking
+          .connect(indexer1)
+          .allocate(
+            subgraphDeploymentID1,
+            tokensToAllocate,
+            channelKey1.address,
+            HashZero,
+            await channelKey1.generateProof(indexer1.address),
+          )
+
+        const channelKey2 = deriveChannelKey()
+        await staking
+          .connect(indexer1)
+          .allocate(
+            subgraphDeploymentID2,
+            tokensToAllocate,
+            channelKey2.address,
+            HashZero,
+            await channelKey2.generateProof(indexer1.address),
+          )
+
+        // Record starting point for both subgraphs
+        const startRewardsSG1 = await rewardsManager.getAccRewardsForSubgraph(subgraphDeploymentID1)
+        const startRewardsSG2 = await rewardsManager.getAccRewardsForSubgraph(subgraphDeploymentID2)
+
+        // Jump blocks to accrue rewards
         await helpers.mine(ISSUANCE_RATE_PERIODS)
 
-        // Snapshot
-        await tracker1.snapshot()
-        await tracker2.snapshot()
+        // Get final rewards
+        const endRewardsSG1 = await rewardsManager.getAccRewardsForSubgraph(subgraphDeploymentID1)
+        const endRewardsSG2 = await rewardsManager.getAccRewardsForSubgraph(subgraphDeploymentID2)
 
-        // Calculate rewards
-        const rewardsPerSignal1 = tracker1.accumulated
-        const rewardsPerSignal2 = tracker2.accumulated
-        const expectedRewardsSG1 = rewardsPerSignal1.mul(signalled1).div(WeiPerEther)
-        const expectedRewardsSG2 = rewardsPerSignal2.mul(signalled2).div(WeiPerEther)
+        // Calculate accrued rewards during the period
+        const accruedSG1 = endRewardsSG1.sub(startRewardsSG1)
+        const accruedSG2 = endRewardsSG2.sub(startRewardsSG2)
 
-        // Get rewards from contract
-        const contractRewardsSG1 = await rewardsManager.getAccRewardsForSubgraph(subgraphDeploymentID1)
-        const contractRewardsSG2 = await rewardsManager.getAccRewardsForSubgraph(subgraphDeploymentID2)
+        // Verify proportional distribution: SG1 has 75% of signal (1500/2000), SG2 has 25% (500/2000)
+        // So SG1 should accrue 3x the rewards of SG2
+        const totalAccrued = accruedSG1.add(accruedSG2)
+        expect(totalAccrued).to.be.gt(0, 'Should have accrued rewards')
 
-        // Check
-        expect(toRound(expectedRewardsSG1)).eq(toRound(contractRewardsSG1))
-        expect(toRound(expectedRewardsSG2)).eq(toRound(contractRewardsSG2))
+        // Check proportional distribution (allow small rounding error)
+        const sg1Share = accruedSG1.mul(100).div(totalAccrued)
+        const sg2Share = accruedSG2.mul(100).div(totalAccrued)
+        expect(sg1Share.toNumber()).to.be.closeTo(75, 1, 'SG1 should have ~75% of rewards')
+        expect(sg2Share.toNumber()).to.be.closeTo(25, 1, 'SG2 should have ~25% of rewards')
       })
 
       it('should return zero rewards when subgraph signal is below minimum threshold', async function () {
@@ -396,6 +425,24 @@ describe('Rewards', () => {
         // Update total signalled
         const signalled1 = toGRT('1500')
         await curation.connect(curator1).mint(subgraphDeploymentID1, signalled1, 0)
+
+        // Create an allocation so rewards are accumulated (not reclaimed as NO_ALLOCATION)
+        const tokensToStake = toGRT('100000')
+        const tokensToAllocate = toGRT('10000')
+        await grt.connect(governor).mint(indexer1.address, tokensToStake)
+        await grt.connect(indexer1).approve(staking.address, tokensToStake)
+        await staking.connect(indexer1).stake(tokensToStake)
+        const channelKey = deriveChannelKey()
+        await staking
+          .connect(indexer1)
+          .allocate(
+            subgraphDeploymentID1,
+            tokensToAllocate,
+            channelKey.address,
+            HashZero,
+            await channelKey.generateProof(indexer1.address),
+          )
+
         // Snapshot
         const tracker1 = await RewardsTracker.create()
 
@@ -479,8 +526,10 @@ describe('Rewards', () => {
         await helpers.mine(ISSUANCE_RATE_PERIODS)
 
         // Prepare expected results
-        // Note: rewards from signal to allocation (2 blocks) are reclaimed since no allocations exist yet
-        const expectedSubgraphRewards = toGRT('1000') // 5 blocks since allocation to when we do getAccRewardsForSubgraph
+        // With Option B model: accRewardsForSubgraph only tracks DISTRIBUTABLE rewards (not reclaimed)
+        // 7 blocks total: 2 blocks before allocation (reclaimed, NOT in accRewardsForSubgraph) + 5 blocks after allocation
+        const expectedSubgraphRewards = toGRT('1000') // only distributable rewards (5 blocks)
+        // accRewardsPerAllocatedToken reflects distributable rewards (5 blocks)
         const expectedRewardsAT = toGRT('0.08') // allocated during 5 blocks: 1000 GRT, divided by 12500 allocated tokens
 
         // Update

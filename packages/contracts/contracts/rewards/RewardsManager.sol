@@ -22,39 +22,12 @@ import { RewardsCondition } from "@graphprotocol/interfaces/contracts/contracts/
 /**
  * @title Rewards Manager Contract
  * @author Edge & Node
- * @notice Manages rewards distribution for indexers and delegators in the Graph Protocol
+ * @notice Manages indexing rewards distribution using a two-level accumulation model:
+ * signal → subgraph → allocation. See docs/RewardAccountingSafety.md for details.
  *
- * @dev ## Token Accounting Model
- *
- * Rewards use a two-level accumulation model with snapshot-based safety:
- *
- * **Level 1 - Signal Distribution (cross-subgraph):**
- * - `accRewardsPerSignal` accumulates rewards per signaled token globally
- * - Each subgraph gets rewards proportional to its curation signal
- * - `accRewardsForSubgraph` tracks total rewards allocated to each subgraph
- *
- * **Level 2 - Allocation Distribution (within-subgraph):**
- * - `accRewardsPerAllocatedToken` scales subgraph rewards to indexer allocations
- * - Each allocation tracks its starting snapshot to calculate its share
- *
- * Accumulation invariants:
- * - Snapshots prevent double-counting: each allocation's reward = (current - snapshot) × tokens
- * - Accumulator values never decrease
- * - Tokens are minted at claim time
- *
- * @dev If an `issuanceAllocator` is set, it determines GRT issued per block.
- * Otherwise, the `issuancePerBlock` storage value is used. This contract
- * is a self-minting target responsible for directly minting allocated GRT.
- *
- * Note:
- * The contract provides getter functions to query the state of accrued rewards:
- * - getAccRewardsPerSignal
- * - getAccRewardsForSubgraph
- * - getAccRewardsPerAllocatedToken
- * - getRewards
- * These functions may overestimate the actual rewards due to changes in the total supply
- * until the actual takeRewards function is called.
- * custom:security-contact Please email security+contracts@ thegraph.com (remove space) if you find any bugs. We might have an active bug bounty program.
+ * @dev Issuance source: `issuanceAllocator` if set, otherwise `issuancePerBlock` storage.
+ * Getter functions (getAccRewardsPerSignal, getRewards, etc.) may overestimate until
+ * takeRewards is called due to pending state updates.
  */
 contract RewardsManager is
     GraphUpgradeable,
@@ -272,12 +245,10 @@ contract RewardsManager is
     }
 
     /**
-     * @notice Internal: Denies to claim rewards for a subgraph.
-     * @dev Idempotent: redundant calls (deny when already denied, undeny when already allowed)
-     * skip the denylist update and event emission (but still call `onSubgraphAllocationUpdate`).
-     * This preserves the original deny block number on repeated deny calls.
+     * @notice Sets the denied status for a subgraph.
+     * @dev Idempotent: redundant calls skip the update but still call `onSubgraphAllocationUpdate`.
      * @param subgraphDeploymentId Subgraph deployment ID
-     * @param deny Whether to set the subgraph as denied for claiming rewards or not
+     * @param deny True to deny rewards, false to allow
      */
     function _setDenied(bytes32 subgraphDeploymentId, bool deny) private {
         onSubgraphAllocationUpdate(subgraphDeploymentId);
@@ -342,30 +313,16 @@ contract RewardsManager is
         return rewardsEligibilityOracle;
     }
 
-    /**
-     * @inheritdoc IRewardsManager
-     * @dev Linear formula: `x = r * t`
-     *
-     * Notation:
-     * t: time steps are in blocks since last updated
-     * x: newly accrued rewards tokens for the period `t`
-     *
-     * @return claimablePerSignal accrued rewards per signal since last update, scaled by FIXED_POINT_SCALING_FACTOR
-     */
+    /// @inheritdoc IRewardsManager
     function getNewRewardsPerSignal() public view override returns (uint256 claimablePerSignal) {
         (claimablePerSignal, ) = _getNewRewardsPerSignal();
     }
 
     /**
-     * @notice Calculate new rewards per signal, split into claimable and unclaimable portions
-     * @dev Linear formula: `x = r * t`
-     *
-     * Notation:
-     * t: time steps are in blocks since last updated
-     * x: newly accrued rewards tokens for the period `t`
-     *
-     * @return claimablePerSignal Rewards per signal when signal exists, scaled by FIXED_POINT_SCALING_FACTOR
-     * @return unclaimableTokens Raw token amount that cannot be distributed due to zero signal
+     * @notice Calculate new rewards per signal since last update
+     * @dev Formula: `x = r * t` where t = blocks since last update.
+     * @return claimablePerSignal Rewards per signal (scaled by FIXED_POINT_SCALING_FACTOR)
+     * @return unclaimableTokens Tokens not distributed due to zero signal
      */
     function _getNewRewardsPerSignal() private view returns (uint256 claimablePerSignal, uint256 unclaimableTokens) {
         // Calculate time steps
@@ -397,7 +354,7 @@ contract RewardsManager is
      * @inheritdoc IRewardsManager
      * @dev Returns accumulated rewards for external callers.
      * New rewards are only included if the subgraph is claimable (neither denied nor below minimum signal).
-     * Reclaim for non-claimable subgraphs is handled in `onSubgraphAllocationUpdate()`.
+     * Reclaim for non-claimable subgraphs is handled in `onSubgraphSignalUpdate()` and `onSubgraphAllocationUpdate()`.
      */
     function getAccRewardsForSubgraph(bytes32 _subgraphDeploymentID) public view override returns (uint256) {
         Subgraph storage subgraph = subgraphs[_subgraphDeploymentID];
@@ -405,33 +362,30 @@ contract RewardsManager is
         return subgraph.accRewardsForSubgraph.add(condition == RewardsCondition.NONE ? newRewards : 0);
     }
 
-    /// @inheritdoc IRewardsManager
+    /**
+     * @inheritdoc IRewardsManager
+     * @dev New rewards are only included via `getAccRewardsForSubgraph` when subgraph is claimable.
+     * Pre-existing stored rewards are always shown as distributable (preserved for when conditions clear).
+     * Does not check indexer eligibility - that can change and doesn't affect reward accrual.
+     */
     function getAccRewardsPerAllocatedToken(
         bytes32 _subgraphDeploymentID
     ) public view override returns (uint256, uint256) {
         Subgraph storage subgraph = subgraphs[_subgraphDeploymentID];
 
+        // getAccRewardsForSubgraph already handles claimability: excludes new rewards when not claimable
         uint256 accRewardsForSubgraph = getAccRewardsForSubgraph(_subgraphDeploymentID);
         uint256 newRewardsForSubgraph = MathUtils.diffOrZero(
             accRewardsForSubgraph,
             subgraph.accRewardsForSubgraphSnapshot
         );
 
-        // There are two contributors to subgraph allocated tokens:
-        // - the legacy allocations on the legacy staking contract
-        // - the new allocations on the subgraph service
-        uint256 subgraphAllocatedTokens = 0;
-        address[2] memory rewardsIssuers = [address(staking()), address(subgraphService)];
-        for (uint256 i = 0; i < rewardsIssuers.length; ++i) {
-            if (rewardsIssuers[i] != address(0)) {
-                subgraphAllocatedTokens += IRewardsIssuer(rewardsIssuers[i]).getSubgraphAllocatedTokens(
-                    _subgraphDeploymentID
-                );
-            }
-        }
+        // Get total allocated tokens across all issuers
+        uint256 subgraphAllocatedTokens = _getSubgraphAllocatedTokens(_subgraphDeploymentID);
 
         if (subgraphAllocatedTokens == 0) {
-            return (0, accRewardsForSubgraph);
+            // No allocations to distribute to, return stored value (no pending updates possible)
+            return (subgraph.accRewardsPerAllocatedToken, accRewardsForSubgraph);
         }
 
         uint256 newRewardsPerAllocatedToken = newRewardsForSubgraph.mul(FIXED_POINT_SCALING_FACTOR).div(
@@ -443,29 +397,32 @@ contract RewardsManager is
     // -- Internal Helpers --
 
     /**
-     * @notice Calculate new rewards and claimability state for a subgraph
-     * @dev Returns the new rewards based on signal and the condition indicating why rewards
-     * may not be claimable (SUBGRAPH_DENIED, BELOW_MINIMUM_SIGNAL, or NONE if claimable).
+     * @notice Get subgraph rewards state including effective reclaim condition
+     * @dev Determines claimability with priority: SUBGRAPH_DENIED > BELOW_MINIMUM_SIGNAL > NO_ALLOCATION > NONE
+     * When multiple conditions apply, prefers conditions with configured reclaim addresses.
      * @param _subgraphDeploymentID Subgraph deployment
-     * @return newRewards The rewards that would accrue based on signal (may not be claimable)
-     * @return signalledTokens The subgraph's current signal
-     * @return condition The condition: NONE if claimable, otherwise the denial reason
+     * @return newRewards Rewards accumulated since last snapshot
+     * @return subgraphAllocatedTokens Total tokens allocated (0 if condition is not NONE)
+     * @return condition The effective condition for reclaim routing (NONE if claimable)
      */
     function _getSubgraphRewardsState(
         bytes32 _subgraphDeploymentID
-    ) private view returns (uint256 newRewards, uint256 signalledTokens, bytes32 condition) {
+    ) private view returns (uint256 newRewards, uint256 subgraphAllocatedTokens, bytes32 condition) {
         Subgraph storage subgraph = subgraphs[_subgraphDeploymentID];
-        signalledTokens = curation().getCurationPoolTokens(_subgraphDeploymentID);
+        uint256 signalledTokens = curation().getCurationPoolTokens(_subgraphDeploymentID);
         uint256 accRewardsPerSignalDelta = getAccRewardsPerSignal().sub(subgraph.accRewardsPerSignalSnapshot);
         newRewards = accRewardsPerSignalDelta.mul(signalledTokens).div(FIXED_POINT_SCALING_FACTOR);
+        subgraphAllocatedTokens = _getSubgraphAllocatedTokens(_subgraphDeploymentID);
 
-        if (isDenied(_subgraphDeploymentID)) {
-            condition = RewardsCondition.SUBGRAPH_DENIED;
-        } else if (signalledTokens < minimumSubgraphSignal) {
-            condition = RewardsCondition.BELOW_MINIMUM_SIGNAL;
-        } else {
-            condition = RewardsCondition.NONE;
-        }
+        condition = isDenied(_subgraphDeploymentID) ? RewardsCondition.SUBGRAPH_DENIED : RewardsCondition.NONE;
+        if (
+            signalledTokens < minimumSubgraphSignal &&
+            (condition == RewardsCondition.NONE || reclaimAddresses[condition] == address(0))
+        ) condition = RewardsCondition.BELOW_MINIMUM_SIGNAL;
+        if (
+            subgraphAllocatedTokens == 0 &&
+            (condition == RewardsCondition.NONE || reclaimAddresses[condition] == address(0))
+        ) condition = RewardsCondition.NO_ALLOCATION;
     }
 
     /**
@@ -513,20 +470,92 @@ contract RewardsManager is
     }
 
     /**
+     * @dev Internal function that updates subgraph reward accumulators.
+     * Shared logic for both signal and allocation update hooks.
+     *
+     * @param subgraph Storage pointer to the subgraph
+     * @param _subgraphDeploymentID The subgraph deployment ID
+     * @param accRewardsPerSignal Current global rewards per signal
+     * @param accRewardsForSubgraph Current subgraph accumulated rewards
+     * @param accRewardsPerAllocatedToken Current rewards per allocated token
+     * @return newAccRewardsForSubgraph Updated subgraph accumulated rewards
+     * @return newAccRewardsPerAllocatedToken Updated rewards per allocated token
+     */
+    function _updateSubgraphRewards(
+        Subgraph storage subgraph,
+        bytes32 _subgraphDeploymentID,
+        uint256 accRewardsPerSignal,
+        uint256 accRewardsForSubgraph,
+        uint256 accRewardsPerAllocatedToken
+    ) internal returns (uint256 newAccRewardsForSubgraph, uint256 newAccRewardsPerAllocatedToken) {
+        (
+            uint256 rewardsSinceSignalSnapshot,
+            uint256 subgraphAllocatedTokens,
+            bytes32 condition
+        ) = _getSubgraphRewardsState(_subgraphDeploymentID);
+        subgraph.accRewardsPerSignalSnapshot = accRewardsPerSignal;
+
+        // Calculate undistributed: rewards accumulated but not yet distributed to allocations.
+        // Will be just rewards since last snapshot for subgraphs that have had onSubgraphSignalUpdate or
+        // onSubgraphAllocationUpdate called since upgrade;
+        // can include non-zero (original) accRewardsForSubgraph - accRewardsForSubgraphSnapshot for
+        // subgraphs that have not had either hook called since upgrade.
+        uint256 undistributedRewards = accRewardsForSubgraph.sub(subgraph.accRewardsForSubgraphSnapshot).add(
+            rewardsSinceSignalSnapshot
+        );
+
+        if (condition != RewardsCondition.NONE) {
+            _reclaimRewards(condition, undistributedRewards, address(0), address(0), _subgraphDeploymentID);
+            undistributedRewards = 0;
+            newAccRewardsForSubgraph = accRewardsForSubgraph;
+        } else {
+            newAccRewardsForSubgraph = accRewardsForSubgraph.add(rewardsSinceSignalSnapshot);
+            subgraph.accRewardsForSubgraph = newAccRewardsForSubgraph;
+        }
+
+        subgraph.accRewardsForSubgraphSnapshot = newAccRewardsForSubgraph;
+
+        newAccRewardsPerAllocatedToken = accRewardsPerAllocatedToken;
+        if (undistributedRewards != 0 && subgraphAllocatedTokens != 0) {
+            newAccRewardsPerAllocatedToken = accRewardsPerAllocatedToken.add(
+                undistributedRewards.mul(FIXED_POINT_SCALING_FACTOR).div(subgraphAllocatedTokens)
+            );
+            subgraph.accRewardsPerAllocatedToken = newAccRewardsPerAllocatedToken;
+        }
+    }
+
+    /**
      * @inheritdoc IRewardsManager
      * @dev Must be called before `signalled GRT` on a subgraph changes.
      * Hook called from the Curation contract on mint() and burn()
+     *
+     * ## Claimability Behavior
+     *
+     * When a subgraph is not claimable (denied, below minimum signal, or no allocations):
+     * - Rewards are reclaimed immediately with the appropriate reason
+     * - `accRewardsForSubgraph` is NOT updated (rewards go to reclaim, not accumulator)
+     *
+     * When claimable (not denied, above minimum signal, has allocations):
+     * - Rewards are added to `accRewardsForSubgraph` for later distribution via `onSubgraphAllocationUpdate`
      */
-    function onSubgraphSignalUpdate(bytes32 _subgraphDeploymentID) external override returns (uint256) {
+    function onSubgraphSignalUpdate(
+        bytes32 _subgraphDeploymentID
+    ) external override returns (uint256 accRewardsForSubgraph) {
         // Called since `total signalled GRT` will change
-        updateAccRewardsPerSignal();
+        uint256 accRewardsPerSignal = updateAccRewardsPerSignal();
 
-        // Updates the accumulated rewards for a subgraph
         Subgraph storage subgraph = subgraphs[_subgraphDeploymentID];
-        uint256 accRewardsForSubgraph = getAccRewardsForSubgraph(_subgraphDeploymentID);
-        subgraph.accRewardsForSubgraph = accRewardsForSubgraph;
-        subgraph.accRewardsPerSignalSnapshot = accRewardsPerSignal;
-        return accRewardsForSubgraph;
+        accRewardsForSubgraph = subgraph.accRewardsForSubgraph;
+
+        if (subgraph.accRewardsPerSignalSnapshot == accRewardsPerSignal) return accRewardsForSubgraph;
+
+        (accRewardsForSubgraph, ) = _updateSubgraphRewards(
+            subgraph,
+            _subgraphDeploymentID,
+            accRewardsPerSignal,
+            accRewardsForSubgraph,
+            subgraph.accRewardsPerAllocatedToken
+        );
     }
 
     /**
@@ -535,59 +564,47 @@ contract RewardsManager is
      *
      * ## Claimability Behavior
      *
-     * When a subgraph is not claimable (denied or below minimum signal):
-     * - `accRewardsPerAllocatedToken` is NOT updated (frozen)
-     * - New rewards are reclaimed with the appropriate reason (SUBGRAPH_DENIED or BELOW_MINIMUM_SIGNAL)
-     * - `accRewardsPerSignalSnapshot` is updated to prevent double-reclaim
+     * When a subgraph is not claimable (denied, below minimum signal, or no allocations):
+     * - Rewards are reclaimed immediately with the appropriate reason
+     * - `accRewardsForSubgraph` is NOT updated (rewards go to reclaim, not accumulator)
+     * - `accRewardsPerAllocatedToken` does NOT increase
      *
-     * When claimable:
-     * - `accRewardsForSubgraph` and `accRewardsPerAllocatedToken` are updated normally
-     * - Allocations can claim their proportional share
+     * When claimable (not denied, above minimum signal, has allocations):
+     * - Rewards are added to `accRewardsForSubgraph`
+     * - `accRewardsPerAllocatedToken` increases (rewards distributable to allocations)
      *
-     * @return accRewardsPerAllocatedToken Current `accRewardsPerAllocatedToken` (frozen while subgraph is not claimable)
+     * @return accRewardsPerAllocatedToken Current `accRewardsPerAllocatedToken`
      */
     function onSubgraphAllocationUpdate(
         bytes32 _subgraphDeploymentID
     ) public override returns (uint256 accRewardsPerAllocatedToken) {
         Subgraph storage subgraph = subgraphs[_subgraphDeploymentID];
 
-        (uint256 newRewards, uint256 signalledTokens, bytes32 condition) = _getSubgraphRewardsState(
-            _subgraphDeploymentID
-        );
-        subgraph.accRewardsPerSignalSnapshot = getAccRewardsPerSignal();
+        uint256 accRewardsPerSignal = updateAccRewardsPerSignal();
+        uint256 accRewardsForSubgraph = subgraph.accRewardsForSubgraph;
         accRewardsPerAllocatedToken = subgraph.accRewardsPerAllocatedToken;
-        if (newRewards == 0) return accRewardsPerAllocatedToken;
 
-        // Fallback: if denied but no reclaim address, try BELOW_MINIMUM_SIGNAL instead
+        // Return early to save gas if both snapshots are up-to-date
         if (
-            condition == RewardsCondition.SUBGRAPH_DENIED &&
-            reclaimAddresses[condition] == address(0) &&
-            signalledTokens < minimumSubgraphSignal
-        ) {
-            condition = RewardsCondition.BELOW_MINIMUM_SIGNAL;
-        }
+            subgraph.accRewardsPerSignalSnapshot == accRewardsPerSignal &&
+            subgraph.accRewardsForSubgraphSnapshot == accRewardsForSubgraph
+        ) return accRewardsPerAllocatedToken;
 
-        if (condition != RewardsCondition.NONE) {
-            _reclaimRewards(condition, newRewards, address(0), address(0), _subgraphDeploymentID);
-            return accRewardsPerAllocatedToken;
-        }
-
-        uint256 subgraphAllocatedTokens = _getSubgraphAllocatedTokens(_subgraphDeploymentID);
-        if (subgraphAllocatedTokens == 0) {
-            _reclaimRewards(RewardsCondition.NO_ALLOCATION, newRewards, address(0), address(0), _subgraphDeploymentID);
-            return accRewardsPerAllocatedToken;
-        }
-
-        uint256 accRewardsForSubgraph = subgraph.accRewardsForSubgraph.add(newRewards);
-        accRewardsPerAllocatedToken = accRewardsPerAllocatedToken.add(
-            newRewards.mul(FIXED_POINT_SCALING_FACTOR).div(subgraphAllocatedTokens)
+        (, accRewardsPerAllocatedToken) = _updateSubgraphRewards(
+            subgraph,
+            _subgraphDeploymentID,
+            accRewardsPerSignal,
+            accRewardsForSubgraph,
+            accRewardsPerAllocatedToken
         );
-        subgraph.accRewardsForSubgraph = accRewardsForSubgraph;
-        subgraph.accRewardsPerAllocatedToken = accRewardsPerAllocatedToken;
-        subgraph.accRewardsForSubgraphSnapshot = accRewardsForSubgraph;
     }
 
-    /// @inheritdoc IRewardsManager
+    /**
+     * @inheritdoc IRewardsManager
+     * @dev Returns claimable rewards based on current accumulator state.
+     * Reflects deterministic exclusions (denied, below minimum signal, no allocations) but NOT indexer eligibility.
+     * Indexer eligibility is checked at claim time and can change independently of reward accrual.
+     */
     function getRewards(address _rewardsIssuer, address _allocationID) external view override returns (uint256) {
         require(
             _rewardsIssuer == address(staking()) || _rewardsIssuer == address(subgraphService),
