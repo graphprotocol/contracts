@@ -875,6 +875,17 @@ export async function getContractStatusLine(
       return { line: `✓   ${contractName} @ ${formatAddress(entry.address)}`, exists: true }
     }
 
+    // If no client available, show address book status without on-chain verification
+    if (!client) {
+      if (meta?.proxyType && entry.implementation) {
+        return {
+          line: `?   ${contractName} @ ${formatAddress(entry.address)} → ${formatAddress(entry.implementation)} (no on-chain check)`,
+          exists: true,
+        }
+      }
+      return { line: `?   ${contractName} @ ${formatAddress(entry.address)} (no on-chain check)`, exists: true }
+    }
+
     // Check if code exists on-chain
     const code = await client.getCode({ address: entry.address as `0x${string}` })
     if (!code || code === '0x') {
