@@ -51,7 +51,14 @@ function getDeployerKeyName(networkName: string): string {
 }
 
 /**
- * Get accounts config for a network using configVariable for lazy resolution
+ * Get accounts config for a network.
+ *
+ * Uses configVariable for lazy resolution. If the key is not set (env var or keystore),
+ * read-only operations will still work but signing will fail with HHE7 error.
+ *
+ * To enable signing, set the key via:
+ * - Environment: export ARBITRUM_SEPOLIA_DEPLOYER_KEY=0x...
+ * - Keystore: npx hardhat keystore set ARBITRUM_SEPOLIA_DEPLOYER_KEY
  */
 const getNetworkAccounts = (networkName: string) => {
   return [configVariable(getDeployerKeyName(networkName))]
