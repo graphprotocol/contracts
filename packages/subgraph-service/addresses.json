@@ -43,7 +43,8 @@
         "argsData": "0x0000000000000000000000009db3ee191681f092607035d9bda6e59fbeaca69500000000000000000000000096e1b86b2739e8a3d59f40f2532cadf9ce8da088000000000000000000000000382863e7b662027117449bd2c49285582bbbd21b000000000000000000000000de761f075200e75485f4358978fb4d1dc8644fd5",
         "bytecodeHash": "0x9c25d2f93e6a2a34cc19d00224872e288a8392d5d99b2df680b7e978d148d450",
         "blockNumber": 240040490,
-        "timestamp": "2026-02-05T20:26:15.000Z"
+        "timestamp": "2026-02-05T20:26:15.000Z",
+        "verified": "https://sepolia.arbiscan.io/address/0x8a6361e7355d6936ab17aaacde797d01c0e6c4c4#code"
       },
       "proxyDeployment": {
         "verified": "https://sepolia.arbiscan.io/address/0xc24A3dAC5d06d771f657A48B20cE1a671B78f26b#code"
