@@ -101,7 +101,8 @@
         "argsData": "0x",
         "bytecodeHash": "0xee210d0ea0a5e1a46622eb4da78d621523e3efcae872d8a844a69b9677c704ef",
         "blockNumber": 240022327,
-        "timestamp": "2026-02-05T19:03:01.000Z"
+        "timestamp": "2026-02-05T19:03:01.000Z",
+        "verified": "https://sepolia.arbiscan.io/address/0xd681431502e7f9780f14576c17f4459074fc2360#code"
       }
     },
     "HorizonStaking": {
