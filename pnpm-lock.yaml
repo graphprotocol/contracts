@@ -1311,6 +1311,8 @@ importers:
         specifier: 'catalog:'
         version: 5.9.3
 
+  packages/issuance/types: {}
+
   packages/subgraph-service:
     devDependencies:
       '@graphprotocol/contracts':
