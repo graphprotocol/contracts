@@ -470,7 +470,7 @@ contract RewardsManager is
     }
 
     /**
-     * @dev Internal function that updates subgraph reward accumulators.
+     * @notice Internal function that updates subgraph reward accumulators.
      * Shared logic for both signal and allocation update hooks.
      *
      * @param subgraph Storage pointer to the subgraph
