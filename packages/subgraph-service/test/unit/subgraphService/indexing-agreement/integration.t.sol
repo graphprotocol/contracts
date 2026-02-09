@@ -110,13 +110,18 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
         IndexerState memory indexerState = _withIndexer(ctx);
         (, bytes16 agreementId) = _withAcceptedIndexingAgreement(ctx, indexerState);
 
+        // Ensure enough gap so that reward distribution (1% of tokens) doesn't undo the over-allocation
+        vm.assume(indexerState.tokens > MINIMUM_PROVISION_TOKENS * 2);
+
         // Reduce indexer's provision to force over-allocation after collecting rewards
-        uint256 extraTokens = indexerState.tokens - minimumProvisionTokens;
-        vm.assume(extraTokens > 0);
+        uint256 extraTokens = indexerState.tokens - MINIMUM_PROVISION_TOKENS;
         _removeTokensFromProvision(indexerState, extraTokens);
 
         // Verify indexer will be over-allocated after presenting POI
         assertTrue(subgraphService.isOverAllocated(indexerState.addr));
+
+        // Advance past allocation creation epoch so POI is not considered "too young"
+        vm.roll(block.number + EPOCH_LENGTH);
 
         // Collect indexing rewards - this should trigger allocation closure and agreement cancellation
         bytes memory collectData = abi.encode(indexerState.allocationId, bytes32("poi"), bytes("metadata"));
@@ -124,7 +129,7 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
         subgraphService.collect(indexerState.addr, IGraphPayments.PaymentTypes.IndexingRewards, collectData);
 
         // Verify the indexing agreement was properly cancelled
-        IndexingAgreement.AgreementWrapper memory agreement = subgraphService.getIndexingAgreement(agreementId);
+        IIndexingAgreement.AgreementWrapper memory agreement = subgraphService.getIndexingAgreement(agreementId);
         assertEq(
             uint8(agreement.collectorAgreement.state),
             uint8(IRecurringCollector.AgreementState.CanceledByServiceProvider)
