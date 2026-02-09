@@ -11,12 +11,12 @@ import { IDisputeManager } from "@graphprotocol/interfaces/contracts/subgraph-se
 import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
 import { IAttestation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAttestation.sol";
 import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
+import { IIndexingAgreement } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IIndexingAgreement.sol";
 
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 import { MathUtils } from "@graphprotocol/horizon/contracts/libraries/MathUtils.sol";
 import { Attestation } from "./libraries/Attestation.sol";
-import { IndexingAgreement } from "./libraries/IndexingAgreement.sol";
 
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -540,7 +540,7 @@ contract DisputeManager is
         uint256 _entities,
         uint256 _blockNumber
     ) private returns (bytes32) {
-        IndexingAgreement.AgreementWrapper memory wrapper = _getSubgraphService().getIndexingAgreement(_agreementId);
+        IIndexingAgreement.AgreementWrapper memory wrapper = _getSubgraphService().getIndexingAgreement(_agreementId);
 
         // Agreement must have been collected on and be a version 1
         require(
@@ -548,7 +548,7 @@ contract DisputeManager is
             DisputeManagerIndexingAgreementNotDisputable(_agreementId)
         );
         require(
-            wrapper.agreement.version == IndexingAgreement.IndexingAgreementVersion.V1,
+            wrapper.agreement.version == IIndexingAgreement.IndexingAgreementVersion.V1,
             DisputeManagerIndexingAgreementInvalidVersion(wrapper.agreement.version)
         );
 

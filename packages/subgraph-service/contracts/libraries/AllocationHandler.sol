@@ -267,8 +267,7 @@ library AllocationHandler {
 
         // Update total allocated tokens for the subgraph deployment
         _subgraphAllocatedTokens[allocation.subgraphDeploymentId] =
-            _subgraphAllocatedTokens[allocation.subgraphDeploymentId] +
-            allocation.tokens;
+            _subgraphAllocatedTokens[allocation.subgraphDeploymentId] + allocation.tokens;
 
         emit AllocationHandler.AllocationCreated(
             params._indexer,
@@ -566,10 +565,7 @@ library AllocationHandler {
         IAllocation.State memory allocation = _allocations.get(_allocationId);
 
         // Reclaim uncollected rewards before closing
-        uint256 reclaimedRewards = graphRewardsManager.reclaimRewards(
-            RewardsCondition.CLOSE_ALLOCATION,
-            _allocationId
-        );
+        uint256 reclaimedRewards = graphRewardsManager.reclaimRewards(RewardsCondition.CLOSE_ALLOCATION, _allocationId);
 
         // Take rewards snapshot to prevent other allos from counting tokens from this allo
         _allocations.snapshotRewards(
@@ -588,8 +584,7 @@ library AllocationHandler {
 
         // Update total allocated tokens for the subgraph deployment
         _subgraphAllocatedTokens[allocation.subgraphDeploymentId] =
-            _subgraphAllocatedTokens[allocation.subgraphDeploymentId] -
-            allocation.tokens;
+            _subgraphAllocatedTokens[allocation.subgraphDeploymentId] - allocation.tokens;
 
         emit AllocationHandler.AllocationClosed(
             allocation.indexer,
@@ -628,11 +623,7 @@ library AllocationHandler {
         tokensDelegationRewards = pool.shares > 0 ? _rewardsCollected.mulPPM(delegatorCut) : 0;
         if (tokensDelegationRewards > 0) {
             _params.graphToken.approve(address(_params.graphStaking), tokensDelegationRewards);
-            _params.graphStaking.addToDelegationPool(
-                _allocation.indexer,
-                _params.dataService,
-                tokensDelegationRewards
-            );
+            _params.graphStaking.addToDelegationPool(_allocation.indexer, _params.dataService, tokensDelegationRewards);
         }
 
         // Distribute indexer share
@@ -640,11 +631,7 @@ library AllocationHandler {
         if (tokensIndexerRewards > 0) {
             if (_params._paymentsDestination == address(0)) {
                 _params.graphToken.approve(address(_params.graphStaking), tokensIndexerRewards);
-                _params.graphStaking.stakeToProvision(
-                    _allocation.indexer,
-                    _params.dataService,
-                    tokensIndexerRewards
-                );
+                _params.graphStaking.stakeToProvision(_allocation.indexer, _params.dataService, tokensIndexerRewards);
             } else {
                 _params.graphToken.pushTokens(_params._paymentsDestination, tokensIndexerRewards);
             }

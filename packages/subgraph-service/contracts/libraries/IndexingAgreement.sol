@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.33;
 
-import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
-import { IRecurringCollector } from "@graphprotocol/horizon/contracts/interfaces/IRecurringCollector.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
+import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
+import { IIndexingAgreement } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IIndexingAgreement.sol";
+import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
 
-import { ISubgraphService } from "../interfaces/ISubgraphService.sol";
 import { AllocationHandler } from "../libraries/AllocationHandler.sol";
 import { Directory } from "../utilities/Directory.sol";
 import { Allocation } from "./Allocation.sol";
@@ -12,34 +14,8 @@ import { IndexingAgreementDecoder } from "./IndexingAgreementDecoder.sol";
 
 library IndexingAgreement {
     using IndexingAgreement for StorageManager;
-    using Allocation for Allocation.State;
-    using Allocation for mapping(address => Allocation.State);
-
-    /// @notice Versions of Indexing Agreement Metadata
-    enum IndexingAgreementVersion {
-        V1
-    }
-
-    /**
-     * @notice Indexer Agreement Data
-     * @param allocationId The allocation ID
-     * @param version The indexing agreement version
-     */
-    struct State {
-        address allocationId;
-        IndexingAgreementVersion version;
-    }
-
-    /**
-     * @notice Wrapper for Indexing Agreement and Collector Agreement Data
-     * @dev This struct is used to encapsulate the state of an indexing agreement
-     * @param agreement The indexing agreement state
-     * @param collectorAgreement The collector agreement data
-     */
-    struct AgreementWrapper {
-        State agreement;
-        IRecurringCollector.AgreementData collectorAgreement;
-    }
+    using Allocation for IAllocation.State;
+    using Allocation for mapping(address => IAllocation.State);
 
     /**
      * @notice Accept Indexing Agreement metadata
@@ -49,7 +25,7 @@ library IndexingAgreement {
      */
     struct AcceptIndexingAgreementMetadata {
         bytes32 subgraphDeploymentId;
-        IndexingAgreementVersion version;
+        IIndexingAgreement.IndexingAgreementVersion version;
         bytes terms;
     }
 
@@ -59,7 +35,7 @@ library IndexingAgreement {
      * @param terms The indexing agreement terms
      */
     struct UpdateIndexingAgreementMetadata {
-        IndexingAgreementVersion version;
+        IIndexingAgreement.IndexingAgreementVersion version;
         bytes terms;
     }
 
@@ -118,7 +94,7 @@ library IndexingAgreement {
      * @custom:storage-location erc7201:graphprotocol.subgraph-service.storage.StorageManager.IndexingAgreement
      */
     struct StorageManager {
-        mapping(bytes16 => State) agreements;
+        mapping(bytes16 => IIndexingAgreement.State) agreements;
         mapping(bytes16 agreementId => IndexingAgreementTermsV1 data) termsV1;
         mapping(address allocationId => bytes16 agreementId) allocationToActiveAgreementId;
     }
@@ -188,7 +164,7 @@ library IndexingAgreement {
         bytes16 indexed agreementId,
         address allocationId,
         bytes32 subgraphDeploymentId,
-        IndexingAgreementVersion version,
+        IIndexingAgreement.IndexingAgreementVersion version,
         bytes versionTerms
     );
 
@@ -206,7 +182,7 @@ library IndexingAgreement {
         address indexed payer,
         bytes16 indexed agreementId,
         address allocationId,
-        IndexingAgreementVersion version,
+        IIndexingAgreement.IndexingAgreementVersion version,
         bytes versionTerms
     );
 
@@ -214,7 +190,7 @@ library IndexingAgreement {
      * @notice Thrown when trying to interact with an agreement with an invalid version
      * @param version The invalid version
      */
-    error IndexingAgreementInvalidVersion(IndexingAgreementVersion version);
+    error IndexingAgreementInvalidVersion(IIndexingAgreement.IndexingAgreementVersion version);
 
     /**
      * @notice Thrown when an agreement is not for the subgraph data service
@@ -301,11 +277,11 @@ library IndexingAgreement {
      */
     function accept(
         StorageManager storage self,
-        mapping(address allocationId => Allocation.State allocation) storage allocations,
+        mapping(address allocationId => IAllocation.State allocation) storage allocations,
         address allocationId,
         IRecurringCollector.SignedRCA calldata signedRCA
     ) external returns (bytes16) {
-        Allocation.State memory allocation = _requireValidAllocation(
+        IAllocation.State memory allocation = _requireValidAllocation(
             allocations,
             allocationId,
             signedRCA.rca.serviceProvider
@@ -328,7 +304,7 @@ library IndexingAgreement {
             signedRCA.rca.nonce
         );
 
-        State storage agreement = self.agreements[agreementId];
+        IIndexingAgreement.State storage agreement = self.agreements[agreementId];
 
         require(agreement.allocationId == address(0), IndexingAgreementAlreadyAccepted(agreementId));
 
@@ -351,7 +327,10 @@ library IndexingAgreement {
         agreement.version = metadata.version;
         agreement.allocationId = allocationId;
 
-        require(metadata.version == IndexingAgreementVersion.V1, IndexingAgreementInvalidVersion(metadata.version));
+        require(
+            metadata.version == IIndexingAgreement.IndexingAgreementVersion.V1,
+            IndexingAgreementInvalidVersion(metadata.version)
+        );
         _setTermsV1(self, agreementId, metadata.terms, signedRCA.rca.maxOngoingTokensPerSecond);
 
         emit IndexingAgreementAccepted(
@@ -388,7 +367,7 @@ library IndexingAgreement {
         address indexer,
         IRecurringCollector.SignedRCAU calldata signedRCAU
     ) external {
-        AgreementWrapper memory wrapper = _get(self, signedRCAU.rcau.agreementId);
+        IIndexingAgreement.AgreementWrapper memory wrapper = _get(self, signedRCAU.rcau.agreementId);
         require(_isActive(wrapper), IndexingAgreementNotActive(signedRCAU.rcau.agreementId));
         require(
             wrapper.collectorAgreement.serviceProvider == indexer,
@@ -399,8 +378,14 @@ library IndexingAgreement {
             signedRCAU.rcau.metadata
         );
 
-        require(wrapper.agreement.version == IndexingAgreementVersion.V1, "internal: invalid version");
-        require(metadata.version == IndexingAgreementVersion.V1, IndexingAgreementInvalidVersion(metadata.version));
+        require(
+            wrapper.agreement.version == IIndexingAgreement.IndexingAgreementVersion.V1,
+            "internal: invalid version"
+        );
+        require(
+            metadata.version == IIndexingAgreement.IndexingAgreementVersion.V1,
+            IndexingAgreementInvalidVersion(metadata.version)
+        );
         _setTermsV1(
             self,
             signedRCAU.rcau.agreementId,
@@ -436,7 +421,7 @@ library IndexingAgreement {
      * @param agreementId The id of the agreement to cancel
      */
     function cancel(StorageManager storage self, address indexer, bytes16 agreementId) external {
-        AgreementWrapper memory wrapper = _get(self, agreementId);
+        IIndexingAgreement.AgreementWrapper memory wrapper = _get(self, agreementId);
         require(_isActive(wrapper), IndexingAgreementNotActive(agreementId));
         require(
             wrapper.collectorAgreement.serviceProvider == indexer,
@@ -473,7 +458,7 @@ library IndexingAgreement {
             return;
         }
 
-        AgreementWrapper memory wrapper = _get(self, agreementId);
+        IIndexingAgreement.AgreementWrapper memory wrapper = _get(self, agreementId);
         if (!_isActive(wrapper)) {
             return;
         }
@@ -504,7 +489,7 @@ library IndexingAgreement {
      * @param agreementId The id of the agreement to cancel
      */
     function cancelByPayer(StorageManager storage self, bytes16 agreementId) external {
-        AgreementWrapper memory wrapper = _get(self, agreementId);
+        IIndexingAgreement.AgreementWrapper memory wrapper = _get(self, agreementId);
         require(_isActive(wrapper), IndexingAgreementNotActive(agreementId));
         require(
             _directory().recurringCollector().isAuthorized(wrapper.collectorAgreement.payer, msg.sender),
@@ -540,11 +525,11 @@ library IndexingAgreement {
      */
     function collect(
         StorageManager storage self,
-        mapping(address allocationId => Allocation.State allocation) storage allocations,
+        mapping(address allocationId => IAllocation.State allocation) storage allocations,
         CollectParams memory params
     ) external returns (address, uint256) {
-        AgreementWrapper memory wrapper = _get(self, params.agreementId);
-        Allocation.State memory allocation = _requireValidAllocation(
+        IIndexingAgreement.AgreementWrapper memory wrapper = _get(self, params.agreementId);
+        IAllocation.State memory allocation = _requireValidAllocation(
             allocations,
             wrapper.agreement.allocationId,
             wrapper.collectorAgreement.serviceProvider
@@ -560,7 +545,7 @@ library IndexingAgreement {
         require(_isValid(wrapper) && isCollectable, IndexingAgreementNotCollectable(params.agreementId));
 
         require(
-            wrapper.agreement.version == IndexingAgreementVersion.V1,
+            wrapper.agreement.version == IIndexingAgreement.IndexingAgreementVersion.V1,
             IndexingAgreementInvalidVersion(wrapper.agreement.version)
         );
 
@@ -610,8 +595,11 @@ library IndexingAgreement {
      * @param agreementId The id of the indexing agreement
      * @return The indexing agreement wrapper containing the agreement state and collector agreement data
      */
-    function get(StorageManager storage self, bytes16 agreementId) external view returns (AgreementWrapper memory) {
-        AgreementWrapper memory wrapper = _get(self, agreementId);
+    function get(
+        StorageManager storage self,
+        bytes16 agreementId
+    ) external view returns (IIndexingAgreement.AgreementWrapper memory) {
+        IIndexingAgreement.AgreementWrapper memory wrapper = _get(self, agreementId);
         require(wrapper.collectorAgreement.dataService == address(this), IndexingAgreementNotActive(agreementId));
 
         return wrapper;
@@ -665,7 +653,7 @@ library IndexingAgreement {
     function _cancel(
         StorageManager storage _manager,
         bytes16 _agreementId,
-        State memory _agreement,
+        IIndexingAgreement.State memory _agreement,
         IRecurringCollector.AgreementData memory _collectorAgreement,
         IRecurringCollector.CancelAgreementBy _cancelBy
     ) private {
@@ -698,11 +686,11 @@ library IndexingAgreement {
      * @return The allocation state
      */
     function _requireValidAllocation(
-        mapping(address => Allocation.State) storage _allocations,
+        mapping(address => IAllocation.State) storage _allocations,
         address _allocationId,
         address _indexer
-    ) private view returns (Allocation.State memory) {
-        Allocation.State memory allocation = _allocations.get(_allocationId);
+    ) private view returns (IAllocation.State memory) {
+        IAllocation.State memory allocation = _allocations.get(_allocationId);
         require(
             allocation.indexer == _indexer,
             ISubgraphService.SubgraphServiceAllocationNotAuthorized(_indexer, _allocationId)
@@ -738,7 +726,7 @@ library IndexingAgreement {
      * @param wrapper The agreement wrapper containing the indexing agreement and collector agreement data
      * @return True if the agreement is active, false otherwise
      **/
-    function _isActive(AgreementWrapper memory wrapper) private view returns (bool) {
+    function _isActive(IIndexingAgreement.AgreementWrapper memory wrapper) private view returns (bool) {
         return _isValid(wrapper) && wrapper.collectorAgreement.state == IRecurringCollector.AgreementState.Accepted;
     }
 
@@ -759,7 +747,7 @@ library IndexingAgreement {
      * @param wrapper The agreement wrapper containing the indexing agreement and collector agreement data
      * @return True if the agreement is valid, false otherwise
      **/
-    function _isValid(AgreementWrapper memory wrapper) private view returns (bool) {
+    function _isValid(IIndexingAgreement.AgreementWrapper memory wrapper) private view returns (bool) {
         return wrapper.collectorAgreement.dataService == address(this) && wrapper.agreement.allocationId != address(0);
     }
 
@@ -778,9 +766,12 @@ library IndexingAgreement {
      * @param agreementId The id of the indexing agreement
      * @return The indexing agreement wrapper containing the agreement state and collector agreement data
      */
-    function _get(StorageManager storage self, bytes16 agreementId) private view returns (AgreementWrapper memory) {
+    function _get(
+        StorageManager storage self,
+        bytes16 agreementId
+    ) private view returns (IIndexingAgreement.AgreementWrapper memory) {
         return
-            AgreementWrapper({
+            IIndexingAgreement.AgreementWrapper({
                 agreement: self.agreements[agreementId],
                 collectorAgreement: _directory().recurringCollector().getAgreement(agreementId)
             });

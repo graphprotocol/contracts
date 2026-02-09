@@ -8,6 +8,7 @@ import { IRewardsIssuer } from "@graphprotocol/interfaces/contracts/contracts/re
 import { IDataService } from "@graphprotocol/interfaces/contracts/data-service/IDataService.sol";
 import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
 import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
+import { IIndexingAgreement } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IIndexingAgreement.sol";
 import { ILegacyAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/ILegacyAllocation.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 
@@ -518,7 +519,7 @@ contract SubgraphService is
     /// @inheritdoc ISubgraphService
     function getIndexingAgreement(
         bytes16 agreementId
-    ) external view returns (IndexingAgreement.AgreementWrapper memory) {
+    ) external view returns (IIndexingAgreement.AgreementWrapper memory) {
         return IndexingAgreement._getStorageManager().get(agreementId);
     }
 
