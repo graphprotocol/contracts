@@ -8,9 +8,9 @@ import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { Authorizable } from "../../utilities/Authorizable.sol";
 import { GraphDirectory } from "../../utilities/GraphDirectory.sol";
 // solhint-disable-next-line no-unused-import
-import { IPaymentsCollector } from "../../interfaces/IPaymentsCollector.sol"; // for @inheritdoc
-import { IRecurringCollector } from "../../interfaces/IRecurringCollector.sol";
-import { IGraphPayments } from "../../interfaces/IGraphPayments.sol";
+import { IPaymentsCollector } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsCollector.sol"; // for @inheritdoc
+import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { PPMMath } from "../../libraries/PPMMath.sol";
 
 /**

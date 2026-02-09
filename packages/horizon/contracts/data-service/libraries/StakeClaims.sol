@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.33;
+pragma solidity 0.8.27 || 0.8.33;
 
 import { ProvisionTracker } from "./ProvisionTracker.sol";
-import { IHorizonStaking } from "../../interfaces/IHorizonStaking.sol";
+import { IHorizonStaking } from "@graphprotocol/interfaces/contracts/horizon/IHorizonStaking.sol";
+import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
 import { LinkedList } from "../../libraries/LinkedList.sol";
 
 library StakeClaims {
     using ProvisionTracker for mapping(address => uint256);
-    using LinkedList for LinkedList.List;
+    using LinkedList for ILinkedList.List;
 
     /**
      * @notice A stake claim, representing provisioned stake that gets locked
@@ -94,7 +95,7 @@ library StakeClaims {
     function lockStake(
         mapping(address => uint256) storage feesProvisionTracker,
         mapping(bytes32 => StakeClaim) storage claims,
-        mapping(address serviceProvider => LinkedList.List list) storage claimsLists,
+        mapping(address serviceProvider => ILinkedList.List list) storage claimsLists,
         IHorizonStaking graphStaking,
         address _dataService,
         uint32 _delegationRatio,
@@ -105,7 +106,7 @@ library StakeClaims {
         require(_tokens != 0, StakeClaimsZeroTokens());
         feesProvisionTracker.lock(graphStaking, _serviceProvider, _tokens, _delegationRatio);
 
-        LinkedList.List storage claimsList = claimsLists[_serviceProvider];
+        ILinkedList.List storage claimsList = claimsLists[_serviceProvider];
 
         // Save item and add to list
         bytes32 claimId = _buildStakeClaimId(_dataService, _serviceProvider, claimsList.nonce);

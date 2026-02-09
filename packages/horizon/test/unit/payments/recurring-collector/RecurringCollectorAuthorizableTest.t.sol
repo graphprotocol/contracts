@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.33;
 
-import { IAuthorizable } from "../../../../contracts/interfaces/IAuthorizable.sol";
+import { IAuthorizable } from "@graphprotocol/interfaces/contracts/horizon/IAuthorizable.sol";
 import { RecurringCollector } from "../../../../contracts/payments/collectors/RecurringCollector.sol";
 
 import { AuthorizableTest } from "../../../unit/utilities/Authorizable.t.sol";

@@ -3,10 +3,10 @@ pragma solidity 0.8.33;
 
 import { Test } from "forge-std/Test.sol";
 
-import { IGraphPayments } from "../../../../contracts/interfaces/IGraphPayments.sol";
-import { IPaymentsCollector } from "../../../../contracts/interfaces/IPaymentsCollector.sol";
-import { IRecurringCollector } from "../../../../contracts/interfaces/IRecurringCollector.sol";
-import { IHorizonStakingTypes } from "../../../../contracts/interfaces/internal/IHorizonStakingTypes.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { IPaymentsCollector } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsCollector.sol";
+import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
+import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
 import { RecurringCollector } from "../../../../contracts/payments/collectors/RecurringCollector.sol";
 
 import { Bounder } from "../../../unit/utils/Bounder.t.sol";

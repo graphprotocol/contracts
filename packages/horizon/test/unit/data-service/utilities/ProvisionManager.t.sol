@@ -4,7 +4,7 @@ pragma solidity 0.8.27;
 import { Test } from "forge-std/Test.sol";
 
 import { ProvisionManager } from "../../../../contracts/data-service/utilities/ProvisionManager.sol";
-import { IHorizonStakingTypes } from "../../../../contracts/interfaces/internal/IHorizonStakingTypes.sol";
+import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
 import { PartialControllerMock } from "../../mocks/PartialControllerMock.t.sol";
 import { HorizonStakingMock } from "../../mocks/HorizonStakingMock.t.sol";
 import { ProvisionManagerImpl } from "./ProvisionManagerImpl.t.sol";

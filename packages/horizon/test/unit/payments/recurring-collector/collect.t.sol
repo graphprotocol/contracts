@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.33;
 
-import { IRecurringCollector } from "../../../../contracts/interfaces/IRecurringCollector.sol";
-import { IGraphPayments } from "../../../../contracts/interfaces/IGraphPayments.sol";
-import { IHorizonStakingTypes } from "../../../../contracts/interfaces/internal/IHorizonStakingTypes.sol";
+import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
 
 import { RecurringCollectorSharedTest } from "./shared.t.sol";
 
