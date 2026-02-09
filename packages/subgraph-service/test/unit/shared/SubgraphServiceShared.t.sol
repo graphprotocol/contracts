@@ -1,24 +1,24 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
-
-import "forge-std/Test.sol";
+pragma solidity ^0.8.27;
 
 import { Allocation } from "../../../contracts/libraries/Allocation.sol";
-import { AllocationHandler } from "../../../contracts/libraries/AllocationHandler.sol";
-import { IDataService } from "@graphprotocol/horizon/contracts/data-service/interfaces/IDataService.sol";
-import { ISubgraphService } from "../../../contracts/interfaces/ISubgraphService.sol";
+
+import { IDataService } from "@graphprotocol/interfaces/contracts/data-service/IDataService.sol";
+import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
+import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
+import { IAllocationManager } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocationManager.sol";
 
 import { HorizonStakingSharedTest } from "./HorizonStakingShared.t.sol";
 
 abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
-    using Allocation for Allocation.State;
+    using Allocation for IAllocation.State;
 
     /*
      * VARIABLES
      */
 
-    uint256 allocationIDPrivateKey;
-    address allocationID;
+    uint256 allocationIdPrivateKey;
+    address allocationId;
     bytes32 subgraphDeployment;
 
     /*
@@ -32,14 +32,14 @@ abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
     }
 
     modifier useAllocation(uint256 tokens) {
-        vm.assume(tokens >= minimumProvisionTokens);
+        vm.assume(tokens >= MINIMUM_PROVISION_TOKENS);
         vm.assume(tokens < 10_000_000_000 ether);
-        _createProvision(users.indexer, tokens, fishermanRewardPercentage, disputePeriod);
+        _createProvision(users.indexer, tokens, FISHERMAN_REWARD_PERCENTAGE, DISPUTE_PERIOD);
         _register(users.indexer, abi.encode("url", "geoHash", address(0)));
         bytes memory data = _createSubgraphAllocationData(
             users.indexer,
             subgraphDeployment,
-            allocationIDPrivateKey,
+            allocationIdPrivateKey,
             tokens
         );
         _startService(users.indexer, data);
@@ -63,7 +63,7 @@ abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
 
     function setUp() public virtual override {
         super.setUp();
-        (allocationID, allocationIDPrivateKey) = makeAddrAndKey("allocationId");
+        (allocationId, allocationIdPrivateKey) = makeAddrAndKey("allocationId");
         subgraphDeployment = keccak256(abi.encodePacked("Subgraph Deployment ID"));
     }
 
@@ -85,7 +85,6 @@ abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
 
         // Check registered indexer data
         ISubgraphService.Indexer memory indexer = _getIndexer(_indexer);
-        assertEq(indexer.registeredAt, block.timestamp);
         assertEq(indexer.url, url);
         assertEq(indexer.geoHash, geohash);
 
@@ -94,7 +93,7 @@ abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
     }
 
     function _startService(address _indexer, bytes memory _data) internal {
-        (bytes32 subgraphDeploymentId, uint256 tokens, address allocationId, ) = abi.decode(
+        (bytes32 subgraphDeploymentId, uint256 tokens, address allocationId_, ) = abi.decode(
             _data,
             (bytes32, uint256, address, bytes)
         );
@@ -103,7 +102,7 @@ abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
 
         vm.expectEmit(address(subgraphService));
         emit IDataService.ServiceStarted(_indexer, _data);
-        emit AllocationHandler.AllocationCreated(_indexer, allocationId, subgraphDeploymentId, tokens, currentEpoch);
+        emit IAllocationManager.AllocationCreated(_indexer, allocationId_, subgraphDeploymentId, tokens, currentEpoch);
 
         // TODO: improve this
         uint256 accRewardsPerAllocatedToken = 0;
@@ -115,7 +114,7 @@ abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
         subgraphService.startService(_indexer, _data);
 
         // Check allocation data
-        Allocation.State memory allocation = subgraphService.getAllocation(allocationId);
+        IAllocation.State memory allocation = subgraphService.getAllocation(allocationId_);
         assertEq(allocation.tokens, tokens);
         assertEq(allocation.indexer, _indexer);
         assertEq(allocation.subgraphDeploymentId, subgraphDeploymentId);
@@ -132,18 +131,18 @@ abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
     }
 
     function _stopService(address _indexer, bytes memory _data) internal {
-        address allocationId = abi.decode(_data, (address));
+        address allocationId_ = abi.decode(_data, (address));
 
-        Allocation.State memory allocation = subgraphService.getAllocation(allocationId);
+        IAllocation.State memory allocation = subgraphService.getAllocation(allocationId_);
         assertTrue(allocation.isOpen());
         uint256 previousSubgraphAllocatedTokens = subgraphService.getSubgraphAllocatedTokens(
             allocation.subgraphDeploymentId
         );
 
         vm.expectEmit(address(subgraphService));
-        emit AllocationHandler.AllocationClosed(
+        emit IAllocationManager.AllocationClosed(
             _indexer,
-            allocationId,
+            allocationId_,
             allocation.subgraphDeploymentId,
             allocation.tokens,
             false
@@ -174,11 +173,11 @@ abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
         uint256 _allocationIdPrivateKey,
         uint256 _tokens
     ) internal view returns (bytes memory) {
-        address allocationId = vm.addr(_allocationIdPrivateKey);
-        bytes32 digest = subgraphService.encodeAllocationProof(_indexer, allocationId);
+        address allocationId_ = vm.addr(_allocationIdPrivateKey);
+        bytes32 digest = subgraphService.encodeAllocationProof(_indexer, allocationId_);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(_allocationIdPrivateKey, digest);
 
-        return abi.encode(_subgraphDeployment, _tokens, allocationId, abi.encodePacked(r, s, v));
+        return abi.encode(_subgraphDeployment, _tokens, allocationId_, abi.encodePacked(r, s, v));
     }
 
     function _delegate(uint256 tokens) internal {
@@ -195,7 +194,7 @@ abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
      */
 
     function _getIndexer(address _indexer) private view returns (ISubgraphService.Indexer memory) {
-        (uint256 registeredAt, string memory url, string memory geoHash) = subgraphService.indexers(_indexer);
-        return ISubgraphService.Indexer({ registeredAt: registeredAt, url: url, geoHash: geoHash });
+        (string memory url, string memory geoHash) = subgraphService.indexers(_indexer);
+        return ISubgraphService.Indexer({ url: url, geoHash: geoHash });
     }
 }

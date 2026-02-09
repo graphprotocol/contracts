@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "forge-std/Test.sol";
-
-import { IHorizonStakingMain } from "../../../../contracts/interfaces/internal/IHorizonStakingMain.sol";
-import { IHorizonStakingTypes } from "../../../../contracts/interfaces/internal/IHorizonStakingTypes.sol";
-import { LinkedList } from "../../../../contracts/libraries/LinkedList.sol";
+import { IHorizonStakingMain } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingMain.sol";
+import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
+import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
 
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
@@ -24,7 +22,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         useDelegation(delegationAmount)
         useUndelegate(withdrawShares)
     {
-        LinkedList.List memory thawingRequests = staking.getThawRequestList(
+        ILinkedList.List memory thawingRequests = staking.getThawRequestList(
             IHorizonStakingTypes.ThawRequestType.Delegation,
             users.indexer,
             subgraphDataServiceAddress,
@@ -71,7 +69,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
 
         resetPrank(users.delegator);
         _delegate(users.indexer, delegationAmount);
-        DelegationInternal memory delegation = _getStorage_Delegation(
+        DelegationInternal memory delegation = _getStorageDelegation(
             users.indexer,
             subgraphDataServiceAddress,
             users.delegator,
@@ -79,7 +77,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         );
         _undelegate(users.indexer, delegation.shares);
 
-        LinkedList.List memory thawingRequests = staking.getThawRequestList(
+        ILinkedList.List memory thawingRequests = staking.getThawRequestList(
             IHorizonStakingTypes.ThawRequestType.Delegation,
             users.indexer,
             subgraphDataServiceLegacyAddress,
@@ -105,7 +103,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
 
         // undelegate some shares
-        DelegationInternal memory delegation = _getStorage_Delegation(
+        DelegationInternal memory delegation = _getStorageDelegation(
             users.indexer,
             subgraphDataServiceAddress,
             users.delegator,
@@ -140,7 +138,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
 
         // undelegate some shares
-        DelegationInternal memory delegation = _getStorage_Delegation(
+        DelegationInternal memory delegation = _getStorageDelegation(
             users.indexer,
             subgraphDataServiceAddress,
             users.delegator,

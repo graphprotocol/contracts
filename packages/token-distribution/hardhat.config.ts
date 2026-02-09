@@ -12,15 +12,16 @@ import 'hardhat-deploy'
 import 'hardhat-abi-exporter'
 import '@typechain/hardhat'
 import 'hardhat-gas-reporter'
+import 'hardhat-ignore-warnings'
 import '@openzeppelin/hardhat-upgrades'
-
+import 'solidity-coverage'
 // Tasks
-
 import './ops/create'
 import './ops/delete'
 import './ops/info'
 import './ops/manager'
 import './ops/beneficiary'
+import './ops/update-auth-functions-horizon'
 
 // Networks
 
@@ -56,8 +57,9 @@ const networkConfigs: NetworkConfig[] = [
   },
 ]
 
+const DEFAULT_MNEMONIC = 'test test test test test test test test test test test junk'
 function getAccountMnemonic() {
-  return process.env.MNEMONIC || ''
+  return process.env.MNEMONIC || DEFAULT_MNEMONIC
 }
 
 function getDefaultProviderURL(network: string) {
@@ -80,7 +82,6 @@ function setupNetworkConfig(config) {
 
 // Env
 
-// eslint-disable-next-line @typescript-eslint/no-misused-promises
 extendEnvironment(async (hre) => {
   const accounts = await hre.ethers.getSigners()
   try {
@@ -91,14 +92,14 @@ extendEnvironment(async (hre) => {
     hre['c'] = {
       GraphTokenLockManager: contract.connect(accounts[0]),
     }
-  } catch (err) {
+  } catch {
     // do not load the contract
   }
 })
 
 // Tasks
 
-task('accounts', 'Prints the list of accounts', async (taskArgs, hre) => {
+task('accounts', 'Prints the list of accounts', async (_taskArgs, hre) => {
   const accounts = await hre.ethers.getSigners()
   for (const account of accounts) {
     console.log(await account.getAddress())
@@ -138,9 +139,10 @@ const config = {
     hardhat: {
       chainId: 1337,
       loggingEnabled: false,
-      gas: 12000000,
+      gas: process.env.COVERAGE ? 0xfffffffffff : 12000000,
       gasPrice: 'auto',
-      blockGasLimit: 12000000,
+      blockGasLimit: process.env.COVERAGE ? 0xfffffffffff : 12000000,
+      allowUnlimitedContractSize: true,
     },
     ganache: {
       chainId: 1337,
@@ -154,19 +156,9 @@ const config = {
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
-    customChains: [
-      {
-        network: 'arbitrum-sepolia',
-        chainId: 421614,
-        urls: {
-          apiURL: 'https://api-sepolia.arbiscan.io/api',
-          browserURL: 'https://sepolia.arbiscan.io',
-        },
-      },
-    ],
   },
   typechain: {
-    outDir: 'build/typechain/contracts',
+    outDir: 'types',
     target: 'ethers-v5',
   },
   abiExporter: {
@@ -184,6 +176,15 @@ const config = {
     showTimeSpent: true,
     currency: 'USD',
     outputFile: 'reports/gas-report.log',
+  },
+  mocha: {
+    timeout: 120000,
+  },
+  warnings: {
+    // Suppress warnings from legacy OpenZeppelin contracts
+    '@openzeppelin/contracts/**/*': {
+      default: 'off',
+    },
   },
 }
 

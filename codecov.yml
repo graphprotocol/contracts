@@ -1,0 +1,17 @@
+coverage:
+  status:
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        informational: true
+
+ignore:
+  - '**/tests/**'
+  - '**/test/**'
+  - '**/*.test.sol'
+  - '**/*.t.sol'
+  - '**/Mock*.sol'
+  - '**/mocks/**'
+  - '**/scripts/**'

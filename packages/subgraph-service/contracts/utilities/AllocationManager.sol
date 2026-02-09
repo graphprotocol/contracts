@@ -1,7 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.27;
+pragma solidity 0.8.33;
 
-import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
+import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
+import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
+import { IAllocationManager } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocationManager.sol";
+import { ILegacyAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/ILegacyAllocation.sol";
+import { RewardsCondition } from "@graphprotocol/interfaces/contracts/contracts/rewards/RewardsCondition.sol";
 
 import { GraphDirectory } from "@graphprotocol/horizon/contracts/utilities/GraphDirectory.sol";
 import { AllocationManagerV1Storage } from "./AllocationManagerStorage.sol";
@@ -16,24 +22,32 @@ import { AllocationHandler } from "../libraries/AllocationHandler.sol";
 
 /**
  * @title AllocationManager contract
- * @notice A helper contract implementing allocation lifecycle management.
+ * @author Edge & Node
+ * @notice A helper contract implementing allocation lifecycle management
  * Allows opening, resizing, and closing allocations, as well as collecting indexing rewards by presenting a Proof
  * of Indexing (POI).
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */
-abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, AllocationManagerV1Storage {
+abstract contract AllocationManager is
+    IAllocationManager,
+    EIP712Upgradeable,
+    GraphDirectory,
+    AllocationManagerV1Storage
+{
     using ProvisionTracker for mapping(address => uint256);
-    using Allocation for mapping(address => Allocation.State);
-    using Allocation for Allocation.State;
-    using LegacyAllocation for mapping(address => LegacyAllocation.State);
+    using Allocation for mapping(address => IAllocation.State);
+    using Allocation for IAllocation.State;
+    using LegacyAllocation for mapping(address => ILegacyAllocation.State);
     using PPMMath for uint256;
     using TokenUtils for IGraphToken;
 
     ///@dev EIP712 typehash for allocation id proof
     bytes32 private constant EIP712_ALLOCATION_ID_PROOF_TYPEHASH =
         keccak256("AllocationIdProof(address indexer,address allocationId)");
+    // solhint-disable-previous-line gas-small-strings
 
+    // forge-lint: disable-next-item(mixed-case-function)
     /**
      * @notice Initializes the contract and parent contracts
      * @param _name The name to use for EIP712 domain separation
@@ -44,6 +58,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         __AllocationManager_init_unchained();
     }
 
+    // forge-lint: disable-next-item(mixed-case-function)
     /**
      * @notice Initializes the contract
      */
@@ -59,7 +74,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      */
     function _migrateLegacyAllocation(address _indexer, address _allocationId, bytes32 _subgraphDeploymentId) internal {
         _legacyAllocations.migrate(_indexer, _allocationId, _subgraphDeploymentId);
-        emit AllocationHandler.LegacyAllocationMigrated(_indexer, _allocationId, _subgraphDeploymentId);
+        emit LegacyAllocationMigrated(_indexer, _allocationId, _subgraphDeploymentId);
     }
 
     /**
@@ -108,33 +123,23 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
 
     /**
      * @notice Present a POI to collect indexing rewards for an allocation
-     * This function will mint indexing rewards using the {RewardsManager} and distribute them to the indexer and delegators.
+     * Mints indexing rewards using the {RewardsManager} and distributes them to the indexer and delegators.
      *
-     * Conditions to qualify for indexing rewards:
-     * - POI must be non-zero
-     * - POI must not be stale, i.e: older than `maxPOIStaleness`
-     * - allocation must not be altruistic (allocated tokens = 0)
-     * - allocation must be open for at least one epoch
+     * See {AllocationHandler-presentPOI} for detailed reward path documentation.
      *
-     * Note that indexers are required to periodically (at most every `maxPOIStaleness`) present POIs to collect rewards.
-     * Rewards will not be issued to stale POIs, which means that indexers are advised to present a zero POI if they are
-     * unable to present a valid one to prevent being locked out of future rewards.
-     *
-     * Note on allocation duration restriction: this is required to ensure that non protocol chains have a valid block number for
-     * which to calculate POIs. EBO posts once per epoch typically at each epoch change, so we restrict rewards to allocations
-     * that have gone through at least one epoch change.
-     *
+     * Emits a {POIPresented} event.
      * Emits a {IndexingRewardsCollected} event.
      *
      * @param _allocationId The id of the allocation to collect rewards for
      * @param _poi The POI being presented
-     * @param _poiMetadata The metadata associated with the POI. The data and encoding format is for off-chain components to define, this function will only emit the value in an event as-is.
+     * @param _poiMetadata Metadata associated with the POI, emitted as-is for off-chain components
      * @param _delegationRatio The delegation ratio to consider when locking tokens
      * @param _paymentsDestination The address where indexing rewards should be sent
-     * @return tokensCollected The amount of tokens collected
-     * @return allocationForceClosed True if the allocation was automatically closed due to over-allocation, false otherwise
+     * @return rewardsCollected Indexing rewards collected
+     * @return allocationForceClosed True if the allocation was force closed due to over-allocation
      */
-    function _presentPOI(
+    // solhint-disable-next-line function-max-lines
+    function _presentPoi(
         address _allocationId,
         bytes32 _poi,
         bytes memory _poiMetadata,
@@ -195,9 +200,14 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     /**
      * @notice Close an allocation
      * Does not require presenting a POI, use {_collectIndexingRewards} to present a POI and collect rewards
-     * @dev Note that allocations are nowlong lived. All service payments, including indexing rewards, should be collected periodically
-     * without the need of closing the allocation. Allocations should only be closed when indexers want to reclaim the allocated
-     * tokens for other purposes.
+     * @dev Allocations are long-lived. All service payments, including indexing rewards, should be collected
+     * periodically without closing. Allocations should only be closed when indexers want to reclaim tokens.
+     *
+     * ## Reward Handling on Close
+     *
+     * Uncollected rewards are reclaimed with CLOSE_ALLOCATION reason:
+     * - If reclaim address configured: tokens minted to that address
+     * - If no reclaim address: rewards are dropped (not minted anywhere)
      *
      * Emits a {AllocationClosed} event
      *
@@ -218,11 +228,11 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     /**
      * @notice Sets the maximum amount of time, in seconds, allowed between presenting POIs to qualify for indexing rewards
      * @dev Emits a {MaxPOIStalenessSet} event
-     * @param _maxPOIStaleness The max POI staleness in seconds
+     * @param _maxPoiStaleness The max POI staleness in seconds
      */
-    function _setMaxPOIStaleness(uint256 _maxPOIStaleness) internal {
-        maxPOIStaleness = _maxPOIStaleness;
-        emit AllocationHandler.MaxPOIStalenessSet(_maxPOIStaleness);
+    function _setMaxPoiStaleness(uint256 _maxPoiStaleness) internal {
+        maxPOIStaleness = _maxPoiStaleness;
+        emit MaxPOIStalenessSet(_maxPoiStaleness);
     }
 
     /**

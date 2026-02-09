@@ -1,15 +1,22 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.27;
+pragma solidity 0.8.33;
+
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-small-strings
+// solhint-disable func-name-mixedcase
+// forge-lint: disable-start(mixed-case-function, asm-keccak256)
+
+import { IAttestation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAttestation.sol";
 
 import { AttestationManagerV1Storage } from "./AttestationManagerStorage.sol";
 
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import { Attestation } from "../libraries/Attestation.sol";
 
 /**
  * @title AttestationManager contract
- * @notice A helper contract implementing attestation verification.
+ * @author Edge & Node
+ * @notice A helper contract implementing attestation verification
  * Uses a custom implementation of EIP712 for backwards compatibility with attestations.
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
@@ -33,17 +40,15 @@ abstract contract AttestationManager is Initializable, AttestationManagerV1Stora
     bytes32 private constant DOMAIN_SALT = 0xa070ffb1cd7409649bf77822cce74495468e06dbfaef09556838bf188679b9c2;
 
     /**
-     * @dev Initialize the AttestationManager contract and parent contracts
+     * @notice Initialize the AttestationManager contract and parent contracts
      */
-    // solhint-disable-next-line func-name-mixedcase
     function __AttestationManager_init() internal onlyInitializing {
         __AttestationManager_init_unchained();
     }
 
     /**
-     * @dev Initialize the AttestationManager contract
+     * @notice Initialize the AttestationManager contract
      */
-    // solhint-disable-next-line func-name-mixedcase
     function __AttestationManager_init_unchained() internal onlyInitializing {
         _domainSeparator = keccak256(
             abi.encode(
@@ -58,13 +63,13 @@ abstract contract AttestationManager is Initializable, AttestationManagerV1Stora
     }
 
     /**
-     * @dev Recover the signer address of the `_attestation`.
+     * @notice Recover the signer address of the `_attestation`
      * @param _attestation The attestation struct
      * @return Signer address
      */
-    function _recoverSigner(Attestation.State memory _attestation) internal view returns (address) {
+    function _recoverSigner(IAttestation.State memory _attestation) internal view returns (address) {
         // Obtain the hash of the fully-encoded message, per EIP-712 encoding
-        Attestation.Receipt memory receipt = Attestation.Receipt(
+        IAttestation.Receipt memory receipt = IAttestation.Receipt(
             _attestation.requestCID,
             _attestation.responseCID,
             _attestation.subgraphDeploymentId
@@ -84,7 +89,7 @@ abstract contract AttestationManager is Initializable, AttestationManagerV1Stora
      * @param _receipt Receipt returned by indexer and submitted by fisherman
      * @return Message hash used to sign the receipt
      */
-    function _encodeReceipt(Attestation.Receipt memory _receipt) internal view returns (bytes32) {
+    function _encodeReceipt(IAttestation.Receipt memory _receipt) internal view returns (bytes32) {
         return
             keccak256(
                 abi.encodePacked(

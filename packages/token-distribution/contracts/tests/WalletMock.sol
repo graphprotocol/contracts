@@ -3,6 +3,9 @@
 pragma solidity ^0.7.3;
 pragma experimental ABIEncoderV2;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable use-natspec
+
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 
 /**
@@ -14,14 +17,19 @@ import { Address } from "@openzeppelin/contracts/utils/Address.sol";
  */
 contract WalletMock {
     /// Target contract for the fallback function (usually a transfer tool contract)
+    // solhint-disable-next-line immutable-vars-naming
     address public immutable target;
     /// Address of the GRT (mock) token
+    // solhint-disable-next-line immutable-vars-naming
     address public immutable token;
     /// Address of the wallet's manager
+    // solhint-disable-next-line immutable-vars-naming
     address public immutable manager;
     /// Whether the wallet has been initialized
+    // solhint-disable-next-line immutable-vars-naming
     bool public immutable isInitialized;
     /// Whether the beneficiary has accepted the lock
+    // solhint-disable-next-line immutable-vars-naming
     bool public immutable isAccepted;
 
     /**

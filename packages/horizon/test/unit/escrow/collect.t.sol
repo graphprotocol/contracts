@@ -1,10 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "forge-std/Test.sol";
-
-import { IHorizonStakingMain } from "../../../contracts/interfaces/internal/IHorizonStakingMain.sol";
-import { IGraphPayments } from "../../../contracts/interfaces/IGraphPayments.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 
 import { GraphEscrowTest } from "./GraphEscrow.t.sol";
 
@@ -23,7 +20,7 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
         public
         useIndexer
         useProvision(tokens, 0, 0)
-        useDelegationFeeCut(IGraphPayments.PaymentTypes.QueryFee, delegationFeeCut)
+        useDelegationFeeCut(IGraphPayments.PaymentTypes.QueryFee, DELEGATION_FEE_CUT)
     {
         dataServiceCut = bound(dataServiceCut, 0, MAX_PPM);
         delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
@@ -54,7 +51,7 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
     function testCollect_Tokens_NoProvision(
         uint256 tokens,
         uint256 dataServiceCut
-    ) public useIndexer useDelegationFeeCut(IGraphPayments.PaymentTypes.QueryFee, delegationFeeCut) {
+    ) public useIndexer useDelegationFeeCut(IGraphPayments.PaymentTypes.QueryFee, DELEGATION_FEE_CUT) {
         dataServiceCut = bound(dataServiceCut, 0, MAX_PPM);
         tokens = bound(tokens, 1, MAX_STAKING_TOKENS);
 

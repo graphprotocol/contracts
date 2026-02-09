@@ -1,17 +1,14 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
+pragma solidity ^0.8.27;
 
-import "forge-std/Test.sol";
-
-import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
-import { IGraphTallyCollector } from "@graphprotocol/horizon/contracts/interfaces/IGraphTallyCollector.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { IGraphTallyCollector } from "@graphprotocol/interfaces/contracts/horizon/IGraphTallyCollector.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/utilities/ProvisionManager.sol";
 import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
-import { ISubgraphService } from "../../../../../contracts/interfaces/ISubgraphService.sol";
+import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
 import { SubgraphServiceTest } from "../../SubgraphService.t.sol";
-import { Allocation } from "../../../../../contracts/libraries/Allocation.sol";
 
 contract SubgraphServiceRegisterTest is SubgraphServiceTest {
     using PPMMath for uint128;
@@ -24,7 +21,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
      * HELPERS
      */
 
-    function _getSignerProof(uint256 _proofDeadline, uint256 _signer) private returns (bytes memory) {
+    function _getSignerProof(uint256 _proofDeadline, uint256 _signer) private view returns (bytes memory) {
         (, address msgSender, ) = vm.readCallers();
         bytes32 messageHash = keccak256(
             abi.encodePacked(
@@ -45,19 +42,19 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         uint128 tokens,
         uint256 tokensToCollect
     ) private view returns (bytes memory) {
-        IGraphTallyCollector.ReceiptAggregateVoucher memory rav = _getRAV(
+        IGraphTallyCollector.ReceiptAggregateVoucher memory rav = _getRav(
             indexer,
-            bytes32(uint256(uint160(allocationID))),
+            bytes32(uint256(uint160(allocationId))),
             tokens
         );
         bytes32 messageHash = graphTallyCollector.encodeRAV(rav);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, messageHash);
         bytes memory signature = abi.encodePacked(r, s, v);
-        IGraphTallyCollector.SignedRAV memory signedRAV = IGraphTallyCollector.SignedRAV(rav, signature);
-        return abi.encode(signedRAV, tokensToCollect);
+        IGraphTallyCollector.SignedRAV memory signedRav = IGraphTallyCollector.SignedRAV(rav, signature);
+        return abi.encode(signedRav, tokensToCollect);
     }
 
-    function _getRAV(
+    function _getRav(
         address indexer,
         bytes32 collectionId,
         uint128 tokens
@@ -103,17 +100,18 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         uint256 tokensAllocated,
         uint256 tokensPayment
     ) public useIndexer useAllocation(tokensAllocated) {
-        vm.assume(tokensAllocated > minimumProvisionTokens * stakeToFeesRatio);
-        uint256 maxTokensPayment = tokensAllocated / stakeToFeesRatio > type(uint128).max
+        vm.assume(tokensAllocated > MINIMUM_PROVISION_TOKENS * STAKE_TO_FEES_RATIO);
+        uint256 maxTokensPayment = tokensAllocated / STAKE_TO_FEES_RATIO > type(uint128).max
             ? type(uint128).max
-            : tokensAllocated / stakeToFeesRatio;
-        tokensPayment = bound(tokensPayment, minimumProvisionTokens, maxTokensPayment);
+            : tokensAllocated / STAKE_TO_FEES_RATIO;
+        tokensPayment = bound(tokensPayment, MINIMUM_PROVISION_TOKENS, maxTokensPayment);
 
         resetPrank(users.gateway);
         _deposit(tokensPayment);
         _authorizeSigner();
 
         resetPrank(users.indexer);
+        // forge-lint: disable-next-line(unsafe-typecast)
         bytes memory data = _getQueryFeeEncodedData(users.indexer, uint128(tokensPayment), 0);
         _collect(users.indexer, IGraphPayments.PaymentTypes.QueryFee, data);
     }
@@ -122,11 +120,11 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         uint256 tokensAllocated,
         uint256 tokensPayment
     ) public useIndexer useAllocation(tokensAllocated) {
-        vm.assume(tokensAllocated > minimumProvisionTokens * stakeToFeesRatio);
-        uint256 maxTokensPayment = tokensAllocated / stakeToFeesRatio > type(uint128).max
+        vm.assume(tokensAllocated > MINIMUM_PROVISION_TOKENS * STAKE_TO_FEES_RATIO);
+        uint256 maxTokensPayment = tokensAllocated / STAKE_TO_FEES_RATIO > type(uint128).max
             ? type(uint128).max
-            : tokensAllocated / stakeToFeesRatio;
-        tokensPayment = bound(tokensPayment, minimumProvisionTokens, maxTokensPayment);
+            : tokensAllocated / STAKE_TO_FEES_RATIO;
+        tokensPayment = bound(tokensPayment, MINIMUM_PROVISION_TOKENS, maxTokensPayment);
 
         resetPrank(users.gateway);
         _deposit(tokensPayment);
@@ -134,6 +132,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
 
         resetPrank(users.indexer);
         subgraphService.setPaymentsDestination(users.indexer);
+        // forge-lint: disable-next-line(unsafe-typecast)
         bytes memory data = _getQueryFeeEncodedData(users.indexer, uint128(tokensPayment), 0);
         _collect(users.indexer, IGraphPayments.PaymentTypes.QueryFee, data);
     }
@@ -142,9 +141,9 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         uint256 tokensAllocated,
         uint8 numPayments
     ) public useIndexer useAllocation(tokensAllocated) {
-        vm.assume(tokensAllocated > minimumProvisionTokens * stakeToFeesRatio);
+        vm.assume(tokensAllocated > MINIMUM_PROVISION_TOKENS * STAKE_TO_FEES_RATIO);
         numPayments = uint8(bound(numPayments, 2, 10));
-        uint256 tokensPayment = tokensAllocated / stakeToFeesRatio / numPayments;
+        uint256 tokensPayment = tokensAllocated / STAKE_TO_FEES_RATIO / numPayments;
 
         resetPrank(users.gateway);
         _deposit(tokensAllocated);
@@ -154,6 +153,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         uint256 accTokensPayment = 0;
         for (uint i = 0; i < numPayments; i++) {
             accTokensPayment = accTokensPayment + tokensPayment;
+            // forge-lint: disable-next-line(unsafe-typecast)
             bytes memory data = _getQueryFeeEncodedData(users.indexer, uint128(accTokensPayment), 0);
             _collect(users.indexer, IGraphPayments.PaymentTypes.QueryFee, data);
         }
@@ -161,6 +161,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
 
     function testCollect_RevertWhen_NotAuthorized(uint256 tokens) public useIndexer useAllocation(tokens) {
         IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.QueryFee;
+        // forge-lint: disable-next-line(unsafe-typecast)
         bytes memory data = _getQueryFeeEncodedData(users.indexer, uint128(tokens), 0);
         resetPrank(users.operator);
         vm.expectRevert(
@@ -182,6 +183,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         _createAndStartAllocation(newIndexer, tokens);
 
         // This data is for user.indexer allocationId
+        // forge-lint: disable-next-line(unsafe-typecast)
         bytes memory data = _getQueryFeeEncodedData(newIndexer, uint128(tokens), 0);
 
         resetPrank(newIndexer);
@@ -198,6 +200,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         // Setup new indexer
         address newIndexer = makeAddr("newIndexer");
         _createAndStartAllocation(newIndexer, tokens);
+        // forge-lint: disable-next-line(unsafe-typecast)
         bytes memory data = _getQueryFeeEncodedData(users.indexer, uint128(tokens), 0);
         vm.expectRevert(
             abi.encodeWithSelector(ISubgraphService.SubgraphServiceIndexerMismatch.selector, users.indexer, newIndexer)
@@ -207,12 +210,12 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
 
     function testCollect_QueryFees_RevertWhen_CollectionIdTooLarge() public useIndexer useAllocation(1000 ether) {
         bytes32 collectionId = keccak256(abi.encodePacked("Large collection id, longer than 160 bits"));
-        IGraphTallyCollector.ReceiptAggregateVoucher memory rav = _getRAV(users.indexer, collectionId, 1000 ether);
+        IGraphTallyCollector.ReceiptAggregateVoucher memory rav = _getRav(users.indexer, collectionId, 1000 ether);
         bytes32 messageHash = graphTallyCollector.encodeRAV(rav);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, messageHash);
         bytes memory signature = abi.encodePacked(r, s, v);
-        IGraphTallyCollector.SignedRAV memory signedRAV = IGraphTallyCollector.SignedRAV(rav, signature);
-        bytes memory data = abi.encode(signedRAV);
+        IGraphTallyCollector.SignedRAV memory signedRav = IGraphTallyCollector.SignedRAV(rav, signature);
+        bytes memory data = abi.encode(signedRav);
         vm.expectRevert(
             abi.encodeWithSelector(ISubgraphService.SubgraphServiceInvalidCollectionId.selector, collectionId)
         );
@@ -223,11 +226,11 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         uint256 tokensAllocated,
         uint256 tokensPayment
     ) public useIndexer useAllocation(tokensAllocated) {
-        vm.assume(tokensAllocated > minimumProvisionTokens * stakeToFeesRatio);
-        uint256 maxTokensPayment = tokensAllocated / stakeToFeesRatio > type(uint128).max
+        vm.assume(tokensAllocated > MINIMUM_PROVISION_TOKENS * STAKE_TO_FEES_RATIO);
+        uint256 maxTokensPayment = tokensAllocated / STAKE_TO_FEES_RATIO > type(uint128).max
             ? type(uint128).max
-            : tokensAllocated / stakeToFeesRatio;
-        tokensPayment = bound(tokensPayment, minimumProvisionTokens, maxTokensPayment);
+            : tokensAllocated / STAKE_TO_FEES_RATIO;
+        tokensPayment = bound(tokensPayment, MINIMUM_PROVISION_TOKENS, maxTokensPayment);
 
         resetPrank(users.gateway);
         _deposit(tokensPayment);
@@ -236,7 +239,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         uint256 beforeGatewayBalance = escrow.getBalance(users.gateway, address(graphTallyCollector), users.indexer);
         uint256 beforeTokensCollected = graphTallyCollector.tokensCollected(
             address(subgraphService),
-            bytes32(uint256(uint160(allocationID))),
+            bytes32(uint256(uint160(allocationId))),
             users.indexer,
             users.gateway
         );
@@ -245,6 +248,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         resetPrank(users.indexer);
         uint256 tokensToCollect = tokensPayment / 2;
         bool oddTokensPayment = tokensPayment % 2 == 1;
+        // forge-lint: disable-next-line(unsafe-typecast)
         bytes memory data = _getQueryFeeEncodedData(users.indexer, uint128(tokensPayment), tokensToCollect);
         _collect(users.indexer, IGraphPayments.PaymentTypes.QueryFee, data);
 
@@ -256,15 +260,17 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         assertEq(intermediateGatewayBalance, beforeGatewayBalance - tokensToCollect);
         uint256 intermediateTokensCollected = graphTallyCollector.tokensCollected(
             address(subgraphService),
-            bytes32(uint256(uint160(allocationID))),
+            bytes32(uint256(uint160(allocationId))),
             users.indexer,
             users.gateway
         );
         assertEq(intermediateTokensCollected, beforeTokensCollected + tokensToCollect);
 
+        // forge-lint: disable-next-line(unsafe-typecast)
+        uint128 tokensPayment128 = uint128(tokensPayment);
         bytes memory data2 = _getQueryFeeEncodedData(
             users.indexer,
-            uint128(tokensPayment),
+            tokensPayment128,
             oddTokensPayment ? tokensToCollect + 1 : tokensToCollect
         );
         _collect(users.indexer, IGraphPayments.PaymentTypes.QueryFee, data2);
@@ -274,56 +280,10 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         assertEq(afterGatewayBalance, beforeGatewayBalance - tokensPayment);
         uint256 afterTokensCollected = graphTallyCollector.tokensCollected(
             address(subgraphService),
-            bytes32(uint256(uint160(allocationID))),
+            bytes32(uint256(uint160(allocationId))),
             users.indexer,
             users.gateway
         );
         assertEq(afterTokensCollected, intermediateTokensCollected + tokensToCollect + (oddTokensPayment ? 1 : 0));
-    }
-
-    function testCollect_QueryFees_ClosedAllocation(
-        uint256 tokensAllocated,
-        uint256 tokensPayment
-    ) public useIndexer useAllocation(tokensAllocated) {
-        vm.assume(tokensAllocated > minimumProvisionTokens * stakeToFeesRatio);
-        uint256 maxTokensPayment = tokensAllocated / stakeToFeesRatio > type(uint128).max
-            ? type(uint128).max
-            : tokensAllocated / stakeToFeesRatio;
-        tokensPayment = bound(tokensPayment, minimumProvisionTokens, maxTokensPayment);
-
-        resetPrank(users.gateway);
-        _deposit(tokensPayment);
-        _authorizeSigner();
-
-        // Close the allocation
-        resetPrank(users.indexer);
-        bytes memory closeAlloData = abi.encode(allocationID);
-        _stopService(users.indexer, closeAlloData);
-
-        // Collect the RAV
-        resetPrank(users.indexer);
-        bytes memory data = _getQueryFeeEncodedData(users.indexer, uint128(tokensPayment), 0);
-        _collect(users.indexer, IGraphPayments.PaymentTypes.QueryFee, data);
-    }
-
-    function testCollect_QueryFees_RevertWhen_IncorrectPaymentType(
-        uint256 tokensAllocated,
-        uint256 tokensPayment
-    ) public useIndexer useAllocation(tokensAllocated) {
-        vm.assume(tokensAllocated > minimumProvisionTokens * stakeToFeesRatio);
-        uint256 maxTokensPayment = tokensAllocated / stakeToFeesRatio > type(uint128).max
-            ? type(uint128).max
-            : tokensAllocated / stakeToFeesRatio;
-        tokensPayment = bound(tokensPayment, minimumProvisionTokens, maxTokensPayment);
-
-        resetPrank(users.gateway);
-        _deposit(tokensPayment);
-        _authorizeSigner();
-
-        resetPrank(users.indexer);
-        bytes memory data = _getQueryFeeEncodedData(users.indexer, uint128(tokensPayment), 0);
-
-        vm.expectRevert();
-        subgraphService.collect(users.indexer, IGraphPayments.PaymentTypes.IndexingRewards, data);
     }
 }

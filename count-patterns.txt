@@ -1,0 +1,29 @@
+# Pattern file for count-specified-changes script
+# Lines starting with # are comments and will be ignored
+# Empty lines are also ignored
+# Lines starting with ! are exclude patterns
+# All other lines are include patterns
+# Patterns use standard bash glob syntax and match against full file paths
+
+# Include patterns (files to count):
+packages/issuance/contracts/**/*.sol
+packages/contracts/contracts/rewards/RewardsManager*.sol
+packages/interfaces/contracts/**/*.sol
+
+# Exclude patterns (files to ignore):
+!*/mocks/*.sol
+!*/tests/*.sol
+!*Mock*.sol
+!*Test.sol
+!*.t.sol
+
+!packages/contracts/contracts/!(rewards)/*.sol
+!**/@(IGraphToken|SubgraphAvailabilityManager).sol
+
+# Glob pattern examples:
+# *.sol                           - matches any .sol file in repo root
+# packages/*/contracts/*.sol      - matches .sol files in any package's contracts dir
+# packages/issuance/**/*.sol      - matches .sol files anywhere under issuance package
+# **/GraphToken.sol               - matches GraphToken.sol anywhere in the repo
+# !**/Mock*.sol                   - excludes any file starting with "Mock"
+# !packages/*/contracts/test/**   - excludes test directories in contracts

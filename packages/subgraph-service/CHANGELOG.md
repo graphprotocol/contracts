@@ -1,5 +1,47 @@
 # @graphprotocol/subgraph-service
 
+## 1.1.1
+
+### Patch Changes
+
+- remove return types from IGraphTokenLockWalletToolshed
+
+## 1.1.0
+
+### Minor Changes
+
+- Graph Horizon phase 3 mainnet deployment
+
+## 1.0.1
+
+### Patch Changes
+
+- Fix L2Curation implementation address in subgraph service address book.
+
+## 1.0.0
+
+### Major Changes
+
+- Deploy horizon to testnet
+
+## 0.5.0
+
+### Minor Changes
+
+- Updated indexer struct and function signature
+
+## 0.4.1
+
+### Patch Changes
+
+- Ensure latest build is published to npm
+
+## 0.4.0
+
+### Minor Changes
+
+- Extracted contract interfaces into its own package
+
 ## 0.3.5
 
 ### Patch Changes

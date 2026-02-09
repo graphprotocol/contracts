@@ -1,12 +1,9 @@
-import hre from 'hardhat'
-
-import { ethers } from 'hardhat'
-import { expect } from 'chai'
 import { generatePOI } from '@graphprotocol/toolshed'
-import { indexers } from '../../../tasks/test/fixtures/indexers'
-
+import { indexers } from '@graphprotocol/toolshed/fixtures'
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
-import type { HorizonStakingExtension } from '@graphprotocol/toolshed/deployments'
+import { expect } from 'chai'
+import hre from 'hardhat'
+import { ethers } from 'hardhat'
 
 describe('Permissionless', () => {
   let snapshotId: string
@@ -51,13 +48,13 @@ describe('Permissionless', () => {
 
       // Mine blocks to simulate 28 epochs passing
       const startingEpoch = await epochManager.currentEpoch()
-      while (await epochManager.currentEpoch() - startingEpoch < 28) {
+      while ((await epochManager.currentEpoch()) - startingEpoch < 28) {
         await ethers.provider.send('evm_mine', [])
       }
 
       // Close allocation
       const poi = generatePOI('poi')
-      await (horizonStaking as HorizonStakingExtension).connect(anySigner).closeAllocation(allocationID, poi)
+      await horizonStaking.connect(anySigner).closeAllocation(allocationID, poi)
 
       // Get indexer's idle stake after closing allocation
       const idleStakeAfter = await horizonStaking.getIdleStake(indexer.address)

@@ -1,13 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.27;
+pragma solidity 0.8.27 || 0.8.33;
 
-import { IAuthorizable } from "../interfaces/IAuthorizable.sol";
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-strict-inequalities
+
+import { IAuthorizable } from "@graphprotocol/interfaces/contracts/horizon/IAuthorizable.sol";
 
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 /**
  * @title Authorizable contract
+ * @author Edge & Node
  * @dev Implements the {IAuthorizable} interface.
  * @notice A mechanism to authorize signers to sign messages on behalf of an authorizer.
  * Signers cannot be reused for different authorizers.
@@ -122,6 +126,7 @@ abstract contract Authorizable is IAuthorizable {
         );
 
         // Generate the message hash
+        // forge-lint: disable-next-item(asm-keccak256)
         bytes32 messageHash = keccak256(
             abi.encodePacked(block.chainid, address(this), "authorizeSignerProof", _proofDeadline, msg.sender)
         );

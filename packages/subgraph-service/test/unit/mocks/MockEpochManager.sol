@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity 0.8.27;
+pragma solidity ^0.8.27;
 
-import { IEpochManager } from "@graphprotocol/contracts/contracts/epochs/IEpochManager.sol";
+import { IEpochManager } from "@graphprotocol/interfaces/contracts/contracts/epochs/IEpochManager.sol";
 
 contract MockEpochManager is IEpochManager {
     // -- Variables --

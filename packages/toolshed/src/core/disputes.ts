@@ -20,8 +20,5 @@ export function generateLegacyQueryDisputeId(
 
 // For legacy dispute type in dispute manager contract
 export function generateLegacyTypeDisputeId(allocationId: string) {
-  return ethers.solidityPackedKeccak256(
-    ['address', 'string'],
-    [allocationId, 'legacy'],
-  )
+  return ethers.solidityPackedKeccak256(['address', 'string'], [allocationId, 'legacy'])
 }

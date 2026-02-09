@@ -1,23 +1,20 @@
-import { resolvePackagePath } from '../../lib/path'
-
 import type {
   Controller,
+  EpochManager,
   GraphPayments,
   GraphProxyAdmin,
   GraphTallyCollector,
   HorizonStaking,
-  HorizonStakingExtension,
-  PaymentsEscrow,
-} from '@graphprotocol/horizon'
-import type {
-  EpochManager,
   L2Curation,
   L2GNS,
   L2GraphToken,
+  LegacyRewardsManager,
   LegacyStaking,
+  PaymentsEscrow,
   RewardsManager,
   SubgraphNFT,
-} from './types'
+} from '@graphprotocol/interfaces'
+
 import type { ContractList } from '../contract'
 
 export const GraphHorizonContractNameList = [
@@ -41,33 +38,6 @@ export const GraphHorizonContractNameList = [
   'GraphTallyCollector',
 ] as const
 
-export const CONTRACTS_ARTIFACTS_PATH = resolvePackagePath('@graphprotocol/contracts', 'build/contracts')
-export const HORIZON_ARTIFACTS_PATH = resolvePackagePath('@graphprotocol/horizon', 'build/contracts')
-
-export const GraphHorizonArtifactsMap = {
-  // @graphprotocol/contracts
-  GraphProxyAdmin: CONTRACTS_ARTIFACTS_PATH,
-  Controller: CONTRACTS_ARTIFACTS_PATH,
-  EpochManager: CONTRACTS_ARTIFACTS_PATH,
-  RewardsManager: CONTRACTS_ARTIFACTS_PATH,
-  L2GraphToken: CONTRACTS_ARTIFACTS_PATH,
-  L2GraphTokenGateway: CONTRACTS_ARTIFACTS_PATH,
-
-  // @graphprotocol/contracts - subgraph-service compatibility
-  L2Curation: CONTRACTS_ARTIFACTS_PATH,
-  L2GNS: CONTRACTS_ARTIFACTS_PATH,
-  SubgraphNFT: CONTRACTS_ARTIFACTS_PATH,
-
-  // @graphprotocol/contracts - legacy
-  LegacyStaking: CONTRACTS_ARTIFACTS_PATH,
-
-  // @graphprotocol/horizon
-  HorizonStaking: HORIZON_ARTIFACTS_PATH,
-  GraphPayments: HORIZON_ARTIFACTS_PATH,
-  PaymentsEscrow: HORIZON_ARTIFACTS_PATH,
-  GraphTallyCollector: HORIZON_ARTIFACTS_PATH,
-} as const
-
 export interface GraphHorizonContracts extends ContractList<GraphHorizonContractName> {
   // @graphprotocol/contracts
   EpochManager: EpochManager
@@ -82,7 +52,7 @@ export interface GraphHorizonContracts extends ContractList<GraphHorizonContract
   SubgraphNFT: SubgraphNFT
 
   // @graphprotocol/horizon
-  HorizonStaking: HorizonStaking & HorizonStakingExtension
+  HorizonStaking: HorizonStaking
   GraphPayments: GraphPayments
   PaymentsEscrow: PaymentsEscrow
   GraphTallyCollector: GraphTallyCollector
@@ -92,6 +62,7 @@ export interface GraphHorizonContracts extends ContractList<GraphHorizonContract
   Curation: L2Curation
   GNS: L2GNS
   LegacyStaking: LegacyStaking
+  LegacyRewardsManager: LegacyRewardsManager
 }
 
 export type GraphHorizonContractName = (typeof GraphHorizonContractNameList)[number]

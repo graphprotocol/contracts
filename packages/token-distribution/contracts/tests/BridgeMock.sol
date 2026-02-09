@@ -2,7 +2,10 @@
 
 pragma solidity ^0.7.3;
 
-import "./arbitrum/IBridge.sol";
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-increment-by-one, use-natspec
+
+import { IBridge } from "./arbitrum/IBridge.sol";
 
 /**
  * @title Arbitrum Bridge mock contract

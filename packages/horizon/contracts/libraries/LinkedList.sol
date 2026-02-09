@@ -1,9 +1,15 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity 0.8.27;
+pragma solidity 0.8.27 || 0.8.33;
+
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-increment-by-one, gas-strict-inequalities
+
+import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
 
 /**
  * @title LinkedList library
+ * @author Edge & Node
  * @notice A library to manage singly linked lists.
  *
  * The library makes no assumptions about the contents of the items, the only
@@ -20,47 +26,13 @@ pragma solidity 0.8.27;
  * bugs. We may have an active bug bounty program.
  */
 library LinkedList {
-    using LinkedList for List;
-
-    /**
-     * @notice Represents a linked list
-     * @param head The head of the list
-     * @param tail The tail of the list
-     * @param nonce A nonce, which can optionally be used to generate unique ids
-     * @param count The number of items in the list
-     */
-    struct List {
-        bytes32 head;
-        bytes32 tail;
-        uint256 nonce;
-        uint256 count;
-    }
+    using LinkedList for ILinkedList.List;
 
     /// @notice Empty bytes constant
     bytes internal constant NULL_BYTES = bytes("");
 
     /// @notice Maximum amount of items allowed in the list
     uint256 internal constant MAX_ITEMS = 10_000;
-
-    /**
-     * @notice Thrown when trying to remove an item from an empty list
-     */
-    error LinkedListEmptyList();
-
-    /**
-     * @notice Thrown when trying to add an item to a list that has reached the maximum number of elements
-     */
-    error LinkedListMaxElementsExceeded();
-
-    /**
-     * @notice Thrown when trying to traverse a list with more iterations than elements
-     */
-    error LinkedListInvalidIterations();
-
-    /**
-     * @notice Thrown when trying to add an item with id equal to bytes32(0)
-     */
-    error LinkedListInvalidZeroId();
 
     /**
      * @notice Adds an item to the list.
@@ -72,9 +44,9 @@ library LinkedList {
      * @param self The list metadata
      * @param id The id of the item to add
      */
-    function addTail(List storage self, bytes32 id) internal {
-        require(self.count < MAX_ITEMS, LinkedListMaxElementsExceeded());
-        require(id != bytes32(0), LinkedListInvalidZeroId());
+    function addTail(ILinkedList.List storage self, bytes32 id) internal {
+        require(self.count < MAX_ITEMS, ILinkedList.LinkedListMaxElementsExceeded());
+        require(id != bytes32(0), ILinkedList.LinkedListInvalidZeroId());
         self.tail = id;
         self.nonce += 1;
         if (self.count == 0) self.head = id;
@@ -92,11 +64,11 @@ library LinkedList {
      * @return The id of the head of the list.
      */
     function removeHead(
-        List storage self,
+        ILinkedList.List storage self,
         function(bytes32) view returns (bytes32) getNextItem,
         function(bytes32) deleteItem
     ) internal returns (bytes32) {
-        require(self.count > 0, LinkedListEmptyList());
+        require(self.count > 0, ILinkedList.LinkedListEmptyList());
         bytes32 nextItem = getNextItem(self.head);
         deleteItem(self.head);
         self.count -= 1;
@@ -124,14 +96,14 @@ library LinkedList {
      * @return The final accumulator data.
      */
     function traverse(
-        List storage self,
+        ILinkedList.List storage self,
         function(bytes32) view returns (bytes32) getNextItem,
         function(bytes32, bytes memory) returns (bool, bytes memory) processItem,
         function(bytes32) deleteItem,
         bytes memory processInitAcc,
         uint256 iterations
     ) internal returns (uint256, bytes memory) {
-        require(iterations <= self.count, LinkedListInvalidIterations());
+        require(iterations <= self.count, ILinkedList.LinkedListInvalidIterations());
 
         uint256 itemCount = 0;
         iterations = (iterations == 0) ? self.count : iterations;

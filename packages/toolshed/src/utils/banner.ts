@@ -8,9 +8,9 @@ export function printBanner(title: string, prefix = '', minWidth = 47): void {
   // Format title with capitalized words if it contains hyphens
   const formattedTitle = title.includes('-')
     ? title
-      .split('-')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ')
+        .split('-')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ')
     : title
 
   const fullText = prefix + formattedTitle

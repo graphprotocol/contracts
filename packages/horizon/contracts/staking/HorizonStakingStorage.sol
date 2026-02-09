@@ -1,18 +1,21 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity 0.8.27;
+pragma solidity 0.8.27 || 0.8.33;
 
-import { IHorizonStakingExtension } from "../interfaces/internal/IHorizonStakingExtension.sol";
-import { IHorizonStakingTypes } from "../interfaces/internal/IHorizonStakingTypes.sol";
-import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
+// TODO: Re-enable and fix issues when publishing a new version
+// forge-lint: disable-start(mixed-case-variable)
 
-import { LinkedList } from "../libraries/LinkedList.sol";
+import { IHorizonStakingExtension } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingExtension.sol";
+import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
 
 /* solhint-disable max-states-count */
 
 /**
  * @title HorizonStakingV1Storage
- * @notice This contract holds all the storage variables for the Staking contract.
+ * @author Edge & Node
+ * @notice This contract holds all the storage variables for the Staking contract
  * @dev Deprecated variables are kept to support the transition to Horizon Staking.
  * They can eventually be collapsed into a single storage slot.
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
@@ -162,7 +165,7 @@ abstract contract HorizonStakingV1Storage {
 
     /// @dev Thaw request lists
     /// Metadata defining linked lists of thaw requests for each service provider or delegator (owner)
-    mapping(IHorizonStakingTypes.ThawRequestType thawRequestType => mapping(address serviceProvider => mapping(address verifier => mapping(address owner => LinkedList.List list))))
+    mapping(IHorizonStakingTypes.ThawRequestType thawRequestType => mapping(address serviceProvider => mapping(address verifier => mapping(address owner => ILinkedList.List list))))
         internal _thawRequestLists;
 
     /// @dev Operator allow list

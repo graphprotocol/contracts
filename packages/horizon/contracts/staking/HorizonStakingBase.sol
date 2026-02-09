@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity 0.8.27;
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-strict-inequalities
 
-import { IHorizonStakingTypes } from "../interfaces/internal/IHorizonStakingTypes.sol";
-import { IHorizonStakingBase } from "../interfaces/internal/IHorizonStakingBase.sol";
-import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
+pragma solidity 0.8.27 || 0.8.33;
+
+import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
+import { IHorizonStakingBase } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingBase.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
 
 import { MathUtils } from "../libraries/MathUtils.sol";
 import { LinkedList } from "../libraries/LinkedList.sol";
@@ -16,6 +20,7 @@ import { HorizonStakingV1Storage } from "./HorizonStakingStorage.sol";
 
 /**
  * @title HorizonStakingBase contract
+ * @author Edge & Node
  * @notice This contract is the base staking contract implementing storage getters for both internal
  * and external use.
  * @dev Implementation of the {IHorizonStakingBase} interface.
@@ -32,7 +37,7 @@ abstract contract HorizonStakingBase is
     IHorizonStakingTypes,
     IHorizonStakingBase
 {
-    using LinkedList for LinkedList.List;
+    using LinkedList for ILinkedList.List;
 
     /**
      * @notice The address of the subgraph data service.
@@ -41,10 +46,9 @@ abstract contract HorizonStakingBase is
     address internal immutable SUBGRAPH_DATA_SERVICE_ADDRESS;
 
     /**
-     * @dev The staking contract is upgradeable however we still use the constructor to set
-     * a few immutable variables.
-     * @param controller The address of the Graph controller contract.
-     * @param subgraphDataServiceAddress The address of the subgraph data service.
+     * @notice The staking contract is upgradeable however we still use the constructor to set a few immutable variables
+     * @param controller The address of the Graph controller contract
+     * @param subgraphDataServiceAddress The address of the subgraph data service
      */
     constructor(address controller, address subgraphDataServiceAddress) Managed(controller) {
         SUBGRAPH_DATA_SERVICE_ADDRESS = subgraphDataServiceAddress;
@@ -158,7 +162,7 @@ abstract contract HorizonStakingBase is
         address serviceProvider,
         address verifier,
         address owner
-    ) external view override returns (LinkedList.List memory) {
+    ) external view override returns (ILinkedList.List memory) {
         return _getThawRequestList(requestType, serviceProvider, verifier, owner);
     }
 
@@ -169,7 +173,7 @@ abstract contract HorizonStakingBase is
         address verifier,
         address owner
     ) external view override returns (uint256) {
-        LinkedList.List storage thawRequestList = _getThawRequestList(requestType, serviceProvider, verifier, owner);
+        ILinkedList.List storage thawRequestList = _getThawRequestList(requestType, serviceProvider, verifier, owner);
         if (thawRequestList.count == 0) {
             return 0;
         }
@@ -307,7 +311,7 @@ abstract contract HorizonStakingBase is
         address _serviceProvider,
         address _verifier,
         address _owner
-    ) internal view returns (LinkedList.List storage) {
+    ) internal view returns (ILinkedList.List storage) {
         return _thawRequestLists[_requestType][_serviceProvider][_verifier][_owner];
     }
 

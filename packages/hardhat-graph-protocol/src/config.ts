@@ -1,12 +1,11 @@
+import type { GraphDeploymentName } from '@graphprotocol/toolshed/deployments'
 import fs from 'fs'
+import type { HardhatRuntimeEnvironment } from 'hardhat/types'
 import path from 'path'
 
-import { logDebug, logError } from './logger'
 import { GraphPluginError } from './error'
-
-import type { GraphDeploymentName } from '@graphprotocol/toolshed/deployments'
+import { logDebug } from './logger'
 import type { GraphRuntimeEnvironmentOptions } from './types'
-import type { HardhatRuntimeEnvironment } from 'hardhat/types'
 
 export function getAddressBookPath(
   deployment: GraphDeploymentName,
@@ -25,15 +24,19 @@ export function getAddressBookPath(
 
   const addressBookPath = optsPath ?? networkPath ?? globalPath
   if (addressBookPath === undefined) {
-    throw new GraphPluginError('Must set a an addressBook path!')
+    return undefined
   }
 
   const normalizedAddressBookPath = normalizePath(addressBookPath, hre.config.paths.graph)
   logDebug(`Address book path: ${normalizedAddressBookPath}`)
 
   if (!fs.existsSync(normalizedAddressBookPath)) {
-    logError(`Address book path does not exist: ${normalizedAddressBookPath}`)
-    return undefined
+    if (opts.createAddressBook) {
+      logDebug(`Creating address book: ${normalizedAddressBookPath}`)
+      fs.writeFileSync(normalizedAddressBookPath, '{}\n')
+    } else {
+      throw new GraphPluginError(`Address book not found: ${normalizedAddressBookPath}`)
+    }
   }
 
   return normalizedAddressBookPath
@@ -46,9 +49,14 @@ function normalizePath(_path: string, graphPath?: string): string {
   return _path
 }
 
-function getPath(value: string | {
-  addressBook: string
-} | undefined): string | undefined {
+function getPath(
+  value:
+    | string
+    | {
+        addressBook: string
+      }
+    | undefined,
+): string | undefined {
   if (typeof value === 'string') {
     return value
   } else if (value && typeof value == 'object') {

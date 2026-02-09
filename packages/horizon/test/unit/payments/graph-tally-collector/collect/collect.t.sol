@@ -1,10 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "forge-std/Test.sol";
-
-import { IGraphTallyCollector } from "../../../../../contracts/interfaces/IGraphTallyCollector.sol";
-import { IGraphPayments } from "../../../../../contracts/interfaces/IGraphPayments.sol";
+import { IGraphTallyCollector } from "@graphprotocol/interfaces/contracts/horizon/IGraphTallyCollector.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 
 import { GraphTallyTest } from "../GraphTallyCollector.t.sol";
 
@@ -25,7 +23,7 @@ contract GraphTallyCollectTest is GraphTallyTest {
         uint256 _signerPrivateKey,
         CollectTestParams memory params
     ) private view returns (bytes memory) {
-        IGraphTallyCollector.ReceiptAggregateVoucher memory rav = _getRAV(
+        IGraphTallyCollector.ReceiptAggregateVoucher memory rav = _getRav(
             params.allocationId,
             params.payer,
             params.indexer,
@@ -35,11 +33,11 @@ contract GraphTallyCollectTest is GraphTallyTest {
         bytes32 messageHash = graphTallyCollector.encodeRAV(rav);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(_signerPrivateKey, messageHash);
         bytes memory signature = abi.encodePacked(r, s, v);
-        IGraphTallyCollector.SignedRAV memory signedRAV = IGraphTallyCollector.SignedRAV(rav, signature);
-        return abi.encode(signedRAV);
+        IGraphTallyCollector.SignedRAV memory signedRav = IGraphTallyCollector.SignedRAV(rav, signature);
+        return abi.encode(signedRav);
     }
 
-    function _getRAV(
+    function _getRav(
         address _allocationId,
         address _payer,
         address _indexer,
@@ -303,7 +301,7 @@ contract GraphTallyCollectTest is GraphTallyTest {
 
         // Start thawing signer
         _thawSigner(signer);
-        skip(revokeSignerThawingPeriod + 1);
+        skip(REVOKE_SIGNER_THAWING_PERIOD + 1);
 
         CollectTestParams memory params = CollectTestParams({
             tokens: tokens,
@@ -325,7 +323,7 @@ contract GraphTallyCollectTest is GraphTallyTest {
 
         // Start thawing signer
         _thawSigner(signer);
-        skip(revokeSignerThawingPeriod + 1);
+        skip(REVOKE_SIGNER_THAWING_PERIOD + 1);
         _revokeAuthorizedSigner(signer);
 
         CollectTestParams memory params = CollectTestParams({
@@ -351,7 +349,7 @@ contract GraphTallyCollectTest is GraphTallyTest {
 
         // Start thawing signer
         _thawSigner(signer);
-        skip(revokeSignerThawingPeriod + 1);
+        skip(REVOKE_SIGNER_THAWING_PERIOD + 1);
         _cancelThawSigner(signer);
 
         CollectTestParams memory params = CollectTestParams({
@@ -482,32 +480,5 @@ contract GraphTallyCollectTest is GraphTallyTest {
         collectTestParams[0].tokens = tokens + 1000 ether;
         bytes memory allocation0Data = _getQueryFeeEncodedData(signerPrivateKey, collectTestParams[0]);
         _collect(IGraphPayments.PaymentTypes.QueryFee, allocation0Data);
-    }
-
-    function testGraphTally_Collect_RevertWhen_IncorrectPaymentType(
-        uint256 tokens
-    ) public useIndexer useProvisionDataService(users.verifier, 100, 0, 0) useGateway useSigner {
-        tokens = bound(tokens, 1, type(uint128).max);
-
-        _depositTokens(address(graphTallyCollector), users.indexer, tokens);
-
-        CollectTestParams memory params = CollectTestParams({
-            tokens: tokens,
-            allocationId: _allocationId,
-            payer: users.gateway,
-            indexer: users.indexer,
-            collector: users.verifier
-        });
-
-        bytes memory data = _getQueryFeeEncodedData(signerPrivateKey, params);
-
-        resetPrank(users.verifier);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IGraphTallyCollector.GraphTallyCollectorInvalidPaymentType.selector,
-                IGraphPayments.PaymentTypes.IndexingRewards
-            )
-        );
-        graphTallyCollector.collect(IGraphPayments.PaymentTypes.IndexingRewards, data);
     }
 }

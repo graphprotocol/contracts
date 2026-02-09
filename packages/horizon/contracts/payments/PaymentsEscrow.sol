@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.27;
+pragma solidity 0.8.27 || 0.8.33;
 
-import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
-import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
-import { IPaymentsEscrow } from "../interfaces/IPaymentsEscrow.sol";
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-strict-inequalities
+
+import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
 
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { MulticallUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
@@ -13,6 +16,7 @@ import { GraphDirectory } from "../utilities/GraphDirectory.sol";
 
 /**
  * @title PaymentsEscrow contract
+ * @author Edge & Node
  * @dev Implements the {IPaymentsEscrow} interface
  * @notice This contract is part of the Graph Horizon payments protocol. It holds the funds (GRT)
  * for payments made through the payments protocol for services provided
@@ -34,6 +38,7 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
     mapping(address payer => mapping(address collector => mapping(address receiver => IPaymentsEscrow.EscrowAccount escrowAccount)))
         public escrowAccounts;
 
+    // forge-lint: disable-next-item(unwrapped-modifier-logic)
     /**
      * @notice Modifier to prevent function execution when contract is paused
      * @dev Reverts if the controller indicates the contract is paused

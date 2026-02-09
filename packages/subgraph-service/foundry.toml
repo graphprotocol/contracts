@@ -1,9 +1,14 @@
 [profile.default]
 src = 'contracts'
 out = 'build'
-libs = ['node_modules', 'lib']
+libs = ["node_modules"]
 test = 'test'
 cache_path  = 'cache_forge'
 fs_permissions = [{ access = "read", path = "./"}]
 optimizer = true
 optimizer_runs = 100
+via_ir = true
+evm_version = 'cancun'
+
+# Exclude test files from coverage reports
+no_match_coverage = "(^test/|/mocks/)"

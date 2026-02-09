@@ -4,7 +4,7 @@ pragma solidity 0.8.27;
 import { Test } from "forge-std/Test.sol";
 
 import { Authorizable } from "../../../contracts/utilities/Authorizable.sol";
-import { IAuthorizable } from "../../../contracts/interfaces/IAuthorizable.sol";
+import { IAuthorizable } from "@graphprotocol/interfaces/contracts/horizon/IAuthorizable.sol";
 import { Bounder } from "../utils/Bounder.t.sol";
 
 import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
@@ -73,6 +73,7 @@ contract AuthorizableTest is Test, Bounder {
     }
 
     function test_AuthorizeSigner_Revert_WhenInvalidProofDeadline(uint256 _proofDeadline, uint256 _now) public {
+        _now = bound(_now, 0, type(uint64).max - 1);
         _proofDeadline = bound(_proofDeadline, 0, _now);
         vm.warp(_now);
 
@@ -93,7 +94,7 @@ contract AuthorizableTest is Test, Bounder {
         uint256 _chainid,
         uint256 _wrong
     ) public {
-        _now = bound(_now, 0, type(uint256).max - 1);
+        _now = bound(_now, 0, type(uint64).max - 1);
         address authorizer = boundAddr(_unboundedAuthorizer);
         (uint256 signerKey, address signer) = boundAddrAndKey(_unboundedKey);
         _proofDeadline = boundTimestampMin(_proofDeadline, _now + 1);

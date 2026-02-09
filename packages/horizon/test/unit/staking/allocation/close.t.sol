@@ -1,16 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "forge-std/Test.sol";
-
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
-import { IHorizonStakingExtension } from "../../../../contracts/interfaces/internal/IHorizonStakingExtension.sol";
 import { PPMMath } from "../../../../contracts/libraries/PPMMath.sol";
 
 contract HorizonStakingCloseAllocationTest is HorizonStakingTest {
     using PPMMath for uint256;
 
-    bytes32 internal constant _poi = keccak256("poi");
+    bytes32 internal constant _POI = keccak256("poi");
 
     /*
      * MODIFIERS
@@ -35,7 +32,7 @@ contract HorizonStakingCloseAllocationTest is HorizonStakingTest {
         // Skip 15 epochs
         vm.roll(15);
 
-        _closeAllocation(_allocationId, _poi);
+        _closeAllocation(_allocationId, _POI);
     }
 
     function testCloseAllocation_Operator(uint256 tokens) public useLegacyOperator useAllocation(1 ether) {
@@ -45,7 +42,7 @@ contract HorizonStakingCloseAllocationTest is HorizonStakingTest {
         // Skip 15 epochs
         vm.roll(15);
 
-        _closeAllocation(_allocationId, _poi);
+        _closeAllocation(_allocationId, _POI);
     }
 
     function testCloseAllocation_WithBeneficiaryAddress(uint256 tokens) public useIndexer useAllocation(1 ether) {
@@ -53,23 +50,23 @@ contract HorizonStakingCloseAllocationTest is HorizonStakingTest {
         _createProvision(users.indexer, subgraphDataServiceLegacyAddress, tokens, 0, 0);
 
         address beneficiary = makeAddr("beneficiary");
-        _setStorage_RewardsDestination(users.indexer, beneficiary);
+        _setStorageRewardsDestination(users.indexer, beneficiary);
 
         // Skip 15 epochs
         vm.roll(15);
 
-        _closeAllocation(_allocationId, _poi);
+        _closeAllocation(_allocationId, _POI);
     }
 
     function testCloseAllocation_RevertWhen_NotActive() public {
         vm.expectRevert("!active");
-        staking.closeAllocation(_allocationId, _poi);
+        staking.closeAllocation(_allocationId, _POI);
     }
 
     function testCloseAllocation_RevertWhen_NotIndexer() public useIndexer useAllocation(1 ether) {
         resetPrank(users.delegator);
         vm.expectRevert("!auth");
-        staking.closeAllocation(_allocationId, _poi);
+        staking.closeAllocation(_allocationId, _POI);
     }
 
     function testCloseAllocation_AfterMaxEpochs_AnyoneCanClose(
@@ -106,11 +103,11 @@ contract HorizonStakingCloseAllocationTest is HorizonStakingTest {
         uint256 provisionTokens = tokens - legacyAllocationTokens;
 
         _createProvision(users.indexer, subgraphDataServiceLegacyAddress, provisionTokens, 0, 0);
-        _setStorage_DelegationPool(users.indexer, delegationTokens, indexingRewardCut, 0);
+        _setStorageDelegationPool(users.indexer, delegationTokens, indexingRewardCut, 0);
 
         // Skip 15 epochs
         vm.roll(15);
 
-        _closeAllocation(_allocationId, _poi);
+        _closeAllocation(_allocationId, _POI);
     }
 }

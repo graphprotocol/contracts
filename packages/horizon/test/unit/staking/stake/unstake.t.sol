@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "forge-std/Test.sol";
-
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingUnstakeTest is HorizonStakingTest {
@@ -35,7 +33,7 @@ contract HorizonStakingUnstakeTest is HorizonStakingTest {
         tokensToUnstake = bound(tokensToUnstake, 1, tokens);
 
         // simulate transition period
-        _setStorage_DeprecatedThawingPeriod(THAWING_PERIOD_IN_BLOCKS);
+        _setStorageDeprecatedThawingPeriod(THAWING_PERIOD_IN_BLOCKS);
 
         // thaw, wait and deprovision
         _thaw(users.indexer, subgraphDataServiceAddress, tokens);
@@ -57,9 +55,9 @@ contract HorizonStakingUnstakeTest is HorizonStakingTest {
         tokensLocked = bound(tokensLocked, 1, MAX_STAKING_TOKENS);
 
         // simulate locked tokens with past locking period
-        _setStorage_DeprecatedThawingPeriod(THAWING_PERIOD_IN_BLOCKS);
-        token.transfer(address(staking), tokensLocked);
-        _setStorage_ServiceProvider(users.indexer, tokensLocked, 0, tokensLocked, block.number, 0);
+        _setStorageDeprecatedThawingPeriod(THAWING_PERIOD_IN_BLOCKS);
+        require(token.transfer(address(staking), tokensLocked), "Transfer failed");
+        _setStorageServiceProvider(users.indexer, tokensLocked, 0, tokensLocked, block.number, 0);
 
         // create provision, thaw and deprovision
         _createProvision(users.indexer, subgraphDataServiceLegacyAddress, tokens, 0, MAX_THAWING_PERIOD);
@@ -85,9 +83,9 @@ contract HorizonStakingUnstakeTest is HorizonStakingTest {
         vm.assume(tokensThawingUntilBlock < block.number + THAWING_PERIOD_IN_BLOCKS);
 
         // simulate locked tokens still thawing
-        _setStorage_DeprecatedThawingPeriod(THAWING_PERIOD_IN_BLOCKS);
-        token.transfer(address(staking), tokensThawing);
-        _setStorage_ServiceProvider(users.indexer, tokensThawing, 0, tokensThawing, tokensThawingUntilBlock, 0);
+        _setStorageDeprecatedThawingPeriod(THAWING_PERIOD_IN_BLOCKS);
+        require(token.transfer(address(staking), tokensThawing), "Transfer failed");
+        _setStorageServiceProvider(users.indexer, tokensThawing, 0, tokensThawing, tokensThawingUntilBlock, 0);
 
         // create provision, thaw and deprovision
         _createProvision(users.indexer, subgraphDataServiceLegacyAddress, tokens, 0, MAX_THAWING_PERIOD);

@@ -1,0 +1,49 @@
+{
+  "$global": {
+    // Accounts already configured in the original Graph Protocol - Local Network values
+    "governor": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+
+    // Addresses for contracts deployed in the original Graph Protocol - Local Network values
+    "graphProxyAdminAddress": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+    "controllerAddress": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+    "horizonStakingAddress": "0xc5a5C42992dECbae36851359345FE25997F5C42d",
+    "epochManagerAddress": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+    "epochManagerImplementationAddress": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+    "graphTokenAddress": "0x3Aa5ebB10DC797CAC828524e59A333d0A371443c",
+    "graphTokenImplementationAddress": "0x3Aa5ebB10DC797CAC828524e59A333d0A371443c",
+    "graphTokenGatewayAddress": "0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690",
+    "graphTokenGatewayImplementationAddress": "0xE6E340D132b5f46d1e472DebcD681B2aBc16e57E",
+    "rewardsManagerAddress": "0x9A676e781A523b5d0C0e43731313A708CB607508",
+    "curationAddress": "0x59b670e9fA9D0A427751Af201D676719a970857b",
+    "gnsAddress": "0xa85233C63b9Ee964Add6F2cffe00Fd84eb32338f",
+    "gnsImplementationAddress": "0x322813Fd9A801c5507c9de605d63CEA4f2CE6c44",
+    "subgraphNFTAddress": "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e",
+
+    // Must be set for step 2 of the migration
+    "graphPaymentsAddress": "",
+    "paymentsEscrowAddress": "",
+
+    // Must be set for step 3 and 4 of the migration
+    "subgraphServiceAddress": "",
+
+    // Must be set for step 4 of the migration
+    "horizonStakingImplementationAddress": "",
+    "curationImplementationAddress": "",
+    "rewardsManagerImplementationAddress": "",
+    "disputeManagerAddress": "",
+
+    // Global parameters
+    "maxThawingPeriod": 2419200
+  },
+  "GraphPayments": {
+    "protocolPaymentCut": 10000
+  },
+  "PaymentsEscrow": {
+    "withdrawEscrowThawingPeriod": 10000
+  },
+  "GraphTallyCollector": {
+    "eip712Name": "GraphTallyCollector",
+    "eip712Version": "1",
+    "revokeSignerThawingPeriod": 10000
+  }
+}

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity 0.8.27;
+pragma solidity 0.8.27 || 0.8.33;
 
 import { GraphDirectory } from "../../utilities/GraphDirectory.sol";
 
@@ -8,8 +8,9 @@ import { GraphDirectory } from "../../utilities/GraphDirectory.sol";
 
 /**
  * @title Graph Managed contract
- * @dev The Managed contract provides an interface to interact with the Controller.
- * For Graph Horizon this contract is mostly a shell that uses {GraphDirectory}, however since the {HorizonStaking}
+ * @author Edge & Node
+ * @notice The Managed contract provides an interface to interact with the Controller
+ * @dev For Graph Horizon this contract is mostly a shell that uses {GraphDirectory}, however since the {HorizonStaking}
  * contract uses it we need to preserve the storage layout.
  * Inspired by Livepeer: https://github.com/livepeer/protocol/blob/streamflow/contracts/Controller.sol
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
@@ -18,12 +19,15 @@ import { GraphDirectory } from "../../utilities/GraphDirectory.sol";
 abstract contract Managed is GraphDirectory {
     // -- State --
 
+    // forge-lint: disable-next-item(mixed-case-variable)
     /// @notice Controller that manages this contract
     address private __DEPRECATED_controller;
 
+    // forge-lint: disable-next-item(mixed-case-variable)
     /// @dev Cache for the addresses of the contracts retrieved from the controller
     mapping(bytes32 contractName => address contractAddress) private __DEPRECATED_addressCache;
 
+    // forge-lint: disable-next-item(mixed-case-variable)
     /// @dev Gap for future storage variables
     uint256[10] private __gap;
 
@@ -42,6 +46,7 @@ abstract contract Managed is GraphDirectory {
      */
     error ManagedOnlyGovernor();
 
+    // forge-lint: disable-next-item(unwrapped-modifier-logic)
     /**
      * @dev Revert if the controller is paused
      */
@@ -50,6 +55,7 @@ abstract contract Managed is GraphDirectory {
         _;
     }
 
+    // forge-lint: disable-next-item(unwrapped-modifier-logic)
     /**
      * @dev Revert if the caller is not the governor
      */
@@ -59,8 +65,8 @@ abstract contract Managed is GraphDirectory {
     }
 
     /**
-     * @dev Initialize the contract
-     * @param controller_ The address of the Graph controller contract.
+     * @notice Initialize the contract
+     * @param controller_ The address of the Graph controller contract
      */
     constructor(address controller_) GraphDirectory(controller_) {}
 }

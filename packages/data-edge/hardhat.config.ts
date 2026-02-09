@@ -1,11 +1,5 @@
-import * as dotenv from 'dotenv'
-dotenv.config()
-
-import { HardhatUserConfig } from 'hardhat/types'
-import { task } from 'hardhat/config'
-
+import '@typechain/hardhat'
 // Plugins
-
 import '@nomiclabs/hardhat-ethers'
 import '@nomiclabs/hardhat-etherscan'
 import '@nomiclabs/hardhat-waffle'
@@ -13,16 +7,15 @@ import 'hardhat-abi-exporter'
 import 'hardhat-gas-reporter'
 import 'hardhat-contract-sizer'
 import '@openzeppelin/hardhat-upgrades'
-import '@typechain/hardhat'
-
-import "@tenderly/hardhat-tenderly";
-
-
+import 'solidity-coverage'
+import '@tenderly/hardhat-tenderly'
+import 'hardhat-secure-accounts' // for graph config
 // Tasks
-
 import './tasks/craft-calldata'
 import './tasks/post-calldata'
 import './tasks/deploy'
+
+import { HardhatUserConfig, task } from 'hardhat/config'
 
 // Networks
 
@@ -96,10 +89,14 @@ task('accounts', 'Prints the list of accounts', async (_, bre) => {
 
 // Config
 const config: HardhatUserConfig = {
+  graph: {
+    addressBook: process.env.ADDRESS_BOOK || 'addresses.json',
+    disableSecureAccounts: true,
+  },
   paths: {
     sources: './contracts',
     tests: './test',
-    artifacts: './build/contracts',
+    artifacts: './artifacts',
   },
   solidity: {
     compilers: [
@@ -149,16 +146,6 @@ const config: HardhatUserConfig = {
       arbitrumGoerli: process.env.ARBISCAN_API_KEY,
       arbitrumSepolia: process.env.ARBISCAN_API_KEY,
     },
-    customChains: [
-      {
-        network: 'arbitrumSepolia',
-        chainId: 421614,
-        urls: {
-          apiURL: 'https://api-sepolia.arbiscan.io/api',
-          browserURL: 'https://sepolia.arbiscan.io',
-        },
-      },
-    ],
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS ? true : false,

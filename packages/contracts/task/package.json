@@ -1,0 +1,73 @@
+{
+  "name": "@graphprotocol/contracts-task",
+  "version": "1.0.3",
+  "private": true,
+  "description": "Task utilities for @graphprotocol/contracts",
+  "author": "Edge & Node",
+  "license": "GPL-2.0-or-later",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc --build",
+    "clean": "rm -rf build types",
+    "deploy": "hardhat migrate",
+    "deploy-localhost": "hardhat migrate --force --skip-confirmation --disable-secure-accounts --network localhost --graph-config config/graph.localhost.yml --address-book addresses-local.json",
+    "verify": "hardhat verify",
+    "lint": "pnpm lint:ts; pnpm lint:json",
+    "lint:ts": "eslint '**/*.{js,ts,cjs,mjs,jsx,tsx}' --fix --cache; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
+    "lint:json": "prettier -w --cache --log-level warn '**/*.json'"
+  },
+  "dependencies": {
+    "@graphprotocol/contracts": "workspace:^",
+    "@graphprotocol/sdk": "0.6.0",
+    "axios": "^1.9.0",
+    "console-table-printer": "^2.14.1"
+  },
+  "devDependencies": {
+    "@arbitrum/sdk": "~3.1.13",
+    "@ethersproject/abi": "^5.8.0",
+    "@ethersproject/abstract-provider": "^5.8.0",
+    "@ethersproject/abstract-signer": "^5.8.0",
+    "@ethersproject/bytes": "^5.8.0",
+    "@ethersproject/providers": "^5.8.0",
+    "@graphprotocol/common-ts": "^1.8.3",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
+    "@nomiclabs/hardhat-ethers": "^2.2.3",
+    "@nomiclabs/hardhat-etherscan": "^3.1.0",
+    "@openzeppelin/contracts": "3.4.2",
+    "@openzeppelin/contracts-upgradeable": "3.4.2",
+    "@openzeppelin/hardhat-upgrades": "^1.22.1",
+    "@typechain/ethers-v5": "^10.2.1",
+    "@typechain/hardhat": "^6.1.2",
+    "@types/glob": "^8.1.0",
+    "@types/node": "^20.17.50",
+    "arbos-precompiles": "^1.0.2",
+    "dotenv": "^16.5.0",
+    "eslint": "catalog:",
+    "ethers": "^5.7.0",
+    "form-data": "^4.0.0",
+    "glob": "catalog:",
+    "graphql": "^16.11.0",
+    "graphql-tag": "^2.12.4",
+    "hardhat": "catalog:",
+    "hardhat-abi-exporter": "^2.11.0",
+    "hardhat-contract-sizer": "^2.10.0",
+    "hardhat-gas-reporter": "^1.0.8",
+    "hardhat-storage-layout": "^0.1.7",
+    "prettier": "catalog:",
+    "prettier-plugin-solidity": "catalog:",
+    "ts-node": "^10.9.2",
+    "typechain": "^8.3.2",
+    "typescript": "catalog:",
+    "winston": "^3.3.3",
+    "yaml": "^1.10.2",
+    "yaml-lint": "catalog:",
+    "yargs": "^17.0.0"
+  }
+}

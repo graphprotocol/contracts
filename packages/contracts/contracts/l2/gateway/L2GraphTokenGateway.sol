@@ -3,20 +3,24 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-indexed-events
+
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 
 import { L2ArbitrumMessenger } from "../../arbitrum/L2ArbitrumMessenger.sol";
 import { AddressAliasHelper } from "../../arbitrum/AddressAliasHelper.sol";
-import { ITokenGateway } from "../../arbitrum/ITokenGateway.sol";
+import { ITokenGateway } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/ITokenGateway.sol";
 import { Managed } from "../../governance/Managed.sol";
 import { GraphTokenGateway } from "../../gateway/GraphTokenGateway.sol";
-import { ICallhookReceiver } from "../../gateway/ICallhookReceiver.sol";
+import { ICallhookReceiver } from "@graphprotocol/interfaces/contracts/contracts/gateway/ICallhookReceiver.sol";
 import { L2GraphToken } from "../token/L2GraphToken.sol";
 
 /**
  * @title L2 Graph Token Gateway Contract
- * @dev Provides the L2 side of the Ethereum-Arbitrum GRT bridge. Receives GRT from the L1 chain
+ * @author Edge & Node
+ * @notice Provides the L2 side of the Ethereum-Arbitrum GRT bridge. Receives GRT from the L1 chain
  * and mints them on the L2 side. Sends GRT back to L1 by burning them on the L2 side.
  * Based on Offchain Labs' reference implementation and Livepeer's arbitrum-lpt-bridge
  * (See: https://github.com/OffchainLabs/arbitrum/tree/master/packages/arb-bridge-peripherals/contracts/tokenbridge
@@ -25,23 +29,42 @@ import { L2GraphToken } from "../token/L2GraphToken.sol";
 contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, ReentrancyGuardUpgradeable {
     using SafeMathUpgradeable for uint256;
 
-    /// Address of the Graph Token contract on L1
+    /// @notice Address of the Graph Token contract on L1
     address public l1GRT;
-    /// Address of the L1GraphTokenGateway that is the counterpart of this gateway on L1
+    /// @notice Address of the L1GraphTokenGateway that is the counterpart of this gateway on L1
     address public l1Counterpart;
-    /// Address of the Arbitrum Gateway Router on L2
+    /// @notice Address of the Arbitrum Gateway Router on L2
     address public l2Router;
 
     /// @dev Calldata included in an outbound transfer, stored as a structure for convenience and stack depth
+    /**
+     * @dev Struct for outbound transfer calldata
+     * @param from Address sending the tokens
+     * @param extraData Additional data for the transfer
+     */
     struct OutboundCalldata {
         address from;
         bytes extraData;
     }
 
-    /// Emitted when an incoming transfer is finalized, i.e. tokens were deposited from L1 to L2
+    /**
+     * @notice Emitted when an incoming transfer is finalized, i.e. tokens were deposited from L1 to L2
+     * @param l1Token Address of the L1 token
+     * @param from Address sending the tokens on L1
+     * @param to Address receiving the tokens on L2
+     * @param amount Amount of tokens transferred
+     */
     event DepositFinalized(address indexed l1Token, address indexed from, address indexed to, uint256 amount);
 
-    /// Emitted when an outbound transfer is initiated, i.e. tokens are being withdrawn from L2 back to L1
+    /**
+     * @notice Emitted when an outbound transfer is initiated, i.e. tokens are being withdrawn from L2 back to L1
+     * @param l1Token Address of the L1 token
+     * @param from Address sending the tokens on L2
+     * @param to Address receiving the tokens on L1
+     * @param l2ToL1Id ID of the L2 to L1 message
+     * @param exitNum Exit number (always 0 for this contract)
+     * @param amount Amount of tokens transferred
+     */
     event WithdrawalInitiated(
         address l1Token,
         address indexed from,
@@ -51,11 +74,22 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, Reentran
         uint256 amount
     );
 
-    /// Emitted when the Arbitrum Gateway Router address on L2 has been updated
+    /**
+     * @notice Emitted when the Arbitrum Gateway Router address on L2 has been updated
+     * @param l2Router Address of the L2 Gateway Router
+     */
     event L2RouterSet(address l2Router);
-    /// Emitted when the L1 Graph Token address has been updated
+
+    /**
+     * @notice Emitted when the L1 Graph Token address has been updated
+     * @param l1GRT Address of the L1 GRT contract
+     */
     event L1TokenAddressSet(address l1GRT);
-    /// Emitted when the address of the counterpart gateway on L1 has been updated
+
+    /**
+     * @notice Emitted when the address of the counterpart gateway on L1 has been updated
+     * @param l1Counterpart Address of the L1 counterpart gateway
+     */
     event L1CounterpartAddressSet(address l1Counterpart);
 
     /**
@@ -135,7 +169,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, Reentran
     }
 
     /**
-     * @notice Receives token amount from L1 and mints the equivalent tokens to the receiving address
+     * @inheritdoc ITokenGateway
      * @dev Only accepts transactions from the L1 GRT Gateway.
      * The function is payable for ITokenGateway compatibility, but msg.value must be zero.
      * Note that allowlisted senders (some protocol contracts) can include additional calldata
@@ -144,11 +178,6 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, Reentran
      * never succeeds. This requires extra care when adding contracts to the allowlist, but is necessary to ensure that
      * the tickets can be retried in the case of a temporary failure, and to ensure the atomicity of callhooks
      * with token transfers.
-     * @param _l1Token L1 Address of GRT
-     * @param _from Address of the sender on L1
-     * @param _to Recipient address on L2
-     * @param _amount Amount of tokens transferred
-     * @param _data Extra callhook data, only used when the sender is allowlisted
      */
     function finalizeInboundTransfer(
         address _l1Token,
@@ -170,18 +199,14 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, Reentran
     }
 
     /**
-     * @notice Burns L2 tokens and initiates a transfer to L1.
+     * @inheritdoc ITokenGateway
+     * @dev Burns L2 tokens and initiates a transfer to L1.
      * The tokens will be available on L1 only after the wait period (7 days) is over,
      * and will require an Outbox.executeTransaction to finalize.
      * Note that the caller must previously allow the gateway to spend the specified amount of GRT.
-     * @dev no additional callhook data is allowed. The two unused params are needed
+     * No additional callhook data is allowed. The two unused params are needed
      * for compatibility with Arbitrum's gateway router.
      * The function is payable for ITokenGateway compatibility, but msg.value must be zero.
-     * @param _l1Token L1 Address of GRT (needed for compatibility with Arbitrum Gateway Router)
-     * @param _to Recipient address on L1
-     * @param _amount Amount of tokens to burn
-     * @param _data Contains sender and additional data (always empty) to send to L1
-     * @return ID of the withdraw transaction
      */
     function outboundTransfer(
         address _l1Token,
@@ -218,10 +243,8 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, Reentran
     }
 
     /**
-     * @notice Calculate the L2 address of a bridged token
+     * @inheritdoc ITokenGateway
      * @dev In our case, this would only work for GRT.
-     * @param l1ERC20 address of L1 GRT contract
-     * @return L2 address of the bridged GRT token
      */
     function calculateL2TokenAddress(address l1ERC20) public view override returns (address) {
         if (l1ERC20 != l1GRT) {
@@ -259,10 +282,8 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, Reentran
             );
     }
 
-    /**
-     * @dev Runs state validation before unpausing, reverts if
-     * something is not set properly
-     */
+    /// @inheritdoc GraphTokenGateway
+    // solhint-disable-next-line use-natspec
     function _checksBeforeUnpause() internal view override {
         require(l2Router != address(0), "L2_ROUTER_NOT_SET");
         require(l1Counterpart != address(0), "L1_COUNTERPART_NOT_SET");

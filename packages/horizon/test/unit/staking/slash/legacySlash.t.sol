@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "forge-std/Test.sol";
-
-import { IHorizonStakingExtension } from "../../../../contracts/interfaces/internal/IHorizonStakingExtension.sol";
+import { IHorizonStakingExtension } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingExtension.sol";
 
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
@@ -45,7 +43,7 @@ contract HorizonStakingLegacySlashTest is HorizonStakingTest {
         // before
         uint256 beforeStakingBalance = token.balanceOf(address(staking));
         uint256 beforeRewardsDestinationBalance = token.balanceOf(_beneficiary);
-        ServiceProviderInternal memory beforeIndexer = _getStorage_ServiceProviderInternal(_indexer);
+        ServiceProviderInternal memory beforeIndexer = _getStorageServiceProviderInternal(_indexer);
 
         // calculate slashable stake
         uint256 slashableStake = beforeIndexer.tokensStaked - beforeIndexer.tokensProvisioned;
@@ -67,7 +65,7 @@ contract HorizonStakingLegacySlashTest is HorizonStakingTest {
         // after
         uint256 afterStakingBalance = token.balanceOf(address(staking));
         uint256 afterRewardsDestinationBalance = token.balanceOf(_beneficiary);
-        ServiceProviderInternal memory afterIndexer = _getStorage_ServiceProviderInternal(_indexer);
+        ServiceProviderInternal memory afterIndexer = _getStorageServiceProviderInternal(_indexer);
 
         assertEq(beforeStakingBalance - actualTokens, afterStakingBalance);
         assertEq(beforeRewardsDestinationBalance, afterRewardsDestinationBalance - actualRewards);
@@ -108,7 +106,7 @@ contract HorizonStakingLegacySlashTest is HorizonStakingTest {
 
         _setIndexer(users.indexer, tokens, 0, tokens, block.timestamp + 1);
         // Send tokens manually to staking
-        token.transfer(address(staking), tokens);
+        require(token.transfer(address(staking), tokens), "Transfer failed");
 
         resetPrank(users.legacySlasher);
         _legacySlash(users.indexer, slashTokens, reward, makeAddr("fisherman"));
@@ -125,7 +123,7 @@ contract HorizonStakingLegacySlashTest is HorizonStakingTest {
 
         _setIndexer(users.indexer, tokens, 0, tokens, 0);
         // Send tokens manually to staking
-        token.transfer(address(staking), tokens);
+        require(token.transfer(address(staking), tokens), "Transfer failed");
 
         resetPrank(users.legacySlasher);
         staking.legacySlash(users.indexer, slashTokens, reward, makeAddr("fisherman"));
@@ -218,7 +216,7 @@ contract HorizonStakingLegacySlashTest is HorizonStakingTest {
         );
 
         // Send tokens manually to staking
-        token.transfer(address(staking), 1100 ether);
+        require(token.transfer(address(staking), 1100 ether), "Transfer failed");
 
         resetPrank(users.legacySlasher);
         _legacySlash(users.indexer, 1000 ether, 500 ether, makeAddr("fisherman"));
@@ -239,7 +237,7 @@ contract HorizonStakingLegacySlashTest is HorizonStakingTest {
         );
 
         // Send tokens manually to staking
-        token.transfer(address(staking), 1100 ether);
+        require(token.transfer(address(staking), 1100 ether), "Transfer failed");
 
         // Change staking extension code to an invalid opcode so the delegatecall reverts
         address stakingExtension = staking.getStakingExtension();

@@ -1,28 +1,36 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity 0.8.27;
+pragma solidity ^0.8.27;
 
-import { IController } from "@graphprotocol/contracts/contracts/governance/IController.sol";
-import { IManaged } from "@graphprotocol/contracts/contracts/governance/IManaged.sol";
+import { IController } from "@graphprotocol/interfaces/contracts/contracts/governance/IController.sol";
+import { IManaged } from "@graphprotocol/interfaces/contracts/contracts/governance/IManaged.sol";
 
 /**
  * @title Graph Controller contract (mock)
+ * @author Edge & Node
+ * @notice Mock implementation of the Graph Controller contract for testing
  * @dev Controller is a registry of contracts for convenience. Inspired by Livepeer:
  * https://github.com/livepeer/protocol/blob/streamflow/contracts/Controller.sol
  */
 contract ControllerMock is IController {
     /// @dev Track contract ids to contract proxy address
     mapping(bytes32 contractName => address contractAddress) private _registry;
+
+    /// @notice Address of the governor
     address public governor;
     bool internal _paused;
     bool internal _partialPaused;
     address internal _pauseGuardian;
 
-    /// Emitted when the proxy address for a protocol contract has been set
-    event SetContractProxy(bytes32 indexed id, address contractAddress);
+    /**
+     * @notice Emitted when the proxy address for a protocol contract has been set
+     * @param id The contract identifier
+     * @param contractAddress The new contract address
+     */
+    event SetContractProxy(bytes32 indexed id, address indexed contractAddress);
 
     /**
-     * Constructor for the Controller mock
+     * @notice Constructor for the Controller mock
      * @param governor_ Address of the governor
      */
     constructor(address governor_) {

@@ -1,6 +1,6 @@
 import type { GraphHorizonAddressBook, GraphHorizonContracts } from './horizon'
-import type { SubgraphServiceAddressBook, SubgraphServiceContracts } from './subgraph-service'
 import type { loadActions } from './horizon/actions'
+import type { SubgraphServiceAddressBook, SubgraphServiceContracts } from './subgraph-service'
 import type { loadActions as loadSubgraphServiceActions } from './subgraph-service/actions'
 export const GraphDeploymentsList = ['horizon', 'subgraphService'] as const
 

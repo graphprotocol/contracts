@@ -1,12 +1,9 @@
-import { ethers } from 'ethers'
-
 import type { TransactionResponse } from 'ethers'
+import { ethers } from 'ethers'
 
 export async function getEventData(tx: TransactionResponse, eventAbi: string) {
   const receipt = await tx.wait()
-  const abi = [
-    eventAbi,
-  ]
+  const abi = [eventAbi]
   const iface = new ethers.Interface(abi)
   if (receipt?.logs === undefined) {
     return []

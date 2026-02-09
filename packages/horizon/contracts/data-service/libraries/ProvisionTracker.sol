@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.27;
+pragma solidity 0.8.27 || 0.8.33;
 
-import { IHorizonStaking } from "../../interfaces/IHorizonStaking.sol";
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-strict-inequalities
+
+import { IHorizonStaking } from "@graphprotocol/interfaces/contracts/horizon/IHorizonStaking.sol";
 
 /**
  * @title ProvisionTracker library
+ * @author Edge & Node
  * @notice A library to facilitate tracking of "used tokens" on Graph Horizon provisions. This can be used to
  * ensure data services have enough economic security (provisioned stake) to back the payments they collect for
  * their services.

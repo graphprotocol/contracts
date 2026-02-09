@@ -1,11 +1,8 @@
-import hre from 'hardhat'
-
-import { ethers } from 'hardhat'
-import { expect } from 'chai'
-
-import { indexers } from '../../../tasks/test/fixtures/indexers'
-
+import { indexers } from '@graphprotocol/toolshed/fixtures'
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { expect } from 'chai'
+import hre from 'hardhat'
+import { ethers } from 'hardhat'
 
 describe('Slasher', () => {
   let snapshotId: string
@@ -54,7 +51,10 @@ describe('Slasher', () => {
 
       // Slasher should have received the tokens
       const slasherAfterBalance = await graphToken.balanceOf(slasher.address)
-      expect(slasherAfterBalance).to.equal(slasherBeforeBalance + tokensVerifier, 'Slasher should have received the tokens')
+      expect(slasherAfterBalance).to.equal(
+        slasherBeforeBalance + tokensVerifier,
+        'Slasher should have received the tokens',
+      )
     })
   })
 
@@ -79,7 +79,10 @@ describe('Slasher', () => {
 
       // Slasher should have received the tokens
       const slasherAfterBalance = await graphToken.balanceOf(slasher.address)
-      expect(slasherAfterBalance).to.equal(slasherBeforeBalance + tokensVerifier, 'Slasher should have received the tokens')
+      expect(slasherAfterBalance).to.equal(
+        slasherBeforeBalance + tokensVerifier,
+        'Slasher should have received the tokens',
+      )
     })
   })
 })

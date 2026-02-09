@@ -1,20 +1,22 @@
-import { ethers } from 'hardhat'
-import { expect } from 'chai'
-import hre from 'hardhat'
-
-import { DisputeManager, IGraphToken, SubgraphService } from '../../../typechain-types'
+import {
+  DisputeManager,
+  HorizonStaking,
+  L2GraphToken,
+  LegacyDisputeManager,
+  SubgraphService,
+} from '@graphprotocol/interfaces'
 import { generateLegacyIndexingDisputeId, generateLegacyTypeDisputeId } from '@graphprotocol/toolshed'
-import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
-import { HorizonStaking } from '@graphprotocol/horizon'
-import { LegacyDisputeManager } from '@graphprotocol/toolshed/deployments'
+import { indexersData as indexers } from '@graphprotocol/toolshed/fixtures'
 import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
-
-import { indexers } from '../../../tasks/test/fixtures/indexers'
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { expect } from 'chai'
+import { ethers } from 'hardhat'
+import hre from 'hardhat'
 
 describe('Dispute Manager', () => {
   let disputeManager: DisputeManager
   let legacyDisputeManager: LegacyDisputeManager
-  let graphToken: IGraphToken
+  let graphToken: L2GraphToken
   let staking: HorizonStaking
   let subgraphService: SubgraphService
 
@@ -93,12 +95,9 @@ describe('Dispute Manager', () => {
         // Create and accept legacy dispute using the same allocation ID
         const tokensToSlash = ethers.parseEther('100000')
         const tokensToReward = tokensToSlash / 2n
-        await disputeManager.connect(arbitrator).createAndAcceptLegacyDispute(
-          allocationId,
-          fisherman.address,
-          tokensToSlash,
-          tokensToReward,
-        )
+        await disputeManager
+          .connect(arbitrator)
+          .createAndAcceptLegacyDispute(allocationId, fisherman.address, tokensToSlash, tokensToReward)
 
         // Get dispute ID from event
         const disputeId = generateLegacyTypeDisputeId(allocationId)
@@ -111,12 +110,18 @@ describe('Dispute Manager', () => {
         expect(dispute.status).to.equal(1, 'Dispute status should be accepted')
 
         // Verify indexer's stake was slashed
-        const updatedProvision = await staking.getProviderTokensAvailable(indexer.address, await subgraphService.getAddress())
+        const updatedProvision = await staking.getProviderTokensAvailable(
+          indexer.address,
+          await subgraphService.getAddress(),
+        )
         expect(updatedProvision).to.equal(provision - tokensToSlash, 'Indexer stake should be slashed')
 
         // Verify fisherman got the reward
         const fishermanBalance = await graphToken.balanceOf(fisherman.address)
-        expect(fishermanBalance).to.equal(fishermanBalanceBefore + tokensToReward, 'Fisherman balance should be increased by the reward')
+        expect(fishermanBalance).to.equal(
+          fishermanBalanceBefore + tokensToReward,
+          'Fisherman balance should be increased by the reward',
+        )
       })
 
       it('should not allow creating a legacy dispute for non-existent allocation', async () => {
@@ -125,12 +130,14 @@ describe('Dispute Manager', () => {
 
         // Attempt to create legacy dispute with non-existent allocation
         await expect(
-          disputeManager.connect(arbitrator).createAndAcceptLegacyDispute(
-            ethers.Wallet.createRandom().address,
-            fisherman.address,
-            tokensToSlash,
-            tokensToReward,
-          ),
+          disputeManager
+            .connect(arbitrator)
+            .createAndAcceptLegacyDispute(
+              ethers.Wallet.createRandom().address,
+              fisherman.address,
+              tokensToSlash,
+              tokensToReward,
+            ),
         ).to.be.revertedWithCustomError(disputeManager, 'DisputeManagerIndexerNotFound')
       })
     })
@@ -141,12 +148,9 @@ describe('Dispute Manager', () => {
 
       // Attempt to create legacy dispute as fisherman
       await expect(
-        disputeManager.connect(fisherman).createAndAcceptLegacyDispute(
-          allocationId,
-          fisherman.address,
-          tokensToSlash,
-          tokensToReward,
-        ),
+        disputeManager
+          .connect(fisherman)
+          .createAndAcceptLegacyDispute(allocationId, fisherman.address, tokensToSlash, tokensToReward),
       ).to.be.revertedWithCustomError(disputeManager, 'DisputeManagerNotArbitrator')
     })
   })

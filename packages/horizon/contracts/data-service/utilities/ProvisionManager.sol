@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.27;
+pragma solidity 0.8.27 || 0.8.33;
 
-import { IHorizonStaking } from "../../interfaces/IHorizonStaking.sol";
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-indexed-events
+// solhint-disable gas-strict-inequalities
+
+import { IHorizonStaking } from "@graphprotocol/interfaces/contracts/horizon/IHorizonStaking.sol";
 
 import { UintRange } from "../../libraries/UintRange.sol";
 import { PPMMath } from "../../libraries/PPMMath.sol";
@@ -12,6 +16,7 @@ import { ProvisionManagerV1Storage } from "./ProvisionManagerStorage.sol";
 
 /**
  * @title ProvisionManager contract
+ * @author Edge & Node
  * @notice A helper contract that implements several provision management functions.
  * @dev Provides utilities to verify provision parameters are within an acceptable range. Each
  * parameter has an overridable setter and getter for the validity range, and a checker that reverts
@@ -106,6 +111,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      */
     error ProvisionManagerProvisionNotFound(address serviceProvider);
 
+    // forge-lint: disable-next-item(unwrapped-modifier-logic)
     /**
      * @notice Checks if the caller is authorized to manage the provision of a service provider.
      * @param serviceProvider The address of the service provider.
@@ -118,6 +124,8 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
         _;
     }
 
+    // Warning: Virtual modifiers are deprecated and scheduled for removal.
+    // forge-lint: disable-next-item(unwrapped-modifier-logic)
     /**
      * @notice Checks if a provision of a service provider is valid according
      * to the parameter ranges established.
@@ -128,6 +136,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
         _;
     }
 
+    // forge-lint: disable-next-item(mixed-case-function)
     /**
      * @notice Initializes the contract and any parent contracts.
      */
@@ -135,6 +144,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
         __ProvisionManager_init_unchained();
     }
 
+    // forge-lint: disable-next-item(mixed-case-function)
     /**
      * @notice Initializes the contract.
      * @dev All parameters set to their entire range as valid.

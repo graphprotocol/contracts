@@ -12,8 +12,11 @@ export default buildModule('GraphHorizon_Migrate_3', (m) => {
     Controller,
     GraphProxyAdmin,
     EpochManager,
+    EpochManagerImplementation,
     L2GraphToken,
+    L2GraphTokenImplementation,
     L2GraphTokenGateway,
+    L2GraphTokenGatewayImplementation,
     L2GNS,
     L2GNSImplementation,
     SubgraphNFT,
@@ -47,7 +50,10 @@ export default buildModule('GraphHorizon_Migrate_3', (m) => {
     Controller: Controller,
     GraphProxyAdmin,
     Graph_Proxy_EpochManager: EpochManager,
+    Implementation_EpochManager: EpochManagerImplementation,
     Graph_Proxy_L2GraphToken: L2GraphToken,
+    Implementation_L2GraphToken: L2GraphTokenImplementation,
     Graph_Proxy_L2GraphTokenGateway: L2GraphTokenGateway,
+    Implementation_L2GraphTokenGateway: L2GraphTokenGatewayImplementation,
   }
 })

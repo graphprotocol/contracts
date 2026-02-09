@@ -1,79 +1,56 @@
-import { GraphHorizonArtifactsMap, GraphHorizonContractNameList } from './contracts'
-import { logDebug, logError } from '../../lib/logger'
+import type { LegacyRewardsManager, LegacyStaking } from '@graphprotocol/interfaces'
+import { getInterface } from '@graphprotocol/interfaces'
 import { Provider, Signer } from 'ethers'
-import { AddressBook } from '../address-book'
-import { assertObject } from '../../lib/assert'
 import { Contract } from 'ethers'
-import { loadArtifact } from '../artifact'
-import { mergeABIs } from '../../core/abi'
-import { wrapTransactionCalls } from '../tx-logging'
 
+import { assertObject } from '../../lib/assert'
+import { logDebug, logError } from '../../lib/logger'
+import { AddressBook } from '../address-book'
+import { wrapTransactionCalls } from '../tx-logging'
 import type { GraphHorizonContractName, GraphHorizonContracts } from './contracts'
-import type { LegacyStaking } from './types'
+import { GraphHorizonContractNameList } from './contracts'
 
 export class GraphHorizonAddressBook extends AddressBook<number, GraphHorizonContractName> {
   isContractName(name: unknown): name is GraphHorizonContractName {
-    return (
-      typeof name === 'string'
-      && GraphHorizonContractNameList.includes(name as GraphHorizonContractName)
-    )
+    return typeof name === 'string' && GraphHorizonContractNameList.includes(name as GraphHorizonContractName)
   }
 
-  loadContracts(
-    signerOrProvider?: Signer | Provider,
-    enableTxLogging?: boolean,
-  ): GraphHorizonContracts {
+  loadContracts(signerOrProvider?: Signer | Provider, enableTxLogging?: boolean): GraphHorizonContracts {
     logDebug('Loading Graph Horizon contracts...')
 
-    const contracts = this._loadContracts(
-      GraphHorizonArtifactsMap,
-      signerOrProvider,
-      enableTxLogging,
-    )
-
-    // rewire HorizonStaking to include HorizonStakingExtension abi
-    if (contracts.HorizonStaking) {
-      const stakingOverride = new Contract(
-        this.getEntry('HorizonStaking').address,
-        mergeABIs(
-          loadArtifact('HorizonStaking', GraphHorizonArtifactsMap.HorizonStaking).abi,
-          loadArtifact('HorizonStakingExtension', GraphHorizonArtifactsMap.HorizonStaking).abi,
-        ),
-        signerOrProvider,
-      )
-      contracts.HorizonStaking = enableTxLogging
-        ? wrapTransactionCalls(stakingOverride, 'HorizonStaking')
-        : stakingOverride
-    }
+    const contracts = this._loadContracts(signerOrProvider, enableTxLogging)
 
     this._assertGraphHorizonContracts(contracts)
 
     // Aliases
     contracts.GraphToken = contracts.L2GraphToken
     contracts.Curation = contracts.L2Curation
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     contracts.GNS = contracts.L2GNS
 
     if (contracts.HorizonStaking) {
       // add LegacyStaking alias using old IL2Staking abi
+      const contract = new Contract(contracts.HorizonStaking.target, getInterface('IL2Staking'), signerOrProvider)
+      contracts.LegacyStaking = (enableTxLogging
+        ? wrapTransactionCalls(contract, 'LegacyStaking')
+        : contract) as unknown as LegacyStaking
+    }
+
+    if (contracts.RewardsManager) {
+      // add LegacyRewardsManager alias using old ILegacyRewardsManager abi
       const contract = new Contract(
-        contracts.HorizonStaking.target,
-        loadArtifact('IL2Staking', GraphHorizonArtifactsMap.LegacyStaking).abi,
+        contracts.RewardsManager.target,
+        getInterface('ILegacyRewardsManager'),
         signerOrProvider,
       )
-      contracts.LegacyStaking = (
-        enableTxLogging
-          ? wrapTransactionCalls(contract, 'LegacyStaking')
-          : contract
-      ) as unknown as LegacyStaking
+      contracts.LegacyRewardsManager = (enableTxLogging
+        ? wrapTransactionCalls(contract, 'LegacyRewardsManager')
+        : contract) as unknown as LegacyRewardsManager
     }
 
     return contracts
   }
 
-  _assertGraphHorizonContracts(
-    contracts: unknown,
-  ): asserts contracts is GraphHorizonContracts {
+  _assertGraphHorizonContracts(contracts: unknown): asserts contracts is GraphHorizonContracts {
     assertObject(contracts)
 
     // Assert that all GraphHorizonContracts were loaded

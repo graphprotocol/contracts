@@ -1,10 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "forge-std/Test.sol";
-
-import { IGraphPayments } from "../../../contracts/interfaces/IGraphPayments.sol";
-import { IPaymentsEscrow } from "../../../contracts/interfaces/IPaymentsEscrow.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
 
 import { GraphEscrowTest } from "./GraphEscrow.t.sol";
 
@@ -49,7 +47,7 @@ contract GraphEscrowPausedTest is GraphEscrowTest {
         uint256 thawAmount
     ) public useGateway depositAndThawTokens(tokens, thawAmount) usePaused(true) {
         // advance time
-        skip(withdrawEscrowThawingPeriod + 1);
+        skip(WITHDRAW_ESCROW_THAWING_PERIOD + 1);
 
         vm.expectRevert(abi.encodeWithSelector(IPaymentsEscrow.PaymentsEscrowIsPaused.selector));
         escrow.withdraw(users.verifier, users.indexer);

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.27;
+pragma solidity 0.8.27 || 0.8.33;
 
-import { IDataService } from "./interfaces/IDataService.sol";
+import { IDataService } from "@graphprotocol/interfaces/contracts/data-service/IDataService.sol";
 
 import { DataServiceV1Storage } from "./DataServiceStorage.sol";
 import { GraphDirectory } from "../utilities/GraphDirectory.sol";
@@ -9,6 +9,7 @@ import { ProvisionManager } from "./utilities/ProvisionManager.sol";
 
 /**
  * @title DataService contract
+ * @author Edge & Node
  * @dev Implementation of the {IDataService} interface.
  * @notice This implementation provides base functionality for a data service:
  * - GraphDirectory, allows the data service to interact with Graph Horizon contracts
@@ -32,6 +33,7 @@ import { ProvisionManager } from "./utilities/ProvisionManager.sol";
  */
 abstract contract DataService is GraphDirectory, ProvisionManager, DataServiceV1Storage, IDataService {
     /**
+     * @notice Constructor for the DataService contract
      * @dev Addresses in GraphDirectory are immutables, they can only be set in this constructor.
      * @param controller The address of the Graph Horizon controller contract.
      */
@@ -57,6 +59,7 @@ abstract contract DataService is GraphDirectory, ProvisionManager, DataServiceV1
         return _getDelegationRatio();
     }
 
+    // forge-lint: disable-next-item(mixed-case-function)
     /**
      * @notice Initializes the contract and any parent contracts.
      */
@@ -65,6 +68,7 @@ abstract contract DataService is GraphDirectory, ProvisionManager, DataServiceV1
         __DataService_init_unchained();
     }
 
+    // forge-lint: disable-next-item(mixed-case-function)
     /**
      * @notice Initializes the contract.
      */

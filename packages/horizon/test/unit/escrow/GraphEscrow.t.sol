@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "forge-std/Test.sol";
-import { IPaymentsEscrow } from "../../../contracts/interfaces/IPaymentsEscrow.sol";
-import { IGraphPayments } from "../../../contracts/interfaces/IGraphPayments.sol";
-import { IHorizonStakingTypes } from "../../../contracts/interfaces/internal/IHorizonStakingTypes.sol";
+import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
 
 import { HorizonStakingSharedTest } from "../shared/horizon-staking/HorizonStakingShared.t.sol";
 import { PaymentsEscrowSharedTest } from "../shared/payments-escrow/PaymentsEscrowShared.t.sol";
@@ -49,7 +48,7 @@ contract GraphEscrowTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
 
     function _thawEscrow(address collector, address receiver, uint256 amount) internal {
         (, address msgSender, ) = vm.readCallers();
-        uint256 expectedThawEndTimestamp = block.timestamp + withdrawEscrowThawingPeriod;
+        uint256 expectedThawEndTimestamp = block.timestamp + WITHDRAW_ESCROW_THAWING_PERIOD;
         vm.expectEmit(address(escrow));
         emit IPaymentsEscrow.Thaw(msgSender, collector, receiver, amount, expectedThawEndTimestamp);
         escrow.thaw(collector, receiver, amount);

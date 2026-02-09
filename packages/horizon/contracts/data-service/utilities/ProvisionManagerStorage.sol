@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.27;
+pragma solidity 0.8.27 || 0.8.33;
 
 /**
  * @title Storage layout for the {ProvisionManager} helper contract.
+ * @author Edge & Node
+ * @notice Storage layout for the ProvisionManager helper contract
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */
@@ -29,6 +31,7 @@ abstract contract ProvisionManagerV1Storage {
     /// @dev Max calculated as service provider's stake * delegationRatio
     uint32 internal _delegationRatio;
 
+    // forge-lint: disable-next-item(mixed-case-variable)
     /// @dev Gap to allow adding variables in future upgrades
     /// Note that this contract is not upgradeable but might be inherited by an upgradeable contract
     uint256[50] private __gap;

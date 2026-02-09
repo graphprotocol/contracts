@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "forge-std/Test.sol";
+import { console } from "forge-std/console.sol";
 
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 import { ExponentialRebates } from "../../../../contracts/staking/libraries/ExponentialRebates.sol";
@@ -43,10 +43,10 @@ contract HorizonStakingCollectAllocationTest is HorizonStakingTest {
         vm.assume(queryFeeCut <= MAX_PPM);
 
         resetPrank(users.indexer);
-        _setStorage_ProtocolTaxAndCuration(curationPercentage, protocolTaxPercentage);
+        _setStorageProtocolTaxAndCuration(curationPercentage, protocolTaxPercentage);
         console.log("queryFeeCut", queryFeeCut);
-        _setStorage_DelegationPool(users.indexer, delegationTokens, 0, queryFeeCut);
-        curation.signal(_subgraphDeploymentID, curationTokens);
+        _setStorageDelegationPool(users.indexer, delegationTokens, 0, queryFeeCut);
+        curation.signal(_SUBGRAPH_DEPLOYMENT_ID, curationTokens);
 
         resetPrank(users.gateway);
         approve(address(staking), collectTokens);
@@ -60,7 +60,7 @@ contract HorizonStakingCollectAllocationTest is HorizonStakingTest {
         collectTokens = bound(collectTokens, 0, MAX_STAKING_TOKENS);
 
         address beneficiary = makeAddr("beneficiary");
-        _setStorage_RewardsDestination(users.indexer, beneficiary);
+        _setStorageRewardsDestination(users.indexer, beneficiary);
 
         resetPrank(users.gateway);
         approve(address(staking), collectTokens);

@@ -1,0 +1,38 @@
+{
+  "$global": {
+    // Accounts already configured in the original Graph Protocol - Local Network values
+    "governor": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", // index 0
+    "arbitrator": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC", // index 2
+    "pauseGuardian": "0x90F79bf6EB2c4f870365E785982E1f101E93b906", // index 3
+
+    // Addresses for contracts deployed in the original Graph Protocol - Local Network values
+    "controllerAddress": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+    "curationProxyAddress": "0x59b670e9fA9D0A427751Af201D676719a970857b",
+    "curationImplementationAddress": "0xc6e7DF5E7b4f2A278906862b61205850344D4e7d",
+    "gnsProxyAddress": "0xa85233C63b9Ee964Add6F2cffe00Fd84eb32338f",
+    "gnsImplementationAddress": "0x322813Fd9A801c5507c9de605d63CEA4f2CE6c44",
+    "subgraphNFTAddress": "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e",
+    "legacyDisputeManagerAddress": "0x9A9f2CCfdE556A7E9Ff0848998Aa4a0CFD8863AE",
+    "legacyServiceRegistryAddress": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+
+    // Must be set for step 2 of the deployment
+    "disputeManagerProxyAddress": "",
+    "disputeManagerProxyAdminAddress": "",
+    "subgraphServiceProxyAddress": "",
+    "subgraphServiceProxyAdminAddress": "",
+    "graphTallyCollectorAddress": ""
+  },
+  "DisputeManager": {
+    "disputePeriod": 7200,
+    "disputeDeposit": "10000000000000000000000n",
+    "fishermanRewardCut": 500000,
+    "maxSlashingCut": 1000000,
+  },
+  "SubgraphService": {
+    "minimumProvisionTokens": "100000000000000000000000n",
+    "maximumDelegationRatio": 16,
+    "stakeToFeesRatio": 2,
+    "maxPOIStaleness": 7200, // 28 days = 2419200 seconds
+    "curationCut": 100000,
+  }
+}

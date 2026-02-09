@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "forge-std/Test.sol";
-
 import { GraphEscrowTest } from "./GraphEscrow.t.sol";
 
 contract GraphEscrowThawTest is GraphEscrowTest {
@@ -43,7 +41,7 @@ contract GraphEscrowThawTest is GraphEscrowTest {
             users.indexer
         );
         assertEq(amountThawing, secondAmountToThaw);
-        assertEq(thawEndTimestamp, block.timestamp + withdrawEscrowThawingPeriod);
+        assertEq(thawEndTimestamp, block.timestamp + WITHDRAW_ESCROW_THAWING_PERIOD);
     }
 
     function testThaw_Tokens_RevertWhen_AmountIsZero() public useGateway {

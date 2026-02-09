@@ -2,8 +2,12 @@
 
 pragma solidity ^0.7.3;
 
-import "./arbitrum/IInbox.sol";
-import "./arbitrum/AddressAliasHelper.sol";
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable use-natspec
+
+import { IInbox } from "./arbitrum/IInbox.sol";
+import { AddressAliasHelper } from "./arbitrum/AddressAliasHelper.sol";
+import { IBridge } from "./arbitrum/IBridge.sol";
 
 /**
  * @title Arbitrum Inbox mock contract
@@ -96,7 +100,7 @@ contract InboxMock is IInbox {
      * @param _maxSubmissionCost Max cost of submitting the ticket, in Wei
      * @param _submissionRefundAddress L2 address to refund for any remaining value from the submission cost
      * @param _valueRefundAddress L2 address to refund if the ticket times out or gets cancelled
-     * @param _maxGas Max gas for the L2 transcation
+     * @param _maxGas Max gas for the L2 transaction
      * @param _gasPriceBid Gas price bid on L2
      * @param _data Encoded calldata for the L2 transaction (including function selector)
      * @return Message number returned by the bridge

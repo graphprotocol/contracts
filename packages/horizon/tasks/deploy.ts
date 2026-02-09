@@ -1,23 +1,31 @@
 /* eslint-disable no-case-declarations */
-import { loadConfig, patchConfig, saveToAddressBook } from '@graphprotocol/toolshed/hardhat'
-import { task, types } from 'hardhat/config'
 import { ZERO_ADDRESS } from '@graphprotocol/toolshed'
-
 import type { AddressBook } from '@graphprotocol/toolshed/deployments'
+import { loadConfig, patchConfig, saveToAddressBook } from '@graphprotocol/toolshed/hardhat'
+import { printHorizonBanner } from '@graphprotocol/toolshed/utils'
+import { task, types } from 'hardhat/config'
 import type { HardhatRuntimeEnvironment } from 'hardhat/types'
 
 import DeployModule from '../ignition/modules/deploy'
-import { printHorizonBanner } from '@graphprotocol/toolshed/utils'
 
 task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon contracts - no data services deployed')
-  .addOptionalParam('horizonConfig', 'Name of the Horizon configuration file to use. Format is "protocol.<name>.json5", file must be in the "ignition/configs/" directory. Defaults to network name.', undefined, types.string)
+  .addOptionalParam(
+    'horizonConfig',
+    'Name of the Horizon configuration file to use. Format is "protocol.<name>.json5", file must be in the "ignition/configs/" directory. Defaults to network name.',
+    undefined,
+    types.string,
+  )
   .addOptionalParam('accountIndex', 'Derivation path index for the account to use', 0, types.int)
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
-    const graph = hre.graph()
+    const graph = hre.graph({ createAddressBook: true })
 
     // Load configuration for the deployment
     console.log('\n========== ⚙️ Deployment configuration ==========')
-    const { config: HorizonConfig, file } = loadConfig('./ignition/configs/', 'protocol', args.horizonConfig ?? hre.network.name)
+    const { config: HorizonConfig, file } = loadConfig(
+      './ignition/configs/',
+      'protocol',
+      args.horizonConfig ?? hre.network.name,
+    )
     console.log(`Loaded migration configuration from ${file}`)
 
     // Display the deployer -- this also triggers the secure accounts prompt if being used
@@ -49,7 +57,12 @@ task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon cont
   })
 
 task('deploy:migrate', 'Upgrade an existing version of the Graph Protocol v1 to Horizon - no data services deployed')
-  .addOptionalParam('horizonConfig', 'Name of the Horizon configuration file to use. Format is "migrate.<name>.json5", file must be in the "ignition/configs/" directory. Defaults to network name.', undefined, types.string)
+  .addOptionalParam(
+    'horizonConfig',
+    'Name of the Horizon configuration file to use. Format is "migrate.<name>.json5", file must be in the "ignition/configs/" directory. Defaults to network name.',
+    undefined,
+    types.string,
+  )
   .addOptionalParam('step', 'Migration step to run (1, 2, 3 or 4)', undefined, types.int)
   .addOptionalParam('accountIndex', 'Derivation path index for the account to use', 0, types.int)
   .addFlag('patchConfig', 'Patch configuration file using address book values - does not save changes')
@@ -77,7 +90,11 @@ task('deploy:migrate', 'Upgrade an existing version of the Graph Protocol v1 to 
 
     // Load configuration for the migration
     console.log('\n========== ⚙️ Deployment configuration ==========')
-    const { config: HorizonMigrateConfig, file } = loadConfig('./ignition/configs/', 'migrate', args.horizonConfig ?? hre.network.name)
+    const { config: HorizonMigrateConfig, file } = loadConfig(
+      './ignition/configs/',
+      'migrate',
+      args.horizonConfig ?? hre.network.name,
+    )
     console.log(`Loaded migration configuration from ${file}`)
 
     // Display the deployer -- this also triggers the secure accounts prompt if being used
@@ -94,23 +111,20 @@ task('deploy:migrate', 'Upgrade an existing version of the Graph Protocol v1 to 
     // Run migration step
     console.log(`\n========== 🚧 Running migration: step ${step} ==========`)
     const MigrationModule = require(`../ignition/modules/migrate/migrate-${step}`).default
-    const deployment = await hre.ignition.deploy(
-      MigrationModule,
-      {
-        displayUi: true,
-        parameters: patchConfig
-          ? _patchStepConfig(
+    const deployment = await hre.ignition.deploy(MigrationModule, {
+      displayUi: true,
+      parameters: patchConfig
+        ? _patchStepConfig(
             step,
             HorizonMigrateConfig,
             graph.horizon.addressBook,
             graph.subgraphService?.addressBook,
             args.standalone,
           )
-          : HorizonMigrateConfig,
-        deploymentId: `horizon-${hre.network.name}`,
-        defaultSender: deployer.address,
-      },
-    )
+        : HorizonMigrateConfig,
+      deploymentId: `horizon-${hre.network.name}`,
+      defaultSender: deployer.address,
+    })
 
     // Update address book
     console.log('\n========== 📖 Updating address book ==========')
@@ -123,7 +137,7 @@ task('deploy:migrate', 'Upgrade an existing version of the Graph Protocol v1 to 
 
 // This function patches the Ignition configuration object using an address book to fill in the gaps
 // The resulting configuration is not saved back to the configuration file
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 function _patchStepConfig<ChainId extends number, ContractName extends string, HorizonContractName extends string>(
   step: number,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -140,13 +154,27 @@ function _patchStepConfig<ChainId extends number, ContractName extends string, H
   // or it might not exist if we are running horizon standalone
   function getSubgraphServiceAddress() {
     if (
-      subgraphServiceAddressBook === undefined
-      || !subgraphServiceAddressBook.entryExists('SubgraphService')
-      || standalone
+      subgraphServiceAddressBook === undefined ||
+      !subgraphServiceAddressBook.entryExists('SubgraphService') ||
+      standalone
     ) {
       return ZERO_ADDRESS
     }
     return subgraphServiceAddressBook.getEntry('SubgraphService').address
+  }
+
+  // Get the dispute manager address
+  // Dispute manager address book might exist if we are running horizon + subgraph service
+  // or it might not exist if we are running horizon standalone
+  function getDisputeManagerAddress() {
+    if (
+      subgraphServiceAddressBook === undefined ||
+      !subgraphServiceAddressBook.entryExists('DisputeManager') ||
+      standalone
+    ) {
+      return ZERO_ADDRESS
+    }
+    return subgraphServiceAddressBook.getEntry('DisputeManager').address ?? ZERO_ADDRESS
   }
 
   switch (step) {
@@ -174,6 +202,7 @@ function _patchStepConfig<ChainId extends number, ContractName extends string, H
       patchedConfig = patchConfig(patchedConfig, {
         $global: {
           subgraphServiceAddress: getSubgraphServiceAddress(),
+          disputeManagerAddress: getDisputeManagerAddress(),
           horizonStakingImplementationAddress: HorizonStaking.implementation ?? ZERO_ADDRESS,
           curationImplementationAddress: L2Curation.implementation ?? ZERO_ADDRESS,
           rewardsManagerImplementationAddress: RewardsManager.implementation ?? ZERO_ADDRESS,

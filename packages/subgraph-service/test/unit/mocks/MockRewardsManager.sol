@@ -1,27 +1,13 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
+pragma solidity ^0.8.27;
 
-import "forge-std/Test.sol";
-
-import { IRewardsManager } from "@graphprotocol/contracts/contracts/rewards/IRewardsManager.sol";
+import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManager.sol";
+import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationDistribution.sol";
+import { IRewardsEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibility.sol";
+import { IRewardsIssuer } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsIssuer.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 
 import { MockGRTToken } from "./MockGRTToken.sol";
-
-interface IRewardsIssuer {
-    function getAllocationData(
-        address allocationId
-    )
-        external
-        view
-        returns (
-            bool isActive,
-            address indexer,
-            bytes32 subgraphDeploymentId,
-            uint256 tokens,
-            uint256 accRewardsPerAllocatedToken
-        );
-}
 
 contract MockRewardsManager is IRewardsManager {
     using PPMMath for uint256;
@@ -57,7 +43,50 @@ contract MockRewardsManager is IRewardsManager {
 
     function isDenied(bytes32) external view returns (bool) {}
 
+    // -- Reclaim --
+
+    function setSubgraphDeniedReclaimAddress(address) external {}
+
+    function setIndexerEligibilityReclaimAddress(address) external {}
+
+    function setReclaimAddress(bytes32, address) external {}
+
+    function setDefaultReclaimAddress(address) external {}
+
+    function reclaimRewards(bytes32, address _allocationId) external view returns (uint256) {
+        address rewardsIssuer = msg.sender;
+        (bool isActive, , , uint256 tokens, uint256 accRewardsPerAllocatedToken, ) = IRewardsIssuer(rewardsIssuer)
+            .getAllocationData(_allocationId);
+
+        if (!isActive) {
+            return 0;
+        }
+
+        // Calculate accumulated but unclaimed rewards
+        uint256 accRewardsPerTokens = tokens.mulPPM(rewardsPerSignal);
+        uint256 rewards = accRewardsPerTokens - accRewardsPerAllocatedToken;
+
+        // Note: We don't mint tokens for reclaimed rewards, they are just discarded
+        return rewards;
+    }
+
     // -- Getters --
+
+    function getIssuanceAllocator() external pure returns (IIssuanceAllocationDistribution) {
+        return IIssuanceAllocationDistribution(address(0));
+    }
+
+    function getReclaimAddress(bytes32) external pure returns (address) {
+        return address(0);
+    }
+
+    function getDefaultReclaimAddress() external pure returns (address) {
+        return address(0);
+    }
+
+    function getRewardsEligibilityOracle() external pure returns (IRewardsEligibility) {
+        return IRewardsEligibility(address(0));
+    }
 
     function getNewRewardsPerSignal() external view returns (uint256) {}
 
@@ -71,14 +100,22 @@ contract MockRewardsManager is IRewardsManager {
 
     function calcRewards(uint256, uint256) external pure returns (uint256) {}
 
+    function getAllocatedIssuancePerBlock() external view returns (uint256) {}
+
+    function getRawIssuancePerBlock() external view returns (uint256) {}
+
+    // -- Setters --
+
+    function setRewardsEligibilityOracle(address newRewardsEligibilityOracle) external {}
+
     // -- Updates --
 
     function updateAccRewardsPerSignal() external returns (uint256) {}
 
-    function takeRewards(address _allocationID) external returns (uint256) {
+    function takeRewards(address _allocationId) external returns (uint256) {
         address rewardsIssuer = msg.sender;
-        (bool isActive, , , uint256 tokens, uint256 accRewardsPerAllocatedToken) = IRewardsIssuer(rewardsIssuer)
-            .getAllocationData(_allocationID);
+        (bool isActive, , , uint256 tokens, uint256 accRewardsPerAllocatedToken, ) = IRewardsIssuer(rewardsIssuer)
+            .getAllocationData(_allocationId);
 
         if (!isActive) {
             return 0;
@@ -94,16 +131,16 @@ contract MockRewardsManager is IRewardsManager {
 
     function onSubgraphSignalUpdate(bytes32) external pure returns (uint256) {}
 
-    function onSubgraphAllocationUpdate(bytes32 _subgraphDeploymentID) external returns (uint256) {
-        if (subgraphs[_subgraphDeploymentID]) {
+    function onSubgraphAllocationUpdate(bytes32 _subgraphDeploymentId) external returns (uint256) {
+        if (subgraphs[_subgraphDeploymentId]) {
             return rewardsPerSubgraphAllocationUpdate;
         }
 
-        subgraphs[_subgraphDeploymentID] = true;
+        subgraphs[_subgraphDeploymentId] = true;
         return 0;
     }
 
-    function subgraphService() external pure returns (address) {
-        return address(0x00);
+    function subgraphService() external pure override returns (IRewardsIssuer) {
+        return IRewardsIssuer(address(0x00));
     }
 }

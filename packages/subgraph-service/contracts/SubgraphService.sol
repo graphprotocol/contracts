@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.27;
+pragma solidity 0.8.33;
 
-import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
-import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
-import { IGraphTallyCollector } from "@graphprotocol/horizon/contracts/interfaces/IGraphTallyCollector.sol";
-import { IRewardsIssuer } from "@graphprotocol/contracts/contracts/rewards/IRewardsIssuer.sol";
-import { IDataService } from "@graphprotocol/horizon/contracts/data-service/interfaces/IDataService.sol";
-import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
-import { IRecurringCollector } from "@graphprotocol/horizon/contracts/interfaces/IRecurringCollector.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
+import { IGraphTallyCollector } from "@graphprotocol/interfaces/contracts/horizon/IGraphTallyCollector.sol";
+import { IRewardsIssuer } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsIssuer.sol";
+import { IDataService } from "@graphprotocol/interfaces/contracts/data-service/IDataService.sol";
+import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
+import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
+import { ILegacyAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/ILegacyAllocation.sol";
+import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { MulticallUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
@@ -22,12 +24,13 @@ import { SubgraphServiceV1Storage } from "./SubgraphServiceStorage.sol";
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 import { Allocation } from "./libraries/Allocation.sol";
-import { LegacyAllocation } from "./libraries/LegacyAllocation.sol";
 import { IndexingAgreementDecoder } from "./libraries/IndexingAgreementDecoder.sol";
 import { IndexingAgreement } from "./libraries/IndexingAgreement.sol";
 
 /**
  * @title SubgraphService contract
+ * @author Edge & Node
+ * @notice A data service contract for subgraph indexing and querying
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */
@@ -40,13 +43,13 @@ contract SubgraphService is
     DataServiceFees,
     Directory,
     AllocationManager,
-    SubgraphServiceV1Storage,
     IRewardsIssuer,
-    ISubgraphService
+    ISubgraphService,
+    SubgraphServiceV1Storage
 {
     using PPMMath for uint256;
-    using Allocation for mapping(address => Allocation.State);
-    using Allocation for Allocation.State;
+    using Allocation for mapping(address => IAllocation.State);
+    using Allocation for IAllocation.State;
     using TokenUtils for IGraphToken;
     using IndexingAgreement for IndexingAgreement.StorageManager;
 
@@ -55,7 +58,7 @@ contract SubgraphService is
      * @param indexer The address of the indexer
      */
     modifier onlyRegisteredIndexer(address indexer) {
-        _requireRegisteredIndexer(indexer);
+        _checkRegisteredIndexer(indexer);
         _;
     }
 
@@ -104,7 +107,6 @@ contract SubgraphService is
      * @dev Implements {IDataService.register}
      *
      * Requirements:
-     * - The indexer must not be already registered
      * - The URL must not be empty
      * - The provision must be valid according to the subgraph service rules
      *
@@ -129,13 +131,10 @@ contract SubgraphService is
 
         require(bytes(url).length > 0, SubgraphServiceEmptyUrl());
         require(bytes(geohash).length > 0, SubgraphServiceEmptyGeohash());
-        require(indexers[indexer].registeredAt == 0, SubgraphServiceIndexerAlreadyRegistered());
 
         // Register the indexer
-        indexers[indexer] = Indexer({ registeredAt: block.timestamp, url: url, geoHash: geohash });
-        if (paymentsDestination_ != address(0)) {
-            _setPaymentsDestination(indexer, paymentsDestination_);
-        }
+        indexers[indexer] = Indexer({ url: url, geoHash: geohash });
+        _setPaymentsDestination(indexer, paymentsDestination_);
 
         emit ServiceProviderRegistered(indexer, data);
     }
@@ -326,7 +325,7 @@ contract SubgraphService is
 
     /// @inheritdoc ISubgraphService
     function closeStaleAllocation(address allocationId) external override whenNotPaused {
-        Allocation.State memory allocation = _allocations.get(allocationId);
+        IAllocation.State memory allocation = _allocations.get(allocationId);
         require(allocation.isStale(maxPOIStaleness), SubgraphServiceCannotForceCloseAllocation(allocationId));
         require(!allocation.isAltruistic(), SubgraphServiceAllocationIsAltruistic(allocationId));
         _onCloseAllocation(allocationId, true);
@@ -356,9 +355,9 @@ contract SubgraphService is
     function migrateLegacyAllocation(
         address indexer,
         address allocationId,
-        bytes32 subgraphDeploymentID
+        bytes32 subgraphDeploymentId
     ) external override onlyOwner {
-        _migrateLegacyAllocation(indexer, allocationId, subgraphDeploymentID);
+        _migrateLegacyAllocation(indexer, allocationId, subgraphDeploymentId);
     }
 
     /// @inheritdoc ISubgraphService
@@ -386,9 +385,10 @@ contract SubgraphService is
         _setStakeToFeesRatio(stakeToFeesRatio_);
     }
 
+    // forge-lint: disable-next-item(mixed-case-function)
     /// @inheritdoc ISubgraphService
-    function setMaxPOIStaleness(uint256 maxPOIStaleness_) external override onlyOwner {
-        _setMaxPOIStaleness(maxPOIStaleness_);
+    function setMaxPOIStaleness(uint256 maxPoiStaleness_) external override onlyOwner {
+        _setMaxPoiStaleness(maxPoiStaleness_);
     }
 
     /// @inheritdoc ISubgraphService
@@ -523,7 +523,7 @@ contract SubgraphService is
     }
 
     /// @inheritdoc ISubgraphService
-    function getAllocation(address allocationId) external view override returns (Allocation.State memory) {
+    function getAllocation(address allocationId) external view override returns (IAllocation.State memory) {
         return _allocations[allocationId];
     }
 
@@ -531,7 +531,7 @@ contract SubgraphService is
     function getAllocationData(
         address allocationId
     ) external view override returns (bool, address, bytes32, uint256, uint256, uint256) {
-        Allocation.State memory allo = _allocations[allocationId];
+        IAllocation.State memory allo = _allocations[allocationId];
         return (
             allo.isOpen(),
             allo.indexer,
@@ -548,7 +548,7 @@ contract SubgraphService is
     }
 
     /// @inheritdoc ISubgraphService
-    function getLegacyAllocation(address allocationId) external view override returns (LegacyAllocation.State memory) {
+    function getLegacyAllocation(address allocationId) external view override returns (ILegacyAllocation.State memory) {
         return _legacyAllocations[allocationId];
     }
 
@@ -598,14 +598,6 @@ contract SubgraphService is
         emit PaymentsDestinationSet(_indexer, _paymentsDestination);
     }
 
-    /**
-     * @notice Requires that the indexer is registered
-     * @param _indexer The address of the indexer
-     */
-    function _requireRegisteredIndexer(address _indexer) internal view {
-        require(indexers[_indexer].registeredAt != 0, SubgraphServiceIndexerNotRegistered(_indexer));
-    }
-
     // -- Data service parameter getters --
     /**
      * @notice Getter for the accepted thawing period range for provisions
@@ -626,6 +618,14 @@ contract SubgraphService is
      */
     function _getVerifierCutRange() internal view override returns (uint32, uint32) {
         return (_disputeManager().getFishermanRewardCut(), DEFAULT_MAX_VERIFIER_CUT);
+    }
+
+    /**
+     * @notice Checks that an indexer is registered
+     * @param indexer The address of the indexer
+     */
+    function _checkRegisteredIndexer(address indexer) private view {
+        require(bytes(indexers[indexer].url).length > 0, SubgraphServiceIndexerNotRegistered(indexer));
     }
 
     /**
@@ -658,6 +658,7 @@ contract SubgraphService is
      * be collected.
      * @return The amount of fees collected
      */
+    // solhint-disable-next-line function-max-lines
     function _collectQueryFees(address _indexer, bytes calldata _data) private returns (uint256) {
         (IGraphTallyCollector.SignedRAV memory signedRav, uint256 tokensToCollect) = abi.decode(
             _data,
@@ -670,12 +671,12 @@ contract SubgraphService is
 
         // Check that collectionId (256 bits) is a valid address (160 bits)
         // collectionId is expected to be a zero padded address so it's safe to cast to uint160
-        require(
-            uint256(signedRav.rav.collectionId) <= type(uint160).max,
-            SubgraphServiceInvalidCollectionId(signedRav.rav.collectionId)
-        );
-        address allocationId = address(uint160(uint256(signedRav.rav.collectionId)));
-        Allocation.State memory allocation = _allocations.get(allocationId);
+        uint256 ravCollectionId = uint256(signedRav.rav.collectionId);
+        // solhint-disable-next-line gas-strict-inequalities
+        require(ravCollectionId <= type(uint160).max, SubgraphServiceInvalidCollectionId(signedRav.rav.collectionId));
+        // forge-lint: disable-next-line(unsafe-typecast)
+        address allocationId = address(uint160(ravCollectionId));
+        IAllocation.State memory allocation = _allocations.get(allocationId);
 
         // Check RAV is consistent - RAV indexer must match the allocation's indexer
         require(allocation.indexer == _indexer, SubgraphServiceInvalidRAV(_indexer, allocation.indexer));
@@ -697,6 +698,7 @@ contract SubgraphService is
             );
 
             uint256 balanceAfter = _graphToken().balanceOf(address(this));
+            // solhint-disable-next-line gas-strict-inequalities
             require(balanceAfter >= balanceBefore, SubgraphServiceInconsistentCollection(balanceBefore, balanceAfter));
             tokensCurators = balanceAfter - balanceBefore;
         }
@@ -746,7 +748,7 @@ contract SubgraphService is
             SubgraphServiceAllocationNotAuthorized(_indexer, allocationId)
         );
 
-        (uint256 paymentCollected, bool allocationForceClosed) = _presentPOI(
+        (uint256 paymentCollected, bool allocationForceClosed) = _presentPoi(
             allocationId,
             poi_,
             poiMetadata_,

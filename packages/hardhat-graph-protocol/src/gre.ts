@@ -1,18 +1,16 @@
-/* eslint-disable no-case-declarations */
+import type { GraphDeployments } from '@graphprotocol/toolshed/deployments'
+import { loadGraphHorizon, loadSubgraphService } from '@graphprotocol/toolshed/deployments'
+import { HardhatEthersProvider } from '@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider'
+import { lazyFunction } from 'hardhat/plugins'
+import type { HardhatConfig, HardhatRuntimeEnvironment, HardhatUserConfig } from 'hardhat/types'
 import path from 'path'
 
-import { loadGraphHorizon, loadSubgraphService } from '@graphprotocol/toolshed/deployments'
-import { logDebug, logError } from './logger'
 import { getAccounts } from './accounts'
 import { getAddressBookPath } from './config'
 import { GraphPluginError } from './error'
-import { HardhatEthersProvider } from '@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider'
-import { isGraphDeployment } from './types'
-import { lazyFunction } from 'hardhat/plugins'
-
-import type { HardhatConfig, HardhatRuntimeEnvironment, HardhatUserConfig } from 'hardhat/types'
-import type { GraphDeployments } from '@graphprotocol/toolshed/deployments'
+import { logDebug, logError } from './logger'
 import type { GraphRuntimeEnvironmentOptions } from './types'
+import { isGraphDeployment } from './types'
 
 export const greExtendConfig = (config: HardhatConfig, userConfig: Readonly<HardhatUserConfig>) => {
   const userPath = userConfig.paths?.graph
@@ -32,20 +30,32 @@ export const greExtendConfig = (config: HardhatConfig, userConfig: Readonly<Hard
 }
 
 export const greExtendEnvironment = (hre: HardhatRuntimeEnvironment) => {
-  hre.graph = lazyFunction(() => (opts: GraphRuntimeEnvironmentOptions = { deployments: {} }) => {
+  hre.graph = lazyFunction(() => (opts?: GraphRuntimeEnvironmentOptions) => {
     logDebug('*** Initializing Graph Runtime Environment (GRE) ***')
     logDebug(`Main network: ${hre.network.name}`)
+
+    if (opts === undefined) {
+      opts = {
+        deployments: {},
+        createAddressBook: false,
+      }
+    }
+
     const chainId = hre.network.config.chainId
     if (chainId === undefined) {
       throw new GraphPluginError('Please define chainId in your Hardhat network configuration')
     }
     logDebug(`Chain Id: ${chainId}`)
 
-    const deployments = [...new Set([
-      ...Object.keys(opts.deployments ?? {}),
-      ...Object.keys(hre.network.config.deployments ?? {}),
-      ...Object.keys(hre.config.graph?.deployments ?? {}),
-    ].filter(v => isGraphDeployment(v)))]
+    const deployments = [
+      ...new Set(
+        [
+          ...Object.keys(opts.deployments ?? {}),
+          ...Object.keys(hre.network.config.deployments ?? {}),
+          ...Object.keys(hre.config.graph?.deployments ?? {}),
+        ].filter((v) => isGraphDeployment(v)),
+      ),
+    ]
     logDebug(`Detected deployments: ${deployments.join(', ')}`)
 
     // Build the Graph Runtime Environment (GRE) for each deployment
@@ -70,7 +80,6 @@ export const greExtendEnvironment = (hre: HardhatRuntimeEnvironment) => {
             greDeployments.subgraphService = loadSubgraphService(addressBookPath, chainId, provider)
             break
           default:
-            // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
             logError(`Skipping deployment ${deployment} - Reason: unknown deployment`)
             break
         }

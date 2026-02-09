@@ -1,21 +1,65 @@
+import { Provider, Signer } from 'ethers'
 import fs from 'fs'
 
-import { logDebug, logError, logWarn } from '../lib/logger'
 import { assertObject } from '../lib/assert'
-
+import { logDebug, logError, logWarn } from '../lib/logger'
 import { ContractList, loadContract } from './contract'
-import { Provider, Signer } from 'ethers'
 
-export type AddressBookJson<
-  ChainId extends number = number,
-  ContractName extends string = string,
-> = Record<ChainId, Record<ContractName, AddressBookEntry>>
+export type AddressBookJson<ChainId extends number = number, ContractName extends string = string> = Record<
+  ChainId,
+  Record<ContractName, AddressBookEntry>
+>
 
-export type AddressBookEntry = {
+/**
+ * Metadata for a deployed contract, enabling verification and record reconstruction.
+ * Stored in address book to avoid relying on transient rocketh deployment records.
+ */
+export type DeploymentMetadata = {
+  /** Deployment transaction hash - enables recovery of all tx details */
+  txHash: string
+  /** ABI-encoded constructor arguments */
+  argsData: string
+  /** keccak256 of deployed bytecode (sans CBOR) for change detection */
+  bytecodeHash: string
+  /** Block number of deployment - useful for sync conflict detection */
+  blockNumber?: number
+  /** Block timestamp (ISO 8601) - human readable deployment time */
+  timestamp?: string
+  /** Block explorer verification URL */
+  verified?: string
+}
+
+/**
+ * Tracks a deployed implementation not yet activated on its proxy.
+ * Activation may require a governance transaction.
+ */
+export type PendingImplementation = {
+  /** Address of the deployed implementation contract */
   address: string
+  /** Full deployment metadata for verification and reconstruction */
+  deployment: DeploymentMetadata
+}
+
+/**
+ * An entry in the address book representing a deployed contract
+ */
+export type AddressBookEntry = {
+  /** The deployed contract address (proxy address if proxied, implementation if not) */
+  address: string
+  /** Proxy type: 'graph' for Graph custom proxy, 'transparent' for OZ TransparentProxy */
   proxy?: 'graph' | 'transparent'
+  /** Address of the ProxyAdmin contract that manages this proxy */
   proxyAdmin?: string
+  /** Address of the current active implementation (for proxied contracts) */
   implementation?: string
+  /** Pending implementation awaiting governance upgrade approval */
+  pendingImplementation?: PendingImplementation
+  /** Deployment metadata for non-proxied contracts */
+  deployment?: DeploymentMetadata
+  /** Deployment metadata for proxy contract (proxied contracts only) */
+  proxyDeployment?: DeploymentMetadata
+  /** Deployment metadata for implementation (proxied contracts only) */
+  implementationDeployment?: DeploymentMetadata
 }
 
 /**
@@ -36,10 +80,7 @@ export type AddressBookEntry = {
  * - `isContractName(name: string): name is ContractName`, a type predicate to check if a given string is a ContractName
  * - `loadContracts(signerOrProvider?: Signer | Provider): ContractList<ContractName>` to load contracts from the address book
  */
-export abstract class AddressBook<
-  ChainId extends number = number,
-  ContractName extends string = string,
-> {
+export abstract class AddressBook<ChainId extends number = number, ContractName extends string = string> {
   // The path to the address book file
   public file: string
 
@@ -80,7 +121,7 @@ export abstract class AddressBook<
     // Create empty address book if file doesn't exist
     if (!fs.existsSync(this.file)) {
       const emptyAddressBook = { [this.chainId]: {} }
-      fs.writeFileSync(this.file, JSON.stringify(emptyAddressBook, null, 2))
+      fs.writeFileSync(this.file, JSON.stringify(emptyAddressBook, null, 2) + '\n')
       logDebug(`Created new address book at ${this.file}`)
     }
 
@@ -143,7 +184,7 @@ export abstract class AddressBook<
     this._assertAddressBookEntry(entry)
     this.addressBook[this.chainId][name] = entry
     try {
-      fs.writeFileSync(this.file, JSON.stringify(this.addressBook, null, 2))
+      fs.writeFileSync(this.file, JSON.stringify(this.addressBook, null, 2) + '\n')
     } catch (e: unknown) {
       if (e instanceof Error) logError(`Error saving entry: ${e.message}`)
       else logError(`Error saving entry`)
@@ -166,7 +207,9 @@ export abstract class AddressBook<
     }
 
     if (this.invalidContracts.length > 0) {
-      logWarn(`Detected invalid contracts in address book - these will not be loaded: ${this.invalidContracts.join(', ')}`)
+      logWarn(
+        `Detected invalid contracts in address book - these will not be loaded: ${this.invalidContracts.join(', ')}`,
+      )
     }
   }
 
@@ -178,34 +221,18 @@ export abstract class AddressBook<
    * @param enableTxLogging Enable transaction logging to console and output file. Defaults to false.
    * @returns the loaded contracts
    */
-  _loadContracts(
-    artifactsPath: string | string[] | Record<ContractName, string>,
-    signerOrProvider?: Signer | Provider,
-    enableTxLogging?: boolean,
-  ): ContractList<ContractName> {
+  _loadContracts(signerOrProvider?: Signer | Provider, enableTxLogging?: boolean): ContractList<ContractName> {
     const contracts = {} as ContractList<ContractName>
     if (this.listEntries().length == 0) {
       logError('No valid contracts found in address book')
       return contracts
     }
     for (const contractName of this.listEntries()) {
-      const artifactPath = typeof artifactsPath === 'object' && !Array.isArray(artifactsPath)
-        ? artifactsPath[contractName]
-        : artifactsPath
-
-      if (Array.isArray(artifactPath)
-        ? !artifactPath.some(fs.existsSync)
-        : !fs.existsSync(artifactPath)) {
-        logWarn(`Could not load contract ${contractName} - artifact not found`)
-        logWarn(artifactPath)
-        continue
-      }
       logDebug(`Loading contract ${contractName}`)
 
       const contract = loadContract(
         contractName,
         this.getEntry(contractName).address,
-        artifactPath,
         signerOrProvider,
         enableTxLogging,
       )
@@ -217,9 +244,7 @@ export abstract class AddressBook<
 
   // Asserts the provided object has the correct JSON format shape for an address book
   // This method can be overridden by subclasses to provide custom validation
-  assertAddressBookJson(
-    json: unknown,
-  ): asserts json is AddressBookJson<ChainId, ContractName> {
+  assertAddressBookJson(json: unknown): asserts json is AddressBookJson<ChainId, ContractName> {
     this._assertAddressBookJson(json)
   }
 
@@ -237,17 +262,24 @@ export abstract class AddressBook<
   }
 
   // Asserts the provided object is a valid address book entry
-  _assertAddressBookEntry(
-    entry: unknown,
-  ): asserts entry is AddressBookEntry {
+  _assertAddressBookEntry(entry: unknown): asserts entry is AddressBookEntry {
     assertObject(entry)
     if (!('address' in entry)) {
       throw new Error('Address book entry must have an address field')
     }
 
-    const allowedFields = ['address', 'implementation', 'proxyAdmin', 'proxy']
+    const allowedFields = [
+      'address',
+      'implementation',
+      'proxyAdmin',
+      'proxy',
+      'pendingImplementation',
+      'deployment',
+      'proxyDeployment',
+      'implementationDeployment',
+    ]
     const entryFields = Object.keys(entry)
-    const invalidFields = entryFields.filter(field => !allowedFields.includes(field))
+    const invalidFields = entryFields.filter((field) => !allowedFields.includes(field))
     if (invalidFields.length > 0) {
       throw new Error(`Address book entry contains invalid fields: ${invalidFields.join(', ')}`)
     }

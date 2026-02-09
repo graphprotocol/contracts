@@ -1,31 +1,28 @@
+import ControllerArtifact from '@graphprotocol/contracts/artifacts/contracts/governance/Controller.sol/Controller.json'
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
+import { ethers } from 'ethers'
 
-import { MigrateCurationGovernorModule } from '../periphery/Curation'
 import { MigrateHorizonStakingGovernorModule } from '../core/HorizonStaking'
+import { MigrateCurationGovernorModule } from '../periphery/Curation'
 import { MigrateRewardsManagerGovernorModule } from '../periphery/RewardsManager'
 
 export default buildModule('GraphHorizon_Migrate_4', (m) => {
-  const {
-    L2Curation,
-    L2CurationImplementation,
-  } = m.useModule(MigrateCurationGovernorModule)
+  m.useModule(MigrateCurationGovernorModule)
+  m.useModule(MigrateRewardsManagerGovernorModule)
+  m.useModule(MigrateHorizonStakingGovernorModule)
 
-  const {
-    RewardsManager,
-    RewardsManagerImplementation,
-  } = m.useModule(MigrateRewardsManagerGovernorModule)
+  // Patch controller to override old dispute manager address
+  const disputeManagerAddress = m.getParameter('disputeManagerAddress')
+  const controllerAddress = m.getParameter('controllerAddress')
+  const Controller = m.contractAt('Controller', ControllerArtifact, controllerAddress)
+  m.call(
+    Controller,
+    'setContractProxy',
+    [ethers.keccak256(ethers.toUtf8Bytes('DisputeManager')), disputeManagerAddress],
+    {
+      id: 'setContractProxy_DisputeManager',
+    },
+  )
 
-  const {
-    HorizonStaking,
-    HorizonStakingImplementation,
-  } = m.useModule(MigrateHorizonStakingGovernorModule)
-
-  return {
-    Graph_Proxy_L2Curation: L2Curation,
-    Implementation_L2Curation: L2CurationImplementation,
-    Graph_Proxy_RewardsManager: RewardsManager,
-    Implementation_RewardsManager: RewardsManagerImplementation,
-    Graph_Proxy_HorizonStaking: HorizonStaking,
-    Implementation_HorizonStaking: HorizonStakingImplementation,
-  }
+  return {}
 })

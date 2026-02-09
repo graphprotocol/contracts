@@ -3,8 +3,12 @@
 pragma solidity ^0.7.3;
 pragma experimental ABIEncoderV2;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable function-max-lines, gas-indexed-events, gas-strict-inequalities, use-natspec
+// solhint-disable named-parameters-mapping
+
 import { AddressUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
-import { ITokenGateway } from "./arbitrum/ITokenGateway.sol";
+import { ITokenGateway } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/ITokenGateway.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { L2GraphTokenLockManager } from "./L2GraphTokenLockManager.sol";
 import { GraphTokenLockWallet } from "./GraphTokenLockWallet.sol";
@@ -38,12 +42,16 @@ contract L1GraphTokenLockTransferTool is OwnableInitializable, Initializable, Mi
     using SafeMathUpgradeable for uint256;
 
     /// Address of the L1 GRT token contract
+    // solhint-disable-next-line immutable-vars-naming
     IERC20 public immutable graphToken;
     /// Address of the L2GraphTokenLockWallet implementation in L2, used to compute L2 wallet addresses
+    // solhint-disable-next-line immutable-vars-naming
     address public immutable l2Implementation;
     /// Address of the L1GraphTokenGateway contract
+    // solhint-disable-next-line immutable-vars-naming
     ITokenGateway public immutable l1Gateway;
     /// Address of the Staking contract, used to pull ETH for L2 ticket gas
+    // solhint-disable-next-line immutable-vars-naming
     address payable public immutable staking;
     /// L2 lock manager for each L1 lock manager.
     /// L1 GraphTokenLockManager => L2GraphTokenLockManager

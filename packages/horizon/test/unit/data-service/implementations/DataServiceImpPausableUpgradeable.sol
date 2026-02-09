@@ -3,7 +3,7 @@ pragma solidity 0.8.27;
 
 import { DataService } from "../../../../contracts/data-service/DataService.sol";
 import { DataServicePausableUpgradeable } from "../../../../contracts/data-service/extensions/DataServicePausableUpgradeable.sol";
-import { IGraphPayments } from "./../../../../contracts/interfaces/IGraphPayments.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 
 contract DataServiceImpPausableUpgradeable is DataServicePausableUpgradeable {
     constructor(address controller_) DataService(controller_) {

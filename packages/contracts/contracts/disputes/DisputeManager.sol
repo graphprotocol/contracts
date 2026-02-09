@@ -3,18 +3,23 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/cryptography/ECDSA.sol";
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-small-strings, gas-strict-inequalities
 
-import "../governance/Managed.sol";
-import "../upgrades/GraphUpgradeable.sol";
-import "../utils/TokenUtils.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { ECDSA } from "@openzeppelin/contracts/cryptography/ECDSA.sol";
 
-import "./DisputeManagerStorage.sol";
-import "./IDisputeManager.sol";
+import { Managed } from "../governance/Managed.sol";
+import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
+import { TokenUtils } from "../utils/TokenUtils.sol";
+import { IStaking } from "@graphprotocol/interfaces/contracts/contracts/staking/IStaking.sol";
 
-/*
+import { DisputeManagerV1Storage } from "./DisputeManagerStorage.sol";
+import { IDisputeManager } from "@graphprotocol/interfaces/contracts/contracts/disputes/IDisputeManager.sol";
+
+/**
  * @title DisputeManager
+ * @author Edge & Node
  * @notice Provides a way to align the incentives of participants by having slashing as deterrent
  * for incorrect behaviour.
  *
@@ -41,39 +46,61 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
 
     // -- EIP-712  --
 
+    /// @dev EIP-712 domain type hash for signature verification
     bytes32 private constant DOMAIN_TYPE_HASH =
         keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)");
+    /// @dev EIP-712 domain name hash
     bytes32 private constant DOMAIN_NAME_HASH = keccak256("Graph Protocol");
+    /// @dev EIP-712 domain version hash
     bytes32 private constant DOMAIN_VERSION_HASH = keccak256("0");
+    /// @dev EIP-712 domain salt for uniqueness
     bytes32 private constant DOMAIN_SALT = 0xa070ffb1cd7409649bf77822cce74495468e06dbfaef09556838bf188679b9c2;
+    /// @dev EIP-712 receipt type hash for attestation verification
     bytes32 private constant RECEIPT_TYPE_HASH =
         keccak256("Receipt(bytes32 requestCID,bytes32 responseCID,bytes32 subgraphDeploymentID)");
 
     // -- Constants --
 
-    // Attestation size is the sum of the receipt (96) + signature (65)
+    /// @dev Total size of attestation in bytes (receipt + signature)
     uint256 private constant ATTESTATION_SIZE_BYTES = RECEIPT_SIZE_BYTES + SIG_SIZE_BYTES;
+    /// @dev Size of receipt in bytes
     uint256 private constant RECEIPT_SIZE_BYTES = 96;
 
+    /// @dev Length of signature R component in bytes
     uint256 private constant SIG_R_LENGTH = 32;
+    /// @dev Length of signature S component in bytes
     uint256 private constant SIG_S_LENGTH = 32;
+    /// @dev Length of signature V component in bytes
     uint256 private constant SIG_V_LENGTH = 1;
+    /// @dev Offset of signature R component in attestation data
     uint256 private constant SIG_R_OFFSET = RECEIPT_SIZE_BYTES;
+    /// @dev Offset of signature S component in attestation data
     uint256 private constant SIG_S_OFFSET = RECEIPT_SIZE_BYTES + SIG_R_LENGTH;
+    /// @dev Offset of signature V component in attestation data
     uint256 private constant SIG_V_OFFSET = RECEIPT_SIZE_BYTES + SIG_R_LENGTH + SIG_S_LENGTH;
+    /// @dev Total size of signature in bytes
     uint256 private constant SIG_SIZE_BYTES = SIG_R_LENGTH + SIG_S_LENGTH + SIG_V_LENGTH;
 
+    /// @dev Length of uint8 type in bytes
     uint256 private constant UINT8_BYTE_LENGTH = 1;
+    /// @dev Length of bytes32 type in bytes
     uint256 private constant BYTES32_BYTE_LENGTH = 32;
 
+    /// @dev Maximum percentage in parts per million (100%)
     uint256 private constant MAX_PPM = 1000000; // 100% in parts per million
 
     // -- Events --
 
     /**
-     * @dev Emitted when a query dispute is created for `subgraphDeploymentID` and `indexer`
+     * @notice Emitted when a query dispute is created for `subgraphDeploymentID` and `indexer`
      * by `fisherman`.
      * The event emits the amount of `tokens` deposited by the fisherman and `attestation` submitted.
+     * @param disputeID ID of the dispute
+     * @param indexer Address of the indexer being disputed
+     * @param fisherman Address of the fisherman creating the dispute
+     * @param tokens Amount of tokens deposited by the fisherman
+     * @param subgraphDeploymentID Subgraph deployment ID being disputed
+     * @param attestation Attestation data submitted
      */
     event QueryDisputeCreated(
         bytes32 indexed disputeID,
@@ -85,9 +112,14 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     );
 
     /**
-     * @dev Emitted when an indexing dispute is created for `allocationID` and `indexer`
+     * @notice Emitted when an indexing dispute is created for `allocationID` and `indexer`
      * by `fisherman`.
      * The event emits the amount of `tokens` deposited by the fisherman.
+     * @param disputeID ID of the dispute
+     * @param indexer Address of the indexer being disputed
+     * @param fisherman Address of the fisherman creating the dispute
+     * @param tokens Amount of tokens deposited by the fisherman
+     * @param allocationID Allocation ID being disputed
      */
     event IndexingDisputeCreated(
         bytes32 indexed disputeID,
@@ -98,8 +130,12 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     );
 
     /**
-     * @dev Emitted when arbitrator accepts a `disputeID` to `indexer` created by `fisherman`.
+     * @notice Emitted when arbitrator accepts a `disputeID` to `indexer` created by `fisherman`.
      * The event emits the amount `tokens` transferred to the fisherman, the deposit plus reward.
+     * @param disputeID ID of the dispute
+     * @param indexer Address of the indexer being disputed
+     * @param fisherman Address of the fisherman who created the dispute
+     * @param tokens Amount of tokens transferred to the fisherman (deposit plus reward)
      */
     event DisputeAccepted(
         bytes32 indexed disputeID,
@@ -109,8 +145,12 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     );
 
     /**
-     * @dev Emitted when arbitrator rejects a `disputeID` for `indexer` created by `fisherman`.
+     * @notice Emitted when arbitrator rejects a `disputeID` for `indexer` created by `fisherman`.
      * The event emits the amount `tokens` burned from the fisherman deposit.
+     * @param disputeID ID of the dispute
+     * @param indexer Address of the indexer being disputed
+     * @param fisherman Address of the fisherman who created the dispute
+     * @param tokens Amount of tokens burned from the fisherman deposit
      */
     event DisputeRejected(
         bytes32 indexed disputeID,
@@ -120,20 +160,29 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     );
 
     /**
-     * @dev Emitted when arbitrator draw a `disputeID` for `indexer` created by `fisherman`.
+     * @notice Emitted when arbitrator draw a `disputeID` for `indexer` created by `fisherman`.
      * The event emits the amount `tokens` used as deposit and returned to the fisherman.
+     * @param disputeID ID of the dispute
+     * @param indexer Address of the indexer being disputed
+     * @param fisherman Address of the fisherman who created the dispute
+     * @param tokens Amount of tokens used as deposit and returned to the fisherman
      */
     event DisputeDrawn(bytes32 indexed disputeID, address indexed indexer, address indexed fisherman, uint256 tokens);
 
     /**
-     * @dev Emitted when two disputes are in conflict to link them.
+     * @notice Emitted when two disputes are in conflict to link them.
      * This event will be emitted after each DisputeCreated event is emitted
      * for each of the individual disputes.
+     * @param disputeID1 ID of the first dispute
+     * @param disputeID2 ID of the second dispute
      */
     event DisputeLinked(bytes32 indexed disputeID1, bytes32 indexed disputeID2);
 
     // -- Modifiers --
 
+    /**
+     * @notice Internal function to check if the caller is the arbitrator
+     */
     function _onlyArbitrator() internal view {
         require(msg.sender == arbitrator, "Caller is not the Arbitrator");
     }
@@ -146,6 +195,10 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
         _;
     }
 
+    /**
+     * @dev Check if the dispute exists and is pending
+     * @param _disputeID ID of the dispute to check
+     */
     modifier onlyPendingDispute(bytes32 _disputeID) {
         require(isDisputeCreated(_disputeID), "Dispute does not exist");
         require(disputes[_disputeID].status == IDisputeManager.DisputeStatus.Pending, "Dispute must be pending");
@@ -155,7 +208,8 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     // -- Functions --
 
     /**
-     * @dev Initialize this contract.
+     * @notice Initialize this contract.
+     * @param _controller Controller address
      * @param _arbitrator Arbitrator role
      * @param _minimumDeposit Minimum deposit required to create a Dispute
      * @param _fishermanRewardPercentage Percent of slashed funds for fisherman (ppm)
@@ -192,16 +246,13 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     }
 
     /**
-     * @dev Set the arbitrator address.
-     * @notice Update the arbitrator to `_arbitrator`
-     * @param _arbitrator The address of the arbitration contract or party
+     * @inheritdoc IDisputeManager
      */
     function setArbitrator(address _arbitrator) external override onlyGovernor {
         _setArbitrator(_arbitrator);
     }
 
     /**
-     * @dev Internal: Set the arbitrator address.
      * @notice Update the arbitrator to `_arbitrator`
      * @param _arbitrator The address of the arbitration contract or party
      */
@@ -212,16 +263,13 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     }
 
     /**
-     * @dev Set the minimum deposit required to create a dispute.
-     * @notice Update the minimum deposit to `_minimumDeposit` Graph Tokens
-     * @param _minimumDeposit The minimum deposit in Graph Tokens
+     * @inheritdoc IDisputeManager
      */
     function setMinimumDeposit(uint256 _minimumDeposit) external override onlyGovernor {
         _setMinimumDeposit(_minimumDeposit);
     }
 
     /**
-     * @dev Internal: Set the minimum deposit required to create a dispute.
      * @notice Update the minimum deposit to `_minimumDeposit` Graph Tokens
      * @param _minimumDeposit The minimum deposit in Graph Tokens
      */
@@ -232,17 +280,14 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     }
 
     /**
-     * @dev Set the percent reward that the fisherman gets when slashing occurs.
-     * @notice Update the reward percentage to `_percentage`
-     * @param _percentage Reward as a percentage of indexer stake
+     * @inheritdoc IDisputeManager
      */
     function setFishermanRewardPercentage(uint32 _percentage) external override onlyGovernor {
         _setFishermanRewardPercentage(_percentage);
     }
 
     /**
-     * @dev Internal: Set the percent reward that the fisherman gets when slashing occurs.
-     * @notice Update the reward percentage to `_percentage`
+     * @notice Set the percent reward that the fisherman gets when slashing occurs.
      * @param _percentage Reward as a percentage of indexer stake
      */
     function _setFishermanRewardPercentage(uint32 _percentage) private {
@@ -253,16 +298,14 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     }
 
     /**
-     * @dev Set the percentage used for slashing indexers.
-     * @param _qryPercentage Percentage slashing for query disputes
-     * @param _idxPercentage Percentage slashing for indexing disputes
+     * @inheritdoc IDisputeManager
      */
     function setSlashingPercentage(uint32 _qryPercentage, uint32 _idxPercentage) external override onlyGovernor {
         _setSlashingPercentage(_qryPercentage, _idxPercentage);
     }
 
     /**
-     * @dev Internal: Set the percentage used for slashing indexers.
+     * @notice Internal: Set the percentage used for slashing indexers.
      * @param _qryPercentage Percentage slashing for query disputes
      * @param _idxPercentage Percentage slashing for indexing disputes
      */
@@ -279,21 +322,16 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     }
 
     /**
-     * @dev Return whether a dispute exists or not.
-     * @notice Return if dispute with ID `_disputeID` exists
-     * @param _disputeID True if dispute already exists
+     * @inheritdoc IDisputeManager
      */
     function isDisputeCreated(bytes32 _disputeID) public view override returns (bool) {
         return disputes[_disputeID].status != DisputeStatus.Null;
     }
 
     /**
-     * @dev Get the message hash that an indexer used to sign the receipt.
-     * Encodes a receipt using a domain separator, as described on
+     * @inheritdoc IDisputeManager
+     * @dev Encodes a receipt using a domain separator, as described on
      * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md#specification.
-     * @notice Return the message hash used to sign the receipt
-     * @param _receipt Receipt returned by indexer and submitted by fisherman
-     * @return Message hash used to sign the receipt
      */
     function encodeHashReceipt(Receipt memory _receipt) public view override returns (bytes32) {
         return
@@ -314,11 +352,8 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     }
 
     /**
-     * @dev Returns if two attestations are conflicting.
-     * Everything must match except for the responseID.
-     * @param _attestation1 Attestation
-     * @param _attestation2 Attestation
-     * @return True if the two attestations are conflicting
+     * @inheritdoc IDisputeManager
+     * @dev Everything must match except for the responseID.
      */
     function areConflictingAttestations(
         Attestation memory _attestation1,
@@ -330,9 +365,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     }
 
     /**
-     * @dev Returns the indexer that signed an attestation.
-     * @param _attestation Attestation
-     * @return Indexer address
+     * @inheritdoc IDisputeManager
      */
     function getAttestationIndexer(Attestation memory _attestation) public view override returns (address) {
         // Get attestation signer. Indexers signs with the allocationID
@@ -348,11 +381,9 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     }
 
     /**
-     * @dev Create a query dispute for the arbitrator to resolve.
-     * This function is called by a fisherman that will need to `_deposit` at
+     * @inheritdoc IDisputeManager
+     * @dev This function is called by a fisherman that will need to `_deposit` at
      * least `minimumDeposit` GRT tokens.
-     * @param _attestationData Attestation bytes submitted by the fisherman
-     * @param _deposit Amount of tokens staked as deposit
      */
     function createQueryDispute(bytes calldata _attestationData, uint256 _deposit) external override returns (bytes32) {
         // Get funds from submitter
@@ -369,16 +400,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     }
 
     /**
-     * @dev Create query disputes for two conflicting attestations.
-     * A conflicting attestation is a proof presented by two different indexers
-     * where for the same request on a subgraph the response is different.
-     * For this type of dispute the submitter is not required to present a deposit
-     * as one of the attestation is considered to be right.
-     * Two linked disputes will be created and if the arbitrator resolve one, the other
-     * one will be automatically resolved.
-     * @param _attestationData1 First attestation data submitted
-     * @param _attestationData2 Second attestation data submitted
-     * @return DisputeID1, DisputeID2
+     * @inheritdoc IDisputeManager
      */
     function createQueryDisputeConflict(
         bytes calldata _attestationData1,
@@ -409,7 +431,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     }
 
     /**
-     * @dev Create a query dispute passing the parsed attestation.
+     * @notice Create a query dispute passing the parsed attestation.
      * To be used in createQueryDispute() and createQueryDisputeConflict()
      * to avoid calling parseAttestation() multiple times
      * `_attestationData` is only passed to be emitted
@@ -472,8 +494,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
      * The disputes are created in reference to an allocationID
      * This function is called by a challenger that will need to `_deposit` at
      * least `minimumDeposit` GRT tokens.
-     * @param _allocationID The allocation to dispute
-     * @param _deposit Amount of tokens staked as deposit
+     * @inheritdoc IDisputeManager
      */
     function createIndexingDispute(address _allocationID, uint256 _deposit) external override returns (bytes32) {
         // Get funds from submitter
@@ -484,12 +505,12 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     }
 
     /**
-     * @dev Create indexing dispute internal function.
+     * @notice Create indexing dispute internal function.
      * @param _fisherman The challenger creating the dispute
      * @param _deposit Amount of tokens staked as deposit
      * @param _allocationID Allocation disputed
+     * @return disputeID The ID of the created dispute
      */
-
     function _createIndexingDisputeWithAllocation(
         address _fisherman,
         uint256 _deposit,
@@ -525,12 +546,10 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     }
 
     /**
-     * @dev The arbitrator accepts a dispute as being valid.
-     * This function will revert if the indexer is not slashable, whether because it does not have
+     * @dev This function will revert if the indexer is not slashable, whether because it does not have
      * any stake available or the slashing percentage is configured to be zero. In those cases
      * a dispute must be resolved using drawDispute or rejectDispute.
-     * @notice Accept a dispute with ID `_disputeID`
-     * @param _disputeID ID of the dispute to be accepted
+     * @inheritdoc IDisputeManager
      */
     function acceptDispute(bytes32 _disputeID) external override onlyArbitrator onlyPendingDispute(_disputeID) {
         Dispute storage dispute = disputes[_disputeID];
@@ -552,9 +571,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     }
 
     /**
-     * @dev The arbitrator rejects a dispute as being invalid.
-     * @notice Reject a dispute with ID `_disputeID`
-     * @param _disputeID ID of the dispute to be rejected
+     * @inheritdoc IDisputeManager
      */
     function rejectDispute(bytes32 _disputeID) public override onlyArbitrator onlyPendingDispute(_disputeID) {
         Dispute storage dispute = disputes[_disputeID];
@@ -575,9 +592,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     }
 
     /**
-     * @dev The arbitrator draws dispute.
-     * @notice Ignore a dispute with ID `_disputeID`
-     * @param _disputeID ID of the dispute to be disregarded
+     * @inheritdoc IDisputeManager
      */
     function drawDispute(bytes32 _disputeID) external override onlyArbitrator onlyPendingDispute(_disputeID) {
         Dispute storage dispute = disputes[_disputeID];
@@ -595,7 +610,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     }
 
     /**
-     * @dev Returns whether the dispute is for a conflicting attestation or not.
+     * @notice Returns whether the dispute is for a conflicting attestation or not.
      * @param _dispute Dispute
      * @return True conflicting attestation dispute
      */
@@ -606,7 +621,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     }
 
     /**
-     * @dev Resolve the conflicting dispute if there is any for the one passed to this function.
+     * @notice Resolve the conflicting dispute if there is any for the one passed to this function.
      * @param _dispute Dispute
      * @return True if resolved
      */
@@ -621,7 +636,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     }
 
     /**
-     * @dev Pull deposit from submitter account.
+     * @notice Pull deposit from submitter account.
      * @param _deposit Amount of tokens to deposit
      */
     function _pullSubmitterDeposit(uint256 _deposit) private {
@@ -633,7 +648,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     }
 
     /**
-     * @dev Make the staking contract slash the indexer and reward the challenger.
+     * @notice Make the staking contract slash the indexer and reward the challenger.
      * Give the challenger a reward equal to the fishermanRewardPercentage of slashed amount
      * @param _indexer Address of the indexer
      * @param _challenger Address of the challenger
@@ -664,7 +679,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     }
 
     /**
-     * @dev Return the slashing percentage for the dispute type.
+     * @notice Return the slashing percentage for the dispute type.
      * @param _disputeType Dispute type
      * @return Slashing percentage to use for the dispute type
      */
@@ -675,7 +690,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     }
 
     /**
-     * @dev Recover the signer address of the `_attestation`.
+     * @notice Recover the signer address of the `_attestation`.
      * @param _attestation The attestation struct
      * @return Signer address
      */
@@ -694,11 +709,12 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     }
 
     /**
-     * @dev Get the running network chain ID
+     * @notice Get the running network chain ID
      * @return The chain ID
      */
     function _getChainID() private pure returns (uint256) {
         uint256 id;
+        // solhint-disable-next-line no-inline-assembly
         assembly {
             id := chainid()
         }
@@ -706,7 +722,8 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     }
 
     /**
-     * @dev Parse the bytes attestation into a struct from `_data`.
+     * @notice Parse the bytes attestation into a struct from `_data`.
+     * @param _data The bytes data to parse into an attestation
      * @return Attestation struct
      */
     function _parseAttestation(bytes memory _data) private pure returns (Attestation memory) {
@@ -729,13 +746,16 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     }
 
     /**
-     * @dev Parse a uint8 from `_bytes` starting at offset `_start`.
+     * @notice Parse a uint8 from `_bytes` starting at offset `_start`.
+     * @param _bytes The bytes array to parse from
+     * @param _start The starting offset in the bytes array
      * @return uint8 value
      */
     function _toUint8(bytes memory _bytes, uint256 _start) private pure returns (uint8) {
         require(_bytes.length >= (_start + UINT8_BYTE_LENGTH), "Bytes: out of bounds");
         uint8 tempUint;
 
+        // solhint-disable-next-line no-inline-assembly
         assembly {
             tempUint := mload(add(add(_bytes, 0x1), _start))
         }
@@ -744,13 +764,16 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     }
 
     /**
-     * @dev Parse a bytes32 from `_bytes` starting at offset `_start`.
+     * @notice Parse a bytes32 from `_bytes` starting at offset `_start`.
+     * @param _bytes The bytes array to parse from
+     * @param _start The starting offset in the bytes array
      * @return bytes32 value
      */
     function _toBytes32(bytes memory _bytes, uint256 _start) private pure returns (bytes32) {
         require(_bytes.length >= (_start + BYTES32_BYTE_LENGTH), "Bytes: out of bounds");
         bytes32 tempBytes32;
 
+        // solhint-disable-next-line no-inline-assembly
         assembly {
             tempBytes32 := mload(add(add(_bytes, 0x20), _start))
         }

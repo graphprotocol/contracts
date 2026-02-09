@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "forge-std/Test.sol";
-
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingGovernanceTest is HorizonStakingTest {
@@ -41,7 +39,7 @@ contract HorizonStakingGovernanceTest is HorizonStakingTest {
 
     function testGovernance_ClearThawingPeriod(uint32 thawingPeriod) public useGovernor {
         // simulate previous thawing period
-        _setStorage_DeprecatedThawingPeriod(thawingPeriod);
+        _setStorageDeprecatedThawingPeriod(thawingPeriod);
 
         _clearThawingPeriod();
     }

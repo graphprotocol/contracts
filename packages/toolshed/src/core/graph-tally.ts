@@ -1,8 +1,10 @@
-import { BytesLike, ethers, id, Signature, Wallet } from 'ethers'
+import { BytesLike, ethers, Signature, Wallet } from 'ethers'
 
 import type { RAV } from './types'
-export const EIP712_RAV_PROOF_TYPEHASH = id('ReceiptAggregateVoucher(bytes32 collectionId,address payer,address serviceProvider,address dataService,uint64 timestampNs,uint128 valueAggregate,bytes metadata)')
-export const EIP712_RAV_PROOF_TYPES = {
+
+export const EIP712_DOMAIN_NAME = 'GraphTallyCollector'
+export const EIP712_DOMAIN_VERSION = '1'
+export const EIP712_RAV_TYPES = {
   ReceiptAggregateVoucher: [
     { name: 'collectionId', type: 'bytes32' },
     { name: 'payer', type: 'address' },
@@ -33,17 +35,17 @@ export async function generateSignedRAV(
   payer: string,
   serviceProvider: string,
   dataService: string,
-  timestampNs: number,
+  timestampNs: bigint,
   valueAggregate: bigint,
   metadata: BytesLike,
   signerPrivateKey: string,
   graphTallyCollectorAddress: string,
   chainId: number,
-): Promise<{ rav: RAV, signature: string }> {
+): Promise<{ rav: RAV; signature: string }> {
   // Create the domain for the EIP712 signature
   const domain = {
-    name: 'GraphTallyCollector',
-    version: '1',
+    name: EIP712_DOMAIN_NAME,
+    version: EIP712_DOMAIN_VERSION,
     chainId,
     verifyingContract: graphTallyCollectorAddress,
   }
@@ -61,10 +63,25 @@ export async function generateSignedRAV(
 
   // Sign the RAV data
   const signer = new Wallet(signerPrivateKey)
-  const signature = await signer.signTypedData(domain, EIP712_RAV_PROOF_TYPES, ravData)
+  const signature = await signer.signTypedData(domain, EIP712_RAV_TYPES, ravData)
 
   // Return the signed RAV
   return { rav: ravData, signature: signature }
+}
+
+export function recoverRAVSigner(
+  rav: RAV,
+  signature: string,
+  graphTallyCollectorAddress: string,
+  chainId: number,
+): string {
+  const domain = {
+    name: EIP712_DOMAIN_NAME,
+    version: EIP712_DOMAIN_VERSION,
+    chainId,
+    verifyingContract: graphTallyCollectorAddress,
+  }
+  return ethers.verifyTypedData(domain, EIP712_RAV_TYPES, rav, signature)
 }
 
 /**
@@ -87,13 +104,7 @@ export function generateSignerProof(
   const messageHash = ethers.keccak256(
     ethers.solidityPacked(
       ['uint256', 'address', 'string', 'uint256', 'address'],
-      [
-        chainId,
-        graphTallyCollectorAddress,
-        'authorizeSignerProof',
-        proofDeadline,
-        payer,
-      ],
+      [chainId, graphTallyCollectorAddress, 'authorizeSignerProof', proofDeadline, payer],
     ),
   )
 

@@ -1,21 +1,40 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity 0.8.27;
+pragma solidity ^0.8.27;
 
-import { MockGRTToken } from "./MockGRTToken.sol";
-
+/**
+ * @title CurationMock
+ * @author Edge & Node
+ * @notice Mock implementation of curation functionality for testing
+ */
 contract CurationMock {
-    mapping(bytes32 => uint256) public curation;
+    /// @notice Mapping of subgraph deployment ID to curation tokens
+    mapping(bytes32 subgraphDeploymentId => uint256 tokens) public curation;
 
-    function signal(bytes32 _subgraphDeploymentID, uint256 _tokens) public {
-        curation[_subgraphDeploymentID] += _tokens;
+    /**
+     * @notice Signal curation tokens for a subgraph deployment
+     * @param subgraphDeploymentId The subgraph deployment ID
+     * @param tokens The amount of tokens to signal
+     */
+    function signal(bytes32 subgraphDeploymentId, uint256 tokens) public {
+        curation[subgraphDeploymentId] += tokens;
     }
 
-    function isCurated(bytes32 _subgraphDeploymentID) public view returns (bool) {
-        return curation[_subgraphDeploymentID] != 0;
+    /**
+     * @notice Check if a subgraph deployment is curated
+     * @param subgraphDeploymentId The subgraph deployment ID
+     * @return True if the subgraph deployment has curation tokens
+     */
+    function isCurated(bytes32 subgraphDeploymentId) public view returns (bool) {
+        return curation[subgraphDeploymentId] != 0;
     }
 
-    function collect(bytes32 _subgraphDeploymentID, uint256 _tokens) external {
-        curation[_subgraphDeploymentID] += _tokens;
+    /**
+     * @notice Collect curation tokens for a subgraph deployment
+     * @param subgraphDeploymentId The subgraph deployment ID
+     * @param tokens The amount of tokens to collect
+     */
+    function collect(bytes32 subgraphDeploymentId, uint256 tokens) external {
+        curation[subgraphDeploymentId] += tokens;
     }
 }

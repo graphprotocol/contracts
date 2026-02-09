@@ -1,0 +1,41 @@
+# Lock files (auto-generated, should not be formatted)
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Dependencies (from .gitignore)
+node_modules/
+
+# Third-party libraries in lib directories
+**/lib/
+
+# Build outputs (from .gitignore)
+**/build/
+**/dist/
+**/artifacts/
+**/typechain-types/
+**/types/
+**/cache/
+**/cached/
+cache
+typechain/
+bin/
+forge-artifacts/
+out/
+
+# Coverage and reports (from .gitignore)
+coverage/
+reports/
+coverage.json
+lcov.info
+.nyc_output/
+
+# Other generated files (from .gitignore)
+.eslintcache
+packages/*/.eslintcache
+deployments/hardhat/
+.graphclient
+**/.graphclient-extracted/
+**/chain-*/
+**/*-localhost/
+**/*-hardhat/

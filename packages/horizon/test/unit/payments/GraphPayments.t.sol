@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "forge-std/Test.sol";
-
-import { IHorizonStakingMain } from "../../../contracts/interfaces/internal/IHorizonStakingMain.sol";
-import { IHorizonStakingTypes } from "../../../contracts/interfaces/internal/IHorizonStakingTypes.sol";
-import { IGraphPayments } from "../../../contracts/interfaces/IGraphPayments.sol";
+import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { GraphPayments } from "../../../contracts/payments/GraphPayments.sol";
 
 import { HorizonStakingSharedTest } from "../shared/horizon-staking/HorizonStakingShared.t.sol";
@@ -361,7 +358,7 @@ contract GraphPaymentsTest is HorizonStakingSharedTest {
         public
         useIndexer
         useProvision(amount, 0, 0)
-        useDelegationFeeCut(IGraphPayments.PaymentTypes.QueryFee, delegationFeeCut)
+        useDelegationFeeCut(IGraphPayments.PaymentTypes.QueryFee, DELEGATION_FEE_CUT)
     {
         dataServiceCut = bound(dataServiceCut, MAX_PPM + 1, type(uint256).max);
 

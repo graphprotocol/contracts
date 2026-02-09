@@ -1,13 +1,10 @@
-import hre from 'hardhat'
-
 import { generatePOI, ONE_MILLION } from '@graphprotocol/toolshed'
+import { indexers } from '@graphprotocol/toolshed/fixtures'
 import { getEventData, setGRTBalance } from '@graphprotocol/toolshed/hardhat'
-import { ethers } from 'hardhat'
-import { expect } from 'chai'
-import { indexers } from '../../../tasks/test/fixtures/indexers'
-
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
-import type { HorizonStakingExtension } from '@graphprotocol/toolshed/deployments'
+import { expect } from 'chai'
+import hre from 'hardhat'
+import { ethers } from 'hardhat'
 
 describe('Service Provider', () => {
   let snapshotId: string
@@ -15,7 +12,6 @@ describe('Service Provider', () => {
   const graph = hre.graph()
   const { stake, collect } = graph.horizon.actions
   const horizonStaking = graph.horizon.contracts.HorizonStaking
-  const horizonStakingExtension = horizonStaking as HorizonStakingExtension
   const graphToken = graph.horizon.contracts.L2GraphToken
 
   // Subgraph service address is not set for integration tests
@@ -31,12 +27,12 @@ describe('Service Provider', () => {
     await ethers.provider.send('evm_revert', [snapshotId])
   })
 
-  describe(('New Protocol Users'), () => {
+  describe('New Protocol Users', () => {
     let serviceProvider: HardhatEthersSigner
     let tokensToStake = ethers.parseEther('1000')
 
     before(async () => {
-      [,,serviceProvider] = await graph.accounts.getTestAccounts()
+      ;[, , serviceProvider] = await graph.accounts.getTestAccounts()
       await setGRTBalance(graph.provider, graphToken.target, serviceProvider.address, ONE_MILLION)
 
       // Stake tokens to service provider
@@ -62,7 +58,10 @@ describe('Service Provider', () => {
       await horizonStaking.connect(serviceProvider).withdraw()
       const balanceAfter = await graphToken.balanceOf(serviceProvider.address)
 
-      expect(balanceAfter).to.equal(balanceBefore + tokensToUnstake, 'Tokens were not transferred back to service provider')
+      expect(balanceAfter).to.equal(
+        balanceBefore + tokensToUnstake,
+        'Tokens were not transferred back to service provider',
+      )
     })
 
     it('should handle multiple unstake requests correctly', async () => {
@@ -90,9 +89,10 @@ describe('Service Provider', () => {
       }
 
       // Check that withdraw reverts since thawing period is not complete
-      await expect(
-        horizonStaking.connect(serviceProvider).withdraw(),
-      ).to.be.revertedWithCustomError(horizonStaking, 'HorizonStakingStillThawing')
+      await expect(horizonStaking.connect(serviceProvider).withdraw()).to.be.revertedWithCustomError(
+        horizonStaking,
+        'HorizonStakingStillThawing',
+      )
 
       // Mine remaining blocks to complete thawing period
       for (let i = 0; i < halfThawingPeriod + 1; i++) {
@@ -107,7 +107,10 @@ describe('Service Provider', () => {
 
       // Verify all tokens are withdrawn and transferred back to service provider
       const balanceAfter = await graphToken.balanceOf(serviceProvider.address)
-      expect(balanceAfter).to.equal(balanceBefore + request1 + request2, 'Tokens were not transferred back to service provider')
+      expect(balanceAfter).to.equal(
+        balanceBefore + request1 + request2,
+        'Tokens were not transferred back to service provider',
+      )
     })
 
     describe('Transition period is over', () => {
@@ -149,7 +152,10 @@ describe('Service Provider', () => {
 
         // Get balance after withdrawing
         const balanceAfter = await graphToken.balanceOf(serviceProvider.address)
-        expect(balanceAfter).to.equal(balanceBefore + tokensToUnstake, 'Tokens were not transferred back to service provider')
+        expect(balanceAfter).to.equal(
+          balanceBefore + tokensToUnstake,
+          'Tokens were not transferred back to service provider',
+        )
       })
 
       it('should be able to unstake tokens without a thawing period', async () => {
@@ -167,7 +173,10 @@ describe('Service Provider', () => {
 
         // Get balance after withdrawing
         const balanceAfter = await graphToken.balanceOf(serviceProvider.address)
-        expect(balanceAfter).to.equal(balanceBefore + tokensToUnstake, 'Tokens were not transferred back to service provider')
+        expect(balanceAfter).to.equal(
+          balanceBefore + tokensToUnstake,
+          'Tokens were not transferred back to service provider',
+        )
       })
     })
   })
@@ -201,7 +210,10 @@ describe('Service Provider', () => {
 
       // Verify tokens are transferred back to service provider
       const balanceAfter = await graphToken.balanceOf(indexer.address)
-      expect(balanceAfter).to.equal(balanceBefore + tokensUnstaked, 'Tokens were not transferred back to service provider')
+      expect(balanceAfter).to.equal(
+        balanceBefore + tokensUnstaked,
+        'Tokens were not transferred back to service provider',
+      )
     })
 
     describe('Legacy allocations', () => {
@@ -242,8 +254,11 @@ describe('Service Provider', () => {
           const idleStakeBefore = await horizonStaking.getIdleStake(indexer.address)
 
           // Close allocation
-          const tx = await horizonStakingExtension.connect(indexer).closeAllocation(allocationID, poi)
-          const eventData = await getEventData(tx, 'event HorizonRewardsAssigned(address indexed indexer, address indexed allocationID, uint256 amount)')
+          const tx = await horizonStaking.connect(indexer).closeAllocation(allocationID, poi)
+          const eventData = await getEventData(
+            tx,
+            'event HorizonRewardsAssigned(address indexed indexer, address indexed allocationID, uint256 amount)',
+          )
           const rewards = eventData[2]
 
           // Verify rewards are not zero
@@ -251,14 +266,20 @@ describe('Service Provider', () => {
 
           // Verify rewards minus delegation cut are restaked
           const idleStakeAfter = await horizonStaking.getIdleStake(indexer.address)
-          const idleStakeRewardsTokens = rewards * BigInt(delegationIndexingCut) / 1000000n
-          expect(idleStakeAfter).to.equal(idleStakeBefore + allocationTokens + idleStakeRewardsTokens, 'Rewards were not restaked')
+          const idleStakeRewardsTokens = (rewards * BigInt(delegationIndexingCut)) / 1000000n
+          expect(idleStakeAfter).to.equal(
+            idleStakeBefore + allocationTokens + idleStakeRewardsTokens,
+            'Rewards were not restaked',
+          )
 
           // Verify delegators cut is added to delegation pool
           const delegationPool = await horizonStaking.getDelegationPool(indexer.address, subgraphServiceAddress)
           const delegationPoolTokensAfter = delegationPool.tokens
           const delegationRewardsTokens = rewards - idleStakeRewardsTokens
-          expect(delegationPoolTokensAfter).to.equal(delegationPoolTokensBefore + delegationRewardsTokens, 'Delegators cut was not added to delegation pool')
+          expect(delegationPoolTokensAfter).to.equal(
+            delegationPoolTokensBefore + delegationRewardsTokens,
+            'Delegators cut was not added to delegation pool',
+          )
         })
 
         it('should be able to collect query fees', async () => {
@@ -278,19 +299,22 @@ describe('Service Provider', () => {
           const idleStakeAfter = await horizonStaking.getIdleStake(indexer.address)
 
           // Subtract protocol tax (1%) and curation fees (10% after the protocol tax deduction)
-          const protocolTax = tokensToCollect * 1n / 100n
-          const curationFees = tokensToCollect * 99n / 1000n
+          const protocolTax = (tokensToCollect * 1n) / 100n
+          const curationFees = (tokensToCollect * 99n) / 1000n
           const remainingTokens = tokensToCollect - protocolTax - curationFees
 
           // Verify tokens minus delegators cut are restaked
-          const indexerCutTokens = remainingTokens * BigInt(delegationQueryFeeCut) / 1000000n
+          const indexerCutTokens = (remainingTokens * BigInt(delegationQueryFeeCut)) / 1000000n
           expect(idleStakeAfter).to.equal(idleStakeBefore + indexerCutTokens, 'Indexer cut was not restaked')
 
           // Verify delegators cut is added to delegation pool
           const delegationPool = await horizonStaking.getDelegationPool(indexer.address, subgraphServiceAddress)
           const delegationPoolTokensAfter = delegationPool.tokens
           const delegationCutTokens = remainingTokens - indexerCutTokens
-          expect(delegationPoolTokensAfter).to.equal(delegationPoolTokensBefore + delegationCutTokens, 'Delegators cut was not added to delegation pool')
+          expect(delegationPoolTokensAfter).to.equal(
+            delegationPoolTokensBefore + delegationCutTokens,
+            'Delegators cut was not added to delegation pool',
+          )
         })
 
         it('should be able to close an allocation and collect query fees for the closed allocation', async () => {
@@ -305,7 +329,7 @@ describe('Service Provider', () => {
           }
 
           // Close allocation
-          await horizonStakingExtension.connect(indexer).closeAllocation(allocationID, poi)
+          await horizonStaking.connect(indexer).closeAllocation(allocationID, poi)
 
           // Tokens to collect
           const tokensToCollect = ethers.parseEther('1000')
@@ -324,19 +348,22 @@ describe('Service Provider', () => {
           const idleStakeAfter = await horizonStaking.getIdleStake(indexer.address)
 
           // Subtract protocol tax (1%) and curation fees (10% after the protocol tax deduction)
-          const protocolTax = tokensToCollect * 1n / 100n
-          const curationFees = tokensToCollect * 99n / 1000n
+          const protocolTax = (tokensToCollect * 1n) / 100n
+          const curationFees = (tokensToCollect * 99n) / 1000n
           const remainingTokens = tokensToCollect - protocolTax - curationFees
 
           // Verify tokens minus delegators cut are restaked
-          const indexerCutTokens = remainingTokens * BigInt(delegationQueryFeeCut) / 1000000n
+          const indexerCutTokens = (remainingTokens * BigInt(delegationQueryFeeCut)) / 1000000n
           expect(idleStakeAfter).to.equal(idleStakeBefore + indexerCutTokens, 'Indexer cut was not restaked')
 
           // Verify delegators cut is added to delegation pool
           const delegationPool = await horizonStaking.getDelegationPool(indexer.address, subgraphServiceAddress)
           const delegationPoolTokensAfter = delegationPool.tokens
           const delegationCutTokens = remainingTokens - indexerCutTokens
-          expect(delegationPoolTokensAfter).to.equal(delegationPoolTokensBefore + delegationCutTokens, 'Delegators cut was not added to delegation pool')
+          expect(delegationPoolTokensAfter).to.equal(
+            delegationPoolTokensBefore + delegationCutTokens,
+            'Delegators cut was not added to delegation pool',
+          )
         })
       })
 
@@ -377,8 +404,11 @@ describe('Service Provider', () => {
           const balanceBefore = await graphToken.balanceOf(rewardsDestination)
 
           // Close allocation
-          const tx = await horizonStakingExtension.connect(indexer).closeAllocation(allocationID, poi)
-          const eventData = await getEventData(tx, 'event HorizonRewardsAssigned(address indexed indexer, address indexed allocationID, uint256 amount)')
+          const tx = await horizonStaking.connect(indexer).closeAllocation(allocationID, poi)
+          const eventData = await getEventData(
+            tx,
+            'event HorizonRewardsAssigned(address indexed indexer, address indexed allocationID, uint256 amount)',
+          )
           const rewards = eventData[2]
 
           // Verify rewards are not zero
@@ -386,14 +416,20 @@ describe('Service Provider', () => {
 
           // Verify indexer rewards cut is transferred to rewards destination
           const balanceAfter = await graphToken.balanceOf(rewardsDestination)
-          const indexerCutTokens = rewards * BigInt(delegationIndexingCut) / 1000000n
-          expect(balanceAfter).to.equal(balanceBefore + indexerCutTokens, 'Indexer cut was not transferred to rewards destination')
+          const indexerCutTokens = (rewards * BigInt(delegationIndexingCut)) / 1000000n
+          expect(balanceAfter).to.equal(
+            balanceBefore + indexerCutTokens,
+            'Indexer cut was not transferred to rewards destination',
+          )
 
           // Verify delegators cut is added to delegation pool
           const delegationPoolAfter = await horizonStaking.getDelegationPool(indexer.address, subgraphServiceAddress)
           const delegationPoolTokensAfter = delegationPoolAfter.tokens
           const delegationCutTokens = rewards - indexerCutTokens
-          expect(delegationPoolTokensAfter).to.equal(delegationPoolTokensBefore + delegationCutTokens, 'Delegators cut was not added to delegation pool')
+          expect(delegationPoolTokensAfter).to.equal(
+            delegationPoolTokensBefore + delegationCutTokens,
+            'Delegators cut was not added to delegation pool',
+          )
         })
 
         it('should be able to collect query fees', async () => {
@@ -413,19 +449,25 @@ describe('Service Provider', () => {
           const balanceAfter = await graphToken.balanceOf(rewardsDestination)
 
           // Subtract protocol tax (1%) and curation fees (10% after the protocol tax deduction)
-          const protocolTax = tokensToCollect * 1n / 100n
-          const curationFees = tokensToCollect * 99n / 1000n
+          const protocolTax = (tokensToCollect * 1n) / 100n
+          const curationFees = (tokensToCollect * 99n) / 1000n
           const remainingTokens = tokensToCollect - protocolTax - curationFees
 
           // Verify indexer cut is transferred to rewards destination
-          const indexerCutTokens = remainingTokens * BigInt(delegationQueryFeeCut) / 1000000n
-          expect(balanceAfter).to.equal(balanceBefore + indexerCutTokens, 'Indexer cut was not transferred to rewards destination')
+          const indexerCutTokens = (remainingTokens * BigInt(delegationQueryFeeCut)) / 1000000n
+          expect(balanceAfter).to.equal(
+            balanceBefore + indexerCutTokens,
+            'Indexer cut was not transferred to rewards destination',
+          )
 
           // Verify delegators cut is added to delegation pool
           const delegationPoolAfter = await horizonStaking.getDelegationPool(indexer.address, subgraphServiceAddress)
           const delegationPoolTokensAfter = delegationPoolAfter.tokens
           const delegationCutTokens = remainingTokens - indexerCutTokens
-          expect(delegationPoolTokensAfter).to.equal(delegationPoolTokensBefore + delegationCutTokens, 'Delegators cut was not added to delegation pool')
+          expect(delegationPoolTokensAfter).to.equal(
+            delegationPoolTokensBefore + delegationCutTokens,
+            'Delegators cut was not added to delegation pool',
+          )
         })
       })
     })
@@ -469,7 +511,10 @@ describe('Service Provider', () => {
 
         // Get balance after withdrawing
         const balanceAfter = await graphToken.balanceOf(indexer.address)
-        expect(balanceAfter).to.equal(balanceBefore + tokensToUnstake, 'Tokens were not transferred back to service provider')
+        expect(balanceAfter).to.equal(
+          balanceBefore + tokensToUnstake,
+          'Tokens were not transferred back to service provider',
+        )
       })
     })
   })

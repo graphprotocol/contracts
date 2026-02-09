@@ -1,7 +1,8 @@
+import consola from 'consola'
 import { task } from 'hardhat/config'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
+
 import { askConfirm, waitTransaction } from './create'
-import consola from 'consola'
 
 const logger = consola.create({})
 

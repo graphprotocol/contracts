@@ -1,19 +1,16 @@
-import { ethers } from 'hardhat'
-import { EventLog } from 'ethers'
-import { expect } from 'chai'
-import hre from 'hardhat'
-
-import { DisputeManager, IGraphToken, SubgraphService } from '../../../../typechain-types'
+import { DisputeManager, HorizonStaking, L2GraphToken, SubgraphService } from '@graphprotocol/interfaces'
 import { generateAttestationData } from '@graphprotocol/toolshed'
-import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
-import { HorizonStaking } from '@graphprotocol/horizon'
+import { indexersData as indexers } from '@graphprotocol/toolshed/fixtures'
 import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
-
-import { indexers } from '../../../../tasks/test/fixtures/indexers'
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { expect } from 'chai'
+import { EventLog } from 'ethers'
+import { ethers } from 'hardhat'
+import hre from 'hardhat'
 
 describe('Query Disputes', () => {
   let disputeManager: DisputeManager
-  let graphToken: IGraphToken
+  let graphToken: L2GraphToken
   let staking: HorizonStaking
   let subgraphService: SubgraphService
 
@@ -103,7 +100,7 @@ describe('Query Disputes', () => {
 
       // Get dispute ID from event
       const disputeCreatedEvent = receipt?.logs.find(
-        log => log instanceof EventLog && log.fragment?.name === 'QueryDisputeCreated',
+        (log) => log instanceof EventLog && log.fragment?.name === 'QueryDisputeCreated',
       ) as EventLog
       const disputeId = disputeCreatedEvent?.args[0]
 
@@ -139,7 +136,7 @@ describe('Query Disputes', () => {
 
       // Get dispute ID from event
       const disputeCreatedEvent = receipt?.logs.find(
-        log => log instanceof EventLog && log.fragment?.name === 'QueryDisputeCreated',
+        (log) => log instanceof EventLog && log.fragment?.name === 'QueryDisputeCreated',
       ) as EventLog
       const disputeId = disputeCreatedEvent?.args[0]
 
@@ -159,7 +156,10 @@ describe('Query Disputes', () => {
 
       // Verify fisherman got the deposit back
       const fishermanBalance = await graphToken.balanceOf(fisherman.address)
-      expect(fishermanBalance).to.equal(fishermanBalanceBefore + disputeDeposit, 'Fisherman should receive the deposit back')
+      expect(fishermanBalance).to.equal(
+        fishermanBalanceBefore + disputeDeposit,
+        'Fisherman should receive the deposit back',
+      )
     })
   })
 
@@ -190,7 +190,7 @@ describe('Query Disputes', () => {
 
       // Get dispute ID from event
       const disputeCreatedEvent = receipt?.logs.find(
-        log => log instanceof EventLog && log.fragment?.name === 'QueryDisputeCreated',
+        (log) => log instanceof EventLog && log.fragment?.name === 'QueryDisputeCreated',
       ) as EventLog
       disputeId = disputeCreatedEvent?.args[0]
     })
@@ -214,14 +214,20 @@ describe('Query Disputes', () => {
       expect(updatedDispute.status).to.equal(1, 'Dispute status should be accepted')
 
       // Verify indexer's stake was slashed
-      const updatedProvision = await staking.getProviderTokensAvailable(indexer.address, await subgraphService.getAddress())
+      const updatedProvision = await staking.getProviderTokensAvailable(
+        indexer.address,
+        await subgraphService.getAddress(),
+      )
       expect(updatedProvision).to.equal(provision - tokensToSlash, 'Indexer stake should be slashed')
 
       // Verify fisherman got the deposit plus the reward
       const fishermanBalance = await graphToken.balanceOf(fisherman.address)
       const fishermanReward = (tokensToSlash * fishermanRewardCut) / 1000000n
       const fishermanTotal = fishermanBalanceBefore + fishermanReward + disputeDeposit
-      expect(fishermanBalance).to.equal(fishermanTotal, 'Fisherman balance should be increased by the reward and deposit')
+      expect(fishermanBalance).to.equal(
+        fishermanTotal,
+        'Fisherman balance should be increased by the reward and deposit',
+      )
     })
 
     it('should allow arbitrator to draw a query dispute', async () => {
@@ -239,12 +245,18 @@ describe('Query Disputes', () => {
       expect(updatedDispute.status).to.equal(3, 'Dispute status should be drawn')
 
       // Verify indexer's provision was not affected
-      const updatedProvision = await staking.getProviderTokensAvailable(indexer.address, await subgraphService.getAddress())
+      const updatedProvision = await staking.getProviderTokensAvailable(
+        indexer.address,
+        await subgraphService.getAddress(),
+      )
       expect(updatedProvision).to.equal(provision, 'Indexer stake should not be affected')
 
       // Verify fisherman got the deposit back
       const fishermanBalance = await graphToken.balanceOf(fisherman.address)
-      expect(fishermanBalance).to.equal(fishermanBalanceBefore + disputeDeposit, 'Fisherman should receive the deposit back')
+      expect(fishermanBalance).to.equal(
+        fishermanBalanceBefore + disputeDeposit,
+        'Fisherman should receive the deposit back',
+      )
     })
 
     it('should allow arbitrator to reject a query dispute', async () => {
@@ -262,7 +274,10 @@ describe('Query Disputes', () => {
       expect(updatedDispute.status).to.equal(2, 'Dispute status should be rejected')
 
       // Verify indexer's provision was not affected
-      const updatedProvision = await staking.getProviderTokensAvailable(indexer.address, await subgraphService.getAddress())
+      const updatedProvision = await staking.getProviderTokensAvailable(
+        indexer.address,
+        await subgraphService.getAddress(),
+      )
       expect(updatedProvision).to.equal(provision, 'Indexer stake should not be affected')
 
       // Verify fisherman did not receive the deposit
@@ -283,16 +298,18 @@ describe('Query Disputes', () => {
 
     it('should not allow non-arbitrator to draw a query dispute', async () => {
       // Attempt to draw dispute as fisherman
-      await expect(
-        disputeManager.connect(fisherman).drawDispute(disputeId),
-      ).to.be.revertedWithCustomError(disputeManager, 'DisputeManagerNotArbitrator')
+      await expect(disputeManager.connect(fisherman).drawDispute(disputeId)).to.be.revertedWithCustomError(
+        disputeManager,
+        'DisputeManagerNotArbitrator',
+      )
     })
 
     it('should not allow non-arbitrator to reject a query dispute', async () => {
       // Attempt to reject dispute as fisherman
-      await expect(
-        disputeManager.connect(fisherman).rejectDispute(disputeId),
-      ).to.be.revertedWithCustomError(disputeManager, 'DisputeManagerNotArbitrator')
+      await expect(disputeManager.connect(fisherman).rejectDispute(disputeId)).to.be.revertedWithCustomError(
+        disputeManager,
+        'DisputeManagerNotArbitrator',
+      )
     })
   })
 })

@@ -1,0 +1,13 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": false,
+    "noImplicitAny": false,
+    "noEmitOnError": false,
+    "outDir": "./artifacts"
+  },
+  "include": ["tests/**/*", "utils/**/*", "../types/**/*"],
+  "exclude": ["node_modules", "build", "scripts/**/*"]
+}

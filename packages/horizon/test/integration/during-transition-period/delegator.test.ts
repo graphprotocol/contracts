@@ -1,11 +1,9 @@
-import hre from 'hardhat'
-
-import { delegators } from '../../../tasks/test/fixtures/delegators'
-import { ethers } from 'hardhat'
-import { expect } from 'chai'
 import { ZERO_ADDRESS } from '@graphprotocol/toolshed'
-
+import { delegators } from '@graphprotocol/toolshed/fixtures'
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { expect } from 'chai'
+import hre from 'hardhat'
+import { ethers } from 'hardhat'
 
 describe('Delegator', () => {
   let snapshotId: string
@@ -69,7 +67,7 @@ describe('Delegator', () => {
         const balanceAfter = await graphToken.balanceOf(delegator.address)
 
         // Expected balance after is the balance before plus the tokens minus the 0.5% delegation tax
-        const expectedBalanceAfter = balanceBefore + tokens - (tokens * 5000n / 1000000n)
+        const expectedBalanceAfter = balanceBefore + tokens - (tokens * 5000n) / 1000000n
 
         // Verify tokens are withdrawn
         expect(balanceAfter).to.equal(expectedBalanceAfter)
@@ -111,7 +109,9 @@ describe('Delegator', () => {
         )
 
         // Undelegate tokens
-        await horizonStaking.connect(delegator)['undelegate(address,address,uint256)'](indexer.address, subgraphServiceAddress, delegation.shares)
+        await horizonStaking
+          .connect(delegator)
+          ['undelegate(address,address,uint256)'](indexer.address, subgraphServiceAddress, delegation.shares)
 
         // Wait for thawing period
         await ethers.provider.send('evm_increaseTime', [Number(thawingPeriod) + 1])
@@ -124,14 +124,16 @@ describe('Delegator', () => {
         const balanceBefore = await graphToken.balanceOf(delegator.address)
 
         // Withdraw tokens
-        await horizonStaking.connect(delegator)['withdrawDelegated(address,address,uint256)'](indexer.address, ZERO_ADDRESS, BigInt(1))
+        await horizonStaking
+          .connect(delegator)
+          ['withdrawDelegated(address,address,uint256)'](indexer.address, ZERO_ADDRESS, BigInt(1))
 
         // Get delegator balance after withdrawing
         const balanceAfter = await graphToken.balanceOf(delegator.address)
 
         // Expected balance after is the balance before plus the tokens minus the 0.5% delegation tax
         // because the delegation was before the horizon upgrade, after the upgrade there is no tax
-        const expectedBalanceAfter = balanceBefore + tokens - (tokens * 5000n / 1000000n)
+        const expectedBalanceAfter = balanceBefore + tokens - (tokens * 5000n) / 1000000n
 
         // Verify tokens are withdrawn
         expect(balanceAfter).to.equal(expectedBalanceAfter)

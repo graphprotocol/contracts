@@ -1,12 +1,10 @@
-import hre from 'hardhat'
-
 import { ONE_MILLION, ZERO_ADDRESS } from '@graphprotocol/toolshed'
-import { delegators } from '../../../tasks/test/fixtures/delegators'
-import { ethers } from 'hardhat'
-import { expect } from 'chai'
+import { delegators } from '@graphprotocol/toolshed/fixtures'
 import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
-
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { expect } from 'chai'
+import hre from 'hardhat'
+import { ethers } from 'hardhat'
 
 describe('Delegator', () => {
   let delegator: HardhatEthersSigner
@@ -27,7 +25,7 @@ describe('Delegator', () => {
   const graphToken = graph.horizon.contracts.L2GraphToken
 
   before(async () => {
-    [serviceProvider, delegator, newServiceProvider] = await graph.accounts.getTestAccounts()
+    ;[serviceProvider, delegator, newServiceProvider] = await graph.accounts.getTestAccounts()
     verifier = ethers.Wallet.createRandom().address
     newVerifier = ethers.Wallet.createRandom().address
     await setGRTBalance(graph.provider, graphToken.target, delegator.address, ONE_MILLION)
@@ -60,33 +58,36 @@ describe('Delegator', () => {
       await delegate(delegator, [serviceProvider.address, verifier, delegationTokens, 0n])
 
       // Verify delegation tokens were added to the delegation pool
-      const delegationPool = await horizonStaking.getDelegationPool(
-        serviceProvider.address,
-        verifier,
+      const delegationPool = await horizonStaking.getDelegationPool(serviceProvider.address, verifier)
+      expect(delegationPool.tokens).to.equal(
+        delegationTokens,
+        'Delegation tokens were not added to the delegation pool',
       )
-      expect(delegationPool.tokens).to.equal(delegationTokens, 'Delegation tokens were not added to the delegation pool')
 
       // Verify delegation shares were minted, since it's the first delegation
       // shares should be equal to tokens
-      const delegation = await horizonStaking.getDelegation(
-        serviceProvider.address,
-        verifier,
-        delegator.address,
-      )
+      const delegation = await horizonStaking.getDelegation(serviceProvider.address, verifier, delegator.address)
       expect(delegation.shares).to.equal(delegationTokens, 'Delegation shares were not minted correctly')
 
       // Undelegate tokens
-      await horizonStaking.connect(delegator)['undelegate(address,address,uint256)'](serviceProvider.address, verifier, delegationTokens)
+      await horizonStaking
+        .connect(delegator)
+        ['undelegate(address,address,uint256)'](serviceProvider.address, verifier, delegationTokens)
 
       // Wait for thawing period
       await ethers.provider.send('evm_increaseTime', [Number(thawingPeriod)])
       await ethers.provider.send('evm_mine', [])
 
       // Withdraw tokens
-      await horizonStaking.connect(delegator)['withdrawDelegated(address,address,uint256)'](serviceProvider.address, verifier, 1n)
+      await horizonStaking
+        .connect(delegator)
+        ['withdrawDelegated(address,address,uint256)'](serviceProvider.address, verifier, 1n)
 
       // Delegator should have received their tokens back
-      expect(await graphToken.balanceOf(delegator.address)).to.equal(delegatorBalanceBefore, 'Delegator balance should be the same as before delegation')
+      expect(await graphToken.balanceOf(delegator.address)).to.equal(
+        delegatorBalanceBefore,
+        'Delegator balance should be the same as before delegation',
+      )
     })
 
     it('should revert when delegating to an invalid provision', async () => {
@@ -95,7 +96,9 @@ describe('Delegator', () => {
 
       await graphToken.connect(delegator).approve(horizonStaking.target, delegateTokens)
       await expect(
-        horizonStaking.connect(delegator)['delegate(address,address,uint256,uint256)'](serviceProvider.address, invalidVerifier, delegateTokens, 0n),
+        horizonStaking
+          .connect(delegator)
+          ['delegate(address,address,uint256,uint256)'](serviceProvider.address, invalidVerifier, delegateTokens, 0n),
       ).to.be.revertedWithCustomError(horizonStaking, 'HorizonStakingInvalidProvision')
     })
 
@@ -104,7 +107,9 @@ describe('Delegator', () => {
 
       await graphToken.connect(delegator).approve(horizonStaking.target, minDelegation - 1n)
       await expect(
-        horizonStaking.connect(delegator)['delegate(address,address,uint256,uint256)'](serviceProvider.address, verifier, minDelegation - 1n, 0n),
+        horizonStaking
+          .connect(delegator)
+          ['delegate(address,address,uint256,uint256)'](serviceProvider.address, verifier, minDelegation - 1n, 0n),
       ).to.be.revertedWithCustomError(horizonStaking, 'HorizonStakingInsufficientDelegationTokens')
     })
 
@@ -117,19 +122,23 @@ describe('Delegator', () => {
         await delegate(delegator, [serviceProvider.address, verifier, delegationPoolTokens, 0n])
 
         // Create new provision for a new service provider and verifier combo
-        await provision(newServiceProvider, [newServiceProvider.address, newVerifier, newProvisionTokens, maxVerifierCut, thawingPeriod])
+        await provision(newServiceProvider, [
+          newServiceProvider.address,
+          newVerifier,
+          newProvisionTokens,
+          maxVerifierCut,
+          thawingPeriod,
+        ])
       })
 
       it('should allow delegator to undelegate and redelegate to new provider and verifier', async () => {
         // Undelegate 20% of delegator's shares
-        const delegation = await horizonStaking.getDelegation(
-          serviceProvider.address,
-          verifier,
-          delegator.address,
-        )
+        const delegation = await horizonStaking.getDelegation(serviceProvider.address, verifier, delegator.address)
         const undelegateShares = delegation.shares / 5n
 
-        await horizonStaking.connect(delegator)['undelegate(address,address,uint256)'](serviceProvider.address, verifier, undelegateShares)
+        await horizonStaking
+          .connect(delegator)
+          ['undelegate(address,address,uint256)'](serviceProvider.address, verifier, undelegateShares)
 
         // Wait for thawing period
         await ethers.provider.send('evm_increaseTime', [Number(thawingPeriod)])
@@ -138,32 +147,28 @@ describe('Delegator', () => {
         await delegate(delegator, [newServiceProvider.address, newVerifier, undelegateShares, 0n])
 
         // Verify delegation shares were transferred to the new service provider
-        const delegationPool = await horizonStaking.getDelegationPool(
-          newServiceProvider.address,
-          newVerifier,
+        const delegationPool = await horizonStaking.getDelegationPool(newServiceProvider.address, newVerifier)
+        expect(delegationPool.tokens).to.equal(
+          undelegateShares,
+          'Delegation tokens were not transferred to the new service provider',
         )
-        expect(delegationPool.tokens).to.equal(undelegateShares, 'Delegation tokens were not transferred to the new service provider')
 
         const newDelegation = await horizonStaking.getDelegation(
           newServiceProvider.address,
           newVerifier,
           delegator.address,
         )
-        expect(newDelegation.shares).to.equal(undelegateShares, 'Delegation shares were not transferred to the new service provider')
+        expect(newDelegation.shares).to.equal(
+          undelegateShares,
+          'Delegation shares were not transferred to the new service provider',
+        )
       })
 
       it('should handle multiple undelegations with nThawRequests = 0', async () => {
         const delegatorBalanceBefore = await graphToken.balanceOf(delegator.address)
-        const delegationPool = await horizonStaking.getDelegationPool(
-          serviceProvider.address,
-          verifier,
-        )
+        const delegationPool = await horizonStaking.getDelegationPool(serviceProvider.address, verifier)
 
-        const delegation = await horizonStaking.getDelegation(
-          serviceProvider.address,
-          verifier,
-          delegator.address,
-        )
+        const delegation = await horizonStaking.getDelegation(serviceProvider.address, verifier, delegator.address)
         const undelegateShares = delegation.shares / 10n
 
         let totalExpectedTokens = 0n
@@ -175,7 +180,9 @@ describe('Delegator', () => {
           const tokensOut = (undelegateShares * remainingPoolTokens) / remainingShares
           totalExpectedTokens += tokensOut
 
-          await horizonStaking.connect(delegator)['undelegate(address,address,uint256)'](serviceProvider.address, verifier, undelegateShares)
+          await horizonStaking
+            .connect(delegator)
+            ['undelegate(address,address,uint256)'](serviceProvider.address, verifier, undelegateShares)
 
           remainingShares -= undelegateShares
           remainingPoolTokens -= tokensOut
@@ -186,25 +193,22 @@ describe('Delegator', () => {
         await ethers.provider.send('evm_mine', [])
 
         // Withdraw all thaw requests
-        await horizonStaking.connect(delegator)['withdrawDelegated(address,address,uint256)'](serviceProvider.address, verifier, 0n)
+        await horizonStaking
+          .connect(delegator)
+          ['withdrawDelegated(address,address,uint256)'](serviceProvider.address, verifier, 0n)
 
         // Verify tokens were transferred to delegator
-        expect(await graphToken.balanceOf(delegator.address))
-          .to.equal(delegatorBalanceBefore + totalExpectedTokens, 'Delegator balance should be the same as before delegation')
+        expect(await graphToken.balanceOf(delegator.address)).to.equal(
+          delegatorBalanceBefore + totalExpectedTokens,
+          'Delegator balance should be the same as before delegation',
+        )
       })
 
       it('should handle multiple undelegations with nThawRequests = 1', async () => {
         const delegatorBalanceBefore = await graphToken.balanceOf(delegator.address)
-        const delegationPool = await horizonStaking.getDelegationPool(
-          serviceProvider.address,
-          verifier,
-        )
+        const delegationPool = await horizonStaking.getDelegationPool(serviceProvider.address, verifier)
 
-        const delegation = await horizonStaking.getDelegation(
-          serviceProvider.address,
-          verifier,
-          delegator.address,
-        )
+        const delegation = await horizonStaking.getDelegation(serviceProvider.address, verifier, delegator.address)
         const undelegateShares = delegation.shares / 10n
 
         let totalExpectedTokens = 0n
@@ -216,7 +220,9 @@ describe('Delegator', () => {
           const tokensOut = (undelegateShares * remainingPoolTokens) / remainingShares
           totalExpectedTokens += tokensOut
 
-          await horizonStaking.connect(delegator)['undelegate(address,address,uint256)'](serviceProvider.address, verifier, undelegateShares)
+          await horizonStaking
+            .connect(delegator)
+            ['undelegate(address,address,uint256)'](serviceProvider.address, verifier, undelegateShares)
 
           remainingShares -= undelegateShares
           remainingPoolTokens -= tokensOut
@@ -228,32 +234,38 @@ describe('Delegator', () => {
 
         // Withdraw each thaw request individually
         for (let i = 0; i < 3; i++) {
-          await horizonStaking.connect(delegator)['withdrawDelegated(address,address,uint256)'](serviceProvider.address, verifier, 1n)
+          await horizonStaking
+            .connect(delegator)
+            ['withdrawDelegated(address,address,uint256)'](serviceProvider.address, verifier, 1n)
         }
 
         // Verify tokens were transferred to delegator
-        expect(await graphToken.balanceOf(delegator.address))
-          .to.equal(delegatorBalanceBefore + totalExpectedTokens, 'Delegator balance should be the same as before delegation')
+        expect(await graphToken.balanceOf(delegator.address)).to.equal(
+          delegatorBalanceBefore + totalExpectedTokens,
+          'Delegator balance should be the same as before delegation',
+        )
       })
 
       it('should not revert when withdrawing before thawing period', async () => {
         const delegatorBalanceBefore = await graphToken.balanceOf(delegator.address)
-        const delegation = await horizonStaking.getDelegation(
-          serviceProvider.address,
-          verifier,
-          delegator.address,
-        )
+        const delegation = await horizonStaking.getDelegation(serviceProvider.address, verifier, delegator.address)
         const undelegateShares = delegation.shares / 10n
 
-        await horizonStaking.connect(delegator)['undelegate(address,address,uint256)'](serviceProvider.address, verifier, undelegateShares)
+        await horizonStaking
+          .connect(delegator)
+          ['undelegate(address,address,uint256)'](serviceProvider.address, verifier, undelegateShares)
 
         await expect(
-          horizonStaking.connect(delegator)['withdrawDelegated(address,address,uint256)'](serviceProvider.address, verifier, 1n),
+          horizonStaking
+            .connect(delegator)
+            ['withdrawDelegated(address,address,uint256)'](serviceProvider.address, verifier, 1n),
         ).to.not.be.reverted
 
         // Verify tokens were not transferred to delegator
-        expect(await graphToken.balanceOf(delegator.address))
-          .to.equal(delegatorBalanceBefore, 'Delegator balance should be the same as before delegation')
+        expect(await graphToken.balanceOf(delegator.address)).to.equal(
+          delegatorBalanceBefore,
+          'Delegator balance should be the same as before delegation',
+        )
       })
     })
   })
@@ -298,7 +310,9 @@ describe('Delegator', () => {
       )
 
       // Undelegate tokens
-      await horizonStaking.connect(existingDelegator)['undelegate(address,address,uint256)'](indexer.address, subgraphServiceAddress, delegation.shares)
+      await horizonStaking
+        .connect(existingDelegator)
+        ['undelegate(address,address,uint256)'](indexer.address, subgraphServiceAddress, delegation.shares)
 
       // Wait for thawing period
       await ethers.provider.send('evm_increaseTime', [Number(thawingPeriod) + 1])
@@ -308,14 +322,16 @@ describe('Delegator', () => {
       const balanceBefore = await graphToken.balanceOf(existingDelegator.address)
 
       // Withdraw tokens
-      await horizonStaking.connect(existingDelegator)['withdrawDelegated(address,address,uint256)'](indexer.address, subgraphServiceAddress, 1n)
+      await horizonStaking
+        .connect(existingDelegator)
+        ['withdrawDelegated(address,address,uint256)'](indexer.address, subgraphServiceAddress, 1n)
 
       // Get delegator balance after withdrawing
       const balanceAfter = await graphToken.balanceOf(existingDelegator.address)
 
       // Expected balance after is the balance before plus the tokens minus the 0.5% delegation tax
       // because the delegation was before the horizon upgrade, after the upgrade there is no tax
-      const expectedBalanceAfter = balanceBefore + delegatedTokens - (delegatedTokens * 5000n / 1000000n)
+      const expectedBalanceAfter = balanceBefore + delegatedTokens - (delegatedTokens * 5000n) / 1000000n
 
       // Verify tokens were transferred to delegator
       expect(balanceAfter).to.equal(expectedBalanceAfter, 'Tokens were not transferred to delegator')
@@ -346,14 +362,16 @@ describe('Delegator', () => {
         const balanceBefore = await graphToken.balanceOf(existingDelegator.address)
 
         // Withdraw tokens
-        await horizonStaking.connect(existingDelegator)['withdrawDelegated(address,address)'](indexer.address, ZERO_ADDRESS)
+        await horizonStaking
+          .connect(existingDelegator)
+          ['withdrawDelegated(address,address)'](indexer.address, ZERO_ADDRESS)
 
         // Get delegator balance after withdrawing
         const balanceAfter = await graphToken.balanceOf(existingDelegator.address)
 
         // Expected balance after is the balance before plus the tokens minus the 0.5% delegation tax
         // because the delegation was before the horizon upgrade, after the upgrade there is no tax
-        const expectedBalanceAfter = balanceBefore + tokens - (tokens * 5000n / 1000000n)
+        const expectedBalanceAfter = balanceBefore + tokens - (tokens * 5000n) / 1000000n
 
         // Verify tokens were transferred to delegator
         expect(balanceAfter).to.equal(expectedBalanceAfter, 'Tokens were not transferred to delegator')

@@ -1,0 +1,14 @@
+{
+  "username": "graphprotocol",
+  "networks": {
+    "421614": {
+      "project": "horizon-arbitrum-sepolia"
+    },
+    "42161": {
+      "project": "horizon-arbitrum-one"
+    }
+  },
+  "verifyList": ["SubgraphService", "DisputeManager"],
+  "excludeList": ["L2Curation", "L2GNS", "SubgraphNFT"],
+  "tag": "Subgraph Service"
+}

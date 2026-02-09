@@ -1,11 +1,17 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity 0.8.27;
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-strict-inequalities
+// solhint-disable gas-increment-by-one
+// solhint-disable function-max-lines
 
-import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
-import { IHorizonStakingMain } from "../interfaces/internal/IHorizonStakingMain.sol";
-import { IHorizonStakingExtension } from "../interfaces/internal/IHorizonStakingExtension.sol";
-import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
+pragma solidity 0.8.27 || 0.8.33;
+
+import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
+import { IHorizonStakingMain } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingMain.sol";
+import { IHorizonStakingExtension } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingExtension.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
 
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
 import { MathUtils } from "../libraries/MathUtils.sol";
@@ -16,6 +22,7 @@ import { HorizonStakingBase } from "./HorizonStakingBase.sol";
 
 /**
  * @title HorizonStaking contract
+ * @author Edge & Node
  * @notice The {HorizonStaking} contract allows service providers to stake and provision tokens to verifiers to be used
  * as economic security for a service. It also allows delegators to delegate towards a service provider provision.
  * @dev Implements the {IHorizonStakingMain} interface.
@@ -30,7 +37,7 @@ import { HorizonStakingBase } from "./HorizonStakingBase.sol";
 contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     using TokenUtils for IGraphToken;
     using PPMMath for uint256;
-    using LinkedList for LinkedList.List;
+    using LinkedList for ILinkedList.List;
 
     /// @dev Maximum number of simultaneous stake thaw requests (per provision) or undelegations (per delegation)
     uint256 private constant MAX_THAW_REQUESTS = 1_000;
@@ -41,6 +48,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     /// @dev Minimum amount of delegation.
     uint256 private constant MIN_DELEGATION = 1e18;
 
+    // forge-lint: disable-next-item(unwrapped-modifier-logic)
     /**
      * @notice Checks that the caller is authorized to operate over a provision.
      * @param serviceProvider The address of the service provider.
@@ -54,6 +62,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         _;
     }
 
+    // forge-lint: disable-next-item(unwrapped-modifier-logic)
     /**
      * @notice Checks that the caller is authorized to operate over a provision or it is the verifier.
      * @param serviceProvider The address of the service provider.
@@ -68,11 +77,10 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     }
 
     /**
-     * @dev The staking contract is upgradeable however we still use the constructor to set
-     * a few immutable variables.
-     * @param controller The address of the Graph controller contract.
-     * @param stakingExtensionAddress The address of the staking extension contract.
-     * @param subgraphDataServiceAddress The address of the subgraph data service.
+     * @notice The staking contract is upgradeable however we still use the constructor to set a few immutable variables
+     * @param controller The address of the Graph controller contract
+     * @param stakingExtensionAddress The address of the staking extension contract
+     * @param subgraphDataServiceAddress The address of the subgraph data service
      */
     constructor(
         address controller,
@@ -87,8 +95,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @dev This function does not return to its internal call site, it will return directly to the
      * external caller.
      */
-    // solhint-disable-next-line payable-fallback, no-complex-fallback
     fallback() external {
+        // solhint-disable-previous-line payable-fallback, no-complex-fallback
         address extensionImpl = STAKING_EXTENSION_ADDRESS;
         // solhint-disable-next-line no-inline-assembly
         assembly {
@@ -457,11 +465,9 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
 
             // Service provider accounting
             _serviceProviders[serviceProvider].tokensProvisioned =
-                _serviceProviders[serviceProvider].tokensProvisioned -
-                providerTokensSlashed;
+                _serviceProviders[serviceProvider].tokensProvisioned - providerTokensSlashed;
             _serviceProviders[serviceProvider].tokensStaked =
-                _serviceProviders[serviceProvider].tokensStaked -
-                providerTokensSlashed;
+                _serviceProviders[serviceProvider].tokensStaked - providerTokensSlashed;
 
             emit ProvisionSlashed(serviceProvider, verifier, providerTokensSlashed);
         }
@@ -682,8 +688,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @dev TRANSITION PERIOD: During the transition period, only the subgraph data service can be used as a verifier. This
      * prevents an escape hatch for legacy allocation stake.
      * @param _serviceProvider The service provider address
-     * @param _verifier The verifier address for which the tokens are provisioned (who will be able to slash the tokens)
      * @param _tokens The amount of tokens that will be locked and slashable
+     * @param _verifier The verifier address for which the tokens are provisioned (who will be able to slash the tokens)
      * @param _maxVerifierCut The maximum cut, expressed in PPM, that a verifier can transfer instead of burning when slashing
      * @param _thawingPeriod The period in seconds that the tokens will be thawing before they can be removed from the provision
      */
@@ -744,8 +750,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
 
         prov.tokens = prov.tokens + _tokens;
         _serviceProviders[_serviceProvider].tokensProvisioned =
-            _serviceProviders[_serviceProvider].tokensProvisioned +
-            _tokens;
+            _serviceProviders[_serviceProvider].tokensProvisioned + _tokens;
         emit ProvisionIncreased(_serviceProvider, _verifier, _tokens);
     }
 
@@ -1034,7 +1039,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint256 _thawingNonce
     ) private returns (bytes32) {
         require(_shares != 0, HorizonStakingInvalidZeroShares());
-        LinkedList.List storage thawRequestList = _getThawRequestList(
+        ILinkedList.List storage thawRequestList = _getThawRequestList(
             _requestType,
             _serviceProvider,
             _verifier,
@@ -1042,6 +1047,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         );
         require(thawRequestList.count < MAX_THAW_REQUESTS, HorizonStakingTooManyThawRequests());
 
+        // forge-lint: disable-next-item(asm-keccak256)
         bytes32 thawRequestId = keccak256(abi.encodePacked(_serviceProvider, _verifier, _owner, thawRequestList.nonce));
         ThawRequest storage thawRequest = _getThawRequest(_requestType, thawRequestId);
         thawRequest.shares = _shares;
@@ -1078,7 +1084,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     function _fulfillThawRequests(
         FulfillThawRequestsParams memory _params
     ) private returns (uint256, uint256, uint256) {
-        LinkedList.List storage thawRequestList = _getThawRequestList(
+        ILinkedList.List storage thawRequestList = _getThawRequestList(
             _params.requestType,
             _params.serviceProvider,
             _params.verifier,
@@ -1108,7 +1114,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      */
     function _traverseThawRequests(
         FulfillThawRequestsParams memory _params,
-        LinkedList.List storage _thawRequestList
+        ILinkedList.List storage _thawRequestList
     ) private returns (TraverseThawRequestsResults memory) {
         function(bytes32) view returns (bytes32) getNextItem = _getNextThawRequest(_params.requestType);
         function(bytes32) deleteItem = _getDeleteThawRequest(_params.requestType);

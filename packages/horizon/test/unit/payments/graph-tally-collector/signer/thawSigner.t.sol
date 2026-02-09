@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "forge-std/Test.sol";
-
-import { IAuthorizable } from "../../../../../contracts/interfaces/IAuthorizable.sol";
+import { IAuthorizable } from "@graphprotocol/interfaces/contracts/horizon/IAuthorizable.sol";
 
 import { GraphTallyTest } from "../GraphTallyCollector.t.sol";
 
@@ -28,7 +26,7 @@ contract GraphTallyThawSignerTest is GraphTallyTest {
 
     function testGraphTally_ThawSigner_RevertWhen_AlreadyRevoked() public useGateway useSigner {
         _thawSigner(signer);
-        skip(revokeSignerThawingPeriod + 1);
+        skip(REVOKE_SIGNER_THAWING_PERIOD + 1);
         _revokeAuthorizedSigner(signer);
 
         bytes memory expectedError = abi.encodeWithSelector(
@@ -47,7 +45,7 @@ contract GraphTallyThawSignerTest is GraphTallyTest {
 
         graphTallyCollector.thawSigner(signer);
         uint256 currentThawEnd = graphTallyCollector.getThawEnd(signer);
-        vm.assertEq(originalThawEnd, block.timestamp + revokeSignerThawingPeriod - 1);
-        vm.assertEq(currentThawEnd, block.timestamp + revokeSignerThawingPeriod);
+        vm.assertEq(originalThawEnd, block.timestamp + REVOKE_SIGNER_THAWING_PERIOD - 1);
+        vm.assertEq(currentThawEnd, block.timestamp + REVOKE_SIGNER_THAWING_PERIOD);
     }
 }

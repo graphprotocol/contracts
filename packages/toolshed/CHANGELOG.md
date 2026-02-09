@@ -1,5 +1,204 @@
 # @graphprotocol/toolshed
 
+## 1.1.2
+
+### Patch Changes
+
+- remove return types from IGraphTokenLockWalletToolshed
+- Updated dependencies
+  - @graphprotocol/interfaces@0.6.5
+
+## 1.1.1
+
+### Patch Changes
+
+- Re-release toolshed with parseCustomError
+
+## 1.1.0
+
+### Minor Changes
+
+- Graph Horizon phase 3 mainnet deployment
+
+### Patch Changes
+
+- Updated dependencies
+  - @graphprotocol/address-book@1.1.0
+
+## 1.0.3
+
+### Patch Changes
+
+- Add fn to parse custom errors to toolshed package
+
+## 1.0.2
+
+### Patch Changes
+
+- yAdd feesProvisionTracker to subgraph service interface
+- Updated dependencies
+  - @graphprotocol/interfaces@0.6.4
+
+## 1.0.1
+
+### Patch Changes
+
+- Fix L2Curation implementation address in subgraph service address book.
+- Updated dependencies
+  - @graphprotocol/address-book@1.0.1
+
+## 1.0.0
+
+### Major Changes
+
+- Deploy horizon to testnet
+
+### Patch Changes
+
+- Updated dependencies
+  - @graphprotocol/address-book@1.0.0
+
+## 0.6.16
+
+### Patch Changes
+
+- Add LegacyRewardsManager interface
+- Updated dependencies
+  - @graphprotocol/interfaces@0.6.3
+
+## 0.6.15
+
+### Patch Changes
+
+- Ensure ServiceRegistry loads the correct interface
+- Updated dependencies
+  - @graphprotocol/interfaces@0.6.2
+
+## 0.6.14
+
+### Patch Changes
+
+- Update to latest interfaces package
+
+## 0.6.13
+
+### Patch Changes
+
+- Use bigint for RAV timestamp
+
+## 0.6.12
+
+### Patch Changes
+
+- Updated dependencies
+  - @graphprotocol/interfaces@0.6.0
+
+## 0.6.11
+
+### Patch Changes
+
+- Fix address book path resolution in toolshed
+
+## 0.6.10
+
+### Patch Changes
+
+- Fixing release bug where dependency uses workspace nomenclature
+
+## 0.6.9
+
+### Patch Changes
+
+- Updated dependencies
+  - @graphprotocol/address-book@0.2.0
+
+## 0.6.8
+
+### Patch Changes
+
+- Updated dependencies
+  - @graphprotocol/interfaces@0.5.0
+
+## 0.6.7
+
+### Patch Changes
+
+- Updated dependencies
+  - @graphprotocol/interfaces@0.4.0
+
+## 0.6.6
+
+### Patch Changes
+
+- Updated dependencies
+  - @graphprotocol/interfaces@0.3.0
+
+## 0.6.5
+
+### Patch Changes
+
+- Updated dependencies [fbe38f9]
+- Updated dependencies
+  - @graphprotocol/interfaces@0.2.5
+
+## 0.6.4
+
+### Patch Changes
+
+- Ensure latest build is published to npm
+- Updated dependencies
+  - @graphprotocol/interfaces@0.2.4
+
+## 0.6.3
+
+### Patch Changes
+
+- Updated dependencies
+  - @graphprotocol/interfaces@0.2.3
+
+## 0.6.2
+
+### Patch Changes
+
+- Updated dependencies
+  - @graphprotocol/interfaces@0.2.2
+
+## 0.6.1
+
+### Patch Changes
+
+- Updated dependencies
+  - @graphprotocol/interfaces@0.2.1
+
+## 0.6.0
+
+### Minor Changes
+
+- Extracted contract interfaces into its own package
+
+### Patch Changes
+
+- Updated dependencies
+  - @graphprotocol/interfaces@0.2.0
+
+## 0.5.7
+
+### Patch Changes
+
+- Updated dependencies
+  - @graphprotocol/contracts@7.2.1
+  - @graphprotocol/horizon@0.3.3
+  - @graphprotocol/subgraph-service@0.3.5
+
+## 0.5.6
+
+### Patch Changes
+
+- Updated dependencies
+  - @graphprotocol/contracts@7.2.0
+  - @graphprotocol/horizon@0.3.3
+  - @graphprotocol/subgraph-service@0.3.5
+
 ## 0.5.5
 
 ### Patch Changes

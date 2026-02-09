@@ -6,11 +6,11 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/Initial
 
 import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
 import { Managed } from "../governance/Managed.sol";
-import { IGraphToken } from "../token/IGraphToken.sol";
 
 /**
  * @title Bridge Escrow
- * @dev This contracts acts as a gateway for an L2 bridge (or several). It simply holds GRT and has
+ * @author Edge & Node
+ * @notice This contracts acts as a gateway for an L2 bridge (or several). It simply holds GRT and has
  * a set of spenders that can transfer the tokens; the L1 side of each L2 bridge has to be
  * approved as a spender.
  */

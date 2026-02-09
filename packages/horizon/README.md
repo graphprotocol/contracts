@@ -6,12 +6,12 @@ Graph Horizon is the next evolution of the Graph Protocol.
 
 The following environment variables might be required:
 
-| Variable | Description |
-|----------|-------------|
-| `ARBISCAN_API_KEY` | Arbiscan API key - for contract verification|
-| `ARBITRUM_ONE_RPC` | Arbitrum One RPC URL - defaults to `https://arb1.arbitrum.io/rpc` |
+| Variable               | Description                                                                     |
+| ---------------------- | ------------------------------------------------------------------------------- |
+| `ARBISCAN_API_KEY`     | Arbiscan API key - for contract verification                                    |
+| `ARBITRUM_ONE_RPC`     | Arbitrum One RPC URL - defaults to `https://arb1.arbitrum.io/rpc`               |
 | `ARBITRUM_SEPOLIA_RPC` | Arbitrum Sepolia RPC URL - defaults to `https://sepolia-rollup.arbitrum.io/rpc` |
-| `LOCALHOST_RPC` | Localhost RPC URL - defaults to `http://localhost:8545` |
+| `LOCALHOST_RPC`        | Localhost RPC URL - defaults to `http://localhost:8545`                         |
 
 You can set them using Hardhat:
 
@@ -31,6 +31,7 @@ pnpm build
 Note that this instructions will help you deploy Graph Horizon contracts, but no data service will be deployed. If you want to deploy the Subgraph Service please refer to the [Subgraph Service README](../subgraph-service/README.md) for deploy instructions.
 
 ### New deployment
+
 To deploy Graph Horizon from scratch run the following command:
 
 ```bash
@@ -38,6 +39,7 @@ npx hardhat deploy:protocol --network hardhat
 ```
 
 ### Upgrade deployment
+
 Usually you would run this against a network (or a fork) where the original Graph Protocol was previously deployed. To upgrade an existing deployment of the original Graph Protocol to Graph Horizon, run the following commands. Note that some steps might need to be run by different accounts (deployer vs governor):
 
 ```bash
@@ -50,14 +52,13 @@ npx hardhat deploy:migrate --network hardhat --step 4 # Run with governor. Optio
 Steps 2, 3 and 4 require patching the configuration file with addresses from previous steps. The files are located in the `ignition/configs` directory and need to be manually edited. You can also pass `--patch-config` flag to the deploy command to automatically patch the configuration reading values from the address book. Note that this will NOT update the configuration file.
 
 ## Testing
+
 - **unit**: Unit tests can be run with `pnpm test`
-- **integration**: Integration tests can be run with `pnpm test:integration`
-      - Need to set `BLOCKCHAIN_RPC` for a chain where The Graph is already deployed
-      - If no `BLOCKCHAIN_RPC` is detected it will try using `ARBITRUM_SEPOLIA_RPC`
+- **integration**: Integration tests can be run with `pnpm test:integration` - Need to set `BLOCKCHAIN_RPC` for a chain where The Graph is already deployed - If no `BLOCKCHAIN_RPC` is detected it will try using `ARBITRUM_SEPOLIA_RPC`
 - **deployment**: Deployment tests can be run with `pnpm test:deployment --network <network>`, the following environment variables allow customizing the test suite for different scenarios:
-   - `TEST_DEPLOYMENT_STEP` (default: 1) - Specify the latest deployment step that has been executed. Tests for later steps will be skipped.
-   - `TEST_DEPLOYMENT_TYPE` (default: migrate) - The deployment type `protocol/migrate` that is being tested. Test suite has been developed for `migrate` use case but can be run against a `protocol` deployment, likely with some failed tests.
-   - `TEST_DEPLOYMENT_CONFIG` (default: `hre.network.name`) - The Ignition config file name to use for the test suite.
+  - `TEST_DEPLOYMENT_STEP` (default: 1) - Specify the latest deployment step that has been executed. Tests for later steps will be skipped.
+  - `TEST_DEPLOYMENT_TYPE` (default: migrate) - The deployment type `protocol/migrate` that is being tested. Test suite has been developed for `migrate` use case but can be run against a `protocol` deployment, likely with some failed tests.
+  - `TEST_DEPLOYMENT_CONFIG` (default: `hre.network.name`) - The Ignition config file name to use for the test suite.
 
 ## Verification
 

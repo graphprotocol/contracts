@@ -1,15 +1,18 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6 || 0.8.27;
+pragma solidity ^0.7.6 || 0.8.27 || 0.8.33;
+
+/* solhint-disable gas-custom-errors */ // Cannot use custom errors with 0.7.6
 
 import { Governed } from "../governance/Governed.sol";
 
-import { IGraphProxy } from "./IGraphProxy.sol";
+import { IGraphProxy } from "@graphprotocol/interfaces/contracts/contracts/upgrades/IGraphProxy.sol";
 import { GraphUpgradeable } from "./GraphUpgradeable.sol";
 
 /**
  * @title GraphProxyAdmin
- * @dev This is the owner of upgradeable proxy contracts.
+ * @author Edge & Node
+ * @notice This is the owner of upgradeable proxy contracts.
  * Proxy contracts use a TransparentProxy pattern, any admin related call
  * like upgrading a contract or changing the admin needs to be send through
  * this contract.

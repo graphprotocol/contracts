@@ -1,28 +1,27 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
+pragma solidity ^0.8.27;
 
-import "forge-std/Test.sol";
-
-import { IDataService } from "@graphprotocol/horizon/contracts/data-service/interfaces/IDataService.sol";
-import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
+import { IDataService } from "@graphprotocol/interfaces/contracts/data-service/IDataService.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
-import { IHorizonStakingTypes } from "@graphprotocol/horizon/contracts/interfaces/internal/IHorizonStakingTypes.sol";
-import { IGraphTallyCollector } from "@graphprotocol/horizon/contracts/interfaces/IGraphTallyCollector.sol";
+import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
+import { IGraphTallyCollector } from "@graphprotocol/interfaces/contracts/horizon/IGraphTallyCollector.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { LinkedList } from "@graphprotocol/horizon/contracts/libraries/LinkedList.sol";
-import { IHorizonStakingTypes } from "@graphprotocol/horizon/contracts/interfaces/internal/IHorizonStakingTypes.sol";
-import { StakeClaims } from "@graphprotocol/horizon/contracts/data-service/libraries/StakeClaims.sol";
+import { IDataServiceFees } from "@graphprotocol/interfaces/contracts/data-service/IDataServiceFees.sol";
+import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
+import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
+import { IAllocationManager } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocationManager.sol";
+import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
+import { ILegacyAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/ILegacyAllocation.sol";
 
 import { Allocation } from "../../../contracts/libraries/Allocation.sol";
-import { AllocationHandler } from "../../../contracts/libraries/AllocationHandler.sol";
-import { ISubgraphService } from "../../../contracts/interfaces/ISubgraphService.sol";
-import { LegacyAllocation } from "../../../contracts/libraries/LegacyAllocation.sol";
 import { SubgraphServiceSharedTest } from "../shared/SubgraphServiceShared.t.sol";
 
 contract SubgraphServiceTest is SubgraphServiceSharedTest {
     using PPMMath for uint256;
-    using Allocation for Allocation.State;
-    using LinkedList for LinkedList.List;
+    using Allocation for IAllocation.State;
+    using LinkedList for ILinkedList.List;
 
     /*
      * MODIFIERS
@@ -101,7 +100,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
 
     function _resizeAllocation(address _indexer, address _allocationId, uint256 _tokens) internal {
         // before state
-        Allocation.State memory beforeAllocation = subgraphService.getAllocation(_allocationId);
+        IAllocation.State memory beforeAllocation = subgraphService.getAllocation(_allocationId);
         bytes32 subgraphDeploymentId = beforeAllocation.subgraphDeploymentId;
         uint256 beforeSubgraphAllocatedTokens = subgraphService.getSubgraphAllocatedTokens(subgraphDeploymentId);
         uint256 beforeAllocatedTokens = subgraphService.allocationProvisionTracker(_indexer);
@@ -114,7 +113,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         }
 
         vm.expectEmit(address(subgraphService));
-        emit AllocationHandler.AllocationResized(
+        emit IAllocationManager.AllocationResized(
             _indexer,
             _allocationId,
             subgraphDeploymentId,
@@ -128,7 +127,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         // after state
         uint256 afterSubgraphAllocatedTokens = subgraphService.getSubgraphAllocatedTokens(subgraphDeploymentId);
         uint256 afterAllocatedTokens = subgraphService.allocationProvisionTracker(_indexer);
-        Allocation.State memory afterAllocation = subgraphService.getAllocation(_allocationId);
+        IAllocation.State memory afterAllocation = subgraphService.getAllocation(_allocationId);
         uint256 accRewardsPerAllocatedTokenDelta = afterAllocation.accRewardsPerAllocatedToken -
             beforeAllocation.accRewardsPerAllocatedToken;
         uint256 afterAccRewardsPending = rewardsManager.calcRewards(
@@ -143,20 +142,20 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
             assertEq(afterAllocatedTokens, beforeAllocatedTokens - allocatedTokensDelta);
         }
         assertEq(afterAllocation.tokens, _tokens);
-        assertEq(afterAllocation.accRewardsPerAllocatedToken, rewardsPerSubgraphAllocationUpdate);
+        assertEq(afterAllocation.accRewardsPerAllocatedToken, REWARDS_PER_SUBGRAPH_ALLOCATION_UPDATE);
         assertEq(afterAllocation.accRewardsPending, afterAccRewardsPending);
         assertEq(afterSubgraphAllocatedTokens, _tokens);
     }
 
     function _closeStaleAllocation(address _allocationId) internal {
-        Allocation.State memory allocation = subgraphService.getAllocation(_allocationId);
+        IAllocation.State memory allocation = subgraphService.getAllocation(_allocationId);
         assertTrue(allocation.isOpen());
         uint256 previousSubgraphAllocatedTokens = subgraphService.getSubgraphAllocatedTokens(
             allocation.subgraphDeploymentId
         );
 
         vm.expectEmit(address(subgraphService));
-        emit AllocationHandler.AllocationClosed(
+        emit IAllocationManager.AllocationClosed(
             allocation.indexer,
             _allocationId,
             allocation.subgraphDeploymentId,
@@ -269,10 +268,10 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
             (IGraphTallyCollector.SignedRAV, uint256)
         );
         address allocationId = address(uint160(uint256(signedRav.rav.collectionId)));
-        Allocation.State memory allocation = subgraphService.getAllocation(allocationId);
+        IAllocation.State memory allocation = subgraphService.getAllocation(allocationId);
         bytes32 subgraphDeploymentId = allocation.subgraphDeploymentId;
 
-        address payer = graphTallyCollector.isAuthorized(signedRav.rav.payer, _recoverRAVSigner(signedRav))
+        address payer = graphTallyCollector.isAuthorized(signedRav.rav.payer, _recoverRavSigner(signedRav))
             ? signedRav.rav.payer
             : address(0);
 
@@ -316,7 +315,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
             _data,
             (address, bytes32, bytes)
         );
-        Allocation.State memory allocation = subgraphService.getAllocation(allocationId);
+        IAllocation.State memory allocation = subgraphService.getAllocation(allocationId);
 
         // Calculate accumulated tokens, this depends on the rewards manager which we have mocked
         uint256 accRewardsPerTokens = allocation.tokens.mulPPM(rewardsManager.rewardsPerSignal());
@@ -340,18 +339,22 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
             : 0;
         indexingRewardsData.tokensIndexerRewards = paymentCollected - indexingRewardsData.tokensDelegationRewards;
 
-        vm.expectEmit(address(subgraphService));
-        emit AllocationHandler.IndexingRewardsCollected(
-            allocation.indexer,
-            allocationId,
-            allocation.subgraphDeploymentId,
-            paymentCollected,
-            indexingRewardsData.tokensIndexerRewards,
-            indexingRewardsData.tokensDelegationRewards,
-            indexingRewardsData.poi,
-            indexingRewardsData.poiMetadata,
-            epochManager.currentEpoch()
-        );
+        // Only expect IndexingRewardsCollected event if allocation is not too young
+        // The contract returns early without emitting this event for allocations created in current epoch
+        if (currentEpoch > allocation.createdAtEpoch) {
+            vm.expectEmit(address(subgraphService));
+            emit IAllocationManager.IndexingRewardsCollected(
+                allocation.indexer,
+                allocationId,
+                allocation.subgraphDeploymentId,
+                paymentCollected,
+                indexingRewardsData.tokensIndexerRewards,
+                indexingRewardsData.tokensDelegationRewards,
+                indexingRewardsData.poi,
+                indexingRewardsData.poiMetadata,
+                epochManager.currentEpoch()
+            );
+        }
 
         return (paymentCollected, allocationId, indexingRewardsData);
     }
@@ -367,7 +370,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
             _data,
             (IGraphTallyCollector.SignedRAV, uint256)
         );
-        Allocation.State memory allocation = subgraphService.getAllocation(
+        IAllocation.State memory allocation = subgraphService.getAllocation(
             address(uint160(uint256(signedRav.rav.collectionId)))
         );
         QueryFeeData memory queryFeeData = _queryFeeData(allocation.subgraphDeploymentId);
@@ -402,7 +405,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         assertEq(collectPaymentDataAfter.lockedTokens, collectPaymentDataBefore.lockedTokens + tokensToLock);
 
         // Check the stake claim
-        LinkedList.List memory claimsList = _getClaimList(_indexer);
+        ILinkedList.List memory claimsList = _getClaimList(_indexer);
         bytes32 claimId = _buildStakeClaimId(_indexer, claimsList.nonce - 1);
         StakeClaims.StakeClaim memory stakeClaim = _getStakeClaim(claimId);
         uint64 disputePeriod = disputeManager.getDisputePeriod();
@@ -419,15 +422,23 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         CollectPaymentData memory collectPaymentDataBefore,
         CollectPaymentData memory collectPaymentDataAfter
     ) private {
-        Allocation.State memory allocation = subgraphService.getAllocation(allocationId);
+        IAllocation.State memory allocation = subgraphService.getAllocation(allocationId);
 
         // Check allocation state
-        assertEq(allocation.accRewardsPending, 0);
-        uint256 accRewardsPerAllocatedToken = rewardsManager.onSubgraphAllocationUpdate(
-            allocation.subgraphDeploymentId
-        );
-        assertEq(allocation.accRewardsPerAllocatedToken, accRewardsPerAllocatedToken);
+        uint256 currentEpoch = epochManager.currentEpoch();
+
+        // lastPOIPresentedAt is always updated (even for too-young allocations to prevent staleness)
         assertEq(allocation.lastPOIPresentedAt, block.timestamp);
+
+        // For too-young allocations (created in current epoch), the contract returns early
+        // without updating other allocation state or emitting IndexingRewardsCollected
+        if (currentEpoch > allocation.createdAtEpoch) {
+            assertEq(allocation.accRewardsPending, 0);
+            uint256 accRewardsPerAllocatedToken = rewardsManager.onSubgraphAllocationUpdate(
+                allocation.subgraphDeploymentId
+            );
+            assertEq(allocation.accRewardsPerAllocatedToken, accRewardsPerAllocatedToken);
+        }
 
         // Check indexer got paid the correct amount
         address paymentsDestination = subgraphService.paymentsDestination(_indexer);
@@ -466,15 +477,15 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         }
     }
 
-    function _migrateLegacyAllocation(address _indexer, address _allocationId, bytes32 _subgraphDeploymentID) internal {
+    function _migrateLegacyAllocation(address _indexer, address _allocationId, bytes32 _subgraphDeploymentId) internal {
         vm.expectEmit(address(subgraphService));
-        emit AllocationHandler.LegacyAllocationMigrated(_indexer, _allocationId, _subgraphDeploymentID);
+        emit IAllocationManager.LegacyAllocationMigrated(_indexer, _allocationId, _subgraphDeploymentId);
 
-        subgraphService.migrateLegacyAllocation(_indexer, _allocationId, _subgraphDeploymentID);
+        subgraphService.migrateLegacyAllocation(_indexer, _allocationId, _subgraphDeploymentId);
 
-        LegacyAllocation.State memory afterLegacyAllocation = subgraphService.getLegacyAllocation(_allocationId);
+        ILegacyAllocation.State memory afterLegacyAllocation = subgraphService.getLegacyAllocation(_allocationId);
         assertEq(afterLegacyAllocation.indexer, _indexer);
-        assertEq(afterLegacyAllocation.subgraphDeploymentId, _subgraphDeploymentID);
+        assertEq(afterLegacyAllocation.subgraphDeploymentId, _subgraphDeploymentId);
     }
 
     /*
@@ -487,7 +498,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         resetPrank(_indexer);
         token.approve(address(staking), _tokens);
         staking.stakeTo(_indexer, _tokens);
-        staking.provision(_indexer, address(subgraphService), _tokens, fishermanRewardPercentage, disputePeriod);
+        staking.provision(_indexer, address(subgraphService), _tokens, FISHERMAN_REWARD_PERCENTAGE, DISPUTE_PERIOD);
         _register(_indexer, abi.encode("url", "geoHash", address(0)));
 
         (address newIndexerAllocationId, uint256 newIndexerAllocationKey) = makeAddrAndKey("newIndexerAllocationId");
@@ -502,14 +513,14 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
      * PRIVATE FUNCTIONS
      */
 
-    function _recoverRAVSigner(IGraphTallyCollector.SignedRAV memory _signedRAV) private view returns (address) {
-        bytes32 messageHash = graphTallyCollector.encodeRAV(_signedRAV.rav);
-        return ECDSA.recover(messageHash, _signedRAV.signature);
+    function _recoverRavSigner(IGraphTallyCollector.SignedRAV memory _signedRav) private view returns (address) {
+        bytes32 messageHash = graphTallyCollector.encodeRAV(_signedRav.rav);
+        return ECDSA.recover(messageHash, _signedRav.signature);
     }
 
-    function _getClaimList(address _indexer) private view returns (LinkedList.List memory) {
+    function _getClaimList(address _indexer) private view returns (ILinkedList.List memory) {
         (bytes32 head, bytes32 tail, uint256 nonce, uint256 count) = subgraphService.claimsLists(_indexer);
-        return LinkedList.List(head, tail, nonce, count);
+        return ILinkedList.List(head, tail, nonce, count);
     }
 
     function _buildStakeClaimId(address _indexer, uint256 _nonce) private view returns (bytes32) {
@@ -527,7 +538,8 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
     // - uint8 indexingStatus - status (failed, syncing, etc). Mapping maintained by indexer agent.
     // - uint8 errorCode - Again up to indexer agent, but seems sensible to use 0 if no error, and error codes for anything else.
     // - uint256 errorBlockNumber - Block number (indexed chain) where the indexing error happens. 0 if no error.
-    function _getHardcodedPOIMetadata() internal view returns (bytes memory) {
+    function _getHardcodedPoiMetadata() internal view returns (bytes memory) {
+        // forge-lint: disable-next-line(unsafe-typecast)
         return abi.encode(block.number, bytes32("PUBLIC_POI1"), uint8(0), uint8(0), uint256(0));
     }
 }

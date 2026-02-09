@@ -1,0 +1,7 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist"
+  },
+  "include": ["hardhat.config.ts", "src/**/*.ts", "types/**/*.ts", "wagmi/**/*.ts"]
+}

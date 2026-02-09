@@ -8,8 +8,11 @@
     "controllerAddress": "0x9DB3ee191681f092607035d9BDA6e59FbEaCa695",
     "horizonStakingAddress": "0x865365C425f3A593Ffe698D9c4E6707D14d51e08",
     "epochManagerAddress": "0x88b3C7f37253bAA1A9b95feAd69bD5320585826D",
+    "epochManagerImplementationAddress": "0x646627fa39ec6f6E757Cb4189bC54c92FFBb71da",
     "graphTokenAddress": "0xf8c05dCF59E8B28BFD5eed176C562bEbcfc7Ac04",
+    "graphTokenImplementationAddress": "0x4cf968bA38b43dd10be114daa7959C1b369479e5",
     "graphTokenGatewayAddress": "0xB24Ce0f8c18c4DdDa584A7EeC132F49C966813bb",
+    "graphTokenGatewayImplementationAddress": "0x3C2eB5E561f70c0573E5f6c92358e988E32cb5eC",
     "rewardsManagerAddress": "0x1F49caE7669086c8ba53CC35d1E9f80176d67E79",
     "curationAddress": "0xDe761f075200E75485F4358978FB4d1dC8644FD5",
     "gnsAddress": "0x3133948342F35b8699d8F94aeE064AbB76eDe965",
@@ -27,6 +30,7 @@
     "horizonStakingImplementationAddress": "",
     "curationImplementationAddress": "",
     "rewardsManagerImplementationAddress": "",
+    "disputeManagerAddress": "",
 
     // Global parameters
     "maxThawingPeriod": 2419200

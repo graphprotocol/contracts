@@ -1,8 +1,8 @@
+import { expect } from 'chai'
+import { toUtf8Bytes } from 'ethers'
 import hre from 'hardhat'
 
-import { expect } from 'chai'
 import { testIf } from './lib/testIf'
-import { toUtf8Bytes } from 'ethers'
 
 const graph = hre.graph()
 const addressBook = graph.horizon.addressBook

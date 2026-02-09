@@ -1,15 +1,20 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity 0.8.27;
+pragma solidity 0.8.33;
 
-import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
-import { IHorizonStaking } from "@graphprotocol/horizon/contracts/interfaces/IHorizonStaking.sol";
-import { IDisputeManager } from "./interfaces/IDisputeManager.sol";
-import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable function-max-lines, gas-strict-inequalities
+// forge-lint: disable-start(unwrapped-modifier-logic, asm-keccak256, named-struct-fields, mixed-case-variable)
+
+import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
+import { IHorizonStaking } from "@graphprotocol/interfaces/contracts/horizon/IHorizonStaking.sol";
+import { IDisputeManager } from "@graphprotocol/interfaces/contracts/subgraph-service/IDisputeManager.sol";
+import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
+import { IAttestation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAttestation.sol";
+import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
 
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 import { MathUtils } from "@graphprotocol/horizon/contracts/libraries/MathUtils.sol";
-import { Allocation } from "./libraries/Allocation.sol";
 import { Attestation } from "./libraries/Attestation.sol";
 import { IndexingAgreement } from "./libraries/IndexingAgreement.sol";
 
@@ -21,7 +26,8 @@ import { AttestationManager } from "./utilities/AttestationManager.sol";
 
 /**
  * @title DisputeManager
- * @notice Provides a way to permissionlessly create disputes for incorrect behavior in the Subgraph Service.
+ * @author Edge & Node
+ * @notice Provides a way to permissionlessly create disputes for incorrect behavior in the Subgraph Service
  *
  * There are two types of disputes that can be created: Query disputes and Indexing disputes.
  *
@@ -42,12 +48,12 @@ import { AttestationManager } from "./utilities/AttestationManager.sol";
  * bugs. We may have an active bug bounty program.
  */
 contract DisputeManager is
+    IDisputeManager,
     Initializable,
     OwnableUpgradeable,
     GraphDirectory,
     AttestationManager,
-    DisputeManagerV1Storage,
-    IDisputeManager
+    DisputeManagerV1Storage
 {
     using TokenUtils for IGraphToken;
     using PPMMath for uint256;
@@ -170,8 +176,8 @@ contract DisputeManager is
         address fisherman = msg.sender;
 
         // Parse each attestation
-        Attestation.State memory attestation1 = Attestation.parse(attestationData1);
-        Attestation.State memory attestation2 = Attestation.parse(attestationData2);
+        IAttestation.State memory attestation1 = Attestation.parse(attestationData1);
+        IAttestation.State memory attestation2 = Attestation.parse(attestationData2);
 
         // Test that attestations are conflicting
         require(
@@ -313,18 +319,18 @@ contract DisputeManager is
     }
 
     /// @inheritdoc IDisputeManager
-    function setArbitrator(address arbitrator) external override onlyOwner {
-        _setArbitrator(arbitrator);
+    function setArbitrator(address newArbitrator) external override onlyOwner {
+        _setArbitrator(newArbitrator);
     }
 
     /// @inheritdoc IDisputeManager
-    function setDisputePeriod(uint64 disputePeriod) external override onlyOwner {
-        _setDisputePeriod(disputePeriod);
+    function setDisputePeriod(uint64 newDisputePeriod) external override onlyOwner {
+        _setDisputePeriod(newDisputePeriod);
     }
 
     /// @inheritdoc IDisputeManager
-    function setDisputeDeposit(uint256 disputeDeposit) external override onlyOwner {
-        _setDisputeDeposit(disputeDeposit);
+    function setDisputeDeposit(uint256 newDisputeDeposit) external override onlyOwner {
+        _setDisputeDeposit(newDisputeDeposit);
     }
 
     /// @inheritdoc IDisputeManager
@@ -338,12 +344,12 @@ contract DisputeManager is
     }
 
     /// @inheritdoc IDisputeManager
-    function setSubgraphService(address subgraphService_) external override onlyOwner {
-        _setSubgraphService(subgraphService_);
+    function setSubgraphService(address newSubgraphService) external override onlyOwner {
+        _setSubgraphService(newSubgraphService);
     }
 
     /// @inheritdoc IDisputeManager
-    function encodeReceipt(Attestation.Receipt calldata receipt) external view override returns (bytes32) {
+    function encodeReceipt(IAttestation.Receipt calldata receipt) external view override returns (bytes32) {
         return _encodeReceipt(receipt);
     }
 
@@ -364,18 +370,18 @@ contract DisputeManager is
 
     /// @inheritdoc IDisputeManager
     function areConflictingAttestations(
-        Attestation.State calldata attestation1,
-        Attestation.State calldata attestation2
+        IAttestation.State calldata attestation1,
+        IAttestation.State calldata attestation2
     ) external pure override returns (bool) {
         return Attestation.areConflicting(attestation1, attestation2);
     }
 
     /// @inheritdoc IDisputeManager
-    function getAttestationIndexer(Attestation.State memory attestation) public view returns (address) {
+    function getAttestationIndexer(IAttestation.State memory attestation) public view returns (address) {
         // Get attestation signer. Indexers signs with the allocationId
         address allocationId = _recoverSigner(attestation);
 
-        Allocation.State memory alloc = _getSubgraphService().getAllocation(allocationId);
+        IAllocation.State memory alloc = _getSubgraphService().getAllocation(allocationId);
         require(alloc.indexer != address(0), DisputeManagerIndexerNotFound(allocationId));
         require(
             alloc.subgraphDeploymentId == attestation.subgraphDeploymentId,
@@ -403,7 +409,7 @@ contract DisputeManager is
     function _createQueryDisputeWithAttestation(
         address _fisherman,
         uint256 _deposit,
-        Attestation.State memory _attestation,
+        IAttestation.State memory _attestation,
         bytes memory _attestationData
     ) private returns (bytes32) {
         // Get the indexer that signed the attestation
@@ -479,7 +485,7 @@ contract DisputeManager is
 
         // Allocation must exist
         ISubgraphService subgraphService_ = _getSubgraphService();
-        Allocation.State memory alloc = subgraphService_.getAllocation(_allocationId);
+        IAllocation.State memory alloc = subgraphService_.getAllocation(_allocationId);
         address indexer = alloc.indexer;
         require(indexer != address(0), DisputeManagerIndexerNotFound(_allocationId));
 

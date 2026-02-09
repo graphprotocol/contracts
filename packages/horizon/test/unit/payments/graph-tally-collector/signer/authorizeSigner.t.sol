@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "forge-std/Test.sol";
-
-import { IAuthorizable } from "../../../../../contracts/interfaces/IAuthorizable.sol";
+import { IAuthorizable } from "@graphprotocol/interfaces/contracts/horizon/IAuthorizable.sol";
 
 import { GraphTallyTest } from "../GraphTallyCollector.t.sol";
 
@@ -55,7 +53,7 @@ contract GraphTallyAuthorizeSignerTest is GraphTallyTest {
         _authorizeSigner(signer, proofDeadline, signerProof);
         // Revoke signer
         _thawSigner(signer);
-        skip(revokeSignerThawingPeriod + 1);
+        skip(REVOKE_SIGNER_THAWING_PERIOD + 1);
         _revokeAuthorizedSigner(signer);
 
         // Attempt to authorize signer again

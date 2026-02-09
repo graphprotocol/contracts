@@ -1,9 +1,8 @@
+import type { SubgraphService } from '@graphprotocol/interfaces'
+import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { Interface } from 'ethers'
 
-import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
-import type { ISubgraphService } from '@graphprotocol/subgraph-service'
-
-export function loadActions(contracts: { SubgraphService: ISubgraphService }) {
+export function loadActions(contracts: { SubgraphService: SubgraphService }) {
   return {
     /**
      * Collects the allocated funds for a subgraph deployment
@@ -12,15 +11,16 @@ export function loadActions(contracts: { SubgraphService: ISubgraphService }) {
      *   - `[indexer, paymentType, data]` - The collect parameters
      * @returns The payment collected
      */
-    collect: (signer: HardhatEthersSigner, args: Parameters<ISubgraphService['collect']>): Promise<bigint> => collect(contracts, signer, args),
+    collect: (signer: HardhatEthersSigner, args: Parameters<SubgraphService['collect']>): Promise<bigint> =>
+      collect(contracts, signer, args),
   }
 }
 
 // Collects payment from the subgraph service
 async function collect(
-  contracts: { SubgraphService: ISubgraphService },
+  contracts: { SubgraphService: SubgraphService },
   signer: HardhatEthersSigner,
-  args: Parameters<ISubgraphService['collect']>,
+  args: Parameters<SubgraphService['collect']>,
 ): Promise<bigint> {
   const { SubgraphService } = contracts
   const [indexer, paymentType, data] = args
@@ -29,8 +29,10 @@ async function collect(
   const receipt = await tx.wait()
   if (!receipt) throw new Error('Transaction failed')
 
-  const iface = new Interface(['event ServicePaymentCollected(address indexed serviceProvider, uint8 indexed feeType, uint256 tokens)'])
-  const event = receipt.logs.find(log => log.topics[0] === iface.getEvent('ServicePaymentCollected')?.topicHash)
+  const iface = new Interface([
+    'event ServicePaymentCollected(address indexed serviceProvider, uint8 indexed feeType, uint256 tokens)',
+  ])
+  const event = receipt.logs.find((log) => log.topics[0] === iface.getEvent('ServicePaymentCollected')?.topicHash)
   if (!event) throw new Error('ServicePaymentCollected event not found')
 
   return BigInt(event.data)

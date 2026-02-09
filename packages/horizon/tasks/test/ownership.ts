@@ -1,6 +1,6 @@
-import { task, types } from 'hardhat/config'
-import { printBanner } from '@graphprotocol/toolshed/utils'
 import { requireLocalNetwork } from '@graphprotocol/toolshed/hardhat'
+import { printBanner } from '@graphprotocol/toolshed/utils'
+import { task, types } from 'hardhat/config'
 
 // This is required because we cannot impersonate Ignition accounts
 // so we impersonate current governor and transfer ownership to accounts that Ignition can control
@@ -30,7 +30,7 @@ task('test:transfer-ownership', 'Transfer ownership of protocol contracts to a n
     const graphProxyAdmin = graph.horizon.contracts.GraphProxyAdmin
 
     // Get current owners
-    const controllerGovernor = await controller.governor()
+    const controllerGovernor = await controller.getGovernor()
     const proxyAdminGovernor = await graphProxyAdmin.governor()
 
     console.log(`Current Controller governor: ${controllerGovernor}`)
@@ -49,7 +49,7 @@ task('test:transfer-ownership', 'Transfer ownership of protocol contracts to a n
 
     // Accept ownership of Controller
     await controller.connect(newGovernor).acceptOwnership()
-    console.log(`New Controller governor: ${await controller.governor()}`)
+    console.log(`New Controller governor: ${await controller.getGovernor()}`)
 
     console.log('\n--- STEP 2: Transfer ownership of GraphProxyAdmin ---')
 

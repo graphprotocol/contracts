@@ -2,22 +2,26 @@
 
 pragma solidity ^0.7.6;
 
-import { IController } from "./IController.sol";
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-indexed-events
+// solhint-disable named-parameters-mapping
 
-import { ICuration } from "../curation/ICuration.sol";
-import { IEpochManager } from "../epochs/IEpochManager.sol";
-import { IRewardsManager } from "../rewards/IRewardsManager.sol";
-import { IStaking } from "../staking/IStaking.sol";
-import { IStakingBase } from "../staking/IStakingBase.sol";
-import { IGraphToken } from "../token/IGraphToken.sol";
-import { ITokenGateway } from "../arbitrum/ITokenGateway.sol";
-import { IGNS } from "../discovery/IGNS.sol";
+import { IController } from "@graphprotocol/interfaces/contracts/contracts/governance/IController.sol";
 
-import { IManaged } from "./IManaged.sol";
+import { ICuration } from "@graphprotocol/interfaces/contracts/contracts/curation/ICuration.sol";
+import { IEpochManager } from "@graphprotocol/interfaces/contracts/contracts/epochs/IEpochManager.sol";
+import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManager.sol";
+import { IStaking } from "@graphprotocol/interfaces/contracts/contracts/staking/IStaking.sol";
+import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
+import { ITokenGateway } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/ITokenGateway.sol";
+import { IGNS } from "@graphprotocol/interfaces/contracts/contracts/discovery/IGNS.sol";
+
+import { IManaged } from "@graphprotocol/interfaces/contracts/contracts/governance/IManaged.sol";
 
 /**
  * @title Graph Managed contract
- * @dev The Managed contract provides an interface to interact with the Controller.
+ * @author Edge & Node
+ * @notice The Managed contract provides an interface to interact with the Controller.
  * It also provides local caching for contract addresses. This mechanism relies on calling the
  * public `syncAllContracts()` function whenever a contract changes in the controller.
  *
@@ -27,7 +31,9 @@ import { IManaged } from "./IManaged.sol";
 abstract contract Managed is IManaged {
     // -- State --
 
-    /// Controller that manages this contract
+    /**
+     * @inheritdoc IManaged
+     */
     IController public override controller;
     /// @dev Cache for the addresses of the contracts retrieved from the controller
     mapping(bytes32 => address) private _addressCache;
@@ -35,28 +41,46 @@ abstract contract Managed is IManaged {
     uint256[10] private __gap;
 
     // Immutables
+    /// @dev Contract name hash for Curation contract
     bytes32 private immutable CURATION = keccak256("Curation");
+    /// @dev Contract name hash for EpochManager contract
     bytes32 private immutable EPOCH_MANAGER = keccak256("EpochManager");
+    /// @dev Contract name hash for RewardsManager contract
     bytes32 private immutable REWARDS_MANAGER = keccak256("RewardsManager");
+    /// @dev Contract name hash for Staking contract
     bytes32 private immutable STAKING = keccak256("Staking");
+    /// @dev Contract name hash for GraphToken contract
     bytes32 private immutable GRAPH_TOKEN = keccak256("GraphToken");
+    /// @dev Contract name hash for GraphTokenGateway contract
     bytes32 private immutable GRAPH_TOKEN_GATEWAY = keccak256("GraphTokenGateway");
+    /// @dev Contract name hash for GNS contract
     bytes32 private immutable GNS = keccak256("GNS");
 
     // -- Events --
 
-    /// Emitted when a contract parameter has been updated
+    /**
+     * @notice Emitted when a contract parameter has been updated
+     * @param param Name of the parameter that was updated
+     */
     event ParameterUpdated(string param);
-    /// Emitted when the controller address has been set
+
+    /**
+     * @notice Emitted when the controller address has been set
+     * @param controller Address of the new controller
+     */
     event SetController(address controller);
 
-    /// Emitted when contract with `nameHash` is synced to `contractAddress`.
+    /**
+     * @notice Emitted when contract with `nameHash` is synced to `contractAddress`.
+     * @param nameHash Hash of the contract name
+     * @param contractAddress Address of the synced contract
+     */
     event ContractSynced(bytes32 indexed nameHash, address contractAddress);
 
     // -- Modifiers --
 
     /**
-     * @dev Revert if the controller is paused or partially paused
+     * @notice Revert if the controller is paused or partially paused
      */
     function _notPartialPaused() internal view {
         require(!controller.paused(), "Paused");
@@ -64,21 +88,21 @@ abstract contract Managed is IManaged {
     }
 
     /**
-     * @dev Revert if the controller is paused
+     * @notice Revert if the controller is paused
      */
     function _notPaused() internal view virtual {
         require(!controller.paused(), "Paused");
     }
 
     /**
-     * @dev Revert if the caller is not the governor
+     * @notice Revert if the caller is not the governor
      */
     function _onlyGovernor() internal view {
         require(msg.sender == controller.getGovernor(), "Only Controller governor");
     }
 
     /**
-     * @dev Revert if the caller is not the Controller
+     * @notice Revert if the caller is not the Controller
      */
     function _onlyController() internal view {
         require(msg.sender == address(controller), "Caller must be Controller");
@@ -119,7 +143,7 @@ abstract contract Managed is IManaged {
     // -- Functions --
 
     /**
-     * @dev Initialize a Managed contract
+     * @notice Initialize a Managed contract
      * @param _controller Address for the Controller that manages this contract
      */
     function _initialize(address _controller) internal {
@@ -127,15 +151,14 @@ abstract contract Managed is IManaged {
     }
 
     /**
-     * @notice Set Controller. Only callable by current controller.
-     * @param _controller Controller contract address
+     * @inheritdoc IManaged
      */
     function setController(address _controller) external override onlyController {
         _setController(_controller);
     }
 
     /**
-     * @dev Set controller.
+     * @notice Set controller.
      * @param _controller Controller contract address
      */
     function _setController(address _controller) internal {
@@ -145,7 +168,7 @@ abstract contract Managed is IManaged {
     }
 
     /**
-     * @dev Return Curation interface
+     * @notice Return Curation interface
      * @return Curation contract registered with Controller
      */
     function curation() internal view returns (ICuration) {
@@ -153,7 +176,7 @@ abstract contract Managed is IManaged {
     }
 
     /**
-     * @dev Return EpochManager interface
+     * @notice Return EpochManager interface
      * @return Epoch manager contract registered with Controller
      */
     function epochManager() internal view returns (IEpochManager) {
@@ -161,7 +184,7 @@ abstract contract Managed is IManaged {
     }
 
     /**
-     * @dev Return RewardsManager interface
+     * @notice Return RewardsManager interface
      * @return Rewards manager contract registered with Controller
      */
     function rewardsManager() internal view returns (IRewardsManager) {
@@ -169,7 +192,7 @@ abstract contract Managed is IManaged {
     }
 
     /**
-     * @dev Return Staking interface
+     * @notice Return Staking interface
      * @return Staking contract registered with Controller
      */
     function staking() internal view returns (IStaking) {
@@ -177,7 +200,7 @@ abstract contract Managed is IManaged {
     }
 
     /**
-     * @dev Return GraphToken interface
+     * @notice Return GraphToken interface
      * @return Graph token contract registered with Controller
      */
     function graphToken() internal view returns (IGraphToken) {
@@ -185,7 +208,7 @@ abstract contract Managed is IManaged {
     }
 
     /**
-     * @dev Return GraphTokenGateway (L1 or L2) interface
+     * @notice Return GraphTokenGateway (L1 or L2) interface
      * @return Graph token gateway contract registered with Controller
      */
     function graphTokenGateway() internal view returns (ITokenGateway) {
@@ -193,7 +216,7 @@ abstract contract Managed is IManaged {
     }
 
     /**
-     * @dev Return GNS (L1 or L2) interface.
+     * @notice Return GNS (L1 or L2) interface.
      * @return Address of the GNS contract registered with Controller, as an IGNS interface.
      */
     function gns() internal view returns (IGNS) {
@@ -201,7 +224,7 @@ abstract contract Managed is IManaged {
     }
 
     /**
-     * @dev Resolve a contract address from the cache or the Controller if not found.
+     * @notice Resolve a contract address from the cache or the Controller if not found.
      * @param _nameHash keccak256 hash of the contract name
      * @return Address of the contract
      */
@@ -214,7 +237,7 @@ abstract contract Managed is IManaged {
     }
 
     /**
-     * @dev Cache a contract address from the Controller registry.
+     * @notice Cache a contract address from the Controller registry.
      * @param _nameHash keccak256 hash of the name of the contract to sync into the cache
      */
     function _syncContract(bytes32 _nameHash) internal {
@@ -226,10 +249,7 @@ abstract contract Managed is IManaged {
     }
 
     /**
-     * @notice Sync protocol contract addresses from the Controller registry
-     * @dev This function will cache all the contracts using the latest addresses
-     * Anyone can call the function whenever a Proxy contract change in the
-     * controller to ensure the protocol is using the latest version
+     * @inheritdoc IManaged
      */
     function syncAllContracts() external override {
         _syncContract(CURATION);

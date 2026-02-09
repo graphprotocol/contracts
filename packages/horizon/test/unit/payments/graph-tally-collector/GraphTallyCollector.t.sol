@@ -1,16 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "forge-std/Test.sol";
-
-import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
-import { IHorizonStakingMain } from "../../../../contracts/interfaces/internal/IHorizonStakingMain.sol";
-import { IGraphTallyCollector } from "../../../../contracts/interfaces/IGraphTallyCollector.sol";
-import { IPaymentsCollector } from "../../../../contracts/interfaces/IPaymentsCollector.sol";
-import { IGraphPayments } from "../../../../contracts/interfaces/IGraphPayments.sol";
-import { IAuthorizable } from "../../../../contracts/interfaces/IAuthorizable.sol";
-import { GraphTallyCollector } from "../../../../contracts/payments/collectors/GraphTallyCollector.sol";
+import { IGraphTallyCollector } from "@graphprotocol/interfaces/contracts/horizon/IGraphTallyCollector.sol";
+import { IPaymentsCollector } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsCollector.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { IAuthorizable } from "@graphprotocol/interfaces/contracts/horizon/IAuthorizable.sol";
 import { PPMMath } from "../../../../contracts/libraries/PPMMath.sol";
 
 import { HorizonStakingSharedTest } from "../../shared/horizon-staking/HorizonStakingShared.t.sol";
@@ -47,7 +42,7 @@ contract GraphTallyTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
      * HELPERS
      */
 
-    function _getSignerProof(uint256 _proofDeadline, uint256 _signer) internal returns (bytes memory) {
+    function _getSignerProof(uint256 _proofDeadline, uint256 _signer) internal view returns (bytes memory) {
         (, address msgSender, ) = vm.readCallers();
         bytes32 messageHash = keccak256(
             abi.encodePacked(
@@ -80,7 +75,7 @@ contract GraphTallyTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
 
     function _thawSigner(address _signer) internal {
         (, address msgSender, ) = vm.readCallers();
-        uint256 expectedThawEndTimestamp = block.timestamp + revokeSignerThawingPeriod;
+        uint256 expectedThawEndTimestamp = block.timestamp + REVOKE_SIGNER_THAWING_PERIOD;
 
         vm.expectEmit(address(graphTallyCollector));
         emit IAuthorizable.SignerThawing(msgSender, _signer, expectedThawEndTimestamp);
@@ -118,66 +113,66 @@ contract GraphTallyTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
     }
 
     function _collect(IGraphPayments.PaymentTypes _paymentType, bytes memory _data) internal {
-        __collect(_paymentType, _data, 0);
+        _collectRav(_paymentType, _data, 0);
     }
 
     function _collect(IGraphPayments.PaymentTypes _paymentType, bytes memory _data, uint256 _tokensToCollect) internal {
-        __collect(_paymentType, _data, _tokensToCollect);
+        _collectRav(_paymentType, _data, _tokensToCollect);
     }
 
-    function __collect(
+    function _collectRav(
         IGraphPayments.PaymentTypes _paymentType,
         bytes memory _data,
         uint256 _tokensToCollect
     ) internal {
-        (IGraphTallyCollector.SignedRAV memory signedRAV, ) = abi.decode(
+        (IGraphTallyCollector.SignedRAV memory signedRav, ) = abi.decode(
             _data,
             (IGraphTallyCollector.SignedRAV, uint256)
         );
         uint256 tokensAlreadyCollected = graphTallyCollector.tokensCollected(
-            signedRAV.rav.dataService,
-            signedRAV.rav.collectionId,
-            signedRAV.rav.serviceProvider,
-            signedRAV.rav.payer
+            signedRav.rav.dataService,
+            signedRav.rav.collectionId,
+            signedRav.rav.serviceProvider,
+            signedRav.rav.payer
         );
         uint256 tokensToCollect = _tokensToCollect == 0
-            ? signedRAV.rav.valueAggregate - tokensAlreadyCollected
+            ? signedRav.rav.valueAggregate - tokensAlreadyCollected
             : _tokensToCollect;
 
         vm.expectEmit(address(graphTallyCollector));
         emit IPaymentsCollector.PaymentCollected(
             _paymentType,
-            signedRAV.rav.collectionId,
-            signedRAV.rav.payer,
-            signedRAV.rav.serviceProvider,
-            signedRAV.rav.dataService,
+            signedRav.rav.collectionId,
+            signedRav.rav.payer,
+            signedRav.rav.serviceProvider,
+            signedRav.rav.dataService,
             tokensToCollect
         );
         vm.expectEmit(address(graphTallyCollector));
         emit IGraphTallyCollector.RAVCollected(
-            signedRAV.rav.collectionId,
-            signedRAV.rav.payer,
-            signedRAV.rav.serviceProvider,
-            signedRAV.rav.dataService,
-            signedRAV.rav.timestampNs,
-            signedRAV.rav.valueAggregate,
-            signedRAV.rav.metadata,
-            signedRAV.signature
+            signedRav.rav.collectionId,
+            signedRav.rav.payer,
+            signedRav.rav.serviceProvider,
+            signedRav.rav.dataService,
+            signedRav.rav.timestampNs,
+            signedRav.rav.valueAggregate,
+            signedRav.rav.metadata,
+            signedRav.signature
         );
         uint256 tokensCollected = _tokensToCollect == 0
             ? graphTallyCollector.collect(_paymentType, _data)
             : graphTallyCollector.collect(_paymentType, _data, _tokensToCollect);
 
         uint256 tokensCollectedAfter = graphTallyCollector.tokensCollected(
-            signedRAV.rav.dataService,
-            signedRAV.rav.collectionId,
-            signedRAV.rav.serviceProvider,
-            signedRAV.rav.payer
+            signedRav.rav.dataService,
+            signedRav.rav.collectionId,
+            signedRav.rav.serviceProvider,
+            signedRav.rav.payer
         );
         assertEq(tokensCollected, tokensToCollect);
         assertEq(
             tokensCollectedAfter,
-            _tokensToCollect == 0 ? signedRAV.rav.valueAggregate : tokensAlreadyCollected + _tokensToCollect
+            _tokensToCollect == 0 ? signedRav.rav.valueAggregate : tokensAlreadyCollected + _tokensToCollect
         );
     }
 }

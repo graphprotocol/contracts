@@ -1,6 +1,6 @@
 {
   "name": "hardhat-graph-protocol",
-  "version": "0.1.22",
+  "version": "0.2.6",
   "publishConfig": {
     "access": "public"
   },
@@ -25,11 +25,19 @@
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "pnpm build:dep && pnpm build:self",
+    "build:dep": "pnpm --filter '@graphprotocol/hardhat-graph-protocol^...' run build:self",
+    "build:self": "tsc",
+    "build:clean": "pnpm clean && pnpm build",
+    "watch": "tsc --watch",
     "clean": "rm -rf dist",
-    "lint": "eslint '**/*.{js,ts}' --fix",
-    "test": "mocha --exit --recursive 'test/**/*.test.ts'",
-    "prepublishOnly": "npm run build"
+    "lint": "pnpm lint:ts; pnpm lint:md; pnpm lint:json",
+    "lint:ts": "eslint --fix --cache '**/*.{js,ts,cjs,mjs,jsx,tsx}'; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
+    "lint:md": "markdownlint --fix --ignore-path ../../.gitignore '**/*.md'; prettier -w --cache --log-level warn '**/*.md'",
+    "lint:json": "prettier -w --cache --log-level warn '**/*.json'",
+    "test": "pnpm build && pnpm test:self",
+    "test:self": "mocha --exit --recursive 'test/**/*.test.ts'",
+    "prepublishOnly": "pnpm run build"
   },
   "files": [
     "dist/",
@@ -39,7 +47,7 @@
   ],
   "dependencies": {
     "@graphprotocol/toolshed": "workspace:^",
-    "@nomicfoundation/hardhat-ethers": "3.0.8",
+    "@nomicfoundation/hardhat-ethers": "catalog:",
     "debug": "^4.3.7",
     "json5": "^2.2.3"
   },
@@ -49,17 +57,16 @@
     "@types/debug": "^4.1.12",
     "@types/mocha": "^10.0.9",
     "chai": "^4.0.0",
-    "eslint": "^8.56.0",
-    "eslint-graph-config": "workspace:^0.0.1",
-    "ethers": "6.13.7",
-    "hardhat": "^2.22.16",
+    "eslint": "catalog:",
+    "ethers": "catalog:",
+    "hardhat": "catalog:",
     "hardhat-secure-accounts": "^1.0.4",
     "mocha": "^10.8.2",
     "ts-node": "^8.0.0",
-    "typescript": "^5.6.3"
+    "typescript": "catalog:"
   },
   "peerDependencies": {
-    "ethers": "6.13.7",
-    "hardhat": "^2.22.16"
+    "ethers": "catalog:",
+    "hardhat": "catalog:"
   }
 }

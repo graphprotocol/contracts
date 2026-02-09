@@ -4,18 +4,74 @@
   "description": "Contracts monorepo for The Graph protocol",
   "license": "GPL-2.0-or-later",
   "repository": "git@github.com:graphprotocol/contracts.git",
-  "author": "The Graph team",
-  "packageManager": "pnpm@9.0.6+sha1.648f6014eb363abb36618f2ba59282a9eeb3e879",
+  "author": "Edge & Node",
+  "packageManager": "pnpm@10.28.0+sha512.05df71d1421f21399e053fde567cea34d446fa02c76571441bfc1c7956e98e363088982d940465fd34480d4d90a0668bc12362f8aa88000a64e83d0b0e47be48",
   "scripts": {
-    "postinstall": "husky install",
-    "clean": "pnpm -r --parallel --reporter=append-only run clean",
-    "clean:all": "pnpm clean && rm -rf node_modules packages/*/node_modules",
-    "build": "chmod +x ./scripts/build && ./scripts/build"
+    "postinstall": "husky",
+    "clean": "pnpm -r run clean",
+    "clean:all": "pnpm clean && rm -rf node_modules packages/*/node_modules packages/*/*/node_modules",
+    "build": "pnpm -r run build:self",
+    "todo": "node scripts/check-todos.mjs",
+    "lint": "pnpm lint:ts; pnpm lint:sol; pnpm lint:forge; pnpm lint:md; pnpm lint:json; pnpm lint:yaml",
+    "lint:staged": "lint-staged; pnpm todo",
+    "lint:ts": "eslint --fix --cache 'packages/**/*.{js,ts,cjs,mjs,jsx,tsx}' 'scripts/**/*.{js,ts,cjs,mjs}' '*.{js,ts,cjs,mjs}'; prettier -w --cache --log-level warn 'packages/**/*.{js,ts,cjs,mjs,jsx,tsx}' 'scripts/**/*.{js,ts,cjs,mjs}' '*.{js,ts,cjs,mjs}'",
+    "lint:sol": "pnpm -r run lint:sol; prettier -w --cache --log-level warn 'packages/**/*.sol'; pnpm todo",
+    "lint:forge": "pnpm -r run lint:forge",
+    "lint:md": "markdownlint --fix --ignore-path .gitignore 'packages/**/*.md' 'docs/**/*.md' '*.md'; prettier -w --cache --log-level warn 'packages/**/*.md' 'docs/**/*.md' '*.md'",
+    "lint:json": "prettier -w --cache --log-level warn 'packages/**/*.json' '.changeset/**/*.json' '*.json'",
+    "lint:yaml": "npx yaml-lint .github/**/*.{yml,yaml} packages/contracts/task/config/*.yml; prettier -w --cache --log-level warn 'packages/**/*.{yml,yaml}' '.github/**/*.{yml,yaml}'",
+    "test": "pnpm build && pnpm -r run test:self",
+    "test:coverage": "pnpm build && pnpm -r run build:self:coverage && pnpm -r run test:coverage:self"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.27.1",
-    "@commitlint/cli": "^18.4.3",
-    "@commitlint/config-conventional": "^18.4.3",
-    "husky": "^8.0.3"
+    "@changesets/cli": "catalog:",
+    "@commitlint/cli": "catalog:",
+    "@commitlint/config-conventional": "catalog:",
+    "@eslint/js": "catalog:",
+    "@typescript-eslint/eslint-plugin": "catalog:",
+    "@typescript-eslint/parser": "catalog:",
+    "eslint": "catalog:",
+    "eslint-config-prettier": "catalog:",
+    "eslint-plugin-import": "catalog:",
+    "eslint-plugin-no-only-tests": "catalog:",
+    "eslint-plugin-simple-import-sort": "catalog:",
+    "eslint-plugin-unused-imports": "catalog:",
+    "globals": "catalog:",
+    "husky": "catalog:",
+    "lint-staged": "catalog:",
+    "markdownlint-cli": "catalog:",
+    "prettier": "catalog:",
+    "prettier-plugin-solidity": "catalog:",
+    "solhint": "catalog:",
+    "typescript": "catalog:",
+    "typescript-eslint": "catalog:",
+    "yaml-lint": "catalog:"
+  },
+  "pnpm": {
+    "overrides": {
+      "@types/node": "^20.17.50"
+    },
+    "patchedDependencies": {
+      "typechain@8.3.2": "patches/typechain@8.3.2.patch"
+    }
+  },
+  "lint-staged": {
+    "*.{js,ts,cjs,mjs,jsx,tsx}": [
+      "scripts/lint-staged-run.sh 'eslint --fix --cache'",
+      "scripts/lint-staged-run.sh 'prettier -w --cache --log-level warn'"
+    ],
+    "*.sol": [
+      "solhint --fix --noPrompt --noPoster",
+      "prettier -w --cache --log-level warn"
+    ],
+    "*.md": [
+      "markdownlint --fix",
+      "prettier -w --cache --log-level warn"
+    ],
+    "*.json": "prettier -w --cache --log-level warn",
+    "*.{yml,yaml}": [
+      "npx yamllint",
+      "prettier -w --cache --log-level warn"
+    ]
   }
 }

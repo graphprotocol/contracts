@@ -1,0 +1,78 @@
+{
+  "name": "@graphprotocol/deployment",
+  "version": "0.1.0",
+  "description": "Unified deployment for Graph Protocol contracts",
+  "private": true,
+  "scripts": {
+    "build": "pnpm build:deps",
+    "build:deps": "pnpm --filter @graphprotocol/deployment^... build",
+    "build:clean": "pnpm --filter @graphprotocol/contracts clean && pnpm build:deps",
+    "deploy": "pnpm build:clean && hardhat deploy",
+    "deploy:sync": "hardhat deploy --tags sync",
+    "deploy:status": "hardhat deploy:deployment-status",
+    "test": "pnpm build:deps && pnpm test:self",
+    "test:self": "NODE_OPTIONS='--import tsx' mocha 'test/**/*.test.ts'",
+    "clean": "rm -rf cache",
+    "lint": "pnpm lint:ts; pnpm lint:md; pnpm lint:json",
+    "lint:ts": "eslint --fix --cache '**/*.{js,ts,cjs,mjs,jsx,tsx}'; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
+    "lint:md": "markdownlint --fix --ignore-path ../../.gitignore '**/*.md'; prettier -w --cache --log-level warn '**/*.md'",
+    "lint:json": "prettier -w --cache --log-level warn '**/*.json'"
+  },
+  "dependencies": {
+    "@graphprotocol/contracts": "workspace:*",
+    "@graphprotocol/horizon": "workspace:*",
+    "@graphprotocol/issuance": "workspace:*",
+    "@graphprotocol/subgraph-service": "workspace:*",
+    "@graphprotocol/toolshed": "workspace:*",
+    "@rocketh/core": "^0.17.8",
+    "ethers": "^6.15.0",
+    "hardhat": "^3.1.5",
+    "viem": "catalog:"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-keystore": "catalog:",
+    "@nomicfoundation/hardhat-ethers": "^4.0.0",
+    "@nomicfoundation/hardhat-network-helpers": "^3.0.0",
+    "@nomicfoundation/hardhat-verify": "^3.0.0",
+    "@openzeppelin/contracts": "5.4.0",
+    "@rocketh/deploy": "^0.17.8",
+    "@rocketh/diamond": "^0.17.11",
+    "@rocketh/doc": "^0.17.16",
+    "@rocketh/export": "^0.17.16",
+    "@rocketh/node": "^0.17.16",
+    "@rocketh/proxy": "^0.17.12",
+    "@rocketh/read-execute": "^0.17.8",
+    "@rocketh/verifier": "^0.17.16",
+    "@types/chai": "^4.3.0",
+    "@types/mocha": "^10.0.0",
+    "@types/node": "^20.0.0",
+    "chai": "^4.3.0",
+    "hardhat-deploy": "2.0.0-next.61",
+    "mocha": "^10.7.0",
+    "rocketh": "^0.17.13",
+    "tsx": "^4.19.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.5.0",
+    "eslint": "catalog:",
+    "lint-staged": "catalog:"
+  },
+  "lint-staged": {
+    "**/*.ts": [
+      "pnpm lint:ts"
+    ],
+    "**/*.js": [
+      "pnpm lint:ts"
+    ],
+    "**/*.json": [
+      "pnpm lint:json"
+    ]
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "type": "module",
+  "exports": {
+    "./lib/*": "./lib/*.js",
+    "./rocketh/*": "./rocketh/*.js"
+  }
+}

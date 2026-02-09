@@ -1,7 +1,7 @@
+import { loadConfig } from '@graphprotocol/toolshed/hardhat'
+import { expect } from 'chai'
 import hre from 'hardhat'
 
-import { expect } from 'chai'
-import { loadConfig } from '@graphprotocol/toolshed/hardhat'
 import { testIf } from '../../../horizon/test/deployment/lib/testIf'
 import { transparentUpgradeableProxyTests } from '../../../horizon/test/deployment/lib/TransparentUpgradeableProxy.tests'
 

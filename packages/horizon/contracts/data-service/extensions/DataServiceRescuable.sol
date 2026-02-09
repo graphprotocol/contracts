@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.27;
+pragma solidity 0.8.27 || 0.8.33;
 
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { IDataServiceRescuable } from "../interfaces/IDataServiceRescuable.sol";
+import { IDataServiceRescuable } from "@graphprotocol/interfaces/contracts/data-service/IDataServiceRescuable.sol";
 
 import { DataService } from "../DataService.sol";
 
@@ -12,8 +12,9 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 
 /**
  * @title Rescuable contract
- * @dev Allows a contract to have a function to rescue tokens sent by mistake.
- * The contract must implement the external rescueTokens function or similar,
+ * @author Edge & Node
+ * @notice Allows a contract to have a function to rescue tokens sent by mistake.
+ * @dev The contract must implement the external rescueTokens function or similar,
  * that calls this contract's _rescueTokens.
  * @dev Note that this extension does not provide an external function to set
  * rescuers. This should be implemented in the derived contract.
@@ -26,10 +27,12 @@ abstract contract DataServiceRescuable is DataService, IDataServiceRescuable {
     /// @notice List of rescuers and their allowed status
     mapping(address rescuer => bool allowed) public rescuers;
 
+    // forge-lint: disable-next-item(mixed-case-variable)
     /// @dev Gap to allow adding variables in future upgrades
     /// Note that this contract is not upgradeable but might be inherited by an upgradeable contract
     uint256[50] private __gap;
 
+    // forge-lint: disable-next-item(unwrapped-modifier-logic)
     /**
      * @notice Checks if the caller is a rescuer.
      */
@@ -38,11 +41,13 @@ abstract contract DataServiceRescuable is DataService, IDataServiceRescuable {
         _;
     }
 
+    // forge-lint: disable-next-item(mixed-case-function)
     /// @inheritdoc IDataServiceRescuable
     function rescueGRT(address to, uint256 tokens) external virtual onlyRescuer {
         _rescueTokens(to, address(_graphToken()), tokens);
     }
 
+    // forge-lint: disable-next-item(mixed-case-function)
     /// @inheritdoc IDataServiceRescuable
     function rescueETH(address payable to, uint256 tokens) external virtual onlyRescuer {
         _rescueTokens(to, Denominations.NATIVE_TOKEN, tokens);
@@ -63,7 +68,7 @@ abstract contract DataServiceRescuable is DataService, IDataServiceRescuable {
     }
 
     /**
-     * @dev Allows rescuing tokens sent to this contract
+     * @notice Allows rescuing tokens sent to this contract
      * @param _to Destination address to send the tokens
      * @param _token Address of the token being rescued
      * @param _tokens Amount of tokens to pull

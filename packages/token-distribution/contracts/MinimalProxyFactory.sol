@@ -2,6 +2,9 @@
 
 pragma solidity ^0.7.3;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable use-natspec
+
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { Create2 } from "@openzeppelin/contracts/utils/Create2.sol";
 

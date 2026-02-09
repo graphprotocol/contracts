@@ -1,9 +1,65 @@
 {
-  "421614": {
+  "42161": {
+    "SubgraphService": {
+      "address": "0xb2Bb92d0DE618878E438b55D5846cfecD9301105",
+      "proxy": "transparent",
+      "proxyAdmin": "0x49021Ada0806cabce24b73002EB4477fe4934215",
+      "implementation": "0x80D1a23472a4EcFa484c95779D5CE855C24747cD"
+    },
+    "DisputeManager": {
+      "address": "0x2FE023a575449AcB698648eD21276293Fa176f96",
+      "proxy": "transparent",
+      "proxyAdmin": "0x2cf40C92706943dCAE5E0Ba047a29563863C9d75",
+      "implementation": "0x0fa6925f21d0493072ad29f3aF66f4E11655faF1"
+    },
     "L2Curation": {
-      "address": "0xe135BFD9E51BbAfCeBb0141af85F0bc6DA1b3BA4",
+      "address": "0x22d78fb4bc72e191C765807f8891B5e1785C8014",
       "proxy": "graph",
-      "implementation": "0x9CCD9B656f8A558879974ef2505496eEd7Ef7210"
+      "implementation": "0xc4Ce508c8fda35C597CC78e3604261110fc4c957"
+    },
+    "L2GNS": {
+      "address": "0xec9A7fb6CbC2E41926127929c2dcE6e9c5D33Bec",
+      "proxy": "graph",
+      "implementation": "0x9B81c7C5A21E65b849FD487540B0A82d3b97b2c7"
+    },
+    "SubgraphNFT": {
+      "address": "0x3FbD54f0cc17b7aE649008dEEA12ed7D2622B23f"
+    },
+    "LegacyDisputeManager": {
+      "address": "0x0Ab2B043138352413Bb02e67E626a70320E3BD46"
+    },
+    "LegacyServiceRegistry": {
+      "address": "0x072884c745c0A23144753335776c99BE22588f8A"
+    }
+  },
+  "421614": {
+    "SubgraphService": {
+      "address": "0xc24A3dAC5d06d771f657A48B20cE1a671B78f26b",
+      "proxy": "transparent",
+      "proxyAdmin": "0x15737D9f8635cAcd43e110327c930bd5EC1fe098",
+      "implementation": "0x3d62bdd96c4bb6f5b5b2c65e7348c95554f73747",
+      "implementationDeployment": {
+        "txHash": "0xaff84a48440eee103037f374a64d0c976a928405084aba145650b6282e42d09a",
+        "argsData": "0x0000000000000000000000009db3ee191681f092607035d9bda6e59fbeaca69500000000000000000000000096e1b86b2739e8a3d59f40f2532cadf9ce8da088000000000000000000000000382863e7b662027117449bd2c49285582bbbd21b000000000000000000000000de761f075200e75485f4358978fb4d1dc8644fd5",
+        "bytecodeHash": "0x2f594efe83da2a893252a66f20bd397848abab249afa40629e502fb4b9be6741",
+        "blockNumber": 238005626,
+        "timestamp": "2026-01-29T19:59:56.000Z",
+        "verified": "https://sepolia.arbiscan.io/address/0x3d62bdd96c4bb6f5b5b2c65e7348c95554f73747#code"
+      },
+      "proxyDeployment": {
+        "verified": "https://sepolia.arbiscan.io/address/0xc24A3dAC5d06d771f657A48B20cE1a671B78f26b#code"
+      }
+    },
+    "DisputeManager": {
+      "address": "0x96e1b86b2739e8A3d59F40F2532caDF9cE8Da088",
+      "proxy": "transparent",
+      "proxyAdmin": "0x154a73CB6ebB5717a15f203d6E160E6F41ecC527",
+      "implementation": "0x28A0cFDE10e8Ea5C7f3E80981728E3eA1228D338"
+    },
+    "L2Curation": {
+      "address": "0xDe761f075200E75485F4358978FB4d1dC8644FD5",
+      "proxy": "graph",
+      "implementation": "0xbC8F4355f346e47eef8A0DBFF4a58616ACf7DaCA"
     },
     "L2GNS": {
       "address": "0x3133948342F35b8699d8F94aeE064AbB76eDe965",
@@ -18,18 +74,6 @@
     },
     "LegacyServiceRegistry": {
       "address": "0x888541878CbDDEd880Cd58c728f1Af5C47343F86"
-    },
-    "SubgraphService": {
-      "address": "0x00fe8F95407AB61863d27c07F584A0930ee5F3b0",
-      "proxy": "transparent",
-      "proxyAdmin": "0xD23a972f47B7D45E729AB9B8399D628c87b6C0d6",
-      "implementation": "0x30b34eAaF354cAdd64836Bc0846F4414254271ea"
-    },
-    "DisputeManager": {
-      "address": "0x1A7Fb71014d4395903eC56662f32dD02344D361C",
-      "proxy": "transparent",
-      "proxyAdmin": "0x9a8C3B6D649108bd11670de0B9b981ae3C167707",
-      "implementation": "0x75f7Bd9D2F0bca7bA7189BB582f5eb95afa051e8"
     }
   }
 }

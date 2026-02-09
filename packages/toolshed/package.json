@@ -1,6 +1,6 @@
 {
   "name": "@graphprotocol/toolshed",
-  "version": "0.5.5",
+  "version": "1.1.2",
   "publishConfig": {
     "access": "public"
   },
@@ -18,6 +18,10 @@
       "types": "./dist/deployments/index.d.ts",
       "default": "./dist/deployments/index.js"
     },
+    "./fixtures": {
+      "types": "./dist/fixtures/index.d.ts",
+      "default": "./dist/fixtures/index.js"
+    },
     "./hardhat": {
       "types": "./src/hardhat/index.ts",
       "default": "./src/hardhat/index.ts"
@@ -28,11 +32,16 @@
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "pnpm build:dep && pnpm build:self",
+    "build:dep": "pnpm --filter '@graphprotocol/toolshed^...' run build:self",
+    "build:self": "tsc",
     "watch": "tsc --watch",
-    "prepublishOnly": "tsc",
-    "lint": "eslint '**/*.{js,ts}' --fix",
-    "clean": "rm -rf dist"
+    "lint": "pnpm lint:ts; pnpm lint:md; pnpm lint:json",
+    "lint:ts": "eslint --fix --cache '**/*.{js,ts,cjs,mjs,jsx,tsx}'; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
+    "lint:md": "markdownlint --fix --ignore-path ../../.gitignore '**/*.md'; prettier -w --cache --log-level warn '**/*.md'",
+    "lint:json": "prettier -w --cache --log-level warn '**/*.json'",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "pnpm run build"
   },
   "keywords": [
     "ethereum",
@@ -44,21 +53,20 @@
     "horizon"
   ],
   "dependencies": {
-    "@graphprotocol/contracts": "workspace:^",
-    "@graphprotocol/horizon": "workspace:^",
-    "@graphprotocol/subgraph-service": "workspace:^",
-    "@nomicfoundation/hardhat-ethers": "3.0.8",
+    "@graphprotocol/address-book": "workspace:^",
+    "@graphprotocol/interfaces": "workspace:^",
+    "@graphprotocol/issuance": "workspace:^",
+    "@nomicfoundation/hardhat-ethers": "catalog:",
     "debug": "^4.4.0",
-    "ethers": "6.13.7",
+    "ethers": "catalog:",
     "glob": "^11.0.1",
-    "hardhat": "^2.22.16",
+    "hardhat": "catalog:",
     "json5": "^2.2.3"
   },
   "devDependencies": {
     "@types/debug": "^4.1.12",
     "@types/json5": "^2.2.0",
-    "eslint": "^8.56.0",
-    "eslint-graph-config": "workspace:^",
-    "typescript": "^5.0.0"
+    "eslint": "catalog:",
+    "typescript": "catalog:"
   }
 }

@@ -1,0 +1,10 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "..",
+    "outDir": "./build",
+    "declarationDir": "./types"
+  },
+  "include": ["src/**/*.ts", "tasks/**/*.ts"],
+  "exclude": ["node_modules", "build", "types", "cache"]
+}

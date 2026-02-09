@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.27;
+pragma solidity 0.8.27 || 0.8.33;
 
-import { IDataServicePausable } from "../interfaces/IDataServicePausable.sol";
+import { IDataServicePausable } from "@graphprotocol/interfaces/contracts/data-service/IDataServicePausable.sol";
 
 import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
 import { DataService } from "../DataService.sol";
 
 /**
  * @title DataServicePausable contract
+ * @author Edge & Node
  * @dev Implementation of the {IDataServicePausable} interface.
  * @notice Extension for the {IDataService} contract, adds pausing functionality
  * to the data service. Pausing is controlled by privileged accounts called
@@ -21,8 +22,9 @@ import { DataService } from "../DataService.sol";
  */
 abstract contract DataServicePausable is Pausable, DataService, IDataServicePausable {
     /// @notice List of pause guardians and their allowed status
-    mapping(address pauseGuardian => bool allowed) public pauseGuardians;
+    mapping(address pauseGuardian => bool allowed) public override pauseGuardians;
 
+    // forge-lint: disable-next-item(unwrapped-modifier-logic)
     /**
      * @notice Checks if the caller is a pause guardian.
      */

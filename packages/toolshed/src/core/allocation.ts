@@ -1,13 +1,11 @@
 import { ethers, id } from 'ethers'
+
 import { randomHexBytes } from '../lib/bytes'
 
 // For legacy allocations in the staking contract
 export async function generateLegacyAllocationProof(indexerAddress: string, allocationPrivateKey: string) {
   const wallet = new ethers.Wallet(allocationPrivateKey)
-  const messageHash = ethers.solidityPackedKeccak256(
-    ['address', 'address'],
-    [indexerAddress, wallet.address],
-  )
+  const messageHash = ethers.solidityPackedKeccak256(['address', 'address'], [indexerAddress, wallet.address])
   const messageHashBytes = ethers.getBytes(messageHash)
   return wallet.signMessage(messageHashBytes)
 }

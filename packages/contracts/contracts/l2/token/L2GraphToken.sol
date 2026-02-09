@@ -2,27 +2,48 @@
 
 pragma solidity ^0.7.6;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-indexed-events
+
 import { GraphTokenUpgradeable } from "./GraphTokenUpgradeable.sol";
-import { IArbToken } from "../../arbitrum/IArbToken.sol";
+import { IArbToken } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/IArbToken.sol";
 
 /**
  * @title L2 Graph Token Contract
- * @dev Provides the L2 version of the GRT token, meant to be minted/burned
+ * @author Edge & Node
+ * @notice Provides the L2 version of the GRT token, meant to be minted/burned
  * through the L2GraphTokenGateway.
  */
 contract L2GraphToken is GraphTokenUpgradeable, IArbToken {
-    /// Address of the gateway (on L2) that is allowed to mint tokens
+    /// @notice Address of the gateway (on L2) that is allowed to mint tokens
     address public gateway;
-    /// Address of the corresponding Graph Token contract on L1
+    /// @notice Address of the corresponding Graph Token contract on L1
     address public override l1Address;
 
-    /// Emitted when the bridge / gateway has minted new tokens, i.e. tokens were transferred to L2
+    /**
+     * @notice Emitted when the bridge / gateway has minted new tokens, i.e. tokens were transferred to L2
+     * @param account Address that received the minted tokens
+     * @param amount Amount of tokens minted
+     */
     event BridgeMinted(address indexed account, uint256 amount);
-    /// Emitted when the bridge / gateway has burned tokens, i.e. tokens were transferred back to L1
+
+    /**
+     * @notice Emitted when the bridge / gateway has burned tokens, i.e. tokens were transferred back to L1
+     * @param account Address from which tokens were burned
+     * @param amount Amount of tokens burned
+     */
     event BridgeBurned(address indexed account, uint256 amount);
-    /// Emitted when the address of the gateway has been updated
+
+    /**
+     * @notice Emitted when the address of the gateway has been updated
+     * @param gateway Address of the new gateway
+     */
     event GatewaySet(address gateway);
-    /// Emitted when the address of the Graph Token contract on L1 has been updated
+
+    /**
+     * @notice Emitted when the address of the Graph Token contract on L1 has been updated
+     * @param l1Address Address of the L1 Graph Token contract
+     */
     event L1AddressSet(address l1Address);
 
     /**
@@ -69,9 +90,8 @@ contract L2GraphToken is GraphTokenUpgradeable, IArbToken {
     }
 
     /**
-     * @notice Increases token supply, only callable by the L1/L2 bridge (when tokens are transferred to L2)
-     * @param _account Address to credit with the new tokens
-     * @param _amount Number of tokens to mint
+     * @inheritdoc IArbToken
+     * @dev Only callable by the L2GraphTokenGateway when tokens are transferred to L2
      */
     function bridgeMint(address _account, uint256 _amount) external override onlyGateway {
         _mint(_account, _amount);
@@ -79,9 +99,8 @@ contract L2GraphToken is GraphTokenUpgradeable, IArbToken {
     }
 
     /**
-     * @notice Decreases token supply, only callable by the L1/L2 bridge (when tokens are transferred to L1).
-     * @param _account Address from which to extract the tokens
-     * @param _amount Number of tokens to burn
+     * @inheritdoc IArbToken
+     * @dev Only callable by the L2GraphTokenGateway when tokens are transferred back to L1
      */
     function bridgeBurn(address _account, uint256 _amount) external override onlyGateway {
         burnFrom(_account, _amount);

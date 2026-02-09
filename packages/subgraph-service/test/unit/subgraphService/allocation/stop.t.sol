@@ -1,15 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
+pragma solidity ^0.8.27;
 
-import "forge-std/Test.sol";
-
-import { IDataService } from "@graphprotocol/horizon/contracts/data-service/interfaces/IDataService.sol";
 import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/utilities/ProvisionManager.sol";
-import { ProvisionTracker } from "@graphprotocol/horizon/contracts/data-service/libraries/ProvisionTracker.sol";
 
-import { Allocation } from "../../../../contracts/libraries/Allocation.sol";
-import { ISubgraphService } from "../../../../contracts/interfaces/ISubgraphService.sol";
-import { LegacyAllocation } from "../../../../contracts/libraries/LegacyAllocation.sol";
+import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
+import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
 import { SubgraphServiceTest } from "../SubgraphService.t.sol";
 
 contract SubgraphServiceAllocationStopTest is SubgraphServiceTest {
@@ -18,7 +13,7 @@ contract SubgraphServiceAllocationStopTest is SubgraphServiceTest {
      */
 
     function test_SubgraphService_Allocation_Stop(uint256 tokens) public useIndexer useAllocation(tokens) {
-        bytes memory data = abi.encode(allocationID);
+        bytes memory data = abi.encode(allocationId);
         _stopService(users.indexer, data);
     }
 
@@ -30,12 +25,12 @@ contract SubgraphServiceAllocationStopTest is SubgraphServiceTest {
         _createAndStartAllocation(newIndexer, tokens);
 
         // Attempt to close other indexer's allocation
-        bytes memory data = abi.encode(allocationID);
+        bytes memory data = abi.encode(allocationId);
         vm.expectRevert(
             abi.encodeWithSelector(
                 ISubgraphService.SubgraphServiceAllocationNotAuthorized.selector,
                 newIndexer,
-                allocationID
+                allocationId
             )
         );
         subgraphService.stopService(newIndexer, data);
@@ -45,7 +40,7 @@ contract SubgraphServiceAllocationStopTest is SubgraphServiceTest {
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
         resetPrank(users.operator);
-        bytes memory data = abi.encode(allocationID);
+        bytes memory data = abi.encode(allocationId);
         vm.expectRevert(
             abi.encodeWithSelector(
                 ProvisionManager.ProvisionManagerNotAuthorized.selector,
@@ -57,7 +52,7 @@ contract SubgraphServiceAllocationStopTest is SubgraphServiceTest {
     }
 
     function test_SubgraphService_Allocation_Stop_RevertWhen_NotRegistered() public useIndexer {
-        bytes memory data = abi.encode(allocationID);
+        bytes memory data = abi.encode(allocationId);
         vm.expectRevert(
             abi.encodeWithSelector(ISubgraphService.SubgraphServiceIndexerNotRegistered.selector, users.indexer)
         );
@@ -67,9 +62,9 @@ contract SubgraphServiceAllocationStopTest is SubgraphServiceTest {
     function test_SubgraphService_Allocation_Stop_RevertWhen_NotOpen(
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
-        bytes memory data = abi.encode(allocationID);
+        bytes memory data = abi.encode(allocationId);
         _stopService(users.indexer, data);
-        vm.expectRevert(abi.encodeWithSelector(Allocation.AllocationClosed.selector, allocationID, block.timestamp));
+        vm.expectRevert(abi.encodeWithSelector(IAllocation.AllocationClosed.selector, allocationId, block.timestamp));
         subgraphService.stopService(users.indexer, data);
     }
 }

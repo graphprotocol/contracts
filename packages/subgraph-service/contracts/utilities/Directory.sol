@@ -1,15 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.27;
+pragma solidity 0.8.33;
 
-import { IDisputeManager } from "../interfaces/IDisputeManager.sol";
-import { ISubgraphService } from "../interfaces/ISubgraphService.sol";
-import { IGraphTallyCollector } from "@graphprotocol/horizon/contracts/interfaces/IGraphTallyCollector.sol";
-import { IRecurringCollector } from "@graphprotocol/horizon/contracts/interfaces/IRecurringCollector.sol";
-import { ICuration } from "@graphprotocol/contracts/contracts/curation/ICuration.sol";
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-indexed-events
+// forge-lint: disable-start(unwrapped-modifier-logic)
+
+import { IDisputeManager } from "@graphprotocol/interfaces/contracts/subgraph-service/IDisputeManager.sol";
+import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
+import { IGraphTallyCollector } from "@graphprotocol/interfaces/contracts/horizon/IGraphTallyCollector.sol";
+import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
+import { ICuration } from "@graphprotocol/interfaces/contracts/contracts/curation/ICuration.sol";
 
 /**
  * @title Directory contract
- * @notice This contract is meant to be inherited by {SubgraphService} contract.
+ * @author Edge & Node
+ * @notice This contract is meant to be inherited by {SubgraphService} contract
  * It contains the addresses of the contracts that the contract interacts with.
  * Uses immutable variables to minimize gas costs.
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any

@@ -1,17 +1,23 @@
-import { ethers } from 'hardhat'
-import { expect } from 'chai'
-import hre from 'hardhat'
-
-import { DisputeManager, IGraphToken, SubgraphService } from '../../../../typechain-types'
-import { encodeCollectIndexingRewardsData, encodePOIMetadata, encodeRegistrationData, encodeStartServiceData, generateAllocationProof, generatePOI, PaymentTypes } from '@graphprotocol/toolshed'
-import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { DisputeManager, L2GraphToken, SubgraphService } from '@graphprotocol/interfaces'
+import {
+  encodeCollectIndexingRewardsData,
+  encodePOIMetadata,
+  encodeRegistrationData,
+  encodeStartServiceData,
+  generateAllocationProof,
+  generatePOI,
+  PaymentTypes,
+} from '@graphprotocol/toolshed'
+import { indexersData as indexers } from '@graphprotocol/toolshed/fixtures'
 import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
-
-import { indexers } from '../../../../tasks/test/fixtures/indexers'
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { expect } from 'chai'
+import { ethers } from 'hardhat'
+import hre from 'hardhat'
 
 describe('Paused Protocol', () => {
   let disputeManager: DisputeManager
-  let graphToken: IGraphToken
+  let graphToken: L2GraphToken
   let subgraphService: SubgraphService
 
   let snapshotId: string
@@ -99,51 +105,28 @@ describe('Paused Protocol', () => {
 
         it('should not allow indexer to stop an allocation while paused', async () => {
           await expect(
-            subgraphService.connect(indexer).stopService(
-              indexer.address,
-              allocationId,
-            ),
-          ).to.be.revertedWithCustomError(
-            subgraphService,
-            'EnforcedPause',
-          )
+            subgraphService.connect(indexer).stopService(indexer.address, allocationId),
+          ).to.be.revertedWithCustomError(subgraphService, 'EnforcedPause')
         })
 
         it('should not allow indexer to collect indexing rewards while paused', async () => {
           // Build data for collect indexing rewards
           const poi = generatePOI()
-          const poiMetadata = encodePOIMetadata(
-            0,
-            poi,
-            0,
-            0,
-            0,
-          )
+          const poiMetadata = encodePOIMetadata(0, poi, 0, 0, 0)
           const data = encodeCollectIndexingRewardsData(allocationId, poi, poiMetadata)
 
           await expect(
             collect(indexer, [indexer.address, PaymentTypes.IndexingRewards, data]),
-          ).to.be.revertedWithCustomError(
-            subgraphService,
-            'EnforcedPause',
-          )
+          ).to.be.revertedWithCustomError(subgraphService, 'EnforcedPause')
         })
 
         it('should not allow indexer to collect query fees while paused', async () => {
           // Build data for collect query fees
           const poi = generatePOI()
-          const poiMetadata = encodePOIMetadata(
-            0,
-            poi,
-            0,
-            0,
-            0,
-          )
+          const poiMetadata = encodePOIMetadata(0, poi, 0, 0, 0)
           const data = encodeCollectIndexingRewardsData(allocationId, poi, poiMetadata)
 
-          await expect(
-            collect(indexer, [indexer.address, PaymentTypes.QueryFee, data]),
-          ).to.be.revertedWithCustomError(
+          await expect(collect(indexer, [indexer.address, PaymentTypes.QueryFee, data])).to.be.revertedWithCustomError(
             subgraphService,
             'EnforcedPause',
           )
@@ -151,15 +134,10 @@ describe('Paused Protocol', () => {
 
         it('should not allow indexer to resize an allocation while paused', async () => {
           await expect(
-            subgraphService.connect(indexer).resizeAllocation(
-              indexer.address,
-              allocationId,
-              allocationTokens + ethers.parseEther('1000'),
-            ),
-          ).to.be.revertedWithCustomError(
-            subgraphService,
-            'EnforcedPause',
-          )
+            subgraphService
+              .connect(indexer)
+              .resizeAllocation(indexer.address, allocationId, allocationTokens + ethers.parseEther('1000')),
+          ).to.be.revertedWithCustomError(subgraphService, 'EnforcedPause')
         })
       })
 
@@ -177,20 +155,19 @@ describe('Paused Protocol', () => {
 
         it('should not allow indexer to start an allocation while paused', async () => {
           // Build allocation proof
-          const signature = await generateAllocationProof(indexer.address, allocationPrivateKey, subgraphServiceAddress, chainId)
+          const signature = await generateAllocationProof(
+            indexer.address,
+            allocationPrivateKey,
+            subgraphServiceAddress,
+            chainId,
+          )
 
           // Build allocation data
           const data = encodeStartServiceData(subgraphDeploymentId, allocationTokens, allocationId, signature)
 
           await expect(
-            subgraphService.connect(indexer).startService(
-              indexer.address,
-              data,
-            ),
-          ).to.be.revertedWithCustomError(
-            subgraphService,
-            'EnforcedPause',
-          )
+            subgraphService.connect(indexer).startService(indexer.address, data),
+          ).to.be.revertedWithCustomError(subgraphService, 'EnforcedPause')
         })
       })
     })
@@ -198,13 +175,19 @@ describe('Paused Protocol', () => {
     describe('New indexer', () => {
       beforeEach(async () => {
         // Get indexer
-        [indexer] = await graph.accounts.getTestAccounts()
+        ;[indexer] = await graph.accounts.getTestAccounts()
 
         // Create provision
         const disputePeriod = await disputeManager.getDisputePeriod()
         const maxSlashingCut = await disputeManager.maxSlashingCut()
         await setGRTBalance(graph.provider, graphToken.target, indexer.address, ethers.parseEther('100000'))
-        await provision(indexer, [indexer.address, await subgraphService.getAddress(), ethers.parseEther('100000'), maxSlashingCut, disputePeriod])
+        await provision(indexer, [
+          indexer.address,
+          await subgraphService.getAddress(),
+          ethers.parseEther('100000'),
+          maxSlashingCut,
+          disputePeriod,
+        ])
       })
 
       it('should not allow indexer to register while paused', async () => {
@@ -214,10 +197,7 @@ describe('Paused Protocol', () => {
 
         await expect(
           subgraphService.connect(indexer).register(indexer.address, indexerRegistrationData),
-        ).to.be.revertedWithCustomError(
-          subgraphService,
-          'EnforcedPause',
-        )
+        ).to.be.revertedWithCustomError(subgraphService, 'EnforcedPause')
       })
     })
 
@@ -226,7 +206,7 @@ describe('Paused Protocol', () => {
 
       before(async () => {
         // Get anyone address
-        [anyone] = await graph.accounts.getTestAccounts()
+        ;[anyone] = await graph.accounts.getTestAccounts()
       })
 
       it('should not allow anyone to close a stale allocation while paused', async () => {
@@ -235,9 +215,7 @@ describe('Paused Protocol', () => {
         await ethers.provider.send('evm_increaseTime', [Number(maxPOIStaleness) + 1])
         await ethers.provider.send('evm_mine', [])
 
-        await expect(
-          subgraphService.connect(anyone).closeStaleAllocation(allocationId),
-        ).to.be.revertedWithCustomError(
+        await expect(subgraphService.connect(anyone).closeStaleAllocation(allocationId)).to.be.revertedWithCustomError(
           subgraphService,
           'EnforcedPause',
         )

@@ -9,13 +9,13 @@ const config: HardhatUserConfig = {
   solidity: '0.8.9',
   defaultNetwork: 'hardhat',
   networks: {
-    'hardhat': {
+    hardhat: {
       chainId: 1337,
       accounts: {
         mnemonic: 'pumpkin orient can short never warm truth legend cereal tourist craft skin',
       },
     },
-    'mainnet': {
+    mainnet: {
       chainId: 1,
       url: `https://mainnet.infura.io/v3/123456`,
       deployments: {
@@ -26,7 +26,7 @@ const config: HardhatUserConfig = {
       chainId: 42161,
       url: 'https://arb1.arbitrum.io/rpc',
     },
-    'goerli': {
+    goerli: {
       chainId: 5,
       url: `https://goerli.infura.io/v3/123456`,
     },
@@ -34,7 +34,7 @@ const config: HardhatUserConfig = {
       chainId: 421613,
       url: 'https://goerli-rollup.arbitrum.io/rpc',
     },
-    'localhost': {
+    localhost: {
       chainId: 1337,
       url: 'http://127.0.0.1:8545',
     },

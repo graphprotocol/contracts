@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
+pragma solidity ^0.8.27;
 
-import "forge-std/Test.sol";
-
-import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
-import { IHorizonStakingTypes } from "@graphprotocol/horizon/contracts/interfaces/internal/IHorizonStakingTypes.sol";
-import { IHorizonStakingExtension } from "@graphprotocol/horizon/contracts/interfaces/internal/IHorizonStakingExtension.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
+import { IHorizonStakingExtension } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingExtension.sol";
 
 import { SubgraphBaseTest } from "../SubgraphBaseTest.t.sol";
 
@@ -83,9 +81,10 @@ abstract contract HorizonStakingSharedTest is SubgraphBaseTest {
         staking.setProvisionParameters(_indexer, _verifier, _maxVerifierCut, _thawingPeriod);
     }
 
-    function _setStorage_allocation_hardcoded(address indexer, address allocationId, uint256 tokens) internal {
+    function _setStorageAllocationHardcoded(address indexer, address allocationId, uint256 tokens) internal {
         IHorizonStakingExtension.Allocation memory allocation = IHorizonStakingExtension.Allocation({
             indexer: indexer,
+            // forge-lint: disable-next-line(unsafe-typecast)
             subgraphDeploymentID: bytes32("0x12344321"),
             tokens: tokens,
             createdAtEpoch: 1234,

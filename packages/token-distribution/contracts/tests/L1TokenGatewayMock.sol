@@ -2,10 +2,12 @@
 
 pragma solidity ^0.7.3;
 
+// solhint-disable gas-increment-by-one, gas-indexed-events, gas-strict-inequalities, use-natspec
+
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
-import { ITokenGateway } from "../arbitrum//ITokenGateway.sol";
+import { ITokenGateway } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/ITokenGateway.sol";
 
 /**
  * @title L1 Token Gateway mock contract
@@ -46,7 +48,7 @@ contract L1TokenGatewayMock is Ownable {
      * would send to L2.
      * @param _l1Token L1 Address of the GRT contract (needed for compatibility with Arbitrum Gateway Router)
      * @param _to Recipient address on L2
-     * @param _amount Amount of tokens to tranfer
+     * @param _amount Amount of tokens to transfer
      * @param _maxGas Gas limit for L2 execution of the ticket
      * @param _gasPriceBid Price per gas on L2
      * @param _data Encoded maxSubmissionCost and sender address along with additional calldata

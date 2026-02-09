@@ -1,10 +1,9 @@
+import EpochManagerArtifact from '@graphprotocol/contracts/artifacts/contracts/epochs/EpochManager.sol/EpochManager.json'
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
-import { deployWithGraphProxy } from '../proxy/GraphProxy'
 
+import { deployWithGraphProxy } from '../proxy/GraphProxy'
 import ControllerModule from './Controller'
 import GraphProxyAdminModule from './GraphProxyAdmin'
-
-import EpochManagerArtifact from '@graphprotocol/contracts/build/contracts/contracts/epochs/EpochManager.sol/EpochManager.json'
 
 export default buildModule('EpochManager', (m) => {
   const { Controller } = m.useModule(ControllerModule)
@@ -23,8 +22,14 @@ export default buildModule('EpochManager', (m) => {
 
 export const MigrateEpochManagerModule = buildModule('EpochManager', (m) => {
   const epochManagerAddress = m.getParameter('epochManagerAddress')
+  const epochManagerImplementationAddress = m.getParameter('epochManagerImplementationAddress')
 
   const EpochManager = m.contractAt('EpochManager', EpochManagerArtifact, epochManagerAddress)
+  const EpochManagerImplementation = m.contractAt(
+    'EpochManagerAddressBook',
+    EpochManagerArtifact,
+    epochManagerImplementationAddress,
+  )
 
-  return { EpochManager }
+  return { EpochManager, EpochManagerImplementation }
 })

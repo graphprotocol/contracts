@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "forge-std/Test.sol";
-
-import { IHorizonStakingMain } from "../../../../contracts/interfaces/internal/IHorizonStakingMain.sol";
+import { IHorizonStakingMain } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingMain.sol";
 
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
@@ -17,8 +15,8 @@ contract HorizonStakingWithdrawTest is HorizonStakingTest {
         tokensLocked = bound(tokensLocked, 1, tokens);
 
         // simulate locked tokens ready to withdraw
-        token.transfer(address(staking), tokens);
-        _setStorage_ServiceProvider(users.indexer, tokens, 0, tokensLocked, block.number, 0);
+        require(token.transfer(address(staking), tokens), "Transfer failed");
+        _setStorageServiceProvider(users.indexer, tokens, 0, tokensLocked, block.number, 0);
 
         _createProvision(users.indexer, subgraphDataServiceAddress, tokens, 0, MAX_THAWING_PERIOD);
 
@@ -29,8 +27,8 @@ contract HorizonStakingWithdrawTest is HorizonStakingTest {
         tokens = bound(tokens, 1, MAX_STAKING_TOKENS);
 
         // simulate zero locked tokens
-        token.transfer(address(staking), tokens);
-        _setStorage_ServiceProvider(users.indexer, tokens, 0, 0, 0, 0);
+        require(token.transfer(address(staking), tokens), "Transfer failed");
+        _setStorageServiceProvider(users.indexer, tokens, 0, 0, 0, 0);
 
         _createProvision(users.indexer, subgraphDataServiceLegacyAddress, tokens, 0, MAX_THAWING_PERIOD);
 
@@ -44,8 +42,8 @@ contract HorizonStakingWithdrawTest is HorizonStakingTest {
 
         // simulate locked tokens still thawing
         uint256 thawUntil = block.timestamp + 1;
-        token.transfer(address(staking), tokens);
-        _setStorage_ServiceProvider(users.indexer, tokens, 0, tokensLocked, thawUntil, 0);
+        require(token.transfer(address(staking), tokens), "Transfer failed");
+        _setStorageServiceProvider(users.indexer, tokens, 0, tokensLocked, thawUntil, 0);
 
         _createProvision(users.indexer, subgraphDataServiceLegacyAddress, tokens, 0, MAX_THAWING_PERIOD);
 
