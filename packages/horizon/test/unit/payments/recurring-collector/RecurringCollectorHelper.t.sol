@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
+pragma solidity 0.8.33;
 
 import { IRecurringCollector } from "../../../../contracts/interfaces/IRecurringCollector.sol";
 import { RecurringCollector } from "../../../../contracts/payments/collectors/RecurringCollector.sol";
