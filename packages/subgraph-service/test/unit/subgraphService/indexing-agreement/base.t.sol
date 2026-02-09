@@ -2,7 +2,8 @@
 pragma solidity 0.8.33;
 
 import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import { IRecurringCollector } from "@graphprotocol/horizon/contracts/interfaces/IRecurringCollector.sol";
+import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
+import { IIndexingAgreement } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IIndexingAgreement.sol";
 
 import { IndexingAgreement } from "../../../../contracts/libraries/IndexingAgreement.sol";
 import { SubgraphServiceIndexingAgreementSharedTest } from "./shared.t.sol";
@@ -35,7 +36,7 @@ contract SubgraphServiceIndexingAgreementBaseTest is SubgraphServiceIndexingAgre
             ctx,
             indexerState
         );
-        IndexingAgreement.AgreementWrapper memory agreement = subgraphService.getIndexingAgreement(agreementId);
+        IIndexingAgreement.AgreementWrapper memory agreement = subgraphService.getIndexingAgreement(agreementId);
         _assertEqualAgreement(accepted.rca, agreement);
     }
 
@@ -52,11 +53,11 @@ contract SubgraphServiceIndexingAgreementBaseTest is SubgraphServiceIndexingAgre
         address indexer = GRAPH_PROXY_ADMIN_ADDRESS;
         assertFalse(_isSafeSubgraphServiceCaller(indexer));
 
-        uint256 tokens = bound(unboundedTokens, minimumProvisionTokens, MAX_TOKENS);
+        uint256 tokens = bound(unboundedTokens, MINIMUM_PROVISION_TOKENS, MAX_TOKENS);
         mint(indexer, tokens);
         resetPrank(indexer);
         vm.expectRevert("Cannot fallback to proxy target");
-        staking.provision(indexer, address(subgraphService), tokens, maxSlashingPercentage, disputePeriod);
+        staking.provision(indexer, address(subgraphService), tokens, FISHERMAN_REWARD_PERCENTAGE, DISPUTE_PERIOD);
     }
 
     /* solhint-enable graph/func-name-mixedcase */

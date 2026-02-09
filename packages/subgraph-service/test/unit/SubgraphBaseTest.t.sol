@@ -158,7 +158,7 @@ abstract contract SubgraphBaseTest is Utils, Constants {
             "RecurringCollector",
             "1",
             address(controller),
-            revokeSignerThawingPeriod
+            REVOKE_SIGNER_THAWING_PERIOD
         );
 
         address subgraphServiceImplementation = address(

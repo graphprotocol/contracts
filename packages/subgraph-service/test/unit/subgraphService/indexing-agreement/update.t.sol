@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.33;
 
-import { IRecurringCollector } from "@graphprotocol/horizon/contracts/interfaces/IRecurringCollector.sol";
+import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/utilities/ProvisionManager.sol";
 
-import { ISubgraphService } from "../../../../contracts/interfaces/ISubgraphService.sol";
+import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
 import { IndexingAgreement } from "../../../../contracts/libraries/IndexingAgreement.sol";
 import { IndexingAgreementDecoder } from "../../../../contracts/libraries/IndexingAgreementDecoder.sol";
 
@@ -50,17 +50,17 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
         uint256 unboundedTokens,
         IRecurringCollector.SignedRCAU memory signedRCAU
     ) public withSafeIndexerOrOperator(indexer) {
-        uint256 tokens = bound(unboundedTokens, 1, minimumProvisionTokens - 1);
+        uint256 tokens = bound(unboundedTokens, 1, MINIMUM_PROVISION_TOKENS - 1);
         mint(indexer, tokens);
         resetPrank(indexer);
-        _createProvision(indexer, tokens, fishermanRewardPercentage, disputePeriod);
+        _createProvision(indexer, tokens, FISHERMAN_REWARD_PERCENTAGE, DISPUTE_PERIOD);
 
         bytes memory expectedErr = abi.encodeWithSelector(
             ProvisionManager.ProvisionManagerInvalidValue.selector,
             "tokens",
             tokens,
-            minimumProvisionTokens,
-            maximumProvisionTokens
+            MINIMUM_PROVISION_TOKENS,
+            MAXIMUM_PROVISION_TOKENS
         );
         vm.expectRevert(expectedErr);
         subgraphService.updateIndexingAgreement(indexer, signedRCAU);
@@ -71,10 +71,10 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
         uint256 unboundedTokens,
         IRecurringCollector.SignedRCAU memory signedRCAU
     ) public withSafeIndexerOrOperator(indexer) {
-        uint256 tokens = bound(unboundedTokens, minimumProvisionTokens, MAX_TOKENS);
+        uint256 tokens = bound(unboundedTokens, MINIMUM_PROVISION_TOKENS, MAX_TOKENS);
         mint(indexer, tokens);
         resetPrank(indexer);
-        _createProvision(indexer, tokens, fishermanRewardPercentage, disputePeriod);
+        _createProvision(indexer, tokens, FISHERMAN_REWARD_PERCENTAGE, DISPUTE_PERIOD);
 
         bytes memory expectedErr = abi.encodeWithSelector(
             ISubgraphService.SubgraphServiceIndexerNotRegistered.selector,

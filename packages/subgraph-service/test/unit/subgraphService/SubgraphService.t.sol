@@ -14,6 +14,7 @@ import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-servic
 import { IAllocationManager } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocationManager.sol";
 import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
 import { ILegacyAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/ILegacyAllocation.sol";
+import { StakeClaims } from "@graphprotocol/horizon/contracts/data-service/libraries/StakeClaims.sol";
 
 import { Allocation } from "../../../contracts/libraries/Allocation.sol";
 import { SubgraphServiceSharedTest } from "../shared/SubgraphServiceShared.t.sol";

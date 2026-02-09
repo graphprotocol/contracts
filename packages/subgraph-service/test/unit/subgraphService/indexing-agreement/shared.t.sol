@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.33;
 
-import { IRecurringCollector } from "@graphprotocol/horizon/contracts/interfaces/IRecurringCollector.sol";
+import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
+import { IIndexingAgreement } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IIndexingAgreement.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 import { IndexingAgreement } from "../../../../contracts/libraries/IndexingAgreement.sol";
@@ -134,7 +135,7 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
         vm.assume(_ctx.allocations[allocationId] == address(0));
         _ctx.allocations[allocationId] = _seed.addr;
 
-        uint256 tokens = bound(_seed.unboundedProvisionTokens, minimumProvisionTokens, MAX_TOKENS);
+        uint256 tokens = bound(_seed.unboundedProvisionTokens, MINIMUM_PROVISION_TOKENS, MAX_TOKENS);
 
         IndexerState memory indexer = IndexerState({
             addr: _seed.addr,
@@ -149,7 +150,7 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
 
         // Create the indexer
         address originalPrank = _subgraphServiceSafePrank(indexer.addr);
-        _createProvision(indexer.addr, indexer.tokens, fishermanRewardPercentage, disputePeriod);
+        _createProvision(indexer.addr, indexer.tokens, FISHERMAN_REWARD_PERCENTAGE, DISPUTE_PERIOD);
         _register(indexer.addr, abi.encode("url", "geoHash", address(0)));
         bytes memory data = _createSubgraphAllocationData(
             indexer.addr,
@@ -345,7 +346,7 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
         return
             IndexingAgreement.AcceptIndexingAgreementMetadata({
                 subgraphDeploymentId: _subgraphDeploymentId,
-                version: IndexingAgreement.IndexingAgreementVersion.V1,
+                version: IIndexingAgreement.IndexingAgreementVersion.V1,
                 terms: _terms
             });
     }
@@ -356,7 +357,7 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
     ) internal pure returns (IndexingAgreement.UpdateIndexingAgreementMetadata memory) {
         return
             IndexingAgreement.UpdateIndexingAgreementMetadata({
-                version: IndexingAgreement.IndexingAgreementVersion.V1,
+                version: IIndexingAgreement.IndexingAgreementVersion.V1,
                 terms: abi.encode(
                     IndexingAgreement.IndexingAgreementTermsV1({
                         tokensPerSecond: _tokensPerSecond,
@@ -406,7 +407,7 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
             abi.encode(
                 IndexingAgreement.AcceptIndexingAgreementMetadata({
                     subgraphDeploymentId: _subgraphDeploymentId,
-                    version: IndexingAgreement.IndexingAgreementVersion.V1,
+                    version: IIndexingAgreement.IndexingAgreementVersion.V1,
                     terms: abi.encode(_terms)
                 })
             );
@@ -420,7 +421,7 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
 
     function _assertEqualAgreement(
         IRecurringCollector.RecurringCollectionAgreement memory _expected,
-        IndexingAgreement.AgreementWrapper memory _actual
+        IIndexingAgreement.AgreementWrapper memory _actual
     ) internal pure {
         assertEq(_expected.dataService, _actual.collectorAgreement.dataService);
         assertEq(_expected.payer, _actual.collectorAgreement.payer);

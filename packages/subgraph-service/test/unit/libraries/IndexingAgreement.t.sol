@@ -3,7 +3,8 @@ pragma solidity 0.8.33;
 
 import { Test } from "forge-std/Test.sol";
 
-import { IRecurringCollector } from "@graphprotocol/horizon/contracts/interfaces/IRecurringCollector.sol";
+import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
+import { IIndexingAgreement } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IIndexingAgreement.sol";
 import { IndexingAgreement } from "../../../contracts/libraries/IndexingAgreement.sol";
 import { Directory } from "../../../contracts/utilities/Directory.sol";
 
@@ -41,7 +42,7 @@ contract IndexingAgreementTest is Test {
             abi.encode(collectorAgreement)
         );
 
-        IndexingAgreement.AgreementWrapper memory wrapper = IndexingAgreement.get(_storageManager, agreementId);
+        IIndexingAgreement.AgreementWrapper memory wrapper = IndexingAgreement.get(_storageManager, agreementId);
         assertEq(wrapper.collectorAgreement.dataService, address(this));
     }
 
@@ -78,9 +79,9 @@ contract IndexingAgreementTest is Test {
         collectorAgreement.dataService = address(this);
         collectorAgreement.state = IRecurringCollector.AgreementState.Accepted;
 
-        _storageManager.agreements[agreementId] = IndexingAgreement.State({
+        _storageManager.agreements[agreementId] = IIndexingAgreement.State({
             allocationId: allocationId,
-            version: IndexingAgreement.IndexingAgreementVersion.V1
+            version: IIndexingAgreement.IndexingAgreementVersion.V1
         });
 
         vm.mockCall(

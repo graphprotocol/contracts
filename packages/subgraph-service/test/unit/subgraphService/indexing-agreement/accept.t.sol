@@ -3,13 +3,14 @@ pragma solidity 0.8.33;
 
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/utilities/ProvisionManager.sol";
-import { IRecurringCollector } from "@graphprotocol/horizon/contracts/interfaces/IRecurringCollector.sol";
+import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
+import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
 
 import { Allocation } from "../../../../contracts/libraries/Allocation.sol";
 import { IndexingAgreement } from "../../../../contracts/libraries/IndexingAgreement.sol";
 import { IndexingAgreementDecoder } from "../../../../contracts/libraries/IndexingAgreementDecoder.sol";
 import { AllocationHandler } from "../../../../contracts/libraries/AllocationHandler.sol";
-import { ISubgraphService } from "../../../../contracts/interfaces/ISubgraphService.sol";
+import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
 
 import { SubgraphServiceIndexingAgreementSharedTest } from "./shared.t.sol";
 
@@ -54,18 +55,18 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
         address allocationId,
         IRecurringCollector.SignedRCA memory signedRCA
     ) public withSafeIndexerOrOperator(indexer) {
-        uint256 tokens = bound(unboundedTokens, 1, minimumProvisionTokens - 1);
+        uint256 tokens = bound(unboundedTokens, 1, MINIMUM_PROVISION_TOKENS - 1);
         mint(indexer, tokens);
         resetPrank(indexer);
-        _createProvision(indexer, tokens, fishermanRewardPercentage, disputePeriod);
+        _createProvision(indexer, tokens, FISHERMAN_REWARD_PERCENTAGE, DISPUTE_PERIOD);
 
         signedRCA.rca.serviceProvider = indexer;
         bytes memory expectedErr = abi.encodeWithSelector(
             ProvisionManager.ProvisionManagerInvalidValue.selector,
             "tokens",
             tokens,
-            minimumProvisionTokens,
-            maximumProvisionTokens
+            MINIMUM_PROVISION_TOKENS,
+            MAXIMUM_PROVISION_TOKENS
         );
         vm.expectRevert(expectedErr);
         subgraphService.acceptIndexingAgreement(allocationId, signedRCA);
@@ -77,10 +78,10 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
         address allocationId,
         IRecurringCollector.SignedRCA memory signedRCA
     ) public withSafeIndexerOrOperator(indexer) {
-        uint256 tokens = bound(unboundedTokens, minimumProvisionTokens, MAX_TOKENS);
+        uint256 tokens = bound(unboundedTokens, MINIMUM_PROVISION_TOKENS, MAX_TOKENS);
         mint(indexer, tokens);
         resetPrank(indexer);
-        _createProvision(indexer, tokens, fishermanRewardPercentage, disputePeriod);
+        _createProvision(indexer, tokens, FISHERMAN_REWARD_PERCENTAGE, DISPUTE_PERIOD);
         signedRCA.rca.serviceProvider = indexer;
         bytes memory expectedErr = abi.encodeWithSelector(
             ISubgraphService.SubgraphServiceIndexerNotRegistered.selector,
@@ -144,7 +145,7 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
         IRecurringCollector.SignedRCA memory acceptable = _generateAcceptableSignedRCA(ctx, indexerState.addr);
 
         bytes memory expectedErr = abi.encodeWithSelector(
-            Allocation.AllocationDoesNotExist.selector,
+            IAllocation.AllocationDoesNotExist.selector,
             invalidAllocationId
         );
         vm.expectRevert(expectedErr);

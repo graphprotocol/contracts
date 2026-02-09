@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.33;
 
-import { IRecurringCollector } from "@graphprotocol/horizon/contracts/interfaces/IRecurringCollector.sol";
-import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
+import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { IIndexingAgreement } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IIndexingAgreement.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 
 import { IndexingAgreement } from "../../../../contracts/libraries/IndexingAgreement.sol";
@@ -179,7 +180,7 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
 
     function _newExpectedTokens(uint256 _fuzzyTokensCollected) internal view returns (ExpectedTokens memory) {
         uint256 expectedTotalTokensCollected = bound(_fuzzyTokensCollected, 1000, 1_000_000);
-        uint256 expectedTokensLocked = stakeToFeesRatio * expectedTotalTokensCollected;
+        uint256 expectedTokensLocked = STAKE_TO_FEES_RATIO * expectedTotalTokensCollected;
         uint256 expectedProtocolTokensBurnt = expectedTotalTokensCollected.mulPPMRoundUp(
             graphPayments.PROTOCOL_PAYMENT_CUT()
         );

@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.33;
 
-import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
-import { IRecurringCollector } from "@graphprotocol/horizon/contracts/interfaces/IRecurringCollector.sol";
-import { IPaymentsCollector } from "@graphprotocol/horizon/contracts/interfaces/IPaymentsCollector.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
+import { IPaymentsCollector } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsCollector.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/utilities/ProvisionManager.sol";
 
-import { ISubgraphService } from "../../../../contracts/interfaces/ISubgraphService.sol";
+import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
+import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
 import { Allocation } from "../../../../contracts/libraries/Allocation.sol";
 import { AllocationHandler } from "../../../../contracts/libraries/AllocationHandler.sol";
 import { IndexingAgreement } from "../../../../contracts/libraries/IndexingAgreement.sol";
@@ -49,7 +50,7 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
                 maxSlippage: type(uint256).max
             })
         );
-        uint256 tokensCollected = bound(unboundedTokensCollected, 1, indexerState.tokens / stakeToFeesRatio);
+        uint256 tokensCollected = bound(unboundedTokensCollected, 1, indexerState.tokens / STAKE_TO_FEES_RATIO);
 
         vm.mockCall(
             address(recurringCollector),
@@ -68,7 +69,7 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
 
         assertEq(
             subgraphService.feesProvisionTracker(indexerState.addr),
-            tokensCollected * stakeToFeesRatio,
+            tokensCollected * STAKE_TO_FEES_RATIO,
             "Should be exactly locked tokens"
         );
     }
@@ -122,18 +123,18 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
         uint256 entities,
         bytes32 poi
     ) public withSafeIndexerOrOperator(indexer) {
-        uint256 tokens = bound(unboundedTokens, 1, minimumProvisionTokens - 1);
+        uint256 tokens = bound(unboundedTokens, 1, MINIMUM_PROVISION_TOKENS - 1);
         uint256 currentEpochBlock = epochManager.currentEpochBlock();
         mint(indexer, tokens);
         resetPrank(indexer);
-        _createProvision(indexer, tokens, fishermanRewardPercentage, disputePeriod);
+        _createProvision(indexer, tokens, FISHERMAN_REWARD_PERCENTAGE, DISPUTE_PERIOD);
 
         bytes memory expectedErr = abi.encodeWithSelector(
             ProvisionManager.ProvisionManagerInvalidValue.selector,
             "tokens",
             tokens,
-            minimumProvisionTokens,
-            maximumProvisionTokens
+            MINIMUM_PROVISION_TOKENS,
+            MAXIMUM_PROVISION_TOKENS
         );
         vm.expectRevert(expectedErr);
         subgraphService.collect(
@@ -150,11 +151,11 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
         uint256 entities,
         bytes32 poi
     ) public withSafeIndexerOrOperator(indexer) {
-        uint256 tokens = bound(unboundedTokens, minimumProvisionTokens, MAX_TOKENS);
+        uint256 tokens = bound(unboundedTokens, MINIMUM_PROVISION_TOKENS, MAX_TOKENS);
         uint256 currentEpochBlock = epochManager.currentEpochBlock();
         mint(indexer, tokens);
         resetPrank(indexer);
-        _createProvision(indexer, tokens, fishermanRewardPercentage, disputePeriod);
+        _createProvision(indexer, tokens, FISHERMAN_REWARD_PERCENTAGE, DISPUTE_PERIOD);
         bytes memory expectedErr = abi.encodeWithSelector(
             ISubgraphService.SubgraphServiceIndexerNotRegistered.selector,
             indexer
@@ -192,7 +193,7 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
         IndexerState memory indexerState = _withIndexer(ctx);
         uint256 currentEpochBlock = epochManager.currentEpochBlock();
 
-        bytes memory expectedErr = abi.encodeWithSelector(Allocation.AllocationDoesNotExist.selector, address(0));
+        bytes memory expectedErr = abi.encodeWithSelector(IAllocation.AllocationDoesNotExist.selector, address(0));
         vm.expectRevert(expectedErr);
         resetPrank(indexerState.addr);
         subgraphService.collect(
@@ -290,7 +291,7 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
         IndexerState memory indexerState = _withIndexer(ctx);
         (, bytes16 acceptedAgreementId) = _withAcceptedIndexingAgreement(ctx, indexerState);
 
-        skip(maxPOIStaleness + 1);
+        skip(MAX_POI_STALENESS + 1);
         resetPrank(indexerState.addr);
         subgraphService.closeStaleAllocation(indexerState.allocationId);
 
