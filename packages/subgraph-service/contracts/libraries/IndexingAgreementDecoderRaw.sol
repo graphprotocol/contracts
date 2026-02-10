@@ -25,6 +25,7 @@ library IndexingAgreementDecoderRaw {
      * @param data The data to decode
      * @return The decoded data
      */
+    // forge-lint: disable-next-item(mixed-case-function)
     function decodeRCAMetadata(
         bytes calldata data
     ) public pure returns (IndexingAgreement.AcceptIndexingAgreementMetadata memory) {
@@ -37,6 +38,7 @@ library IndexingAgreementDecoderRaw {
      * @param data The data to decode
      * @return The decoded data
      */
+    // forge-lint: disable-next-item(mixed-case-function)
     function decodeRCAUMetadata(
         bytes calldata data
     ) public pure returns (IndexingAgreement.UpdateIndexingAgreementMetadata memory) {
