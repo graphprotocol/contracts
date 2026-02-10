@@ -2,16 +2,17 @@
 
 ## Overview
 
-Indexing Signal is a mechanism for directing protocol issuance toward indexing payments. Users lock GRT as signal for specific subgraph deployments, and the protocol mints new GRT proportional to that signal, funding Recurring Collection Agreements (RCAs) between signal depositors and indexers via PaymentsEscrow.
+Indexing Signal is a mechanism for directing protocol issuance toward indexing payments. Users lock GRT as signal for specific subgraph deployments, and the protocol mints new GRT proportional to that signal, funding Recurring Collection Agreements (RCAs) between signal depositors and indexers.
 
-Indexing Signal is analogous to Curation Signal in its role of directing protocol issuance, but differs in where the issuance flows: curation issuance goes to indexer rewards (via RewardsManager), while indexing issuance goes to indexing payments (via PaymentsEscrow and RCAs).
+Indexing Signal is analogous to Curation Signal in its role of directing protocol issuance, but differs in where the issuance flows: curation issuance goes to indexer rewards (via RewardsManager), while indexing issuance goes to indexing payments (via RCAs).
 
 ## Reference Contracts
 
 - **Curation**: `packages/contracts/contracts/curation/Curation.sol` - Pattern reference for signal mechanics
 - **RewardsManager**: `packages/contracts/contracts/rewards/RewardsManager.sol` - Issuance rate source, signal-based reward distribution
-- **PaymentsEscrow**: `packages/horizon/contracts/payments/PaymentsEscrow.sol` - Fund holding for payer→collector→receiver tuples
+- **PaymentsEscrow**: `packages/horizon/contracts/payments/PaymentsEscrow.sol` - Existing generic escrow primitive (payer→collector→receiver tuples); not modified
 - **RecurringCollector**: `/git/graphprotocol/contracts/indexing-payments/packages/horizon/contracts/payments/collectors/RecurringCollector.sol` - RCA implementation (on indexing-payments branch)
+- **GraphDirectory**: `packages/horizon/contracts/utilities/GraphDirectory.sol` - Protocol contract registry (singleton PaymentsEscrow registration)
 - **IssuanceAllocator**: `packages/issuance/contracts/allocate/IssuanceAllocator.sol` - Issuance distribution to targets
 - **SubgraphService**: `packages/subgraph-service/contracts/SubgraphService.sol` - Orchestrates collection flows
 
@@ -24,13 +25,15 @@ Indexing Signal is analogous to Curation Signal in its role of directing protoco
 | Issuance source    | Self-minting, reads rate from RM        | Uses same per-signal issuance rate as RewardsManager                                      |
 | Signal aggregation | RM reads both Curation + IndexingSignal | RewardsManager updated to query combined total signal                                     |
 | Issuance split     | Global split                            | total_indexing_signal / total_signal determines IndexingSignal's share of issuance        |
-| Escrow payer       | Signal depositors                       | Depositors are the economic actors; their signal directs issuance to their escrow entries |
+| Escrow model       | Virtual (no physical deposits)          | IS computes balances from accumulators; GRT minted only on collect; no deposit/thaw/withdraw lifecycle |
+| Escrow routing     | Router with governance-controlled overrides | Thin router in front of PaymentsEscrow; override mapping delegates IS-backed flows to IS  |
 | Indexer count      | Depositor-chosen, protocol minimum      | Depositor sets desired count at deposit; protocol enforces minimum; privileged role exempt |
 | Indexer count changes | Mutable over time                     | Depositor can increase/decrease indexer count and signal amount within constraints         |
 | Indexer selection   | Off-chain                               | Selection performed off-chain; on-chain contract records and enforces the matched set     |
 | Issuance per indexer | Equal split across set                 | Depositor's issuance divided equally among matched indexers (signal / N per indexer)      |
 | RCA matching       | Automatic per depositor-indexer         | Protocol creates RCA entries for each depositor-indexer pair per subgraph                 |
-| Escrow funding     | On collect (just-in-time)               | SubgraphService orchestrates: triggers IndexingSignal mint → escrow deposit → RCA collect |
+| RCA acceptance     | Signed and offered off-chain            | RCA signed by payer-side, offered to indexer; indexer accepts by posting on-chain before deadline |
+| RCA cancellation   | Out of scope for IS                     | IS responds to cancellation (settles uncollected issuance) but does not cause or control it |
 
 ## Architecture
 
@@ -62,8 +65,8 @@ Indexing Signal is analogous to Curation Signal in its role of directing protoco
                      │                     │
               ┌──────▼────────┐     ┌──────▼─────────────┐
               │ RewardsManager│     │ IndexingSignal      │
-              │ mints rewards │     │ self-mints issuance │
-              │ → indexers    │     │ → PaymentsEscrow    │
+              │ mints rewards │     │ virtual escrow:     │
+              │ → indexers    │     │ mint on collect     │
               └───────────────┘     └────────────────────┘
 ```
 
@@ -110,36 +113,70 @@ User deposits GRT                  User withdraws signal
  with indexers
 ```
 
-### Collection Flow (SubgraphService Orchestrated)
+### Virtual Escrow Model
+
+IndexingSignal acts as a virtual escrow — no GRT is physically deposited or held. Escrow "balances" are computed from IS accumulators and represent accumulated uncollected issuance. GRT is minted only at the moment of collection.
+
+**Why virtual?** A physical escrow requires deposit/thaw/withdraw lifecycle management. Since issuance is protocol-minted (not user-deposited), physical deposits create unnecessary complexity: who is the payer? Who manages thaw? How are leftover funds reclaimed? Virtual escrow eliminates all of this.
+
+**Escrow Router**: A thin governance-controlled router sits at the protocol's PaymentsEscrow address. For standard payment flows (query fees via GraphTallyCollector), it delegates to the existing PaymentsEscrow. For IS-backed flows (indexing payments via RecurringCollector), it delegates to IndexingSignal. Governance controls which overrides are approved.
+
+```
+                   ┌──────────────────────┐
+                   │   Escrow Router       │
+                   │   (governance-        │
+                   │    controlled)        │
+                   └──────┬───────┬───────┘
+                          │       │
+              default     │       │  override (payer-based)
+                          ▼       ▼
+              ┌───────────────┐  ┌──────────────────┐
+              │ PaymentsEscrow│  │ IndexingSignal    │
+              │ (physical,    │  │ (virtual escrow,  │
+              │  standard)    │  │  mint-on-collect) │
+              └───────────────┘  └──────────────────┘
+```
+
+**Virtual escrow operations:**
+- `getBalance(depositor, collector, indexer)` → computed from accumulators (no storage read of a "balance" field)
+- `collect(depositor, subgraph, indexer, amount)` → IS mints GRT, sends to GraphPayments for distribution
+- No `deposit()`, `thaw()`, or `withdraw()` — balance is virtual, GRT only exists at collection time
+
+### Collection Flow
 
 ```
 Indexer calls SubgraphService.collect() for RCA
       │
       ▼
- ┌───────────────────────────────────────────────┐
- │ SubgraphService                               │
- │                                               │
- │ 1. Call IndexingSignal.mintPendingIssuance()   │
- │    for (depositor, subgraph) pair              │
- │                                               │
- │ 2. IndexingSignal calculates accumulated       │
- │    issuance since last collection              │
- │                                               │
- │ 3. IndexingSignal mints GRT                   │
- │                                               │
- │ 4. IndexingSignal deposits minted GRT into     │
- │    PaymentsEscrow(payer=depositor,             │
- │                   collector=RecurringCollector, │
- │                   receiver=indexer)            │
- │                                               │
- │ 5. Proceed with normal RCA collection via      │
- │    RecurringCollector.collect()                │
- │                                               │
- │ 6. PaymentsEscrow.collect() distributes via    │
- │    GraphPayments: protocol tax, data service   │
- │    cut, delegation pool, receiver              │
- └───────────────────────────────────────────────┘
+ ┌─────────────────────────────────────────────────┐
+ │ SubgraphService                                 │
+ │                                                 │
+ │ 1. RecurringCollector validates RCA terms        │
+ │                                                 │
+ │ 2. Router delegates to IndexingSignal            │
+ │    (governance-approved override for this payer) │
+ │                                                 │
+ │ 3. IS computes accumulated issuance since last   │
+ │    collection for (depositor, subgraph, indexer) │
+ │                                                 │
+ │ 4. IS mints GRT (up to collection amount)        │
+ │                                                 │
+ │ 5. Minted GRT distributed via GraphPayments:     │
+ │    protocol tax, data service cut, delegation    │
+ │    pool, receiver (indexer)                      │
+ │                                                 │
+ │ 6. IS updates per-indexer collection snapshot     │
+ └─────────────────────────────────────────────────┘
 ```
+
+### RCA Cancellation Response
+
+IS does not cause or control RCA cancellation — that is handled externally. When IS is notified that an RCA for (depositor, subgraph, indexer) has been cancelled:
+
+1. IS updates the per-indexer collection snapshot to current accumulator value
+2. Accumulated but uncollected issuance for that tuple is settled (never minted — it simply stops being collectible)
+3. Signal remains active — new issuance continues accruing for whichever indexer is next assigned
+4. If all indexers for a depositor are removed, issuance accrues but is not collectible until new indexers are assigned
 
 ### Indexer Set Matching
 
@@ -163,7 +200,9 @@ Depositor B: 500 GRT signal, 5 indexers (above minimum, more redundancy)
 Privileged role: 100 GRT signal, 1 indexer (below minimum, permitted)
   → Indexer W: full issuance
 
-Each RCA entry: depositor → RecurringCollector → indexer
+Each RCA: depositor → RecurringCollector → indexer
+  Signed by payer-side, offered to indexer off-chain
+  Indexer accepts by posting on-chain before deadline
   maxOngoingTokensPerSecond = depositor's issuance rate / N
 ```
 
@@ -261,14 +300,23 @@ function setDepositorIndexerSet(
 
 // --- Issuance ---
 
-/// Mint pending issuance for a depositor-subgraph-indexer tuple and deposit to escrow.
-/// Mints 1/N of depositor's total pending issuance (N = indexerSet.length).
-/// Called by SubgraphService during collect flow.
-function mintPendingIssuance(
+/// Collect issuance for a depositor-subgraph-indexer tuple.
+/// Computes accumulated virtual balance, mints GRT, distributes via GraphPayments.
+/// Called during RCA collection flow (via escrow router delegation).
+function collect(
+  address depositor,
+  bytes32 subgraphDeploymentID,
+  address indexer,
+  uint256 amount
+) external returns (uint256 collectedTokens);
+
+/// Get the virtual escrow balance for a depositor-subgraph-indexer tuple.
+/// Computed from accumulators — no physical balance exists.
+function getVirtualBalance(
   address depositor,
   bytes32 subgraphDeploymentID,
   address indexer
-) external returns (uint256 issuedTokens);
+) external view returns (uint256);
 
 /// Update the global issuance accumulator
 function updateAccIssuancePerSignal() public;
@@ -388,33 +436,64 @@ IIndexingSignal public indexingSignal; // Reference to IndexingSignal contract
 function setIndexingSignal(address _indexingSignal) external onlyGovernor;
 ```
 
-## Contract Changes: SubgraphService
+## Contract: Escrow Router
 
-### Collection Orchestration
+### Purpose
 
-SubgraphService gains a new collection path for indexing RCAs:
+A thin governance-controlled proxy that sits at the protocol's PaymentsEscrow address (or alongside it). Routes escrow operations to the appropriate backend based on a governance-controlled override mapping.
+
+### Design
 
 ```solidity
-function collectIndexingPayment(
-  bytes32 subgraphDeploymentID,
-  address depositor,
-  address indexer,
-  bytes calldata rcaData
-) external {
-  // 1. Trigger IndexingSignal to mint and fund escrow
-  uint256 issued = indexingSignal.mintPendingIssuance(depositor, subgraphDeploymentID, indexer);
+// Governance-controlled override: payer → escrow implementation
+// When set, all escrow operations for this payer delegate to the override.
+// Zero address = use default PaymentsEscrow.
+mapping(address payer => address override) public escrowOverrides;
 
-  // 2. Proceed with normal RCA collection
-  // RecurringCollector validates terms and calls PaymentsEscrow.collect()
-  _collectViaRCA(depositor, indexer, rcaData);
-}
+// Default escrow (the existing PaymentsEscrow singleton)
+IPaymentsEscrow public defaultEscrow;
 ```
 
-### Allocation Hooks
+**Routing logic**: For `collect()`, `getBalance()`, etc. — check `escrowOverrides[payer]`. If set, delegate to override. Otherwise, pass through to `defaultEscrow`.
 
-When allocations are created/closed, SubgraphService triggers RCA creation/cancellation with IndexingSignal depositors.
+**Open question**: Payer alone may be insufficient if the same address uses both standard escrow (query fees) and virtual escrow (indexing payments). May need `(payer, collector)` as the routing key, or the override implementation itself distinguishes based on the collector parameter.
+
+### Governance
+
+- Only governance can set/remove overrides
+- Provides protocol-level control over which escrow implementations are active
+- Existing PaymentsEscrow remains untouched as the generic primitive
+
+## Contract Changes: SubgraphService
+
+### Collection Flow
+
+SubgraphService collection for indexing RCAs goes through the standard escrow router path. The router detects the override and delegates to IndexingSignal, which computes the virtual balance, mints, and distributes.
+
+### RCA Cancellation
+
+When an RCA is cancelled (externally triggered), SubgraphService or the cancellation mechanism notifies IndexingSignal to settle the uncollected issuance for that (depositor, subgraph, indexer) tuple.
 
 ## Open Questions and Future Considerations
+
+### Escrow Router
+
+- Is payer the right routing key? If the same address uses both standard escrow and virtual escrow (e.g., query fees + indexing payments), payer alone is ambiguous. May need `(payer, collector)` as the key.
+- Should the router be a new contract registered in the Controller, or a wrapper deployed alongside PaymentsEscrow?
+- How does the override get set for new depositors? Governance-managed allowlist, or automatic based on IS position?
+
+### Per-Indexer Collection Tracking
+
+- Current IS accumulator model tracks issuance per-depositor. Virtual escrow needs per-(depositor, subgraph, indexer) collection snapshots to know how much each indexer has already collected.
+- This requires additional storage: per-indexer collection snapshot mapping.
+- When an indexer is removed from a set, their snapshot is settled. When re-added later, their snapshot resets to current.
+
+### RCA Cancellation Settlement
+
+- What happens to accumulated but uncollected issuance when an RCA is cancelled? Options:
+  - Never minted (simplest — issuance simply doesn't happen)
+  - Minted and sent to a reclaim address (mirrors RM's reclaim pattern)
+- Who triggers the cancellation notification to IS? SubgraphService, RecurringCollector, or an external process?
 
 ### Indexer Set Management
 
@@ -423,8 +502,6 @@ When allocations are created/closed, SubgraphService triggers RCA creation/cance
 - Should there be a minimum stake/allocation requirement for indexers to be eligible for selection?
 - How frequently can the set be rotated? Should there be a cooldown to prevent disruption?
 - Rounding remainder when dividing issuance by N: accumulate dust or distribute to last indexer?
-- What value should `minimumIndexerCount` be initially? (e.g., 3?)
-- What criteria define a "privileged signaler"? Protocol governance, specific contracts, or a role-based system?
 
 ### RCA Term Derivation
 
@@ -437,7 +514,6 @@ When allocations are created/closed, SubgraphService triggers RCA creation/cance
 - Lazy RCA creation (create on first collect) vs eager (create on signal/allocation change)
 - Batched minting for multiple depositors in a single collect transaction
 - Consider a maximum number of depositors per subgraph or pagination
-- `setDepositorIndexerSet()` per-depositor so gas is bounded by one depositor's N, but batch operations across many depositors may be needed
 
 ### Signal Depositor Incentives
 
