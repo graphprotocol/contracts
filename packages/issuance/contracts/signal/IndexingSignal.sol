@@ -16,8 +16,12 @@ import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/int
  *
  * @dev Users lock GRT as signal for specific subgraph deployments (1:1, no bonding curve)
  * and can withdraw immediately. The contract self-mints issuance at the same per-signal
- * rate as RewardsManager, depositing minted GRT to PaymentsEscrow to fund RCAs between
- * depositors and indexers.
+ * rate as RewardsManager, using a virtual escrow model where GRT is only minted at
+ * collection time.
+ *
+ * Virtual escrow: no GRT is physically deposited or held as escrow. Escrow "balances" are
+ * computed from accumulators and represent accumulated uncollected issuance. The collect()
+ * function mints GRT on demand and transfers to the caller for distribution.
  *
  * Key invariant: RM_minted + IS_minted = issuancePerBlock * blocks
  * This holds because both use the same accIssuancePerSignal rate with totalSignal as denominator,
@@ -64,6 +68,10 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal {
         mapping(address => mapping(bytes32 => address[])) indexerSets;
         /// @notice Privileged signalers that can bypass minimum indexer count
         mapping(address => bool) privilegedSignalers;
+        /// @notice Per-(depositor, subgraph, indexer) collection snapshot.
+        /// Tracks accIssuancePerSignal at the time of last collection for each indexer,
+        /// enabling independent collection tracking per indexer in the virtual escrow model.
+        mapping(address => mapping(bytes32 => mapping(address => uint256))) indexerCollectionSnapshots;
     }
 
     // keccak256(abi.encode(uint256(keccak256("graphprotocol.storage.IndexingSignal")) - 1)) & ~bytes32(uint256(0xff))
@@ -284,56 +292,96 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal {
         require(pos.tokens > 0, NoExistingPosition(depositor, subgraphDeploymentID));
         require(indexers.length == pos.indexerCount, IndexerSetSizeMismatch(indexers.length, pos.indexerCount));
 
+        // Update accumulator before changing the set
+        _updateAccIssuancePerSignal($);
+
+        // Initialize collection snapshots for new indexers to the current accumulator.
+        // This ensures newly added indexers can only collect issuance from this point forward.
+        for (uint256 i = 0; i < indexers.length; i++) {
+            uint256 existingSnapshot = $.indexerCollectionSnapshots[depositor][subgraphDeploymentID][indexers[i]];
+            if (existingSnapshot == 0) {
+                $.indexerCollectionSnapshots[depositor][subgraphDeploymentID][indexers[i]] = $.accIssuancePerSignal;
+            }
+        }
+
         $.indexerSets[depositor][subgraphDeploymentID] = indexers;
 
         emit DepositorIndexerSetUpdated(depositor, subgraphDeploymentID, indexers);
     }
 
-    // -- Issuance --
+    // -- Collection (Virtual Escrow) --
 
     /**
      * @inheritdoc IIndexingSignal
      */
-    function mintPendingIssuance(
+    function collect(
         address depositor,
         bytes32 subgraphDeploymentID,
-        address indexer
-    ) external override whenNotPaused returns (uint256 issuedTokens) {
+        address indexer,
+        uint256 amount
+    ) external override whenNotPaused returns (uint256 collectedTokens) {
         IndexingSignalData storage $ = _getStorage();
 
         // Update accumulator to current block
         _updateAccIssuancePerSignal($);
 
-        DepositorPosition storage pos = $.positions[depositor][subgraphDeploymentID];
         address[] storage indexerSet = $.indexerSets[depositor][subgraphDeploymentID];
-
         require(indexerSet.length > 0, IndexerSetEmpty());
         require(_isInIndexerSet(indexerSet, indexer), IndexerNotInSet(indexer));
 
-        // Calculate total pending issuance for this depositor
-        uint256 totalPending = _calcPendingIssuance(pos, $.accIssuancePerSignal);
+        // Compute virtual balance for this specific indexer
+        uint256 available = _calcVirtualBalance($, depositor, subgraphDeploymentID, indexer);
 
-        // Equal split across indexer set
-        uint256 perIndexer = totalPending / indexerSet.length;
+        // Determine collection amount
+        collectedTokens = amount == 0 ? available : (amount < available ? amount : available);
 
-        if (perIndexer > 0) {
-            // Mint GRT
-            GRAPH_TOKEN.mint(address(this), perIndexer);
+        if (collectedTokens > 0) {
+            // Update per-indexer collection snapshot proportionally.
+            // We advance the snapshot by the fraction of available balance collected.
+            // If collecting all, snapshot advances to current accumulator.
+            if (collectedTokens == available) {
+                $.indexerCollectionSnapshots[depositor][subgraphDeploymentID][indexer] = $.accIssuancePerSignal;
+            } else {
+                // Partial collection: advance snapshot proportionally
+                DepositorPosition storage pos = $.positions[depositor][subgraphDeploymentID];
+                uint256 indexerSnapshot = $.indexerCollectionSnapshots[depositor][subgraphDeploymentID][indexer];
+                uint256 effectiveSnapshot = indexerSnapshot > pos.accIssuanceSnapshot
+                    ? indexerSnapshot
+                    : pos.accIssuanceSnapshot;
+                uint256 totalDelta = $.accIssuancePerSignal - effectiveSnapshot;
+                uint256 consumedDelta = (totalDelta * collectedTokens) / available;
+                $.indexerCollectionSnapshots[depositor][subgraphDeploymentID][indexer] =
+                    effectiveSnapshot + consumedDelta;
+            }
 
-            // TODO: Deposit to PaymentsEscrow
-            // For now, transfer directly. Escrow integration will be wired when
-            // RecurringCollector is integrated.
-            // paymentsEscrow.depositTo(depositor, recurringCollector, indexer, perIndexer);
-            require(GRAPH_TOKEN.transfer(indexer, perIndexer));
+            // Mint GRT and transfer to caller for distribution
+            GRAPH_TOKEN.mint(msg.sender, collectedTokens);
         }
 
-        // Update snapshot (only for this indexer's share - track per-indexer collection separately)
-        // NOTE: This is a simplification. A production implementation needs per-indexer
-        // collection tracking to avoid one indexer collecting another's share.
-        // For rough design: update snapshot after all indexers have collected.
+        emit IssuanceCollected(depositor, subgraphDeploymentID, indexer, collectedTokens);
+    }
 
-        emit IssuanceMinted(depositor, subgraphDeploymentID, indexer, perIndexer);
-        return perIndexer;
+    /**
+     * @inheritdoc IIndexingSignal
+     */
+    function onRCACancelled(
+        address depositor,
+        bytes32 subgraphDeploymentID,
+        address indexer
+    ) external override whenNotPaused {
+        // TODO: Access control - only callable by authorized cancellation source
+        IndexingSignalData storage $ = _getStorage();
+
+        // Update accumulator to current block
+        _updateAccIssuancePerSignal($);
+
+        // Calculate what would have been collectible (for the event)
+        uint256 settledTokens = _calcVirtualBalance($, depositor, subgraphDeploymentID, indexer);
+
+        // Advance snapshot to current accumulator — uncollected issuance is never minted
+        $.indexerCollectionSnapshots[depositor][subgraphDeploymentID][indexer] = $.accIssuancePerSignal;
+
+        emit IssuanceSettled(depositor, subgraphDeploymentID, indexer, settledTokens);
     }
 
     /**
@@ -376,6 +424,19 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal {
     /**
      * @inheritdoc IIndexingSignal
      */
+    function getVirtualBalance(
+        address depositor,
+        bytes32 subgraphDeploymentID,
+        address indexer
+    ) external view override returns (uint256) {
+        IndexingSignalData storage $ = _getStorage();
+        uint256 currentAcc = $.accIssuancePerSignal + _getNewIssuancePerSignal($);
+        return _calcVirtualBalanceAt($, depositor, subgraphDeploymentID, indexer, currentAcc);
+    }
+
+    /**
+     * @inheritdoc IIndexingSignal
+     */
     function getPendingIssuance(
         address depositor,
         bytes32 subgraphDeploymentID
@@ -384,26 +445,6 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal {
         DepositorPosition storage pos = $.positions[depositor][subgraphDeploymentID];
         uint256 currentAcc = $.accIssuancePerSignal + _getNewIssuancePerSignal($);
         return _calcPendingIssuance(pos, currentAcc);
-    }
-
-    /**
-     * @inheritdoc IIndexingSignal
-     */
-    function getPendingIssuanceForIndexer(
-        address depositor,
-        bytes32 subgraphDeploymentID,
-        address indexer
-    ) external view override returns (uint256) {
-        IndexingSignalData storage $ = _getStorage();
-        DepositorPosition storage pos = $.positions[depositor][subgraphDeploymentID];
-        address[] storage indexerSet = $.indexerSets[depositor][subgraphDeploymentID];
-
-        require(indexerSet.length > 0, IndexerSetEmpty());
-        require(_isInIndexerSet(indexerSet, indexer), IndexerNotInSet(indexer));
-
-        uint256 currentAcc = $.accIssuancePerSignal + _getNewIssuancePerSignal($);
-        uint256 totalPending = _calcPendingIssuance(pos, currentAcc);
-        return totalPending / indexerSet.length;
     }
 
     /**
@@ -488,6 +529,51 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal {
         if (pos.tokens == 0) return 0;
         uint256 delta = currentAccIssuancePerSignal - pos.accIssuanceSnapshot;
         return (pos.tokens * delta) / FIXED_POINT_SCALING_FACTOR;
+    }
+
+    /**
+     * @dev Calculate virtual balance for a (depositor, subgraph, indexer) tuple at the current accumulator
+     */
+    function _calcVirtualBalance(
+        IndexingSignalData storage $,
+        address depositor,
+        bytes32 subgraphDeploymentID,
+        address indexer
+    ) internal view returns (uint256) {
+        return _calcVirtualBalanceAt($, depositor, subgraphDeploymentID, indexer, $.accIssuancePerSignal);
+    }
+
+    /**
+     * @dev Calculate virtual balance for a (depositor, subgraph, indexer) tuple at a given accumulator value.
+     * The virtual balance is the per-indexer share (1/N) of issuance accrued since last collection.
+     */
+    function _calcVirtualBalanceAt(
+        IndexingSignalData storage $,
+        address depositor,
+        bytes32 subgraphDeploymentID,
+        address indexer,
+        uint256 currentAccIssuancePerSignal
+    ) internal view returns (uint256) {
+        DepositorPosition storage pos = $.positions[depositor][subgraphDeploymentID];
+        if (pos.tokens == 0) return 0;
+
+        address[] storage indexerSet = $.indexerSets[depositor][subgraphDeploymentID];
+        if (indexerSet.length == 0) return 0;
+        if (!_isInIndexerSet(indexerSet, indexer)) return 0;
+
+        // The per-indexer collection snapshot tracks where this indexer last collected.
+        // The position's accIssuanceSnapshot tracks the depositor's global baseline.
+        // The effective baseline is the later of the two (indexer can't collect before position was created).
+        uint256 indexerSnapshot = $.indexerCollectionSnapshots[depositor][subgraphDeploymentID][indexer];
+        uint256 effectiveSnapshot = indexerSnapshot > pos.accIssuanceSnapshot
+            ? indexerSnapshot
+            : pos.accIssuanceSnapshot;
+
+        if (currentAccIssuancePerSignal <= effectiveSnapshot) return 0;
+
+        uint256 delta = currentAccIssuancePerSignal - effectiveSnapshot;
+        uint256 totalIssuance = (pos.tokens * delta) / FIXED_POINT_SCALING_FACTOR;
+        return totalIssuance / indexerSet.length;
     }
 
     /**
