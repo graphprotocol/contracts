@@ -75,6 +75,7 @@ library AllocationHandler {
      * @param _paymentsDestination The address to which the indexing rewards should be sent
      */
     struct PresentParams {
+        // forge-lint: disable-next-line(mixed-case-variable)
         uint256 maxPOIStaleness;
         IEpochManager graphEpochManager;
         IHorizonStaking graphStaking;
@@ -176,6 +177,7 @@ library AllocationHandler {
      * @notice Emitted when the maximum POI staleness is updated
      * @param maxPOIStaleness The max POI staleness in seconds
      */
+    // forge-lint: disable-next-item(mixed-case-variable)
     event MaxPOIStalenessSet(uint256 maxPOIStaleness);
 
     /**
@@ -317,6 +319,7 @@ library AllocationHandler {
      * @return allocationForceClosed True if the allocation was automatically closed due to over-allocation, false otherwise
      */
     // solhint-disable-next-line function-max-lines
+    // forge-lint: disable-next-item(mixed-case-function)
     function presentPOI(
         mapping(address allocationId => IAllocation.State allocation) storage _allocations,
         mapping(address indexer => uint256 tokens) storage allocationProvisionTracker,

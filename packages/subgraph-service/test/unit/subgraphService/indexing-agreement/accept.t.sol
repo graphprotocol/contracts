@@ -6,7 +6,6 @@ import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
 
-import { Allocation } from "../../../../contracts/libraries/Allocation.sol";
 import { IndexingAgreement } from "../../../../contracts/libraries/IndexingAgreement.sol";
 import { IndexingAgreementDecoder } from "../../../../contracts/libraries/IndexingAgreementDecoder.sol";
 import { AllocationHandler } from "../../../../contracts/libraries/AllocationHandler.sol";
@@ -23,6 +22,7 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
     function test_SubgraphService_AcceptIndexingAgreement_Revert_WhenPaused(
         address allocationId,
         address operator,
+        // forge-lint: disable-next-line(mixed-case-variable)
         IRecurringCollector.SignedRCA calldata signedRCA
     ) public withSafeIndexerOrOperator(operator) {
         resetPrank(users.pauseGuardian);
@@ -36,6 +36,7 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
     function test_SubgraphService_AcceptIndexingAgreement_Revert_WhenNotAuthorized(
         address allocationId,
         address operator,
+        // forge-lint: disable-next-line(mixed-case-variable)
         IRecurringCollector.SignedRCA calldata signedRCA
     ) public withSafeIndexerOrOperator(operator) {
         vm.assume(operator != signedRCA.rca.serviceProvider);
@@ -53,6 +54,7 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
         address indexer,
         uint256 unboundedTokens,
         address allocationId,
+        // forge-lint: disable-next-line(mixed-case-variable)
         IRecurringCollector.SignedRCA memory signedRCA
     ) public withSafeIndexerOrOperator(indexer) {
         uint256 tokens = bound(unboundedTokens, 1, MINIMUM_PROVISION_TOKENS - 1);
@@ -76,6 +78,7 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
         address indexer,
         uint256 unboundedTokens,
         address allocationId,
+        // forge-lint: disable-next-line(mixed-case-variable)
         IRecurringCollector.SignedRCA memory signedRCA
     ) public withSafeIndexerOrOperator(indexer) {
         uint256 tokens = bound(unboundedTokens, MINIMUM_PROVISION_TOKENS, MAX_TOKENS);
@@ -241,10 +244,12 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
         // Now try to accept a different agreement on the same allocation
         // Create a new agreement with different nonce to ensure different agreement ID
         IRecurringCollector.RecurringCollectionAgreement
+            // forge-lint: disable-next-line(mixed-case-variable)
             memory newRCA = _generateAcceptableRecurringCollectionAgreement(ctx, indexerState.addr);
         newRCA.nonce = alternativeNonce; // Different nonce to ensure different agreement ID
 
         // Sign the new agreement
+        // forge-lint: disable-next-line(mixed-case-variable)
         IRecurringCollector.SignedRCA memory newSignedRCA = _recurringCollectorHelper.generateSignedRCA(
             newRCA,
             ctx.payer.signerPrivateKey
@@ -264,6 +269,7 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
         Context storage ctx = _newCtx(seed);
         IndexerState memory indexerState = _withIndexer(ctx);
         IRecurringCollector.SignedRCA memory acceptable = _generateAcceptableSignedRCA(ctx, indexerState.addr);
+        // forge-lint: disable-next-line(mixed-case-variable)
         IRecurringCollector.RecurringCollectionAgreement memory notAcceptableRCA = acceptable.rca;
         bytes memory invalidTermsData = bytes("invalid terms data");
         notAcceptableRCA.metadata = abi.encode(

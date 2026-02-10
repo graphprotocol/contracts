@@ -19,6 +19,7 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
     /* solhint-disable graph/func-name-mixedcase */
     function test_SubgraphService_UpdateIndexingAgreementIndexingAgreement_Revert_WhenPaused(
         address operator,
+        // forge-lint: disable-next-line(mixed-case-variable)
         IRecurringCollector.SignedRCAU calldata signedRCAU
     ) public withSafeIndexerOrOperator(operator) {
         resetPrank(users.pauseGuardian);
@@ -32,6 +33,7 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
     function test_SubgraphService_UpdateIndexingAgreement_Revert_WhenNotAuthorized(
         address indexer,
         address notAuthorized,
+        // forge-lint: disable-next-line(mixed-case-variable)
         IRecurringCollector.SignedRCAU calldata signedRCAU
     ) public withSafeIndexerOrOperator(notAuthorized) {
         vm.assume(notAuthorized != indexer);
@@ -48,6 +50,7 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
     function test_SubgraphService_UpdateIndexingAgreement_Revert_WhenInvalidProvision(
         address indexer,
         uint256 unboundedTokens,
+        // forge-lint: disable-next-line(mixed-case-variable)
         IRecurringCollector.SignedRCAU memory signedRCAU
     ) public withSafeIndexerOrOperator(indexer) {
         uint256 tokens = bound(unboundedTokens, 1, MINIMUM_PROVISION_TOKENS - 1);
@@ -69,6 +72,7 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
     function test_SubgraphService_UpdateIndexingAgreement_Revert_WhenIndexerNotRegistered(
         address indexer,
         uint256 unboundedTokens,
+        // forge-lint: disable-next-line(mixed-case-variable)
         IRecurringCollector.SignedRCAU memory signedRCAU
     ) public withSafeIndexerOrOperator(indexer) {
         uint256 tokens = bound(unboundedTokens, MINIMUM_PROVISION_TOKENS, MAX_TOKENS);

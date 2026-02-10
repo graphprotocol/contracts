@@ -432,6 +432,7 @@ contract SubgraphService is
      */
     function acceptIndexingAgreement(
         address allocationId,
+        // forge-lint: disable-next-line(mixed-case-variable)
         IRecurringCollector.SignedRCA calldata signedRCA
     )
         external
@@ -459,6 +460,7 @@ contract SubgraphService is
      */
     function updateIndexingAgreement(
         address indexer,
+        // forge-lint: disable-next-line(mixed-case-variable)
         IRecurringCollector.SignedRCAU calldata signedRCAU
     )
         external

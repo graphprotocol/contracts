@@ -9,7 +9,6 @@ import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/
 
 import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
 import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
-import { Allocation } from "../../../../contracts/libraries/Allocation.sol";
 import { AllocationHandler } from "../../../../contracts/libraries/AllocationHandler.sol";
 import { IndexingAgreement } from "../../../../contracts/libraries/IndexingAgreement.sol";
 import { IndexingAgreementDecoder } from "../../../../contracts/libraries/IndexingAgreementDecoder.sol";

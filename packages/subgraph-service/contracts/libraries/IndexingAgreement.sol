@@ -279,6 +279,7 @@ library IndexingAgreement {
         StorageManager storage self,
         mapping(address allocationId => IAllocation.State allocation) storage allocations,
         address allocationId,
+        // forge-lint: disable-next-line(mixed-case-variable)
         IRecurringCollector.SignedRCA calldata signedRCA
     ) external returns (bytes16) {
         IAllocation.State memory allocation = _requireValidAllocation(
@@ -365,6 +366,7 @@ library IndexingAgreement {
     function update(
         StorageManager storage self,
         address indexer,
+        // forge-lint: disable-next-line(mixed-case-variable)
         IRecurringCollector.SignedRCAU calldata signedRCAU
     ) external {
         IIndexingAgreement.AgreementWrapper memory wrapper = _get(self, signedRCAU.rcau.agreementId);
@@ -782,6 +784,7 @@ library IndexingAgreement {
      * @param terms The indexing agreement terms to validate
      * @param maxOngoingTokensPerSecond The RCA maximum tokens per second limit
      */
+    // forge-lint: disable-next-item(mixed-case-function)
     function _validateTermsAgainstRCA(
         IndexingAgreementTermsV1 memory terms,
         uint256 maxOngoingTokensPerSecond

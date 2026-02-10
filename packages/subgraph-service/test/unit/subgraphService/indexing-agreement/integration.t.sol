@@ -124,7 +124,7 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
         vm.roll(block.number + EPOCH_LENGTH);
 
         // Collect indexing rewards - this should trigger allocation closure and agreement cancellation
-        bytes memory collectData = abi.encode(indexerState.allocationId, bytes32("poi"), bytes("metadata"));
+        bytes memory collectData = abi.encode(indexerState.allocationId, keccak256("poi"), bytes("metadata"));
         resetPrank(indexerState.addr);
         subgraphService.collect(indexerState.addr, IGraphPayments.PaymentTypes.IndexingRewards, collectData);
 
