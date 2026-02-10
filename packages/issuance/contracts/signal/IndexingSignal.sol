@@ -14,9 +14,10 @@ import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/int
  * @author Edge & Node
  * @notice Manages indexing signal positions that direct protocol issuance toward indexing payments.
  *
- * @dev Users lock GRT as signal for specific subgraph deployments (1:1, no bonding curve).
- * The contract self-mints issuance at the same per-signal rate as RewardsManager,
- * depositing minted GRT to PaymentsEscrow to fund RCAs between depositors and indexers.
+ * @dev Users lock GRT as signal for specific subgraph deployments (1:1, no bonding curve)
+ * and can withdraw immediately. The contract self-mints issuance at the same per-signal
+ * rate as RewardsManager, depositing minted GRT to PaymentsEscrow to fund RCAs between
+ * depositors and indexers.
  *
  * Key invariant: RM_minted + IS_minted = issuancePerBlock * blocks
  * This holds because both use the same accIssuancePerSignal rate with totalSignal as denominator,
@@ -53,8 +54,6 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal {
         uint256 accIssuancePerSignalLastBlock;
         /// @notice Total GRT locked as indexing signal across all subgraphs
         uint256 totalIndexingSignal;
-        /// @notice Thawing period in seconds before signal can be withdrawn
-        uint256 thawingPeriod;
         /// @notice Protocol-enforced minimum number of indexers per position
         uint256 minimumIndexerCount;
         /// @notice Per-subgraph signal pools
@@ -103,12 +102,10 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal {
      * @notice Initialize the IndexingSignal contract
      * @param governor Address that will have the GOVERNOR_ROLE
      * @param minimumIndexerCount_ Initial minimum indexer count
-     * @param thawingPeriod_ Initial thawing period in seconds
      */
     function initialize(
         address governor,
-        uint256 minimumIndexerCount_,
-        uint256 thawingPeriod_
+        uint256 minimumIndexerCount_
     ) external virtual initializer {
         __BaseUpgradeable_init(governor);
 
@@ -117,7 +114,6 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal {
 
         IndexingSignalData storage $ = _getStorage();
         $.minimumIndexerCount = minimumIndexerCount_;
-        $.thawingPeriod = thawingPeriod_;
         $.accIssuancePerSignalLastBlock = block.number;
     }
 
@@ -208,50 +204,29 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal {
     /**
      * @inheritdoc IIndexingSignal
      */
-    function thaw(bytes32 subgraphDeploymentID, uint256 tokens) external override whenNotPaused {
+    function withdraw(bytes32 subgraphDeploymentID, uint256 tokens) external override whenNotPaused {
         IndexingSignalData storage $ = _getStorage();
         DepositorPosition storage pos = $.positions[msg.sender][subgraphDeploymentID];
         require(pos.tokens > 0, NoExistingPosition(msg.sender, subgraphDeploymentID));
-
-        uint256 available = pos.tokens - pos.thawingTokens;
-        require(tokens <= available, InsufficientSignal(tokens, available));
-
-        pos.thawingTokens += tokens;
-        pos.thawEndTimestamp = block.timestamp + $.thawingPeriod;
-
-        emit SignalThawing(msg.sender, subgraphDeploymentID, tokens, pos.thawEndTimestamp);
-    }
-
-    /**
-     * @inheritdoc IIndexingSignal
-     */
-    function withdraw(bytes32 subgraphDeploymentID) external override whenNotPaused {
-        IndexingSignalData storage $ = _getStorage();
-        DepositorPosition storage pos = $.positions[msg.sender][subgraphDeploymentID];
-        require(pos.thawingTokens > 0, NothingToWithdraw());
-        require(block.timestamp >= pos.thawEndTimestamp, ThawNotComplete(pos.thawEndTimestamp, block.timestamp));
-
-        uint256 tokensToReturn = pos.thawingTokens;
+        require(tokens <= pos.tokens, InsufficientSignal(tokens, pos.tokens));
 
         // Update accumulators before signal changes
         _updateAccIssuancePerSignal($);
         _onSignalUpdate($, subgraphDeploymentID);
 
-        // Remove thawed tokens from position and pool
-        pos.tokens -= tokensToReturn;
-        pos.thawingTokens = 0;
-        pos.thawEndTimestamp = 0;
+        // Remove tokens from position and pool
+        pos.tokens -= tokens;
         pos.accIssuanceSnapshot = $.accIssuancePerSignal;
 
-        $.pools[subgraphDeploymentID].totalTokens -= tokensToReturn;
-        $.totalIndexingSignal -= tokensToReturn;
+        $.pools[subgraphDeploymentID].totalTokens -= tokens;
+        $.totalIndexingSignal -= tokens;
 
         // Transfer GRT back to depositor
-        require(GRAPH_TOKEN.transfer(msg.sender, tokensToReturn));
+        require(GRAPH_TOKEN.transfer(msg.sender, tokens));
 
         REWARDS_MANAGER.onSubgraphSignalUpdate(subgraphDeploymentID);
 
-        emit SignalWithdrawn(msg.sender, subgraphDeploymentID, tokensToReturn);
+        emit SignalWithdrawn(msg.sender, subgraphDeploymentID, tokens);
     }
 
     /**
@@ -285,16 +260,6 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal {
         uint256 oldCount = $.minimumIndexerCount;
         $.minimumIndexerCount = count;
         emit MinimumIndexerCountSet(oldCount, count);
-    }
-
-    /**
-     * @inheritdoc IIndexingSignal
-     */
-    function setThawingPeriod(uint256 period) external override onlyRole(GOVERNOR_ROLE) {
-        IndexingSignalData storage $ = _getStorage();
-        uint256 oldPeriod = $.thawingPeriod;
-        $.thawingPeriod = period;
-        emit ThawingPeriodSet(oldPeriod, period);
     }
 
     /**
@@ -461,13 +426,6 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal {
      */
     function getMinimumIndexerCount() external view override returns (uint256) {
         return _getStorage().minimumIndexerCount;
-    }
-
-    /**
-     * @inheritdoc IIndexingSignal
-     */
-    function getThawingPeriod() external view override returns (uint256) {
-        return _getStorage().thawingPeriod;
     }
 
     /**
