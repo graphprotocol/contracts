@@ -20,7 +20,7 @@ Indexing Signal is analogous to Curation Signal in its role of directing protoco
 | Decision           | Choice                                  | Rationale                                                                                 |
 | ------------------ | --------------------------------------- | ----------------------------------------------------------------------------------------- |
 | Signal pricing     | 1:1 GRT to signal                       | Simpler than bonding curve; no early-mover advantage needed for indexing payments         |
-| Deposit mechanism  | Lock with thaw-to-withdraw              | Economic commitment; similar to staking pattern                                           |
+| Deposit mechanism  | Lock with immediate withdraw            | Simple; thawing adds complexity without concrete requirement                              |
 | Issuance source    | Self-minting, reads rate from RM        | Uses same per-signal issuance rate as RewardsManager                                      |
 | Signal aggregation | RM reads both Curation + IndexingSignal | RewardsManager updated to query combined total signal                                     |
 | Issuance split     | Global split                            | total_indexing_signal / total_signal determines IndexingSignal's share of issuance        |
@@ -94,24 +94,20 @@ This ensures: `RM_minted + IS_minted = issuancePerBlock × blocks` (total issuan
 ### Deposit and Signal Flow
 
 ```
-User deposits GRT                  User requests withdrawal
+User deposits GRT                  User withdraws signal
       │                                   │
       ▼                                   ▼
- ┌─────────────┐                   ┌─────────────┐
- │ deposit()   │                   │ thaw()      │
- │ Lock GRT    │                   │ Start thaw  │
- │ 1:1 signal  │                   │ period      │
- └──────┬──────┘                   └──────┬──────┘
-        │                                 │
-        ▼                          (thaw period elapses)
- Signal active                            │
- Issuance accrues                         ▼
- RCAs auto-created              ┌─────────────────┐
- with indexers                  │ withdraw()      │
-                                │ Return GRT      │
-                                │ Cancel RCAs     │
-                                │ Remove signal   │
-                                └─────────────────┘
+ ┌─────────────┐                   ┌──────────────────┐
+ │ deposit()   │                   │ withdraw()       │
+ │ Lock GRT    │                   │ Immediate return │
+ │ 1:1 signal  │                   │ of GRT           │
+ └──────┬──────┘                   │ Remove signal    │
+        │                          │ Cancel RCAs      │
+        ▼                          └──────────────────┘
+ Signal active
+ Issuance accrues
+ RCAs auto-created
+ with indexers
 ```
 
 ### Collection Flow (SubgraphService Orchestrated)
@@ -175,7 +171,7 @@ Each RCA entry: depositor → RecurringCollector → indexer
 
 - **Deposit**: Depositor calls `deposit(subgraph, tokens, indexerCount)` specifying desired indexer count (must be at least `minimumIndexerCount` unless privileged)
 - **Adjust indexer count**: Depositor can increase or decrease their count over time (still subject to minimum). Off-chain process selects/deselects indexers accordingly.
-- **Adjust signal**: Depositor can add more GRT or thaw/withdraw to change signal amount. Issuance rate per indexer adjusts proportionally.
+- **Adjust signal**: Depositor can add more GRT or withdraw to change signal amount. Issuance rate per indexer adjusts proportionally.
 - **Indexer set registration**: Off-chain process selects indexers, calls `setDepositorIndexerSet(depositor, subgraph, indexers[])` on-chain
 - **On set change**: Existing RCAs for removed indexers are cancelled (with final collection window); new RCAs created for added indexers
 - **On signal withdrawal**: Depositor's RCAs with all matched indexers are cancelled
@@ -204,8 +200,6 @@ struct SignalPool {
 
 struct DepositorPosition {
     uint256 tokens;                // GRT locked by this depositor for this subgraph
-    uint256 thawingTokens;         // GRT currently thawing
-    uint256 thawEndTime;           // When thaw completes
     uint256 accIssuanceSnapshot;   // Snapshot for calculating pending issuance
     uint256 indexerCount;          // Depositor's desired number of indexers
     address[] indexerSet;          // Current matched indexer set (selected off-chain)
@@ -215,7 +209,6 @@ struct DepositorPosition {
 uint256 public accIssuancePerSignal;           // Global accumulator
 uint256 public accIssuancePerSignalLastBlock;   // Block of last update
 uint256 public totalIndexingSignal;             // Total GRT locked across all subgraphs
-uint256 public thawingPeriod;                   // Duration of thaw period
 uint256 public minimumIndexerCount;             // Protocol-enforced minimum (e.g., 3)
 
 // Per-subgraph
@@ -240,11 +233,8 @@ function deposit(bytes32 subgraphDeploymentID, uint256 tokens, uint256 indexerCo
 /// Add more GRT to an existing signal position
 function addSignal(bytes32 subgraphDeploymentID, uint256 tokens) external;
 
-/// Start thawing signal for withdrawal
-function thaw(bytes32 subgraphDeploymentID, uint256 tokens) external;
-
-/// Withdraw thawed GRT
-function withdraw(bytes32 subgraphDeploymentID) external;
+/// Withdraw GRT from a signal position (immediate)
+function withdraw(bytes32 subgraphDeploymentID, uint256 tokens) external;
 
 /// Change the desired indexer count for an existing position.
 /// Must be >= minimumIndexerCount (unless caller is privileged).
@@ -455,14 +445,8 @@ When allocations are created/closed, SubgraphService triggers RCA creation/cance
 - Possible: depositors are dApp operators who want reliable indexing for their subgraphs
 - Possible: depositors receive a portion of query fees from the indexers they fund
 
-### Thawing Period
-
-- What duration for the thaw period? Should it match staking thaw, or be independent?
-- Should thawing signal still count toward total signal (and thus still direct issuance)?
-
 ### Edge Cases
 
-- What happens when a depositor's signal is thawing but an indexer tries to collect?
 - Handling rounding errors in per-depositor issuance calculations
 - Minimum signal deposit to prevent dust attacks
 - Denied subgraphs: should IndexingSignal respect the RM denylist?

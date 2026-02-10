@@ -13,7 +13,7 @@ pragma solidity ^0.7.6 || ^0.8.0;
  *
  * Key properties:
  * - 1:1 GRT to signal (no bonding curve)
- * - Lock with thaw-to-withdraw
+ * - Lock with immediate withdraw
  * - Self-minting issuance using same per-signal rate as RewardsManager
  * - Per-depositor indexer sets with protocol-enforced minimum count
  * - Equal issuance split across matched indexer set
@@ -36,15 +36,11 @@ interface IIndexingSignal {
     /**
      * @dev Per-depositor per-subgraph position
      * @param tokens GRT locked by this depositor for this subgraph
-     * @param thawingTokens GRT currently thawing for withdrawal
-     * @param thawEndTimestamp Timestamp when thaw completes (0 if not thawing)
      * @param accIssuanceSnapshot Snapshot of global accumulator for pending issuance calculation
      * @param indexerCount Depositor's desired number of indexers
      */
     struct DepositorPosition {
         uint256 tokens;
-        uint256 thawingTokens;
-        uint256 thawEndTimestamp;
         uint256 accIssuanceSnapshot;
         uint256 indexerCount;
     }
@@ -74,21 +70,7 @@ interface IIndexingSignal {
     event SignalAdded(address indexed depositor, bytes32 indexed subgraphDeploymentID, uint256 tokens);
 
     /**
-     * @notice Emitted when a depositor starts thawing signal for withdrawal
-     * @param depositor Address of the depositor
-     * @param subgraphDeploymentID Subgraph deployment
-     * @param tokens Amount of GRT thawing
-     * @param thawEndTimestamp When the thaw period completes
-     */
-    event SignalThawing(
-        address indexed depositor,
-        bytes32 indexed subgraphDeploymentID,
-        uint256 tokens,
-        uint256 thawEndTimestamp
-    );
-
-    /**
-     * @notice Emitted when a depositor withdraws thawed GRT
+     * @notice Emitted when a depositor withdraws GRT
      * @param depositor Address of the depositor
      * @param subgraphDeploymentID Subgraph deployment
      * @param tokens Amount of GRT withdrawn
@@ -143,13 +125,6 @@ interface IIndexingSignal {
     event MinimumIndexerCountSet(uint256 oldCount, uint256 newCount);
 
     /**
-     * @notice Emitted when the thawing period is updated
-     * @param oldPeriod Previous thawing period
-     * @param newPeriod New thawing period
-     */
-    event ThawingPeriodSet(uint256 oldPeriod, uint256 newPeriod);
-
-    /**
      * @notice Emitted when a privileged signaler is granted or revoked
      * @param account Address of the account
      * @param privileged Whether the account is privileged
@@ -167,14 +142,8 @@ interface IIndexingSignal {
     /// @notice Thrown when no existing position found for the operation
     error NoExistingPosition(address depositor, bytes32 subgraphDeploymentID);
 
-    /// @notice Thrown when thaw amount exceeds available (non-thawing) tokens
+    /// @notice Thrown when withdraw amount exceeds available tokens
     error InsufficientSignal(uint256 requested, uint256 available);
-
-    /// @notice Thrown when withdrawing but thaw period has not completed
-    error ThawNotComplete(uint256 thawEndTimestamp, uint256 currentTimestamp);
-
-    /// @notice Thrown when withdrawing but no tokens are thawing
-    error NothingToWithdraw();
 
     /// @notice Thrown when indexer set length does not match depositor's indexerCount
     error IndexerSetSizeMismatch(uint256 provided, uint256 expected);
@@ -206,19 +175,12 @@ interface IIndexingSignal {
     function addSignal(bytes32 subgraphDeploymentID, uint256 tokens) external;
 
     /**
-     * @notice Start thawing signal for withdrawal
-     * @dev Thawing tokens still count as signal until withdrawn.
+     * @notice Withdraw GRT from a signal position
+     * @dev Immediately returns tokens to the depositor. Reduces signal proportionally.
      * @param subgraphDeploymentID The subgraph deployment
-     * @param tokens Amount of GRT to thaw
+     * @param tokens Amount of GRT to withdraw
      */
-    function thaw(bytes32 subgraphDeploymentID, uint256 tokens) external;
-
-    /**
-     * @notice Withdraw thawed GRT
-     * @dev Reverts if thaw period has not completed. Removes withdrawn amount from signal.
-     * @param subgraphDeploymentID The subgraph deployment
-     */
-    function withdraw(bytes32 subgraphDeploymentID) external;
+    function withdraw(bytes32 subgraphDeploymentID, uint256 tokens) external;
 
     /**
      * @notice Change the desired indexer count for an existing position
@@ -237,13 +199,6 @@ interface IIndexingSignal {
      * @param count New minimum indexer count
      */
     function setMinimumIndexerCount(uint256 count) external;
-
-    /**
-     * @notice Set the thawing period for signal withdrawal
-     * @dev Only callable by governor.
-     * @param period New thawing period in seconds
-     */
-    function setThawingPeriod(uint256 period) external;
 
     /**
      * @notice Grant or revoke privileged signaler status
@@ -364,12 +319,6 @@ interface IIndexingSignal {
      * @return Protocol-enforced minimum
      */
     function getMinimumIndexerCount() external view returns (uint256);
-
-    /**
-     * @notice Get the thawing period
-     * @return Thawing period in seconds
-     */
-    function getThawingPeriod() external view returns (uint256);
 
     /**
      * @notice Check if an account is a privileged signaler
