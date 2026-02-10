@@ -75,6 +75,7 @@ interface ISubgraphService is IDataServiceFees {
      * @param indexingFeesCut The indexing fees cut
      */
     event IndexingFeesCutSet(uint256 indexingFeesCut);
+    // solhint-disable-previous-line gas-indexed-events
 
     /**
      * @notice Thrown when trying to set a curation cut that is not a valid PPM value

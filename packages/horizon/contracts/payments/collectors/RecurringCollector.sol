@@ -15,6 +15,7 @@ import { PPMMath } from "../../libraries/PPMMath.sol";
 
 /**
  * @title RecurringCollector contract
+ * @author Edge & Node
  * @dev Implements the {IRecurringCollector} interface.
  * @notice A payments collector contract that can be used to collect payments using a RCA (Recurring Collection Agreement).
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
@@ -26,6 +27,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     /// @notice The minimum number of seconds that must be between two collections
     uint32 public constant MIN_SECONDS_COLLECTION_WINDOW = 600;
 
+    /* solhint-disable gas-small-strings */
     /// @notice The EIP712 typehash for the RecurringCollectionAgreement struct
     bytes32 public constant EIP712_RCA_TYPEHASH =
         keccak256(
@@ -37,6 +39,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         keccak256(
             "RecurringCollectionAgreementUpdate(bytes16 agreementId,uint64 deadline,uint64 endsAt,uint256 maxInitialTokens,uint256 maxOngoingTokensPerSecond,uint32 minSecondsPerCollection,uint32 maxSecondsPerCollection,uint32 nonce,bytes metadata)"
         );
+    /* solhint-enable gas-small-strings */
 
     /// @notice Tracks agreements
     mapping(bytes16 agreementId => AgreementData data) public agreements;
@@ -69,6 +72,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         }
     }
 
+    /* solhint-disable function-max-lines */
     /**
      * @inheritdoc IRecurringCollector
      * @notice Accept a Recurring Collection Agreement.
@@ -89,10 +93,12 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
             msg.sender == signedRCA.rca.dataService,
             RecurringCollectorUnauthorizedCaller(msg.sender, signedRCA.rca.dataService)
         );
+        /* solhint-disable gas-strict-inequalities */
         require(
             signedRCA.rca.deadline >= block.timestamp,
             RecurringCollectorAgreementDeadlineElapsed(block.timestamp, signedRCA.rca.deadline)
         );
+        /* solhint-enable gas-strict-inequalities */
 
         // check that the voucher is signed by the payer (or proxy)
         _requireAuthorizedRCASigner(signedRCA);
@@ -145,6 +151,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
 
         return agreementId;
     }
+    /* solhint-enable function-max-lines */
 
     /**
      * @inheritdoc IRecurringCollector
@@ -179,6 +186,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         );
     }
 
+    /* solhint-disable function-max-lines */
     /**
      * @inheritdoc IRecurringCollector
      * @notice Update a Recurring Collection Agreement.
@@ -188,10 +196,12 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
      * for the entire period since lastCollectionAt.
      */
     function update(SignedRCAU calldata signedRCAU) external {
+        /* solhint-disable gas-strict-inequalities */
         require(
             signedRCAU.rcau.deadline >= block.timestamp,
             RecurringCollectorAgreementDeadlineElapsed(block.timestamp, signedRCAU.rcau.deadline)
         );
+        /* solhint-enable gas-strict-inequalities */
 
         AgreementData storage agreement = _getAgreementStorage(signedRCAU.rcau.agreementId);
         require(
@@ -240,6 +250,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
             agreement.maxSecondsPerCollection
         );
     }
+    /* solhint-enable function-max-lines */
 
     /// @inheritdoc IRecurringCollector
     function recoverRCASigner(SignedRCA calldata signedRCA) external view returns (address) {
@@ -268,7 +279,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
 
     /// @inheritdoc IRecurringCollector
     function getCollectionInfo(
-        AgreementData memory agreement
+        AgreementData calldata agreement
     ) external view returns (bool isCollectable, uint256 collectionSeconds, AgreementNotCollectableReason reason) {
         return _getCollectionInfo(agreement);
     }
@@ -293,6 +304,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         return abi.decode(data, (CollectParams));
     }
 
+    /* solhint-disable function-max-lines */
     /**
      * @notice Collect payment through the payments protocol.
      * @dev Caller must be the data service the RCA was issued to.
@@ -336,10 +348,12 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
             tokensToCollect = _requireValidCollect(agreement, _params.agreementId, _params.tokens, collectionSeconds);
 
             uint256 slippage = _params.tokens - tokensToCollect;
+            /* solhint-disable gas-strict-inequalities */
             require(
                 slippage <= _params.maxSlippage,
                 RecurringCollectorExcessiveSlippage(_params.tokens, tokensToCollect, _params.maxSlippage)
             );
+            /* solhint-enable gas-strict-inequalities */
         }
         agreement.lastCollectionAt = uint64(block.timestamp);
 
@@ -376,6 +390,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
 
         return tokensToCollect;
     }
+    /* solhint-enable function-max-lines */
 
     /**
      * @notice Requires that the collection window parameters are valid.
@@ -395,6 +410,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         // Collection window needs to be at least MIN_SECONDS_COLLECTION_WINDOW
         require(
             _maxSecondsPerCollection > _minSecondsPerCollection &&
+                // solhint-disable-next-line gas-strict-inequalities
                 (_maxSecondsPerCollection - _minSecondsPerCollection >= MIN_SECONDS_COLLECTION_WINDOW),
             RecurringCollectorAgreementInvalidCollectionWindow(
                 MIN_SECONDS_COLLECTION_WINDOW,
@@ -405,6 +421,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
 
         // Agreement needs to last at least one min collection window
         require(
+            // solhint-disable-next-line gas-strict-inequalities
             _endsAt - block.timestamp >= _minSecondsPerCollection + MIN_SECONDS_COLLECTION_WINDOW,
             RecurringCollectorAgreementInvalidDuration(
                 _minSecondsPerCollection + MIN_SECONDS_COLLECTION_WINDOW,
@@ -431,6 +448,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
             block.timestamp > _agreement.endsAt;
         if (!canceledOrElapsed) {
             require(
+                // solhint-disable-next-line gas-strict-inequalities
                 _collectionSeconds >= _agreement.minSecondsPerCollection,
                 RecurringCollectorCollectionTooSoon(
                     _agreementId,
@@ -440,6 +458,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
             );
         }
         require(
+            // solhint-disable-next-line gas-strict-inequalities
             _collectionSeconds <= _agreement.maxSecondsPerCollection,
             RecurringCollectorCollectionTooLate(
                 _agreementId,

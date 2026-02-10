@@ -7,6 +7,7 @@ import { IAuthorizable } from "./IAuthorizable.sol";
 
 /**
  * @title Interface for the {RecurringCollector} contract
+ * @author Edge & Node
  * @dev Implements the {IPaymentCollector} interface as defined by the Graph
  * Horizon payments protocol.
  * @notice Implements a payments collector contract that can be used to collect
@@ -63,6 +64,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @param metadata Arbitrary metadata to extend functionality if a data service requires it
      *
      */
+    // solhint-disable-next-line gas-struct-packing
     struct RecurringCollectionAgreement {
         uint64 deadline;
         uint64 endsAt;
@@ -101,6 +103,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @param nonce The nonce for preventing replay attacks (must be current nonce + 1)
      * @param metadata Arbitrary metadata to extend functionality if a data service requires it
      */
+    // solhint-disable-next-line gas-struct-packing
     struct RecurringCollectionAgreementUpdate {
         bytes16 agreementId;
         uint64 deadline;
@@ -395,48 +398,48 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     error RecurringCollectorExcessiveSlippage(uint256 requested, uint256 actual, uint256 maxSlippage);
 
     /**
-     * @dev Accept an indexing agreement.
+     * @notice Accept an indexing agreement.
      * @param signedRCA The signed Recurring Collection Agreement which is to be accepted.
      * @return agreementId The deterministically generated agreement ID
      */
     function accept(SignedRCA calldata signedRCA) external returns (bytes16 agreementId);
 
     /**
-     * @dev Cancel an indexing agreement.
+     * @notice Cancel an indexing agreement.
      * @param agreementId The agreement's ID.
      * @param by The party that is canceling the agreement.
      */
     function cancel(bytes16 agreementId, CancelAgreementBy by) external;
 
     /**
-     * @dev Update an indexing agreement.
+     * @notice Update an indexing agreement.
      * @param signedRCAU The signed Recurring Collection Agreement Update which is to be applied.
      */
     function update(SignedRCAU calldata signedRCAU) external;
 
     /**
-     * @dev Computes the hash of a RecurringCollectionAgreement (RCA).
+     * @notice Computes the hash of a RecurringCollectionAgreement (RCA).
      * @param rca The RCA for which to compute the hash.
      * @return The hash of the RCA.
      */
     function hashRCA(RecurringCollectionAgreement calldata rca) external view returns (bytes32);
 
     /**
-     * @dev Computes the hash of a RecurringCollectionAgreementUpdate (RCAU).
+     * @notice Computes the hash of a RecurringCollectionAgreementUpdate (RCAU).
      * @param rcau The RCAU for which to compute the hash.
      * @return The hash of the RCAU.
      */
     function hashRCAU(RecurringCollectionAgreementUpdate calldata rcau) external view returns (bytes32);
 
     /**
-     * @dev Recovers the signer address of a signed RecurringCollectionAgreement (RCA).
+     * @notice Recovers the signer address of a signed RecurringCollectionAgreement (RCA).
      * @param signedRCA The SignedRCA containing the RCA and its signature.
      * @return The address of the signer.
      */
     function recoverRCASigner(SignedRCA calldata signedRCA) external view returns (address);
 
     /**
-     * @dev Recovers the signer address of a signed RecurringCollectionAgreementUpdate (RCAU).
+     * @notice Recovers the signer address of a signed RecurringCollectionAgreementUpdate (RCAU).
      * @param signedRCAU The SignedRCAU containing the RCAU and its signature.
      * @return The address of the signer.
      */
@@ -458,7 +461,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @return reason The reason why the agreement is not collectable (None if collectable)
      */
     function getCollectionInfo(
-        AgreementData memory agreement
+        AgreementData calldata agreement
     ) external view returns (bool isCollectable, uint256 collectionSeconds, AgreementNotCollectableReason reason);
 
     /**

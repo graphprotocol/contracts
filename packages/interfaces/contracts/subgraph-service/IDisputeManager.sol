@@ -122,9 +122,9 @@ interface IDisputeManager {
     );
 
     /**
-     * @dev Emitted when an indexing fee dispute is created for `agreementId` and `indexer`
+     * @notice Emitted when an indexing fee dispute is created for `agreementId` and `indexer`
      * by `fisherman`.
-     * The event emits the amount of `tokens` deposited by the fisherman.
+     * @dev The event emits the amount of `tokens` deposited by the fisherman.
      * @param disputeId The dispute id
      * @param indexer The indexer address
      * @param fisherman The fisherman address
