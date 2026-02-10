@@ -9,7 +9,11 @@ pragma solidity ^0.7.6 || ^0.8.0;
  *
  * @dev Indexing Signal allows users to lock GRT as signal for specific subgraph deployments.
  * The protocol mints new GRT proportional to signal, funding Recurring Collection Agreements (RCAs)
- * between signal depositors and indexers via PaymentsEscrow.
+ * between signal depositors and indexers.
+ *
+ * Uses a virtual escrow model: no GRT is physically deposited or held as escrow. Escrow "balances"
+ * are computed from accumulators and represent accumulated uncollected issuance. GRT is minted only
+ * at the moment of collection.
  *
  * Key properties:
  * - 1:1 GRT to signal (no bonding curve)
@@ -17,6 +21,7 @@ pragma solidity ^0.7.6 || ^0.8.0;
  * - Self-minting issuance using same per-signal rate as RewardsManager
  * - Per-depositor indexer sets with protocol-enforced minimum count
  * - Equal issuance split across matched indexer set
+ * - Virtual escrow: balances computed from accumulators, mint-on-collect
  */
 interface IIndexingSignal {
     // -- Structs --
@@ -104,17 +109,31 @@ interface IIndexingSignal {
     );
 
     /**
-     * @notice Emitted when issuance is minted and deposited to escrow
-     * @param depositor Address of the depositor (payer)
+     * @notice Emitted when issuance is collected (minted and distributed)
+     * @param depositor Address of the depositor
      * @param subgraphDeploymentID Subgraph deployment
      * @param indexer Address of the indexer (receiver)
-     * @param tokens Amount of GRT minted
+     * @param tokens Amount of GRT minted and distributed
      */
-    event IssuanceMinted(
+    event IssuanceCollected(
         address indexed depositor,
         bytes32 indexed subgraphDeploymentID,
         address indexed indexer,
         uint256 tokens
+    );
+
+    /**
+     * @notice Emitted when an RCA is cancelled and uncollected issuance is settled
+     * @param depositor Address of the depositor
+     * @param subgraphDeploymentID Subgraph deployment
+     * @param indexer Address of the indexer whose RCA was cancelled
+     * @param settledTokens Amount of issuance that was settled (never minted)
+     */
+    event IssuanceSettled(
+        address indexed depositor,
+        bytes32 indexed subgraphDeploymentID,
+        address indexed indexer,
+        uint256 settledTokens
     );
 
     /**
@@ -223,22 +242,41 @@ interface IIndexingSignal {
         address[] calldata indexers
     ) external;
 
-    // -- Issuance --
+    // -- Collection (Virtual Escrow) --
 
     /**
-     * @notice Mint pending issuance for a depositor-subgraph-indexer tuple and deposit to escrow
-     * @dev Mints 1/N of depositor's total pending issuance (N = indexerSet.length).
-     * Called by SubgraphService during collect flow.
-     * @param depositor The depositor (payer in escrow)
+     * @notice Collect issuance for a depositor-subgraph-indexer tuple
+     * @dev Computes accumulated virtual balance since last collection for this specific
+     * (depositor, subgraph, indexer) tuple. Mints GRT up to the requested amount and
+     * transfers to the caller for distribution. Updates per-indexer collection snapshot.
+     * Called during RCA collection flow (via escrow router delegation).
+     * @param depositor The depositor whose issuance is being collected
      * @param subgraphDeploymentID The subgraph deployment
-     * @param indexer The indexer (receiver in escrow)
-     * @return issuedTokens Amount of GRT minted and deposited to escrow
+     * @param indexer The indexer (receiver)
+     * @param amount Maximum amount to collect (0 = collect all available)
+     * @return collectedTokens Amount of GRT minted and transferred
      */
-    function mintPendingIssuance(
+    function collect(
+        address depositor,
+        bytes32 subgraphDeploymentID,
+        address indexer,
+        uint256 amount
+    ) external returns (uint256 collectedTokens);
+
+    /**
+     * @notice Settle uncollected issuance when an RCA is cancelled
+     * @dev Updates the per-indexer collection snapshot to current accumulator value,
+     * making accumulated but uncollected issuance no longer collectible.
+     * Signal remains active for new indexer assignments.
+     * @param depositor The depositor
+     * @param subgraphDeploymentID The subgraph deployment
+     * @param indexer The indexer whose RCA was cancelled
+     */
+    function onRCACancelled(
         address depositor,
         bytes32 subgraphDeploymentID,
         address indexer
-    ) external returns (uint256 issuedTokens);
+    ) external;
 
     /**
      * @notice Update the global issuance accumulator
@@ -279,27 +317,30 @@ interface IIndexingSignal {
     ) external view returns (address[] memory);
 
     /**
-     * @notice Get pending (unminted) issuance for a depositor-subgraph pair
+     * @notice Get the virtual escrow balance for a depositor-subgraph-indexer tuple
+     * @dev Computed from accumulators. Represents uncollected issuance since last
+     * collection for this specific indexer (1/N of total pending since last collect).
      * @param depositor The depositor address
      * @param subgraphDeploymentID The subgraph deployment
-     * @return Total pending issuance across all indexers
+     * @param indexer The indexer address
+     * @return Virtual balance (collectable amount)
+     */
+    function getVirtualBalance(
+        address depositor,
+        bytes32 subgraphDeploymentID,
+        address indexer
+    ) external view returns (uint256);
+
+    /**
+     * @notice Get total pending (unminted) issuance for a depositor-subgraph pair
+     * @dev This is the total across all indexers, before per-indexer split.
+     * @param depositor The depositor address
+     * @param subgraphDeploymentID The subgraph deployment
+     * @return Total pending issuance
      */
     function getPendingIssuance(
         address depositor,
         bytes32 subgraphDeploymentID
-    ) external view returns (uint256);
-
-    /**
-     * @notice Get pending issuance for a specific depositor-indexer pair (1/N of total)
-     * @param depositor The depositor address
-     * @param subgraphDeploymentID The subgraph deployment
-     * @param indexer The indexer address
-     * @return Pending issuance for this indexer
-     */
-    function getPendingIssuanceForIndexer(
-        address depositor,
-        bytes32 subgraphDeploymentID,
-        address indexer
     ) external view returns (uint256);
 
     /**
