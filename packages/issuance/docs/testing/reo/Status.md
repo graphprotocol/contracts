@@ -18,7 +18,7 @@
 
 ### REO Contract Summary
 
-Source: `/git/graphprotocol/contracts/post-audit/packages/issuance`
+Source: `packages/issuance` (see `post-audit` worktree for latest)
 
 **Core contract**: `RewardsEligibilityOracle` (~297 lines, upgradeable via OZ v5 TransparentProxy, ERC-7201 storage)
 
@@ -64,7 +64,7 @@ Source: `/git/graphprotocol/contracts/post-audit/packages/issuance`
 
 ### Deployment Infrastructure
 
-Source: `/git/graphprotocol/contracts/post-audit/packages/deployment`
+Source: `packages/deployment` (see `post-audit` worktree for latest)
 
 **Framework**: Hardhat v3, rocketh, OZ v5 TransparentUpgradeableProxy (per-proxy ProxyAdmin)
 
@@ -76,10 +76,10 @@ Source: `/git/graphprotocol/contracts/post-audit/packages/deployment`
 
 **Docs available**:
 
-- `/packages/issuance/contracts/eligibility/RewardsEligibilityOracle.md` -- full spec with edge cases
-- `/packages/issuance/contracts/allocate/IssuanceAllocator.md` -- architecture and allocation logic
-- `/packages/deployment/docs/` -- Architecture, Design, GovernanceWorkflow, deployment guides
-- Audit reports in `/packages/issuance/audits/`
+- `../../contracts/eligibility/RewardsEligibilityOracle.md` -- full spec with edge cases
+- `../../contracts/allocate/IssuanceAllocator.md` -- architecture and allocation logic
+- `../../../deployment/docs/` -- Architecture, Design, GovernanceWorkflow, deployment guides
+- `../../audits/` -- audit reports
 
 ## Progress
 
@@ -127,6 +127,7 @@ Source: `/git/graphprotocol/contracts/post-audit/packages/deployment`
 | 2025-02-11 | Completed REO research: contract mechanics, edge cases, deployment infra                     |
 | 2025-02-11 | Drafted REO test plan: 8 cycles, 30 tests covering eligibility, oracle ops, rewards, emergency |
 | 2025-02-11 | Both test plans complete. Next: review and begin testnet execution                            |
+| 2025-02-11 | Moved all docs into contracts repo worktree at `packages/issuance/docs/testing/reo/`         |
 
 ---
 
