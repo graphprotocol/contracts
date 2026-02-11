@@ -1,0 +1,20 @@
+﻿Name,Gabriel,Man4ela,Marc-Andre,Vincent,p2p,tmigone
+Query a subgraph for an open allocation,Done,Done,Done,In progress,Not started,Done
+Create allocations for subgraphs with rewards,Done,Done,Done,Done,Not started,Done
+Reallocate a subgraph deployment,Done,Done,Done,Done,Not started,Done
+Close allocation overriding the POI with a non zero value,Done,Done,Done,Not started,Not started,Done
+Close allocations for subgraphs with rewards,Done,Done,Done,Done,Not started,Done
+Unstake some tokens and withdraw once thawed via Explorer,Done,Done,Done,Not started,Not started,Not started
+Create allocations for subgraphs without rewards,Done,Done,Done,In progress,Not started,Done
+Close allocations for subgraphs without rewards,Done,Done,Done,In progress,Not started,Done
+Create/close allocation using indexer actions,Done,Done,Done,Done,Not started,Done
+Add more stake via Explorer,Done,Done,Done,Done,Not started,Done
+Verify query fees were collected for closed allocations,Done,Done,Done,Not started,Not started,Done
+Create/close allocation using rules for a subgraph deployment,Done,Done,Done,Not started,Not started,Done
+Manage provision via indexer cli: add stake to provision,Done,Done,Done,Done,Not started,Done
+Ensure indexer agent creates Subgraph Service provision and registers,Done,Done,Done,Done,Not started,Done
+Manage provision via indexer cli: thaw stake from provision,Done,Done,Done,Done,Not started,Done
+Manage provision via indexer cli: remove stake from provision,Done,Done,Done,Done,Not started,Done
+Ensure legacy allocations are migrated to horizon allocations,Done,Done,Done,Done,Not started,Done
+(optional) Ensure indexer agent still works even if misconfigured,Done,Done,Done,Done,Not started,Done
+Ensure indexer agent starts in horizon mode,Done,Done,Done,Done,Not started,Done

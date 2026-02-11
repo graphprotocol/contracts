@@ -1,0 +1,15 @@
+﻿Name,Gabriel,Man4ela,Marc-Andre,Vincent,p2p,tmigone
+Register indexer URL and GEO coordinates,Done,Done,Done,Done,Not started,Done
+Modify existing indexer URL and GEO coordinates,Done,Done,Done,Done,Not started,Done
+Setup indexer via Explorer (stake and set delegation parameters),Done,Done,Done,Done,Not started,Done
+Create allocations for subgraphs with rewards,Done,Done,Done,Done,Not started,Done
+Create allocations for subgraphs without rewards,Done,Done,Done,Done,Not started,Done
+Close allocations for subgraphs with rewards,Done,Done,Done,Done,Not started,Done
+Close allocations for subgraphs without rewards,Done,Done,Done,Done,Not started,Done
+Query a subgraph for an open allocation,Done,Done,Done,Done,Not started,Done
+Verify query fees were collected for closed allocations,Done,Done,Done,Done,Not started,Done
+Unstake some tokens and withdraw once thawed via Explorer,Done,Done,Done,Done,Not started,Done
+Close allocation overriding the POI with a non zero value,Done,Done,Done,Done,Not started,Done
+Reallocate a subgraph deployment,Done,Done,Done,Done,Not started,Done
+Create/close allocation using indexer actions,Done,Done,Done,Done,Not started,Done
+Create/close allocation using rules for a subgraph deployment,Done,Done,Done,Done,Not started,Done
