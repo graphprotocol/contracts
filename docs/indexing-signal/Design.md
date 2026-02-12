@@ -1,4 +1,6 @@
-# Indexing Signal
+# Indexing Signal — Design
+
+> **Working docs**: This is the high-level design. For current status, open questions, and per-contract details, see [Status.md](./Status.md). For the iteration workflow, see [Workflow.md](./Workflow.md).
 
 ## Overview
 
