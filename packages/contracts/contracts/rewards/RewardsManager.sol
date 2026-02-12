@@ -10,7 +10,7 @@ import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
 import { Managed } from "../governance/Managed.sol";
 import { MathUtils } from "../staking/libs/MathUtils.sol";
 
-import { RewardsManagerV6Storage } from "./RewardsManagerStorage.sol";
+import { RewardsManagerV7Storage } from "./RewardsManagerStorage.sol";
 import { IRewardsIssuer } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsIssuer.sol";
 import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManager.sol";
 import { IRewardsManagerDeprecated } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManagerDeprecated.sol";
@@ -18,6 +18,11 @@ import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contr
 import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceTarget.sol";
 import { IRewardsEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibility.sol";
 import { RewardsCondition } from "@graphprotocol/interfaces/contracts/contracts/rewards/RewardsCondition.sol";
+/// @dev Minimal interface for reading total indexing signal. The full IIndexingSignal
+/// interface uses Solidity 0.8.x features (custom errors) incompatible with this 0.7.6 contract.
+interface IIndexingSignalReadOnly {
+    function getTotalSignal() external view returns (uint256);
+}
 
 /**
  * @title Rewards Manager Contract
@@ -35,7 +40,7 @@ contract RewardsManager is
     IRewardsManager,
     IIssuanceTarget,
     IRewardsManagerDeprecated,
-    RewardsManagerV6Storage
+    RewardsManagerV7Storage
 {
     using SafeMath for uint256;
 
@@ -133,6 +138,16 @@ contract RewardsManager is
         address oldSubgraphService = address(subgraphService);
         subgraphService = IRewardsIssuer(_subgraphService);
         emit SubgraphServiceSet(oldSubgraphService, _subgraphService);
+    }
+
+    /**
+     * @notice Set the IndexingSignal contract address
+     * @dev When set, total signal includes both curation and indexing signal.
+     * Set to zero address to disable (only curation signal considered).
+     * @param _indexingSignal Address of the IndexingSignal contract
+     */
+    function setIndexingSignal(address _indexingSignal) external onlyGovernor {
+        indexingSignal = _indexingSignal;
     }
 
     /**
@@ -336,8 +351,8 @@ contract RewardsManager is
 
         uint256 x = rewardsIssuancePerBlock.mul(t);
 
-        // Check signalled tokens
-        uint256 signalledTokens = graphToken().balanceOf(address(curation()));
+        // Total signal = curation signal + indexing signal
+        uint256 signalledTokens = _getTotalSignal();
         if (signalledTokens == 0) return (0, x); // All unclaimable when no signal
 
         // Get the new issuance per signalled token
@@ -423,6 +438,19 @@ contract RewardsManager is
             subgraphAllocatedTokens == 0 &&
             (condition == RewardsCondition.NONE || reclaimAddresses[condition] == address(0))
         ) condition = RewardsCondition.NO_ALLOCATION;
+    }
+
+    /**
+     * @notice Get total signal across curation and indexing signal
+     * @dev When indexingSignal is set, total = curation + indexing. Otherwise just curation.
+     * @return Total signalled tokens
+     */
+    function _getTotalSignal() private view returns (uint256) {
+        uint256 curationTokens = graphToken().balanceOf(address(curation()));
+        if (indexingSignal != address(0)) {
+            return curationTokens.add(IIndexingSignalReadOnly(indexingSignal).getTotalSignal());
+        }
+        return curationTokens;
     }
 
     /**

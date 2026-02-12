@@ -118,3 +118,16 @@ abstract contract RewardsManagerV6Storage is RewardsManagerV5Storage {
     /// Zero address means rewards are dropped (not minted) if no specific reclaim address matches.
     address internal defaultReclaimAddress;
 }
+
+/**
+ * @title RewardsManagerV7Storage
+ * @author Edge & Node
+ * @notice Storage layout for RewardsManager V7
+ * Adds IndexingSignal reference for combined signal calculation.
+ */
+abstract contract RewardsManagerV7Storage is RewardsManagerV6Storage {
+    /// @dev Address of the IndexingSignal contract.
+    /// When set, total signal includes both curation signal and indexing signal.
+    /// Zero address means only curation signal is considered (backwards compatible).
+    address internal indexingSignal;
+}
