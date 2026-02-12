@@ -9,6 +9,8 @@ contract PaymentsEscrowMock is IPaymentsEscrow {
 
     function collect(IGraphPayments.PaymentTypes, address, address, uint256, address, uint256, address) external {}
 
+    function collect(IGraphPayments.PaymentTypes, address, address, uint256, address, uint256, address, bytes32) external {}
+
     function deposit(address, address, uint256) external {}
 
     function depositTo(address, address, address, uint256) external {}

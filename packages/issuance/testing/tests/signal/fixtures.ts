@@ -65,12 +65,14 @@ export async function deployIndexingSignal(
   graphTokenAddress: string,
   rewardsManagerAddress: string,
   curationAddress: string,
+  escrowRouterAddress: string,
+  graphPaymentsAddress: string,
   governor: HardhatEthersSigner,
   minimumIndexerCount: number,
 ) {
   return deployAsProxy(
     'IndexingSignal',
-    [graphTokenAddress, rewardsManagerAddress, curationAddress], // constructor args
+    [graphTokenAddress, rewardsManagerAddress, curationAddress, escrowRouterAddress, graphPaymentsAddress], // constructor args
     [governor.address, minimumIndexerCount], // initialize args
     governor,
   )
@@ -143,11 +145,19 @@ export async function deployIndexingSignalSystem(
   const curationSigner = signers[8] // Use signer index 8 to avoid conflict with test accounts
   const curationAddress = curationSigner.address
 
+  // Use dedicated signer addresses as mock escrow router and graph payments
+  const escrowRouterSigner = signers[9]
+  const graphPaymentsSigner = signers[10]
+  const escrowRouterAddress = escrowRouterSigner.address
+  const graphPaymentsAddress = graphPaymentsSigner.address
+
   // Deploy IndexingSignal
   const indexingSignal = await deployIndexingSignal(
     graphTokenAddress,
     rewardsManagerAddress,
     curationAddress,
+    escrowRouterAddress,
+    graphPaymentsAddress,
     governor,
     minimumIndexerCount,
   )

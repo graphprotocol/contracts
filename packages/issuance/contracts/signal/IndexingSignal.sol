@@ -4,6 +4,7 @@ pragma solidity 0.8.33;
 
 import { IIndexingSignal } from "@graphprotocol/interfaces/contracts/issuance/signal/IIndexingSignal.sol";
 import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManager.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { BaseUpgradeable } from "../common/BaseUpgradeable.sol";
 
 // solhint-disable-next-line no-unused-import
@@ -48,6 +49,14 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal {
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     address internal immutable CURATION;
 
+    /// @notice The EscrowRouter contract (authorized caller for escrow collect)
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    address internal immutable ESCROW_ROUTER;
+
+    /// @notice The GraphPayments contract (for standard payment distribution)
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    IGraphPayments internal immutable GRAPH_PAYMENTS;
+
     // -- Storage (ERC-7201) --
 
     /// @custom:storage-location erc7201:graphprotocol.storage.IndexingSignal
@@ -83,6 +92,12 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal {
     /// @notice Thrown when an immutable address constructor argument is zero
     error AddressCannotBeZero();
 
+    /// @notice Thrown when collect is called by an unauthorized address (must be EscrowRouter)
+    error UnauthorizedEscrowCaller(address caller);
+
+    /// @notice Thrown when the no-context collect overload is called (not supported for virtual escrow)
+    error CollectionContextRequired();
+
     // -- Constructor --
 
     /**
@@ -96,12 +111,18 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal {
     constructor(
         address graphToken,
         address rewardsManager,
-        address curation
+        address curation,
+        address escrowRouter,
+        address graphPayments
     ) BaseUpgradeable(graphToken) {
         require(rewardsManager != address(0), AddressCannotBeZero());
         require(curation != address(0), AddressCannotBeZero());
+        require(escrowRouter != address(0), AddressCannotBeZero());
+        require(graphPayments != address(0), AddressCannotBeZero());
         REWARDS_MANAGER = IRewardsManager(rewardsManager);
         CURATION = curation;
+        ESCROW_ROUTER = escrowRouter;
+        GRAPH_PAYMENTS = IGraphPayments(graphPayments);
     }
 
     // -- Initialization --
@@ -320,45 +341,75 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal {
         address indexer,
         uint256 amount
     ) external override whenNotPaused returns (uint256 collectedTokens) {
-        IndexingSignalData storage $ = _getStorage();
-
-        // Update accumulator to current block
-        _updateAccIssuancePerSignal($);
-
-        address[] storage indexerSet = $.indexerSets[depositor][subgraphDeploymentID];
-        require(indexerSet.length > 0, IndexerSetEmpty());
-        require(_isInIndexerSet(indexerSet, indexer), IndexerNotInSet(indexer));
-
-        // Compute virtual balance for this specific indexer
-        uint256 available = _calcVirtualBalance($, depositor, subgraphDeploymentID, indexer);
-
-        // Determine collection amount
-        collectedTokens = amount == 0 ? available : (amount < available ? amount : available);
+        collectedTokens = _collectVirtual(depositor, subgraphDeploymentID, indexer, amount);
 
         if (collectedTokens > 0) {
-            // Update per-indexer collection snapshot proportionally.
-            // We advance the snapshot by the fraction of available balance collected.
-            // If collecting all, snapshot advances to current accumulator.
-            if (collectedTokens == available) {
-                $.indexerCollectionSnapshots[depositor][subgraphDeploymentID][indexer] = $.accIssuancePerSignal;
-            } else {
-                // Partial collection: advance snapshot proportionally
-                DepositorPosition storage pos = $.positions[depositor][subgraphDeploymentID];
-                uint256 indexerSnapshot = $.indexerCollectionSnapshots[depositor][subgraphDeploymentID][indexer];
-                uint256 effectiveSnapshot = indexerSnapshot > pos.accIssuanceSnapshot
-                    ? indexerSnapshot
-                    : pos.accIssuanceSnapshot;
-                uint256 totalDelta = $.accIssuancePerSignal - effectiveSnapshot;
-                uint256 consumedDelta = (totalDelta * collectedTokens) / available;
-                $.indexerCollectionSnapshots[depositor][subgraphDeploymentID][indexer] =
-                    effectiveSnapshot + consumedDelta;
-            }
-
             // Mint GRT and transfer to caller for distribution
             GRAPH_TOKEN.mint(msg.sender, collectedTokens);
         }
 
         emit IssuanceCollected(depositor, subgraphDeploymentID, indexer, collectedTokens);
+    }
+
+    // -- IPaymentsEscrow Implementation (Virtual Escrow) --
+
+    /**
+     * @notice Collect via the escrow interface without context. Reverts — context is required
+     * for virtual escrow to resolve the subgraph deployment.
+     */
+    function collect(
+        IGraphPayments.PaymentTypes,
+        address,
+        address,
+        uint256,
+        address,
+        uint256,
+        address
+    ) external pure {
+        revert CollectionContextRequired();
+    }
+
+    /**
+     * @notice Collect via the escrow interface with collection context.
+     * Called by EscrowRouter when this contract is the escrow override for a payer.
+     * Interprets collectionContext as subgraphDeploymentID.
+     * Mints GRT and distributes via GraphPayments (protocol tax, data service cut, delegation).
+     */
+    function collect(
+        IGraphPayments.PaymentTypes paymentType,
+        address payer,
+        address receiver,
+        uint256 tokens,
+        address dataService,
+        uint256 dataServiceCut,
+        address receiverDestination,
+        bytes32 collectionContext
+    ) external whenNotPaused {
+        require(msg.sender == ESCROW_ROUTER, UnauthorizedEscrowCaller(msg.sender));
+
+        // collectionContext is the subgraphDeploymentID
+        uint256 collectedTokens = _collectVirtual(payer, collectionContext, receiver, tokens);
+
+        if (collectedTokens > 0) {
+            // Mint GRT to this contract, then distribute via GraphPayments
+            GRAPH_TOKEN.mint(address(this), collectedTokens);
+            GRAPH_TOKEN.approve(address(GRAPH_PAYMENTS), collectedTokens);
+            GRAPH_PAYMENTS.collect(paymentType, receiver, collectedTokens, dataService, dataServiceCut, receiverDestination);
+        }
+
+        emit IssuanceCollected(payer, collectionContext, receiver, collectedTokens);
+    }
+
+    /**
+     * @notice Get virtual escrow balance for a (payer, collector, receiver) tuple.
+     * Returns the total virtual balance across all subgraphs for this payer-receiver pair.
+     * For precise per-subgraph queries, use getVirtualBalance() instead.
+     */
+    function getBalance(address, address, address) external pure returns (uint256) {
+        // Virtual escrow balance is per-(payer, subgraph, indexer), not per-(payer, collector, receiver).
+        // Without a subgraph context, we cannot compute a meaningful balance.
+        // Return 0 — callers should use getVirtualBalance() for precise queries.
+        return 0;
     }
 
     /**
@@ -477,6 +528,52 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal {
     }
 
     // -- Internal Functions --
+
+    /**
+     * @dev Shared virtual escrow collection logic. Validates indexer set membership,
+     * computes virtual balance, determines collection amount, and updates snapshots.
+     * Does NOT mint or distribute — caller is responsible for that.
+     * @return collectedTokens The amount of tokens collected from virtual balance
+     */
+    function _collectVirtual(
+        address depositor,
+        bytes32 subgraphDeploymentID,
+        address indexer,
+        uint256 amount
+    ) internal returns (uint256 collectedTokens) {
+        IndexingSignalData storage $ = _getStorage();
+
+        // Update accumulator to current block
+        _updateAccIssuancePerSignal($);
+
+        address[] storage indexerSet = $.indexerSets[depositor][subgraphDeploymentID];
+        require(indexerSet.length > 0, IndexerSetEmpty());
+        require(_isInIndexerSet(indexerSet, indexer), IndexerNotInSet(indexer));
+
+        // Compute virtual balance for this specific indexer
+        uint256 available = _calcVirtualBalance($, depositor, subgraphDeploymentID, indexer);
+
+        // Determine collection amount
+        collectedTokens = amount == 0 ? available : (amount < available ? amount : available);
+
+        if (collectedTokens > 0) {
+            // Update per-indexer collection snapshot proportionally.
+            if (collectedTokens == available) {
+                $.indexerCollectionSnapshots[depositor][subgraphDeploymentID][indexer] = $.accIssuancePerSignal;
+            } else {
+                // Partial collection: advance snapshot proportionally
+                DepositorPosition storage pos = $.positions[depositor][subgraphDeploymentID];
+                uint256 indexerSnapshot = $.indexerCollectionSnapshots[depositor][subgraphDeploymentID][indexer];
+                uint256 effectiveSnapshot = indexerSnapshot > pos.accIssuanceSnapshot
+                    ? indexerSnapshot
+                    : pos.accIssuanceSnapshot;
+                uint256 totalDelta = $.accIssuancePerSignal - effectiveSnapshot;
+                uint256 consumedDelta = (totalDelta * collectedTokens) / available;
+                $.indexerCollectionSnapshots[depositor][subgraphDeploymentID][indexer] =
+                    effectiveSnapshot + consumedDelta;
+            }
+        }
+    }
 
     /**
      * @dev Calculate new issuance per signal since last update

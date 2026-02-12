@@ -156,17 +156,16 @@ contract RecurringCollectorSharedTest is Test, Bounder {
     ) internal {
         vm.expectCall(
             address(_paymentsEscrow),
-            abi.encodeCall(
-                _paymentsEscrow.collect,
-                (
-                    __paymentType,
-                    _rca.payer,
-                    _rca.serviceProvider,
-                    _tokens,
-                    _rca.dataService,
-                    _fuzzyParams.dataServiceCut,
-                    _rca.serviceProvider
-                )
+            abi.encodeWithSignature(
+                "collect(uint8,address,address,uint256,address,uint256,address,bytes32)",
+                __paymentType,
+                _rca.payer,
+                _rca.serviceProvider,
+                _tokens,
+                _rca.dataService,
+                _fuzzyParams.dataServiceCut,
+                _rca.serviceProvider,
+                _fuzzyParams.collectionContext
             )
         );
         vm.expectEmit(address(_recurringCollector));
@@ -234,7 +233,8 @@ contract RecurringCollectorSharedTest is Test, Bounder {
                 tokens: _tokens,
                 dataServiceCut: _dataServiceCut,
                 receiverDestination: _rca.serviceProvider,
-                maxSlippage: type(uint256).max
+                maxSlippage: type(uint256).max,
+                collectionContext: bytes32(0)
             });
     }
 

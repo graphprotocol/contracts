@@ -339,7 +339,8 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
             tokens: 1 ether, // Small amount
             dataServiceCut: 0,
             receiverDestination: rca.serviceProvider,
-            maxSlippage: type(uint256).max
+            maxSlippage: type(uint256).max,
+            collectionContext: bytes32(0)
         });
         vm.prank(rca.dataService);
         _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, _generateCollectData(firstCollection));
@@ -360,7 +361,8 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
             tokens: requested,
             dataServiceCut: 0,
             receiverDestination: rca.serviceProvider,
-            maxSlippage: maxSlippage
+            maxSlippage: maxSlippage,
+            collectionContext: bytes32(0)
         });
 
         bytes memory data = _generateCollectData(collectParams);
@@ -406,7 +408,8 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
             tokens: 1 ether, // Small amount
             dataServiceCut: 0,
             receiverDestination: rca.serviceProvider,
-            maxSlippage: type(uint256).max
+            maxSlippage: type(uint256).max,
+            collectionContext: bytes32(0)
         });
         vm.prank(rca.dataService);
         _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, _generateCollectData(firstCollection));
@@ -425,7 +428,8 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
             tokens: requested,
             dataServiceCut: 0,
             receiverDestination: rca.serviceProvider,
-            maxSlippage: type(uint256).max
+            maxSlippage: type(uint256).max,
+            collectionContext: bytes32(0)
         });
 
         bytes memory data = _generateCollectData(collectParams);

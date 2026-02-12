@@ -365,7 +365,8 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
                 tokensToCollect,
                 agreement.dataService,
                 _params.dataServiceCut,
-                _params.receiverDestination
+                _params.receiverDestination,
+                _params.collectionContext
             );
         }
 

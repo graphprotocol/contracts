@@ -4,40 +4,21 @@ Gaps between [Design.md](./Design.md) and the merged codebase. Referenced from [
 
 ## Major
 
-### 1. Escrow Router does not exist
+### ~~1. Escrow Router does not exist~~
 
-Design describes a governance-controlled router that intercepts escrow calls and delegates IS-backed flows to IndexingSignal. No such contract exists. RecurringCollector calls `_graphPaymentsEscrow().collect()` directly via immutable GraphDirectory reference.
+Moved to Resolved.
 
-**Impact**: No mechanism to route IS-backed collections to IndexingSignal.
+### ~~2. collect() signature mismatch → escrow key mapping~~
 
-### 2. collect() signature mismatch
+Moved to Resolved.
 
-PaymentsEscrow.collect():
-```
-(PaymentTypes, address payer, address receiver, uint256 tokens,
- address dataService, uint256 dataServiceCut, address receiverDestination)
-```
+### ~~3. IS mints to msg.sender, skips GraphPayments distribution~~
 
-IndexingSignal.collect():
-```
-(address depositor, bytes32 subgraphDeploymentID, address indexer, uint256 amount)
-```
+Moved to Resolved.
 
-IS needs `subgraphDeploymentID` which PaymentsEscrow doesn't take. A transparent proxy router cannot bridge these without signature translation.
+### ~~4. No SubgraphService → IndexingSignal call path~~
 
-**Impact**: Router pattern from design doc won't work as specified.
-
-### 3. IS mints to msg.sender, skips GraphPayments distribution
-
-`IndexingSignal.collect()` calls `GRAPH_TOKEN.mint(msg.sender, collectedTokens)` — no protocol tax, no data service cut, no delegation pool distribution. PaymentsEscrow handles this via `_graphPayments().collect(...)`.
-
-**Impact**: IS-minted tokens bypass the standard payment distribution pipeline.
-
-### 4. No SubgraphService → IndexingSignal call path
-
-SubgraphService has `IndexingFee` payment type routing through `IndexingAgreement → RecurringCollector → PaymentsEscrow`. No point in this chain calls IndexingSignal.
-
-**Impact**: End-to-end collection flow is broken for IS-backed indexing fees.
+Moved to Resolved. EscrowRouter handles routing — existing SS → IndexingAgreement → RC → escrow.collect() chain works unchanged.
 
 ## Medium
 
@@ -61,4 +42,26 @@ Design says "RCAs auto-created" for depositor-indexer pairs. RecurringCollector 
 
 ## Resolved
 
-(None yet — items move here as they're addressed.)
+### ~~1. Escrow Router does not exist~~
+
+**Resolved**: EscrowRouter implemented at `packages/horizon/contracts/payments/EscrowRouter.sol`. Implements IPaymentsEscrow with governance-controlled override mapping per payer. Registered as "PaymentsEscrow" in Controller. Standard escrow by default; delegates collect()/getBalance() to override (IS) for IS-backed payers.
+
+### ~~4. No SubgraphService → IndexingSignal call path~~
+
+**Resolved**: EscrowRouter sits in the existing collect chain. SS → IndexingAgreement → RC → EscrowRouter.collect() → IS (for overridden payers). No changes to SS, RC, or IndexingAgreement needed.
+
+### ~~5. IssuanceAllocator doesn't know about IS~~
+
+**Decision**: IS minting is part of RM's allocation. IA has no awareness of IS and does not need to be deployed. The shared denominator ensures RM mints curation fraction, IS mints indexing fraction, total equals RM's full allocation. No accounting mismatch.
+
+### ~~7. RCA creation is not automatic~~
+
+**Decision**: Off-chain Dipper/IISA signs RCAs as authorized signer for depositor (via RC's Authorizable). Indexer accepts on-chain via existing SS.acceptIndexingAgreement(). No on-chain RCA automation. "Auto-created" in design doc means Dipper reacts to IS events automatically.
+
+### ~~2. collect() signature mismatch → escrow key mapping~~
+
+**Resolved**: Overloaded `IPaymentsEscrow.collect()` with `bytes32 collectionContext`. IS interprets context as `subgraphDeploymentID`. RC threads context from CollectParams. Existing callers (GraphTallyCollector) unchanged. See [CollectionContext.md](./CollectionContext.md).
+
+### ~~3. IS mints to msg.sender, skips GraphPayments distribution~~
+
+**Resolved**: IS now has two collect paths: (1) direct `IIndexingSignal.collect()` mints to msg.sender (existing), (2) `IPaymentsEscrow.collect()` with collectionContext — guarded by `msg.sender == ESCROW_ROUTER`, mints to self, approves GraphPayments, calls `GRAPH_PAYMENTS.collect()` for standard distribution (protocol tax, data service cut, delegation).

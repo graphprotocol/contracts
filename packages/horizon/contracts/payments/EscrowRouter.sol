@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.27 || 0.8.33;
+
+pragma solidity 0.8.27;
 
 // TODO: Re-enable and fix issues when publishing a new version
 // solhint-disable gas-strict-inequalities
@@ -15,43 +16,59 @@ import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.
 import { GraphDirectory } from "../utilities/GraphDirectory.sol";
 
 /**
- * @title PaymentsEscrow contract
- * @author Edge & Node
- * @dev Implements the {IPaymentsEscrow} interface
- * @notice This contract is part of the Graph Horizon payments protocol. It holds the funds (GRT)
- * for payments made through the payments protocol for services provided
- * via a Graph Horizon data service.
+ * @title EscrowRouter contract
+ * @notice Thin routing layer implementing {IPaymentsEscrow}. Registered as "PaymentsEscrow"
+ * in the Controller so that all contracts (via GraphDirectory) get this as their escrow
+ * reference.
+ *
+ * Provides standard escrow functionality (deposit/thaw/withdraw/collect) identical to
+ * {PaymentsEscrow}. Adds a governance-controlled override mapping: when an override is
+ * set for a payer, `collect()` and `getBalance()` delegate to the override implementation
+ * (e.g., IndexingSignal virtual escrow). All other operations (deposit, thaw, withdraw)
+ * always use the router's own escrow storage.
+ *
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */
-contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, IPaymentsEscrow {
+contract EscrowRouter is Initializable, MulticallUpgradeable, GraphDirectory, IPaymentsEscrow {
     using TokenUtils for IGraphToken;
 
-    /// @notice The maximum thawing period (in seconds) for both escrow withdrawal and collector revocation
-    /// @dev This is a precautionary measure to avoid inadvertedly locking funds for too long
+    /// @notice The maximum thawing period (in seconds) for escrow withdrawal
     uint256 public constant MAX_WAIT_PERIOD = 90 days;
 
     /// @notice Thawing period in seconds for escrow funds withdrawal
     uint256 public immutable WITHDRAW_ESCROW_THAWING_PERIOD;
 
-    /// @notice Escrow account details for payer-collector-receiver tuples
-    mapping(address payer => mapping(address collector => mapping(address receiver => IPaymentsEscrow.EscrowAccount escrowAccount)))
+    /// @notice Escrow account details for payer-collector-receiver tuples (standard flows)
+    mapping(address payer => mapping(address collector => mapping(address receiver => IPaymentsEscrow.EscrowAccount)))
         public escrowAccounts;
 
+    /// @notice Governance-controlled override: payer -> escrow implementation.
+    /// When set, collect() and getBalance() for this payer delegate to the override.
+    /// Zero address means use standard escrow (this contract's own storage).
+    mapping(address payer => IPaymentsEscrow) public escrowOverrides;
+
+    /// @notice Emitted when an escrow override is set or removed for a payer
+    event EscrowOverrideSet(address indexed payer, address indexed escrowOverride);
+
+    /// @notice Thrown when a non-governor calls a governor-only function
+    error EscrowRouterNotGovernor();
+
     // forge-lint: disable-next-item(unwrapped-modifier-logic)
-    /**
-     * @notice Modifier to prevent function execution when contract is paused
-     * @dev Reverts if the controller indicates the contract is paused
-     */
     modifier notPaused() {
         require(!_graphController().paused(), PaymentsEscrowIsPaused());
         _;
     }
 
+    modifier onlyGovernor() {
+        require(msg.sender == _graphController().getGovernor(), EscrowRouterNotGovernor());
+        _;
+    }
+
     /**
-     * @notice Construct the PaymentsEscrow contract
-     * @param controller The address of the controller
-     * @param withdrawEscrowThawingPeriod Thawing period in seconds for escrow funds withdrawal
+     * @notice Construct the EscrowRouter contract
+     * @param controller The address of the Controller
+     * @param withdrawEscrowThawingPeriod Thawing period in seconds for escrow withdrawal
      */
     constructor(address controller, uint256 withdrawEscrowThawingPeriod) GraphDirectory(controller) {
         require(
@@ -67,6 +84,23 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
     function initialize() external initializer {
         __Multicall_init();
     }
+
+    // -- Governance --
+
+    /**
+     * @notice Set or remove an escrow override for a payer.
+     * When set, collect() and getBalance() for this payer delegate to the override.
+     * Set to zero address to remove the override (revert to standard escrow).
+     * @param payer The payer address to set the override for
+     * @param escrowOverride The override implementation (zero address to remove)
+     */
+    function setEscrowOverride(address payer, IPaymentsEscrow escrowOverride) external onlyGovernor {
+        escrowOverrides[payer] = escrowOverride;
+        emit EscrowOverrideSet(payer, address(escrowOverride));
+    }
+
+    // -- Standard Escrow Operations --
+    // These always use the router's own storage (no override delegation).
 
     /// @inheritdoc IPaymentsEscrow
     function deposit(address collector, address receiver, uint256 tokens) external override notPaused {
@@ -113,7 +147,6 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
             PaymentsEscrowStillThawing(block.timestamp, account.thawEndTimestamp)
         );
 
-        // Amount is the minimum between the amount being thawed and the actual balance
         uint256 tokens = account.tokensThawing > account.balance ? account.balance : account.tokensThawing;
 
         account.balance -= tokens;
@@ -122,6 +155,8 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
         _graphToken().pushTokens(msg.sender, tokens);
         emit Withdraw(msg.sender, collector, receiver, tokens);
     }
+
+    // -- Routed Operations --
 
     /// @inheritdoc IPaymentsEscrow
     function collect(
@@ -133,7 +168,7 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
         uint256 dataServiceCut,
         address receiverDestination
     ) external override notPaused {
-        _collect(paymentType, payer, receiver, tokens, dataService, dataServiceCut, receiverDestination);
+        _collectRouted(paymentType, payer, receiver, tokens, dataService, dataServiceCut, receiverDestination, bytes32(0));
     }
 
     /// @inheritdoc IPaymentsEscrow
@@ -145,34 +180,46 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
         address dataService,
         uint256 dataServiceCut,
         address receiverDestination,
-        bytes32 // collectionContext (unused in standard escrow)
+        bytes32 collectionContext
     ) external override notPaused {
-        _collect(paymentType, payer, receiver, tokens, dataService, dataServiceCut, receiverDestination);
+        _collectRouted(paymentType, payer, receiver, tokens, dataService, dataServiceCut, receiverDestination, collectionContext);
     }
 
     /// @inheritdoc IPaymentsEscrow
     function getBalance(address payer, address collector, address receiver) external view override returns (uint256) {
+        IPaymentsEscrow escrowOverride = escrowOverrides[payer];
+        if (address(escrowOverride) != address(0)) {
+            return escrowOverride.getBalance(payer, collector, receiver);
+        }
+
         EscrowAccount storage account = escrowAccounts[payer][collector][receiver];
         return account.balance > account.tokensThawing ? account.balance - account.tokensThawing : 0;
     }
 
-    /**
-     * @notice Internal implementation of collect logic shared by both overloads
-     */
-    function _collect(
+    // -- Internal --
+
+    function _collectRouted(
         IGraphPayments.PaymentTypes _paymentType,
         address _payer,
         address _receiver,
         uint256 _tokens,
         address _dataService,
         uint256 _dataServiceCut,
-        address _receiverDestination
+        address _receiverDestination,
+        bytes32 _collectionContext
     ) private {
-        // Check if there are enough funds in the escrow account
+        IPaymentsEscrow escrowOverride = escrowOverrides[_payer];
+        if (address(escrowOverride) != address(0)) {
+            escrowOverride.collect(
+                _paymentType, _payer, _receiver, _tokens, _dataService, _dataServiceCut, _receiverDestination, _collectionContext
+            );
+            return;
+        }
+
+        // Standard escrow: deduct from own storage, distribute via GraphPayments
         EscrowAccount storage account = escrowAccounts[_payer][msg.sender][_receiver];
         require(account.balance >= _tokens, PaymentsEscrowInsufficientBalance(account.balance, _tokens));
 
-        // Reduce amount from account balance
         account.balance -= _tokens;
 
         uint256 escrowBalanceBefore = _graphToken().balanceOf(address(this));
@@ -180,7 +227,6 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
         _graphToken().approve(address(_graphPayments()), _tokens);
         _graphPayments().collect(_paymentType, _receiver, _tokens, _dataService, _dataServiceCut, _receiverDestination);
 
-        // Verify that the escrow balance is consistent with the collected tokens
         uint256 escrowBalanceAfter = _graphToken().balanceOf(address(this));
         require(
             escrowBalanceBefore == _tokens + escrowBalanceAfter,
@@ -190,14 +236,6 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
         emit EscrowCollected(_paymentType, _payer, msg.sender, _receiver, _tokens, _receiverDestination);
     }
 
-    /**
-     * @notice Deposits funds into the escrow for a payer-collector-receiver tuple, where
-     * the payer is the transaction caller.
-     * @param _payer The address of the payer
-     * @param _collector The address of the collector
-     * @param _receiver The address of the receiver
-     * @param _tokens The amount of tokens to deposit
-     */
     function _deposit(address _payer, address _collector, address _receiver, uint256 _tokens) private {
         escrowAccounts[_payer][_collector][_receiver].balance += _tokens;
         _graphToken().pullTokens(msg.sender, _tokens);
