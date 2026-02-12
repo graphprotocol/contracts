@@ -669,7 +669,8 @@ contract RecurringCollector is
                 tokensToCollect,
                 agreement.dataService,
                 _params.dataServiceCut,
-                _params.receiverDestination
+                _params.receiverDestination,
+                _params.collectionContext
             );
         }
 

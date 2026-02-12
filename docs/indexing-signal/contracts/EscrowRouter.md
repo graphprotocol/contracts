@@ -2,33 +2,43 @@
 
 ## Purpose
 
-Route escrow operations to the correct backend: PaymentsEscrow (physical, for query fees) or IndexingSignal (virtual, for IS-backed indexing fees).
+Thin routing layer implementing `IPaymentsEscrow`. Registered as "PaymentsEscrow" in the Controller so all contracts (via GraphDirectory) get this as their escrow reference. Provides standard escrow for physical flows and delegates to overrides (IS virtual escrow) for IS-backed payers.
 
 ## Location
 
-Does not exist yet.
+`packages/horizon/contracts/payments/EscrowRouter.sol`
 
-## Design (from Design.md)
+## Design
 
-Governance-controlled override mapping: `escrowOverrides[payer] → address`. If set, delegate to override. Otherwise pass through to default PaymentsEscrow.
+**Standard escrow (default)**: Identical to PaymentsEscrow — has its own `escrowAccounts` storage, handles deposit/thaw/withdraw/collect using physical GRT.
 
-## Why It's Needed
+**Override routing**: Governance-controlled `escrowOverrides[payer] → IPaymentsEscrow`. When set for a payer, `collect()` and `getBalance()` delegate to the override. Deposit/thaw/withdraw always use the router's own storage (overridden payers don't need physical deposits).
 
-RecurringCollector calls `_graphPaymentsEscrow().collect(...)` via immutable GraphDirectory. Without a router, there's no interception point to redirect IS-backed flows to IndexingSignal.
+```
+RC calls _graphPaymentsEscrow().collect(paymentType, payer, receiver, ...)
+                    │
+             ┌──────▼──────┐
+             │ EscrowRouter │
+             └──────┬──────┘
+                    │
+        escrowOverrides[payer] set?
+           │                │
+          yes               no
+           │                │
+    ┌──────▼──────┐  ┌─────▼────────────┐
+    │ IS.collect() │  │ Standard escrow   │
+    │ (virtual,    │  │ (own storage,     │
+    │  mint GRT)   │  │  physical GRT)    │
+    └──────────────┘  └──────────────────┘
+```
 
-## Key Problem
+## Key Details
 
-The router pattern as described **cannot work transparently** because PaymentsEscrow.collect() and IndexingSignal.collect() have incompatible signatures. IS requires `subgraphDeploymentID` which the escrow interface doesn't carry.
-
-## Options to Resolve
-
-1. **Router with signature translation** — Router implements IPaymentsEscrow, translates to IS.collect() internally. Requires encoding subgraphDeploymentID in an existing parameter or a side-channel.
-2. **IS implements IPaymentsEscrow** — IS exposes a PaymentsEscrow-compatible collect(). Internally maps (payer, receiver) back to (depositor, subgraph, indexer). Requires a lookup mapping.
-3. **RecurringCollector calls IS directly** — Skip the router. RecurringCollector detects IS-backed agreements and calls IS.collect() instead of escrow. Requires RC changes.
-4. **New collector for IS flows** — A dedicated collector (not RecurringCollector) that knows about IS and calls it directly. SubgraphService routes IS indexing fees to this collector.
+- **Replaces PaymentsEscrow in Controller**: Not a wrapper — IS the escrow. Avoids msg.sender issues from forwarding.
+- **Governor-controlled overrides**: `setEscrowOverride(payer, IPaymentsEscrow)` — only governor can set/remove.
+- **Override receives same IPaymentsEscrow.collect() signature**: IS must implement this interface.
+- **No changes to RC, SS, or IndexingAgreement**: Existing collect chain works unchanged.
 
 ## Open Questions
 
-- Which option above? See [Status.md Needs Review #1](../Status.md).
-- If router: what's the routing key? Payer alone may be ambiguous if same address has both query fee and IS-backed flows.
-- How does `subgraphDeploymentID` reach IS through the escrow interface?
+- **Escrow key mapping**: When IS receives `collect(paymentType, payer, receiver, tokens, ...)`, it needs to resolve `subgraphDeploymentID` from (payer, receiver). How IS resolves this is deferred — see [Status.md #4](../Status.md).

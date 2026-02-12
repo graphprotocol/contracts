@@ -4,17 +4,16 @@
 
 These items need your decision or confirmation before work can proceed.
 
-| #   | Topic                       | Question                                                                                                                                  | Context                                                           |
-| --- | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| 1   | Collection plumbing         | How should IS-minted GRT reach GraphPayments for distribution? See [Disconnects #1-#4](./Disconnects.md)                                  | Router? IS calls GraphPayments directly? New collector?           |
-| 2   | IssuanceAllocator awareness | Should IssuanceAllocator know about IS, or does IS remain invisible (piggybacking on RM's rate)? See [Disconnects #5](./Disconnects.md)   | Affects accounting and whether IS needs its own allocation target |
-| 3   | RCA lifecycle               | How are RCAs created for depositor-indexer pairs? Fully off-chain signing, or on-chain automation? See [Disconnects #7](./Disconnects.md) | RecurringCollector requires EIP712-signed RCAs                    |
+No open items.
 
 ## Decisions Made
 
-| #   | Decision   | Date | Rationale |
-| --- | ---------- | ---- | --------- |
-| —   | (none yet) |      |           |
+| #   | Decision | Date | Rationale |
+| --- | -------- | ---- | --------- |
+| 2   | IS minting is part of RM allocation. IA has no awareness of IS, does not need to be deployed. RM does not under-mint — IS minting is RM-owned. | 2026-02-12 | Shared denominator ensures RM mints curation fraction, IS mints indexing fraction, total = full allocation. |
+| 1   | EscrowRouter (option A): thin standalone contract implementing IPaymentsEscrow, registered as "PaymentsEscrow" in Controller. Default = standard escrow, override mapping per-payer delegates collect()/getBalance() to IS. | 2026-02-12 | IS virtual escrow needs to be callable through standard collect chain. Router avoids modifying RC/PE. |
+| 3   | RCA lifecycle: off-chain Dipper signs RCAs as authorized signer for depositor, offers to indexer. Indexer accepts via existing SS.acceptIndexingAgreement(). No on-chain RCA automation needed. | 2026-02-12 | RC's Authorizable supports delegated signing. Existing accept/cancel/update flow works. Dipper orchestrates. |
+| 4   | Escrow key mapping: overloaded `IPaymentsEscrow.collect()` with `bytes32 collectionContext`. IS interprets as subgraphDeploymentID. Existing signature unchanged. Caller context (msg.sender) not needed by IS — virtual escrow has no per-collector dimension. | 2026-02-12 | See [CollectionContext.md](./CollectionContext.md). RC threads context from CollectParams. GraphTallyCollector unchanged. |
 
 ## What's Done
 
@@ -24,22 +23,24 @@ These items need your decision or confirmation before work can proceed.
 - [x] Unit tests for IS core (deposit, withdraw, issuance accumulation, collection, indexer sets)
 - [x] Indexing payments branch merged (RecurringCollector, IndexingAgreement in SubgraphService)
 - [x] Disconnect analysis complete — see [Disconnects.md](./Disconnects.md)
+- [x] EscrowRouter implemented — see [EscrowRouter.md](./contracts/EscrowRouter.md)
+- [x] CollectionContext design complete — see [CollectionContext.md](./CollectionContext.md)
+- [x] All design decisions resolved (#1-#4)
+- [x] `collectionContext` threaded through chain (IPaymentsEscrow, RC, EscrowRouter, IA, PE)
+- [x] IS updated with IPaymentsEscrow escrow collect (msg.sender == router guard, GraphPayments distribution)
 
 ## What's Next
 
-1. Resolve Needs Review items above (design decisions)
-2. Design and implement collection integration (Escrow Router or alternative)
-3. Ensure IS.collect() distributes via GraphPayments
-4. Integration tests for end-to-end collection flow
-5. Update contract docs to match final implementation
+1. Integration tests for end-to-end collection flow (SS → IA → RC → EscrowRouter → IS → GraphPayments)
+2. Update contract docs to match final implementation
 
 ## Contract Status
 
 | Contract                                                | File                                                                    | Status                                  |
 | ------------------------------------------------------- | ----------------------------------------------------------------------- | --------------------------------------- |
-| [IndexingSignal](./contracts/IndexingSignal.md)         | `packages/issuance/contracts/signal/IndexingSignal.sol`                 | Core done, collection integration TBD   |
+| [IndexingSignal](./contracts/IndexingSignal.md)         | `packages/issuance/contracts/signal/IndexingSignal.sol`                 | Escrow collect implemented, compiles    |
 | [RewardsManager](./contracts/RewardsManager.md)         | `packages/contracts/contracts/rewards/RewardsManager.sol`               | Updated, combined signal works          |
-| [EscrowRouter](./contracts/EscrowRouter.md)             | Does not exist yet                                                      | Design needed                           |
+| [EscrowRouter](./contracts/EscrowRouter.md)             | `packages/horizon/contracts/payments/EscrowRouter.sol`                  | Implemented with collectionContext      |
 | [SubgraphService](./contracts/SubgraphService.md)       | `packages/subgraph-service/contracts/SubgraphService.sol`               | Has IndexingFee path, no IS integration |
-| [RecurringCollector](./contracts/RecurringCollector.md) | `packages/horizon/contracts/payments/collectors/RecurringCollector.sol` | Merged, calls PaymentsEscrow directly   |
-| [PaymentsEscrow](./contracts/PaymentsEscrow.md)         | `packages/horizon/contracts/payments/PaymentsEscrow.sol`                | Existing, no changes planned            |
+| [RecurringCollector](./contracts/RecurringCollector.md) | `packages/horizon/contracts/payments/collectors/RecurringCollector.sol` | collectionContext threaded              |
+| [PaymentsEscrow](./contracts/PaymentsEscrow.md)         | `packages/horizon/contracts/payments/PaymentsEscrow.sol`                | Overloaded collect() added              |

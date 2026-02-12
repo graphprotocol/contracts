@@ -148,6 +148,7 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
      * @param dataServiceCut The data service cut in parts per million
      * @param receiverDestination The address where the collected fees should be sent
      * @param maxSlippage Max acceptable tokens to lose due to rate limiting, or type(uint256).max to ignore
+     * @param collectionContext Opaque context threaded to escrow (e.g., subgraphDeploymentID for IS)
      */
     struct CollectParams {
         bytes16 agreementId;
@@ -156,6 +157,7 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
         uint256 dataServiceCut;
         address receiverDestination;
         uint256 maxSlippage;
+        bytes32 collectionContext;
     }
 
     /**

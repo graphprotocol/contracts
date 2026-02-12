@@ -12,6 +12,8 @@ contract IndexingSignalTestHarness is IndexingSignal {
     constructor(
         address graphToken,
         address rewardsManager,
-        address curation
-    ) IndexingSignal(graphToken, rewardsManager, curation) {}
+        address curation,
+        address escrowRouter,
+        address graphPayments
+    ) IndexingSignal(graphToken, rewardsManager, curation, escrowRouter, graphPayments) {}
 }

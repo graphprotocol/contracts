@@ -565,7 +565,8 @@ library IndexingAgreement {
                     tokens: expectedTokens,
                     dataServiceCut: params.indexingFeesCut,
                     receiverDestination: params.receiverDestination,
-                    maxSlippage: data.maxSlippage
+                    maxSlippage: data.maxSlippage,
+                    collectionContext: allocation.subgraphDeploymentId
                 })
             )
         );

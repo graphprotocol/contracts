@@ -268,6 +268,34 @@ interface IPaymentsEscrow {
     ) external;
 
     /**
+     * @notice Collects funds with an additional collection context parameter.
+     * Overload of {collect} that carries opaque context data through the escrow layer.
+     * Standard escrow implementations ignore the context; override implementations
+     * (e.g., IndexingSignal virtual escrow) interpret it as needed.
+     *
+     * Emits an {EscrowCollected} event
+     *
+     * @param paymentType The type of payment being collected as defined in the {IGraphPayments} interface
+     * @param payer The address of the payer
+     * @param receiver The address of the receiver
+     * @param tokens The amount of tokens to collect
+     * @param dataService The address of the data service
+     * @param dataServiceCut The data service cut in PPM that {GraphPayments} should send
+     * @param receiverDestination The address where the receiver's payment should be sent.
+     * @param collectionContext Opaque context for the collection (e.g., subgraphDeploymentID for IS)
+     */
+    function collect(
+        IGraphPayments.PaymentTypes paymentType,
+        address payer,
+        address receiver,
+        uint256 tokens,
+        address dataService,
+        uint256 dataServiceCut,
+        address receiverDestination,
+        bytes32 collectionContext
+    ) external;
+
+    /**
      * @notice Get the balance of a payer-collector-receiver tuple
      * This function will return 0 if the current balance is less than the amount of funds being thawed.
      * @param payer The address of the payer
