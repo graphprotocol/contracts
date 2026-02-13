@@ -42,7 +42,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     /* solhint-enable gas-small-strings */
 
     /// @notice Tracks agreements
-    mapping(bytes16 agreementId => AgreementData data) public agreements;
+    mapping(bytes16 agreementId => AgreementData data) internal agreements;
 
     /**
      * @notice Constructs a new instance of the RecurringCollector contract.
