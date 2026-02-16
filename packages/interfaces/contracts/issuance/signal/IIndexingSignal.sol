@@ -162,6 +162,9 @@ interface IIndexingSignal {
     /// @notice Thrown when no existing position found for the operation
     error NoExistingPosition(address depositor, bytes32 subgraphDeploymentID);
 
+    /// @notice Thrown when deposit() is called on an existing position (use addSignal instead)
+    error ExistingPosition(address depositor, bytes32 subgraphDeploymentID);
+
     /// @notice Thrown when withdraw amount exceeds available tokens
     error InsufficientSignal(uint256 requested, uint256 available);
 
