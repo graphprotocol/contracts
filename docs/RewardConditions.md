@@ -198,6 +198,33 @@ defaultReclaimAddress = treasuryAddress;  // Catch-all
 
 **Important**: Changes apply retroactively to all future reclaims.
 
+## Parameter Changes: minimumSubgraphSignal
+
+### Retroactive Application Risk
+
+When `minimumSubgraphSignal` is changed via `setMinimumSubgraphSignal()`, existing subgraphs are NOT automatically updated. When subgraphs are later updated (via signal/allocation changes), the **current** threshold is applied to ALL pending rewards since their last update, regardless of historical threshold values.
+
+**Impact:**
+
+| Change Direction    | Effect                                                                   |
+| ------------------- | ------------------------------------------------------------------------ |
+| Threshold increases | Pending rewards on previously eligible subgraphs are reclaimed           |
+| Threshold decreases | Previously ineligible subgraphs retroactively accumulate pending rewards |
+
+### Required Mitigation Process
+
+To prevent retroactive application to long historical periods:
+
+1. **Communicate** the planned threshold change with a specific future date
+2. **Wait** - notice period allows participants to adjust signal if desired
+3. **Identify** affected subgraphs off-chain (those crossing the threshold)
+4. **Call** `onSubgraphSignalUpdate()` for all affected subgraphs to accumulate pending rewards under current eligibility rules
+5. **Execute** threshold change via `setMinimumSubgraphSignal()` (promptly after step 4, ideally same block)
+
+**Responsibility:** Governance handles steps 3-5; participants may optionally adjust signal in step 2.
+
+For implementation details, see NatSpec documentation on `RewardsManager.setMinimumSubgraphSignal()`.
+
 ## Key Behaviors
 
 ### Snapshot Updates

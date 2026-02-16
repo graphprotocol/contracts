@@ -115,6 +115,24 @@ contract RewardsManager is
      * @inheritdoc IRewardsManager
      * @dev Can be set to zero which means that this feature is not being used
      * @param _minimumSubgraphSignal Minimum signaled tokens
+     *
+     * IMPORTANT: This function does not update existing subgraphs. When subgraphs are later
+     * updated, the current threshold is applied to ALL pending rewards since their last update,
+     * regardless of historical threshold values.
+     *
+     * ## Rewards Accounting Issue
+     *
+     * - Threshold increase: Pending rewards on previously eligible subgraphs are reclaimed
+     * - Threshold decrease: Previously ineligible subgraphs retroactively accumulate pending rewards
+     *
+     * ## Mitigation
+     *
+     * 1. Communicate the planned threshold change with a specific future date
+     * 2. Wait - notice period allows participants to adjust signal if desired
+     * 3. Identify affected subgraphs off-chain (those crossing the threshold)
+     * 4. Call onSubgraphSignalUpdate() for all affected subgraphs to accumulate pending rewards
+     *    under current eligibility rules
+     * 5. Execute threshold change via this function (promptly after step 4, ideally same block)
      */
     function setMinimumSubgraphSignal(uint256 _minimumSubgraphSignal) external override {
         // Caller can be the SAO or the governor
