@@ -109,9 +109,8 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         IRecurringCollector.CollectParams memory collectParams = _generateCollectParams(
             accepted.rca,
             agreementId,
-            collectData.collectionId,
-            collectData.tokens,
-            collectData.dataServiceCut
+            collectData,
+            collectData.tokens
         );
         bytes memory data = _generateCollectData(collectParams);
 
@@ -135,13 +134,7 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
 
         skip(accepted.rca.minSecondsPerCollection);
         bytes memory data = _generateCollectData(
-            _generateCollectParams(
-                accepted.rca,
-                agreementId,
-                fuzzy.collectParams.collectionId,
-                1,
-                fuzzy.collectParams.dataServiceCut
-            )
+            _generateCollectParams(accepted.rca, agreementId, fuzzy.collectParams, 1)
         );
         vm.prank(accepted.rca.dataService);
         _recurringCollector.collect(_paymentType(fuzzy.unboundedPaymentType), data);
@@ -152,9 +145,8 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         IRecurringCollector.CollectParams memory collectParams = _generateCollectParams(
             accepted.rca,
             agreementId,
-            fuzzy.collectParams.collectionId,
-            bound(fuzzy.collectParams.tokens, 1, type(uint256).max),
-            fuzzy.collectParams.dataServiceCut
+            fuzzy.collectParams,
+            bound(fuzzy.collectParams.tokens, 1, type(uint256).max)
         );
         data = _generateCollectData(collectParams);
         bytes memory expectedErr = abi.encodeWithSelector(
@@ -187,13 +179,7 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
             )
         );
         bytes memory data = _generateCollectData(
-            _generateCollectParams(
-                accepted.rca,
-                agreementId,
-                fuzzy.collectParams.collectionId,
-                1,
-                fuzzy.collectParams.dataServiceCut
-            )
+            _generateCollectParams(accepted.rca, agreementId, fuzzy.collectParams, 1)
         );
         vm.prank(accepted.rca.dataService);
         _recurringCollector.collect(_paymentType(fuzzy.unboundedPaymentType), data);
@@ -210,9 +196,8 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
             _generateCollectParams(
                 accepted.rca,
                 agreementId,
-                fuzzy.collectParams.collectionId,
-                bound(fuzzy.collectParams.tokens, 1, type(uint256).max),
-                fuzzy.collectParams.dataServiceCut
+                fuzzy.collectParams,
+                bound(fuzzy.collectParams.tokens, 1, type(uint256).max)
             )
         );
         bytes memory expectedErr = abi.encodeWithSelector(
@@ -247,13 +232,7 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
                 )
             );
             bytes memory initialData = _generateCollectData(
-                _generateCollectParams(
-                    accepted.rca,
-                    agreementId,
-                    fuzzy.collectParams.collectionId,
-                    1,
-                    fuzzy.collectParams.dataServiceCut
-                )
+                _generateCollectParams(accepted.rca, agreementId, fuzzy.collectParams, 1)
             );
             vm.prank(accepted.rca.dataService);
             _recurringCollector.collect(_paymentType(fuzzy.unboundedPaymentType), initialData);
@@ -272,9 +251,8 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         IRecurringCollector.CollectParams memory collectParams = _generateCollectParams(
             accepted.rca,
             agreementId,
-            fuzzy.collectParams.collectionId,
-            tokens,
-            fuzzy.collectParams.dataServiceCut
+            fuzzy.collectParams,
+            tokens
         );
         bytes memory data = _generateCollectData(collectParams);
         vm.prank(accepted.rca.dataService);

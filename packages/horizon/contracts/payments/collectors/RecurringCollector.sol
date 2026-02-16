@@ -10,6 +10,7 @@ import { GraphDirectory } from "../../utilities/GraphDirectory.sol";
 // solhint-disable-next-line no-unused-import
 import { IPaymentsCollector } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsCollector.sol"; // for @inheritdoc
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
+import { IContractApprover } from "@graphprotocol/interfaces/contracts/horizon/IContractApprover.sol";
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { PPMMath } from "../../libraries/PPMMath.sol";
 
@@ -72,23 +73,14 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         }
     }
 
-    /* solhint-disable function-max-lines */
     /**
      * @inheritdoc IRecurringCollector
-     * @notice Accept a Recurring Collection Agreement.
+     * @notice Accept a Recurring Collection Agreement (ECDSA-signed).
      * See {IRecurringCollector.accept}.
      * @dev Caller must be the data service the RCA was issued to.
      */
     function accept(SignedRCA calldata signedRCA) external returns (bytes16) {
-        bytes16 agreementId = _generateAgreementId(
-            signedRCA.rca.payer,
-            signedRCA.rca.dataService,
-            signedRCA.rca.serviceProvider,
-            signedRCA.rca.deadline,
-            signedRCA.rca.nonce
-        );
-
-        require(agreementId != bytes16(0), RecurringCollectorAgreementIdZero());
+        // Cheap pre-checks before expensive ECDSA recovery
         require(
             msg.sender == signedRCA.rca.dataService,
             RecurringCollectorUnauthorizedCaller(msg.sender, signedRCA.rca.dataService)
@@ -103,55 +95,35 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         // check that the voucher is signed by the payer (or proxy)
         _requireAuthorizedRCASigner(signedRCA);
 
-        require(
-            signedRCA.rca.dataService != address(0) &&
-                signedRCA.rca.payer != address(0) &&
-                signedRCA.rca.serviceProvider != address(0),
-            RecurringCollectorAgreementAddressNotSet()
-        );
-
-        _requireValidCollectionWindowParams(
-            signedRCA.rca.endsAt,
-            signedRCA.rca.minSecondsPerCollection,
-            signedRCA.rca.maxSecondsPerCollection
-        );
-
-        AgreementData storage agreement = _getAgreementStorage(agreementId);
-        // check that the agreement is not already accepted
-        require(
-            agreement.state == AgreementState.NotAccepted,
-            RecurringCollectorAgreementIncorrectState(agreementId, agreement.state)
-        );
-
-        // accept the agreement
-        agreement.acceptedAt = uint64(block.timestamp);
-        agreement.state = AgreementState.Accepted;
-        agreement.dataService = signedRCA.rca.dataService;
-        agreement.payer = signedRCA.rca.payer;
-        agreement.serviceProvider = signedRCA.rca.serviceProvider;
-        agreement.endsAt = signedRCA.rca.endsAt;
-        agreement.maxInitialTokens = signedRCA.rca.maxInitialTokens;
-        agreement.maxOngoingTokensPerSecond = signedRCA.rca.maxOngoingTokensPerSecond;
-        agreement.minSecondsPerCollection = signedRCA.rca.minSecondsPerCollection;
-        agreement.maxSecondsPerCollection = signedRCA.rca.maxSecondsPerCollection;
-        agreement.updateNonce = 0;
-
-        emit AgreementAccepted(
-            agreement.dataService,
-            agreement.payer,
-            agreement.serviceProvider,
-            agreementId,
-            agreement.acceptedAt,
-            agreement.endsAt,
-            agreement.maxInitialTokens,
-            agreement.maxOngoingTokensPerSecond,
-            agreement.minSecondsPerCollection,
-            agreement.maxSecondsPerCollection
-        );
-
-        return agreementId;
+        return _validateAndStoreAgreement(signedRCA.rca);
     }
-    /* solhint-enable function-max-lines */
+
+    /**
+     * @inheritdoc IRecurringCollector
+     * @notice Accept an RCA where the approver is an authorized contract.
+     * See {IRecurringCollector.acceptFromContract}.
+     * @dev Caller must be the data service the RCA was issued to.
+     */
+    function acceptFromContract(
+        RecurringCollectionAgreement calldata rca,
+        address contractApprover
+    ) external returns (bytes16) {
+        // Verify contractApprover is actually a contract
+        require(contractApprover.code.length > 0, RecurringCollectorApproverNotContract(contractApprover));
+
+        // Verify the contract is authorized by the payer
+        require(_isAuthorized(rca.payer, contractApprover), RecurringCollectorInvalidSigner());
+
+        // Verify the contract confirms this specific agreement
+        bytes32 agreementHash = _hashRCA(rca);
+        require(
+            IContractApprover(contractApprover).isAuthorizedAgreement(agreementHash) ==
+                IContractApprover.isAuthorizedAgreement.selector,
+            RecurringCollectorInvalidSigner()
+        );
+
+        return _validateAndStoreAgreement(rca);
+    }
 
     /**
      * @inheritdoc IRecurringCollector
@@ -390,6 +362,79 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         );
 
         return tokensToCollect;
+    }
+    /* solhint-enable function-max-lines */
+
+    /* solhint-disable function-max-lines */
+    /**
+     * @notice Shared validation and storage logic for both accept paths (ECDSA and contract signer).
+     * @dev Generates agreement ID, validates parameters, stores agreement, emits event.
+     * Authorization must be checked by the caller before calling this function.
+     * @param _rca The Recurring Collection Agreement to validate and store
+     * @return agreementId The deterministically generated agreement ID
+     */
+    function _validateAndStoreAgreement(RecurringCollectionAgreement calldata _rca) private returns (bytes16) {
+        bytes16 agreementId = _generateAgreementId(
+            _rca.payer,
+            _rca.dataService,
+            _rca.serviceProvider,
+            _rca.deadline,
+            _rca.nonce
+        );
+
+        require(agreementId != bytes16(0), RecurringCollectorAgreementIdZero());
+        require(
+            msg.sender == _rca.dataService,
+            RecurringCollectorUnauthorizedCaller(msg.sender, _rca.dataService)
+        );
+        /* solhint-disable gas-strict-inequalities */
+        require(
+            _rca.deadline >= block.timestamp,
+            RecurringCollectorAgreementDeadlineElapsed(block.timestamp, _rca.deadline)
+        );
+        /* solhint-enable gas-strict-inequalities */
+
+        require(
+            _rca.dataService != address(0) && _rca.payer != address(0) && _rca.serviceProvider != address(0),
+            RecurringCollectorAgreementAddressNotSet()
+        );
+
+        _requireValidCollectionWindowParams(_rca.endsAt, _rca.minSecondsPerCollection, _rca.maxSecondsPerCollection);
+
+        AgreementData storage agreement = _getAgreementStorage(agreementId);
+        // check that the agreement is not already accepted
+        require(
+            agreement.state == AgreementState.NotAccepted,
+            RecurringCollectorAgreementIncorrectState(agreementId, agreement.state)
+        );
+
+        // accept the agreement
+        agreement.acceptedAt = uint64(block.timestamp);
+        agreement.state = AgreementState.Accepted;
+        agreement.dataService = _rca.dataService;
+        agreement.payer = _rca.payer;
+        agreement.serviceProvider = _rca.serviceProvider;
+        agreement.endsAt = _rca.endsAt;
+        agreement.maxInitialTokens = _rca.maxInitialTokens;
+        agreement.maxOngoingTokensPerSecond = _rca.maxOngoingTokensPerSecond;
+        agreement.minSecondsPerCollection = _rca.minSecondsPerCollection;
+        agreement.maxSecondsPerCollection = _rca.maxSecondsPerCollection;
+        agreement.updateNonce = 0;
+
+        emit AgreementAccepted(
+            agreement.dataService,
+            agreement.payer,
+            agreement.serviceProvider,
+            agreementId,
+            agreement.acceptedAt,
+            agreement.endsAt,
+            agreement.maxInitialTokens,
+            agreement.maxOngoingTokensPerSecond,
+            agreement.minSecondsPerCollection,
+            agreement.maxSecondsPerCollection
+        );
+
+        return agreementId;
     }
     /* solhint-enable function-max-lines */
 

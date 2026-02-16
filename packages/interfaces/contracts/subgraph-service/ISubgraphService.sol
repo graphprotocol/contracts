@@ -287,6 +287,21 @@ interface ISubgraphService is IDataServiceFees {
     ) external returns (bytes16);
 
     /**
+     * @notice Accept an indexing agreement where the approver is a contract (no ECDSA signature).
+     * @dev The contract approver must be authorized by the payer via {IAuthorizable.authorizeSigner}
+     * on the RecurringCollector and must implement {IContractApprover}.
+     * @param allocationId The id of the allocation
+     * @param rca The Recurring Collection Agreement
+     * @param contractApprover The address of the contract that authorized this agreement
+     * @return agreementId The ID of the accepted indexing agreement
+     */
+    function acceptIndexingAgreementFromContract(
+        address allocationId,
+        IRecurringCollector.RecurringCollectionAgreement calldata rca,
+        address contractApprover
+    ) external returns (bytes16 agreementId);
+
+    /**
      * @notice Update an indexing agreement.
      * @param indexer The address of the indexer
      * @param signedRCAU The signed recurring collector agreement update (RCAU) that the indexer accepts

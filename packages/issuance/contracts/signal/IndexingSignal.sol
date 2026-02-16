@@ -3,6 +3,7 @@
 pragma solidity 0.8.33;
 
 import { IIndexingSignal } from "@graphprotocol/interfaces/contracts/issuance/signal/IIndexingSignal.sol";
+import { IContractApprover } from "@graphprotocol/interfaces/contracts/horizon/IContractApprover.sol";
 import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManager.sol";
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { BaseUpgradeable } from "../common/BaseUpgradeable.sol";
@@ -30,7 +31,7 @@ import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/int
  *
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any bugs. We might have an active bug bounty program.
  */
-contract IndexingSignal is BaseUpgradeable, IIndexingSignal {
+contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
     // -- Constants --
 
     /// @notice Precision scaling factor for accumulated issuance calculations
@@ -81,6 +82,9 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal {
         /// Tracks accIssuancePerSignal at the time of last collection for each indexer,
         /// enabling independent collection tracking per indexer in the virtual escrow model.
         mapping(address => mapping(bytes32 => mapping(address => uint256))) indexerCollectionSnapshots;
+        /// @notice Prepared agreement hashes for contract-based RCA approval.
+        /// Set by prepareAgreement(), checked by isAuthorizedAgreement() callback from RecurringCollector.
+        mapping(bytes32 agreementHash => bool prepared) pendingAgreements;
     }
 
     // keccak256(abi.encode(uint256(keccak256("graphprotocol.storage.IndexingSignal")) - 1)) & ~bytes32(uint256(0xff))
@@ -152,7 +156,10 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal {
      * @inheritdoc ERC165Upgradeable
      */
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
-        return interfaceId == type(IIndexingSignal).interfaceId || super.supportsInterface(interfaceId);
+        return
+            interfaceId == type(IIndexingSignal).interfaceId ||
+            interfaceId == type(IContractApprover).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 
     // -- Signal Management --
@@ -328,6 +335,65 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal {
         $.indexerSets[depositor][subgraphDeploymentID] = indexers;
 
         emit DepositorIndexerSetUpdated(depositor, subgraphDeploymentID, indexers);
+    }
+
+    // -- Contract Approver (IContractApprover + Agreement Preparation) --
+
+    /**
+     * @inheritdoc IContractApprover
+     * @dev IS accepts being authorized for any depositor. The per-agreement
+     * validation (via isAuthorizedAgreement) is the real authorization gate.
+     */
+    function isAuthorizedSigner(address /* authorizer */) external pure override returns (bytes4) {
+        return IContractApprover.isAuthorizedSigner.selector;
+    }
+
+    /**
+     * @inheritdoc IContractApprover
+     * @dev Called by RecurringCollector.acceptFromContract() during agreement acceptance.
+     * Returns the magic value only if the agreement hash was previously prepared via prepareAgreement().
+     */
+    function isAuthorizedAgreement(bytes32 agreementHash) external view override returns (bytes4) {
+        IndexingSignalData storage $ = _getStorage();
+        if ($.pendingAgreements[agreementHash]) {
+            return IContractApprover.isAuthorizedAgreement.selector;
+        }
+        revert AgreementNotPrepared(agreementHash);
+    }
+
+    /**
+     * @inheritdoc IIndexingSignal
+     */
+    function prepareAgreement(
+        address depositor,
+        bytes32 subgraphDeploymentID,
+        address indexer,
+        bytes32 agreementHash
+    ) external override onlyRole(INDEXER_SET_OPERATOR_ROLE) whenNotPaused {
+        IndexingSignalData storage $ = _getStorage();
+
+        // Validate: depositor has a position for this subgraph
+        DepositorPosition storage pos = $.positions[depositor][subgraphDeploymentID];
+        require(pos.tokens > 0, NoExistingPosition(depositor, subgraphDeploymentID));
+
+        // Validate: indexer is in the depositor's indexer set
+        address[] storage indexerSet = $.indexerSets[depositor][subgraphDeploymentID];
+        require(indexerSet.length > 0, IndexerSetEmpty());
+        require(_isInIndexerSet(indexerSet, indexer), IndexerNotInSet(indexer));
+
+        // Store the pending agreement hash
+        $.pendingAgreements[agreementHash] = true;
+
+        emit AgreementPrepared(depositor, subgraphDeploymentID, indexer, agreementHash);
+    }
+
+    /**
+     * @inheritdoc IIndexingSignal
+     */
+    function clearPreparedAgreement(bytes32 agreementHash) external override onlyRole(INDEXER_SET_OPERATOR_ROLE) {
+        IndexingSignalData storage $ = _getStorage();
+        delete $.pendingAgreements[agreementHash];
+        emit AgreementCleared(agreementHash);
     }
 
     // -- Collection (Virtual Escrow) --

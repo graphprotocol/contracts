@@ -173,6 +173,30 @@ interface IIndexingSignal {
     /// @notice Thrown when the indexer set is empty (no indexers matched yet)
     error IndexerSetEmpty();
 
+    /// @notice Thrown when a pending agreement hash is not found
+    /// @param agreementHash The agreement hash that was not found
+    error AgreementNotPrepared(bytes32 agreementHash);
+
+    /**
+     * @notice Emitted when an agreement hash is prepared for contract approval
+     * @param depositor Address of the depositor (payer)
+     * @param subgraphDeploymentID Subgraph deployment
+     * @param indexer Address of the indexer
+     * @param agreementHash The EIP712 hash of the prepared RCA
+     */
+    event AgreementPrepared(
+        address indexed depositor,
+        bytes32 indexed subgraphDeploymentID,
+        address indexed indexer,
+        bytes32 agreementHash
+    );
+
+    /**
+     * @notice Emitted when a prepared agreement hash is cleared
+     * @param agreementHash The agreement hash that was cleared
+     */
+    event AgreementCleared(bytes32 indexed agreementHash);
+
     // -- Signal Management --
 
     /**
@@ -241,6 +265,33 @@ interface IIndexingSignal {
         bytes32 subgraphDeploymentID,
         address[] calldata indexers
     ) external;
+
+    // -- Contract Approver (Agreement Preparation) --
+
+    /**
+     * @notice Prepare an agreement hash for contract-based RCA approval.
+     * @dev Only callable by INDEXER_SET_OPERATOR_ROLE. The off-chain operator constructs
+     * the RCA, computes its EIP712 hash via RecurringCollector.hashRCA(), and registers
+     * it here. When the indexer later accepts via acceptFromContract, RecurringCollector
+     * will call back isAuthorizedAgreement to verify this hash was prepared.
+     * @param depositor The depositor who owns the position (payer in the RCA)
+     * @param subgraphDeploymentID The subgraph deployment
+     * @param indexer The indexer for this agreement
+     * @param agreementHash The EIP712 hash of the RCA to authorize
+     */
+    function prepareAgreement(
+        address depositor,
+        bytes32 subgraphDeploymentID,
+        address indexer,
+        bytes32 agreementHash
+    ) external;
+
+    /**
+     * @notice Clear a prepared agreement hash after it has been accepted or is no longer needed.
+     * @dev Only callable by INDEXER_SET_OPERATOR_ROLE. Frees storage for accepted/stale agreements.
+     * @param agreementHash The agreement hash to clear
+     */
+    function clearPreparedAgreement(bytes32 agreementHash) external;
 
     // -- Collection (Virtual Escrow) --
 
