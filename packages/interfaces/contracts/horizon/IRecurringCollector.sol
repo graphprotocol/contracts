@@ -414,8 +414,8 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
 
     /**
      * @notice Accept an RCA where the approver is an authorized contract (no ECDSA signature needed).
-     * @dev The contract approver must be authorized by the payer via {IAuthorizable.authorizeSigner}
-     * and must confirm the agreement via {IContractApprover.isAuthorizedAgreement}.
+     * @dev The contract approver must confirm the agreement via {IContractApprover.isAuthorizedAgreement}.
+     * No per-payer Authorizable setup is needed — the contract's callback is the authorization.
      * Caller must be the data service the RCA was issued to.
      * @param rca The Recurring Collection Agreement to accept
      * @param contractApprover The address of the contract that authorized this agreement

@@ -5,7 +5,6 @@ pragma solidity 0.8.27 || 0.8.33;
 // solhint-disable gas-strict-inequalities
 
 import { IAuthorizable } from "@graphprotocol/interfaces/contracts/horizon/IAuthorizable.sol";
-import { IContractApprover } from "@graphprotocol/interfaces/contracts/horizon/IContractApprover.sol";
 
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
@@ -55,17 +54,7 @@ abstract contract Authorizable is IAuthorizable {
             )
         );
 
-        if (signer.code.length > 0) {
-            // Contract approver: verify via callback
-            require(
-                IContractApprover(signer).isAuthorizedSigner(msg.sender) ==
-                    IContractApprover.isAuthorizedSigner.selector,
-                AuthorizableInvalidSignerProof()
-            );
-        } else {
-            // EOA signer: verify via ECDSA proof
-            _verifyAuthorizationProof(proof, proofDeadline, signer);
-        }
+        _verifyAuthorizationProof(proof, proofDeadline, signer);
 
         authorizations[signer].authorizer = msg.sender;
         emit SignerAuthorized(msg.sender, signer);

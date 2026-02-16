@@ -21,9 +21,12 @@ import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/int
  * rate as RewardsManager, using a virtual escrow model where GRT is only minted at
  * collection time.
  *
- * Virtual escrow: no GRT is physically deposited or held as escrow. Escrow "balances" are
- * computed from accumulators and represent accumulated uncollected issuance. The collect()
- * function mints GRT on demand and transfers to the caller for distribution.
+ * Two layers:
+ * - Signal layer: per-depositor positions and indexer set preferences
+ * - Escrow layer: per-(subgraph, indexer) agreement escrows with aggregated effective signal
+ *
+ * When depositors' signal or indexer sets change, the affected agreement escrows are updated:
+ * accrued issuance is snapshotted, then the effective signal is adjusted.
  *
  * Key invariant: RM_minted + IS_minted = issuancePerBlock * blocks
  * This holds because both use the same accIssuancePerSignal rate with totalSignal as denominator,
@@ -70,18 +73,16 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
         uint256 totalIndexingSignal;
         /// @notice Protocol-enforced minimum number of indexers per position
         uint256 minimumIndexerCount;
-        /// @notice Per-subgraph signal pools
-        mapping(bytes32 => SignalPool) pools;
-        /// @notice Per-depositor per-subgraph positions
+        /// @notice Per-subgraph total signal (GRT locked)
+        mapping(bytes32 => uint256) subgraphSignal;
+        /// @notice Per-depositor per-subgraph positions (signal layer)
         mapping(address => mapping(bytes32 => DepositorPosition)) positions;
-        /// @notice Per-depositor per-subgraph indexer sets (stored separately from position struct)
+        /// @notice Per-depositor per-subgraph indexer sets
         mapping(address => mapping(bytes32 => address[])) indexerSets;
         /// @notice Privileged signalers that can bypass minimum indexer count
         mapping(address => bool) privilegedSignalers;
-        /// @notice Per-(depositor, subgraph, indexer) collection snapshot.
-        /// Tracks accIssuancePerSignal at the time of last collection for each indexer,
-        /// enabling independent collection tracking per indexer in the virtual escrow model.
-        mapping(address => mapping(bytes32 => mapping(address => uint256))) indexerCollectionSnapshots;
+        /// @notice Per-(subgraph, indexer) agreement escrows (escrow layer)
+        mapping(bytes32 => mapping(address => AgreementEscrow)) agreementEscrows;
         /// @notice Prepared agreement hashes for contract-based RCA approval.
         /// Set by prepareAgreement(), checked by isAuthorizedAgreement() callback from RecurringCollector.
         mapping(bytes32 agreementHash => bool prepared) pendingAgreements;
@@ -184,17 +185,13 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
         // Update global accumulator before signal changes
         _updateAccIssuancePerSignal($);
 
-        // Update subgraph pool
-        _onSignalUpdate($, subgraphDeploymentID);
-
-        // Create depositor position
+        // Create depositor position (no indexer set yet — set later by operator)
         DepositorPosition storage pos = $.positions[msg.sender][subgraphDeploymentID];
         pos.tokens = tokens;
         pos.indexerCount = indexerCount;
-        pos.accIssuanceSnapshot = $.accIssuancePerSignal;
 
-        // Update pool totals
-        $.pools[subgraphDeploymentID].totalTokens += tokens;
+        // Update totals
+        $.subgraphSignal[subgraphDeploymentID] += tokens;
         $.totalIndexingSignal += tokens;
 
         // Transfer GRT from depositor
@@ -216,17 +213,22 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
         DepositorPosition storage pos = $.positions[msg.sender][subgraphDeploymentID];
         require(pos.tokens > 0, NoExistingPosition(msg.sender, subgraphDeploymentID));
 
-        // Update accumulators
+        // Update global accumulator
         _updateAccIssuancePerSignal($);
-        _onSignalUpdate($, subgraphDeploymentID);
 
-        // Settle any pending issuance at the old rate before changing signal
-        // (snapshot update handles this)
-        pos.accIssuanceSnapshot = $.accIssuancePerSignal;
+        // Update agreement escrows for this depositor's indexers
+        address[] storage indexerSet = $.indexerSets[msg.sender][subgraphDeploymentID];
+        if (indexerSet.length > 0) {
+            uint256 addedSignalPerIndexer = tokens / indexerSet.length;
+            for (uint256 i = 0; i < indexerSet.length; i++) {
+                _snapshotAndUpdateSignal($, subgraphDeploymentID, indexerSet[i], addedSignalPerIndexer, true);
+            }
+        }
+
         pos.tokens += tokens;
 
-        // Update pool totals
-        $.pools[subgraphDeploymentID].totalTokens += tokens;
+        // Update totals
+        $.subgraphSignal[subgraphDeploymentID] += tokens;
         $.totalIndexingSignal += tokens;
 
         // Transfer GRT from depositor
@@ -246,15 +248,23 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
         require(pos.tokens > 0, NoExistingPosition(msg.sender, subgraphDeploymentID));
         require(tokens <= pos.tokens, InsufficientSignal(tokens, pos.tokens));
 
-        // Update accumulators before signal changes
+        // Update global accumulator before signal changes
         _updateAccIssuancePerSignal($);
-        _onSignalUpdate($, subgraphDeploymentID);
 
-        // Remove tokens from position and pool
+        // Update agreement escrows for this depositor's indexers
+        address[] storage indexerSet = $.indexerSets[msg.sender][subgraphDeploymentID];
+        if (indexerSet.length > 0) {
+            uint256 removedSignalPerIndexer = tokens / indexerSet.length;
+            for (uint256 i = 0; i < indexerSet.length; i++) {
+                _snapshotAndUpdateSignal($, subgraphDeploymentID, indexerSet[i], removedSignalPerIndexer, false);
+            }
+        }
+
+        // Remove tokens from position
         pos.tokens -= tokens;
-        pos.accIssuanceSnapshot = $.accIssuancePerSignal;
 
-        $.pools[subgraphDeploymentID].totalTokens -= tokens;
+        // Update totals
+        $.subgraphSignal[subgraphDeploymentID] -= tokens;
         $.totalIndexingSignal -= tokens;
 
         // Transfer GRT back to depositor
@@ -320,15 +330,25 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
         require(pos.tokens > 0, NoExistingPosition(depositor, subgraphDeploymentID));
         require(indexers.length == pos.indexerCount, IndexerSetSizeMismatch(indexers.length, pos.indexerCount));
 
-        // Update accumulator before changing the set
+        // Update accumulator before changing escrow signal
         _updateAccIssuancePerSignal($);
 
-        // Initialize collection snapshots for new indexers to the current accumulator.
-        // This ensures newly added indexers can only collect issuance from this point forward.
-        for (uint256 i = 0; i < indexers.length; i++) {
-            uint256 existingSnapshot = $.indexerCollectionSnapshots[depositor][subgraphDeploymentID][indexers[i]];
-            if (existingSnapshot == 0) {
-                $.indexerCollectionSnapshots[depositor][subgraphDeploymentID][indexers[i]] = $.accIssuancePerSignal;
+        uint256 depositorTokens = pos.tokens;
+        address[] storage oldSet = $.indexerSets[depositor][subgraphDeploymentID];
+
+        // Remove depositor's signal contribution from old indexers' agreement escrows
+        if (oldSet.length > 0) {
+            uint256 oldSignalPerIndexer = depositorTokens / oldSet.length;
+            for (uint256 i = 0; i < oldSet.length; i++) {
+                _snapshotAndUpdateSignal($, subgraphDeploymentID, oldSet[i], oldSignalPerIndexer, false);
+            }
+        }
+
+        // Add depositor's signal contribution to new indexers' agreement escrows
+        if (indexers.length > 0) {
+            uint256 newSignalPerIndexer = depositorTokens / indexers.length;
+            for (uint256 i = 0; i < indexers.length; i++) {
+                _snapshotAndUpdateSignal($, subgraphDeploymentID, indexers[i], newSignalPerIndexer, true);
             }
         }
 
@@ -338,15 +358,6 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
     }
 
     // -- Contract Approver (IContractApprover + Agreement Preparation) --
-
-    /**
-     * @inheritdoc IContractApprover
-     * @dev IS accepts being authorized for any depositor. The per-agreement
-     * validation (via isAuthorizedAgreement) is the real authorization gate.
-     */
-    function isAuthorizedSigner(address /* authorizer */) external pure override returns (bytes4) {
-        return IContractApprover.isAuthorizedSigner.selector;
-    }
 
     /**
      * @inheritdoc IContractApprover
@@ -365,26 +376,21 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
      * @inheritdoc IIndexingSignal
      */
     function prepareAgreement(
-        address depositor,
         bytes32 subgraphDeploymentID,
         address indexer,
-        bytes32 agreementHash
+        bytes32 agreementHash,
+        bytes calldata encodedRCA
     ) external override onlyRole(INDEXER_SET_OPERATOR_ROLE) whenNotPaused {
         IndexingSignalData storage $ = _getStorage();
 
-        // Validate: depositor has a position for this subgraph
-        DepositorPosition storage pos = $.positions[depositor][subgraphDeploymentID];
-        require(pos.tokens > 0, NoExistingPosition(depositor, subgraphDeploymentID));
-
-        // Validate: indexer is in the depositor's indexer set
-        address[] storage indexerSet = $.indexerSets[depositor][subgraphDeploymentID];
-        require(indexerSet.length > 0, IndexerSetEmpty());
-        require(_isInIndexerSet(indexerSet, indexer), IndexerNotInSet(indexer));
+        // Validate: agreement escrow has non-zero signal for this (subgraph, indexer) pair
+        AgreementEscrow storage escrow = $.agreementEscrows[subgraphDeploymentID][indexer];
+        require(escrow.signal > 0, NoAgreementSignal(subgraphDeploymentID, indexer));
 
         // Store the pending agreement hash
         $.pendingAgreements[agreementHash] = true;
 
-        emit AgreementPrepared(depositor, subgraphDeploymentID, indexer, agreementHash);
+        emit AgreementPrepared(subgraphDeploymentID, indexer, agreementHash, encodedRCA);
     }
 
     /**
@@ -402,19 +408,18 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
      * @inheritdoc IIndexingSignal
      */
     function collect(
-        address depositor,
         bytes32 subgraphDeploymentID,
         address indexer,
         uint256 amount
     ) external override whenNotPaused returns (uint256 collectedTokens) {
-        collectedTokens = _collectVirtual(depositor, subgraphDeploymentID, indexer, amount);
+        collectedTokens = _collectVirtual(subgraphDeploymentID, indexer, amount);
 
         if (collectedTokens > 0) {
             // Mint GRT and transfer to caller for distribution
             GRAPH_TOKEN.mint(msg.sender, collectedTokens);
         }
 
-        emit IssuanceCollected(depositor, subgraphDeploymentID, indexer, collectedTokens);
+        emit IssuanceCollected(subgraphDeploymentID, indexer, collectedTokens);
     }
 
     // -- IPaymentsEscrow Implementation (Virtual Escrow) --
@@ -443,7 +448,7 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
      */
     function collect(
         IGraphPayments.PaymentTypes paymentType,
-        address payer,
+        address,
         address receiver,
         uint256 tokens,
         address dataService,
@@ -453,8 +458,8 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
     ) external whenNotPaused {
         require(msg.sender == ESCROW_ROUTER, UnauthorizedEscrowCaller(msg.sender));
 
-        // collectionContext is the subgraphDeploymentID
-        uint256 collectedTokens = _collectVirtual(payer, collectionContext, receiver, tokens);
+        // collectionContext is the subgraphDeploymentID, receiver is the indexer
+        uint256 collectedTokens = _collectVirtual(collectionContext, receiver, tokens);
 
         if (collectedTokens > 0) {
             // Mint GRT to this contract, then distribute via GraphPayments
@@ -463,18 +468,15 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
             GRAPH_PAYMENTS.collect(paymentType, receiver, collectedTokens, dataService, dataServiceCut, receiverDestination);
         }
 
-        emit IssuanceCollected(payer, collectionContext, receiver, collectedTokens);
+        emit IssuanceCollected(collectionContext, receiver, collectedTokens);
     }
 
     /**
      * @notice Get virtual escrow balance for a (payer, collector, receiver) tuple.
-     * Returns the total virtual balance across all subgraphs for this payer-receiver pair.
-     * For precise per-subgraph queries, use getVirtualBalance() instead.
+     * Without a subgraph context, we cannot compute a meaningful balance.
+     * Callers should use getVirtualBalance() for precise queries.
      */
     function getBalance(address, address, address) external pure returns (uint256) {
-        // Virtual escrow balance is per-(payer, subgraph, indexer), not per-(payer, collector, receiver).
-        // Without a subgraph context, we cannot compute a meaningful balance.
-        // Return 0 — callers should use getVirtualBalance() for precise queries.
         return 0;
     }
 
@@ -482,7 +484,6 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
      * @inheritdoc IIndexingSignal
      */
     function onRCACancelled(
-        address depositor,
         bytes32 subgraphDeploymentID,
         address indexer
     ) external override whenNotPaused {
@@ -492,13 +493,16 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
         // Update accumulator to current block
         _updateAccIssuancePerSignal($);
 
+        AgreementEscrow storage escrow = $.agreementEscrows[subgraphDeploymentID][indexer];
+
         // Calculate what would have been collectible (for the event)
-        uint256 settledTokens = _calcVirtualBalance($, depositor, subgraphDeploymentID, indexer);
+        uint256 settledTokens = _calcVirtualBalance(escrow, $.accIssuancePerSignal);
 
-        // Advance snapshot to current accumulator — uncollected issuance is never minted
-        $.indexerCollectionSnapshots[depositor][subgraphDeploymentID][indexer] = $.accIssuancePerSignal;
+        // Zero out accrued issuance and advance snapshot — uncollected issuance is never minted
+        escrow.accruedIssuance = 0;
+        escrow.accIssuanceSnapshot = $.accIssuancePerSignal;
 
-        emit IssuanceSettled(depositor, subgraphDeploymentID, indexer, settledTokens);
+        emit IssuanceSettled(subgraphDeploymentID, indexer, settledTokens);
     }
 
     /**
@@ -515,7 +519,7 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
      * @inheritdoc IIndexingSignal
      */
     function getSubgraphSignal(bytes32 subgraphDeploymentID) external view override returns (uint256) {
-        return _getStorage().pools[subgraphDeploymentID].totalTokens;
+        return _getStorage().subgraphSignal[subgraphDeploymentID];
     }
 
     /**
@@ -542,26 +546,22 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
      * @inheritdoc IIndexingSignal
      */
     function getVirtualBalance(
-        address depositor,
         bytes32 subgraphDeploymentID,
         address indexer
     ) external view override returns (uint256) {
         IndexingSignalData storage $ = _getStorage();
         uint256 currentAcc = $.accIssuancePerSignal + _getNewIssuancePerSignal($);
-        return _calcVirtualBalanceAt($, depositor, subgraphDeploymentID, indexer, currentAcc);
+        return _calcVirtualBalance($.agreementEscrows[subgraphDeploymentID][indexer], currentAcc);
     }
 
     /**
      * @inheritdoc IIndexingSignal
      */
-    function getPendingIssuance(
-        address depositor,
-        bytes32 subgraphDeploymentID
-    ) external view override returns (uint256) {
-        IndexingSignalData storage $ = _getStorage();
-        DepositorPosition storage pos = $.positions[depositor][subgraphDeploymentID];
-        uint256 currentAcc = $.accIssuancePerSignal + _getNewIssuancePerSignal($);
-        return _calcPendingIssuance(pos, currentAcc);
+    function getAgreementEscrow(
+        bytes32 subgraphDeploymentID,
+        address indexer
+    ) external view override returns (AgreementEscrow memory) {
+        return _getStorage().agreementEscrows[subgraphDeploymentID][indexer];
     }
 
     /**
@@ -596,13 +596,12 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
     // -- Internal Functions --
 
     /**
-     * @dev Shared virtual escrow collection logic. Validates indexer set membership,
-     * computes virtual balance, determines collection amount, and updates snapshots.
+     * @dev Shared virtual escrow collection logic. Computes available balance from the
+     * agreement escrow, determines collection amount, and updates escrow state.
      * Does NOT mint or distribute — caller is responsible for that.
      * @return collectedTokens The amount of tokens collected from virtual balance
      */
     function _collectVirtual(
-        address depositor,
         bytes32 subgraphDeploymentID,
         address indexer,
         uint256 amount
@@ -612,32 +611,67 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
         // Update accumulator to current block
         _updateAccIssuancePerSignal($);
 
-        address[] storage indexerSet = $.indexerSets[depositor][subgraphDeploymentID];
-        require(indexerSet.length > 0, IndexerSetEmpty());
-        require(_isInIndexerSet(indexerSet, indexer), IndexerNotInSet(indexer));
+        AgreementEscrow storage escrow = $.agreementEscrows[subgraphDeploymentID][indexer];
 
-        // Compute virtual balance for this specific indexer
-        uint256 available = _calcVirtualBalance($, depositor, subgraphDeploymentID, indexer);
+        // Compute available virtual balance
+        uint256 available = _calcVirtualBalance(escrow, $.accIssuancePerSignal);
 
         // Determine collection amount
         collectedTokens = amount == 0 ? available : (amount < available ? amount : available);
 
         if (collectedTokens > 0) {
-            // Update per-indexer collection snapshot proportionally.
-            if (collectedTokens == available) {
-                $.indexerCollectionSnapshots[depositor][subgraphDeploymentID][indexer] = $.accIssuancePerSignal;
-            } else {
-                // Partial collection: advance snapshot proportionally
-                DepositorPosition storage pos = $.positions[depositor][subgraphDeploymentID];
-                uint256 indexerSnapshot = $.indexerCollectionSnapshots[depositor][subgraphDeploymentID][indexer];
-                uint256 effectiveSnapshot = indexerSnapshot > pos.accIssuanceSnapshot
-                    ? indexerSnapshot
-                    : pos.accIssuanceSnapshot;
-                uint256 totalDelta = $.accIssuancePerSignal - effectiveSnapshot;
-                uint256 consumedDelta = (totalDelta * collectedTokens) / available;
-                $.indexerCollectionSnapshots[depositor][subgraphDeploymentID][indexer] =
-                    effectiveSnapshot + consumedDelta;
-            }
+            // Update escrow: subtract collected, advance snapshot
+            escrow.accruedIssuance = available - collectedTokens;
+            escrow.accIssuanceSnapshot = $.accIssuancePerSignal;
+        }
+    }
+
+    /**
+     * @dev Calculate virtual balance for an agreement escrow at a given accumulator value.
+     * @return Virtual balance = accruedIssuance + (signal * accumulator delta / scaling)
+     */
+    function _calcVirtualBalance(
+        AgreementEscrow storage escrow,
+        uint256 currentAccIssuancePerSignal
+    ) internal view returns (uint256) {
+        uint256 newIssuance = 0;
+        if (escrow.signal > 0 && currentAccIssuancePerSignal > escrow.accIssuanceSnapshot) {
+            uint256 delta = currentAccIssuancePerSignal - escrow.accIssuanceSnapshot;
+            newIssuance = (escrow.signal * delta) / FIXED_POINT_SCALING_FACTOR;
+        }
+        return escrow.accruedIssuance + newIssuance;
+    }
+
+    /**
+     * @dev Snapshot accrued issuance for an agreement escrow and adjust its signal.
+     * Must be called after _updateAccIssuancePerSignal().
+     * @param $ Storage pointer
+     * @param subgraphDeploymentID The subgraph deployment
+     * @param indexer The indexer
+     * @param signalDelta Amount of effective signal to add or remove
+     * @param isAdd True to add signal, false to remove
+     */
+    function _snapshotAndUpdateSignal(
+        IndexingSignalData storage $,
+        bytes32 subgraphDeploymentID,
+        address indexer,
+        uint256 signalDelta,
+        bool isAdd
+    ) internal {
+        AgreementEscrow storage escrow = $.agreementEscrows[subgraphDeploymentID][indexer];
+
+        // Snapshot: accrue issuance at current signal level before changing it
+        if (escrow.signal > 0 && $.accIssuancePerSignal > escrow.accIssuanceSnapshot) {
+            uint256 delta = $.accIssuancePerSignal - escrow.accIssuanceSnapshot;
+            escrow.accruedIssuance += (escrow.signal * delta) / FIXED_POINT_SCALING_FACTOR;
+        }
+        escrow.accIssuanceSnapshot = $.accIssuancePerSignal;
+
+        // Adjust signal
+        if (isAdd) {
+            escrow.signal += signalDelta;
+        } else {
+            escrow.signal -= signalDelta;
         }
     }
 
@@ -667,76 +701,6 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
         $.accIssuancePerSignal += newIssuance;
         $.accIssuancePerSignalLastBlock = block.number;
         return $.accIssuancePerSignal;
-    }
-
-    /**
-     * @dev Update subgraph pool snapshot before signal changes
-     */
-    function _onSignalUpdate(IndexingSignalData storage $, bytes32 subgraphDeploymentID) internal {
-        SignalPool storage pool = $.pools[subgraphDeploymentID];
-
-        uint256 accIssuancePerSignalDelta = $.accIssuancePerSignal - pool.accIssuancePerSignalSnapshot;
-        uint256 newIssuance = (accIssuancePerSignalDelta * pool.totalTokens) / FIXED_POINT_SCALING_FACTOR;
-
-        pool.accIssuanceForSubgraph += newIssuance;
-        pool.accIssuancePerSignalSnapshot = $.accIssuancePerSignal;
-    }
-
-    /**
-     * @dev Calculate pending issuance for a depositor position
-     */
-    function _calcPendingIssuance(
-        DepositorPosition storage pos,
-        uint256 currentAccIssuancePerSignal
-    ) internal view returns (uint256) {
-        if (pos.tokens == 0) return 0;
-        uint256 delta = currentAccIssuancePerSignal - pos.accIssuanceSnapshot;
-        return (pos.tokens * delta) / FIXED_POINT_SCALING_FACTOR;
-    }
-
-    /**
-     * @dev Calculate virtual balance for a (depositor, subgraph, indexer) tuple at the current accumulator
-     */
-    function _calcVirtualBalance(
-        IndexingSignalData storage $,
-        address depositor,
-        bytes32 subgraphDeploymentID,
-        address indexer
-    ) internal view returns (uint256) {
-        return _calcVirtualBalanceAt($, depositor, subgraphDeploymentID, indexer, $.accIssuancePerSignal);
-    }
-
-    /**
-     * @dev Calculate virtual balance for a (depositor, subgraph, indexer) tuple at a given accumulator value.
-     * The virtual balance is the per-indexer share (1/N) of issuance accrued since last collection.
-     */
-    function _calcVirtualBalanceAt(
-        IndexingSignalData storage $,
-        address depositor,
-        bytes32 subgraphDeploymentID,
-        address indexer,
-        uint256 currentAccIssuancePerSignal
-    ) internal view returns (uint256) {
-        DepositorPosition storage pos = $.positions[depositor][subgraphDeploymentID];
-        if (pos.tokens == 0) return 0;
-
-        address[] storage indexerSet = $.indexerSets[depositor][subgraphDeploymentID];
-        if (indexerSet.length == 0) return 0;
-        if (!_isInIndexerSet(indexerSet, indexer)) return 0;
-
-        // The per-indexer collection snapshot tracks where this indexer last collected.
-        // The position's accIssuanceSnapshot tracks the depositor's global baseline.
-        // The effective baseline is the later of the two (indexer can't collect before position was created).
-        uint256 indexerSnapshot = $.indexerCollectionSnapshots[depositor][subgraphDeploymentID][indexer];
-        uint256 effectiveSnapshot = indexerSnapshot > pos.accIssuanceSnapshot
-            ? indexerSnapshot
-            : pos.accIssuanceSnapshot;
-
-        if (currentAccIssuancePerSignal <= effectiveSnapshot) return 0;
-
-        uint256 delta = currentAccIssuancePerSignal - effectiveSnapshot;
-        uint256 totalIssuance = (pos.tokens * delta) / FIXED_POINT_SCALING_FACTOR;
-        return totalIssuance / indexerSet.length;
     }
 
     /**

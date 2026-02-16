@@ -111,9 +111,6 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         // Verify contractApprover is actually a contract
         require(contractApprover.code.length > 0, RecurringCollectorApproverNotContract(contractApprover));
 
-        // Verify the contract is authorized by the payer
-        require(_isAuthorized(rca.payer, contractApprover), RecurringCollectorInvalidSigner());
-
         // Verify the contract confirms this specific agreement
         bytes32 agreementHash = _hashRCA(rca);
         require(
