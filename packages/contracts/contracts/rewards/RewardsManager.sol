@@ -619,9 +619,11 @@ contract RewardsManager is
 
     /**
      * @inheritdoc IRewardsManager
-     * @dev Returns claimable rewards based on current accumulator state.
-     * Reflects deterministic exclusions (denied, below minimum signal, no allocations) but NOT indexer eligibility.
-     * Indexer eligibility is checked at claim time and can change independently of reward accrual.
+     * @dev Reflects the gap between the subgraph accumulator and the allocation's snapshot, plus
+     * stored pending rewards. During exclusion (denied, below minimum signal, no allocations), the
+     * accumulator is frozen: new rewards are excluded but the existing gap remains claimable when
+     * conditions clear. Does not check indexer eligibility - that is verified at claim time via
+     * takeRewards().
      */
     function getRewards(address _rewardsIssuer, address _allocationID) external view override returns (uint256) {
         require(
@@ -732,6 +734,7 @@ contract RewardsManager is
         bytes32 subgraphDeploymentId
     ) private returns (uint256) {
         if (rewards == 0) return 0;
+        if (reason == RewardsCondition.NONE) return 0; // NONE cannot be used as reclaim reason
 
         address target = reclaimAddresses[reason];
         if (target == address(0)) target = defaultReclaimAddress;
@@ -811,7 +814,8 @@ contract RewardsManager is
 
     /**
      * @inheritdoc IRewardsManager
-     * @dev bytes32(0) as a reason is reserved as a no-op and will not be reclaimed.
+     * @dev bytes32(0) (NONE) cannot be used as a reclaim reason and will return 0.
+     * Use specific RewardsCondition constants for reclaim reasons.
      */
     function reclaimRewards(bytes32 reason, address allocationID) external override returns (uint256) {
         address rewardsIssuer = msg.sender;

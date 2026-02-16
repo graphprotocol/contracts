@@ -148,8 +148,8 @@ RewardsManager and issuers share responsibility for correct reward accounting:
 **Example - Subgraph Denial** (see [RewardConditions.md](./RewardConditions.md#subgraph_denied) for full details):
 
 - RM: Reclaims new rewards; freezes `accRewardsPerAllocatedToken`
-- AM: Defers claim; preserves pre-denial rewards in allocation snapshot
-- After undeny: AM can claim the preserved pre-denial rewards
+- AM: Defers claim; preserves uncollected rewards (no snapshot update)
+- After undeny: AM can claim preserved uncollected rewards
 
 ## Issuer Requirements
 

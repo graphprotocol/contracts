@@ -8,7 +8,7 @@ Quick reference for all reward conditions and how they are handled across Reward
 | ---------------------- | ----------------------------------- | ----------------- | ------------------------- | ------------------------------------- |
 | `NONE`                 | `bytes32(0)`                        | —                 | Normal path               | Claimed by indexer                    |
 | `NO_SIGNAL`            | `keccak256("NO_SIGNAL")`            | RewardsManager    | Reclaim                   | To reclaim address                    |
-| `SUBGRAPH_DENIED`      | `keccak256("SUBGRAPH_DENIED")`      | Both              | Reclaim (RM) / Defer (AM) | New: reclaimed; Pre-denial: preserved |
+| `SUBGRAPH_DENIED`      | `keccak256("SUBGRAPH_DENIED")`      | Both              | Reclaim (RM) / Defer (AM) | New: reclaimed; Uncollected: preserved |
 | `BELOW_MINIMUM_SIGNAL` | `keccak256("BELOW_MINIMUM_SIGNAL")` | RewardsManager    | Reclaim                   | To reclaim address                    |
 | `NO_ALLOCATION`        | `keccak256("NO_ALLOCATION")`        | RewardsManager    | Reclaim                   | To reclaim address                    |
 | `INDEXER_INELIGIBLE`   | `keccak256("INDEXER_INELIGIBLE")`   | RewardsManager    | Reclaim                   | To reclaim address                    |
@@ -73,20 +73,20 @@ Rewards flow through three levels, with reclaim possible at each:
 
 - **Trigger**: `isDenied(subgraphDeploymentId)` returns true
 - **Effect**: `accRewardsPerAllocatedToken` stops increasing
-- **Handling**: New rewards reclaimed; pre-denial rewards preserved in allocation snapshots
+- **Handling**: New rewards reclaimed; accumulator frozen (uncollected rewards preserved)
 - **Note**: If no SUBGRAPH_DENIED reclaim address AND signal < minimum, reclaims as BELOW_MINIMUM_SIGNAL instead
 
 **Reward disposition by period:**
 
 | Period        | Disposition                                              |
 | ------------- | -------------------------------------------------------- |
-| Pre-denial    | Claimable after undeny                                   |
+| Before denial | Claimable after undeny                                   |
 | During denial | Reclaimed to protocol (or dropped if no reclaim address) |
 | Post-undeny   | Claimable normally                                       |
 
 **Effect on allocations:**
 
-- _Existing allocations_: Pre-denial rewards preserved; cannot claim while denied; claimable after undeny
+- _Existing allocations_: Uncollected rewards preserved (accumulator frozen, snapshot unchanged); cannot claim while denied; claimable after undeny
 - _New allocations (created while denied)_: Start with frozen baseline; only earn rewards after undeny
 - _POI presentation_: Indexers should continue presenting POIs to prevent staleness (returns 0 but maintains allocation health)
 
@@ -146,7 +146,7 @@ Conditions checked in order (first match wins):
 
 - **Trigger**: `isDenied(subgraphDeploymentId)` at POI presentation
 - **Effect**: Cannot claim while denied
-- **Handling**: **Deferred** (returns 0, no snapshot update, pre-denial rewards preserved)
+- **Handling**: **Deferred** (returns 0, no snapshot update, uncollected rewards preserved)
 
 #### CLOSE_ALLOCATION
 
