@@ -202,6 +202,36 @@ describe('IndexingSignal', () => {
       expect(storedSet[2]).to.equal(indexers[2])
     })
 
+    it('should populate agreement escrows when indexer set is registered', async () => {
+      const freshSys = await deployIndexingSignalSystem()
+      const { indexingSignal, graphToken, graphTokenHelper, accounts, addresses } = freshSys
+      const amount = ethersLib.parseEther('900') // divisible by 3
+
+      // Deposit
+      await graphTokenHelper.mint(accounts.user.address, amount)
+      await (graphToken as any).connect(accounts.user).approve(addresses.indexingSignal, amount)
+      await (indexingSignal as any).connect(accounts.user).deposit(SUBGRAPH_IDS.SUBGRAPH_A, amount, 3)
+
+      const signers = await ethers.getSigners()
+      const indexers = [signers[10].address, signers[11].address, signers[12].address]
+
+      // Before setting indexer set, agreement escrows should have 0 signal
+      const escrowBefore = await indexingSignal.getAgreementEscrow(SUBGRAPH_IDS.SUBGRAPH_A, indexers[0])
+      expect(escrowBefore.signal).to.equal(0n)
+
+      // Register indexer set
+      await (indexingSignal as any)
+        .connect(accounts.operator)
+        .setDepositorIndexerSet(accounts.user.address, SUBGRAPH_IDS.SUBGRAPH_A, indexers)
+
+      // After setting, each indexer's agreement escrow should have signal = 900/3 = 300
+      const expectedSignal = amount / 3n
+      for (const indexer of indexers) {
+        const escrow = await indexingSignal.getAgreementEscrow(SUBGRAPH_IDS.SUBGRAPH_A, indexer)
+        expect(escrow.signal).to.equal(expectedSignal)
+      }
+    })
+
     it('should reject indexer set with wrong size', async () => {
       const freshSys = await deployIndexingSignalSystem()
       const { indexingSignal, graphToken, graphTokenHelper, accounts, addresses } = freshSys
@@ -268,7 +298,6 @@ describe('IndexingSignal', () => {
 
       // Check virtual balance is non-zero
       const virtualBalance = await indexingSignal.getVirtualBalance(
-        accounts.user.address,
         SUBGRAPH_IDS.SUBGRAPH_A,
         indexers[0],
       )
@@ -278,7 +307,7 @@ describe('IndexingSignal', () => {
       const callerBalanceBefore = await graphToken.balanceOf(accounts.nonGovernor.address)
       const tx = await (indexingSignal as any)
         .connect(accounts.nonGovernor)
-        .collect(accounts.user.address, SUBGRAPH_IDS.SUBGRAPH_A, indexers[0], 0)
+        ['collect(bytes32,address,uint256)'](SUBGRAPH_IDS.SUBGRAPH_A, indexers[0], 0)
       const receipt = await tx.wait()
 
       // Verify GRT was minted to caller
@@ -289,7 +318,7 @@ describe('IndexingSignal', () => {
       // Verify event emitted
       await expect(tx)
         .to.emit(indexingSignal, 'IssuanceCollected')
-        .withArgs(accounts.user.address, SUBGRAPH_IDS.SUBGRAPH_A, indexers[0], collected)
+        .withArgs(SUBGRAPH_IDS.SUBGRAPH_A, indexers[0], collected)
     })
 
     it('should independently track per-indexer collections', async () => {
@@ -315,11 +344,10 @@ describe('IndexingSignal', () => {
       // Collect for indexer 0
       await (indexingSignal as any)
         .connect(accounts.nonGovernor)
-        .collect(accounts.user.address, SUBGRAPH_IDS.SUBGRAPH_A, indexers[0], 0)
+        ['collect(bytes32,address,uint256)'](SUBGRAPH_IDS.SUBGRAPH_A, indexers[0], 0)
 
       // After collecting for indexer 0, their virtual balance should be 0
       const balance0After = await indexingSignal.getVirtualBalance(
-        accounts.user.address,
         SUBGRAPH_IDS.SUBGRAPH_A,
         indexers[0],
       )
@@ -327,7 +355,6 @@ describe('IndexingSignal', () => {
 
       // But indexer 1 should still have uncollected balance
       const balance1After = await indexingSignal.getVirtualBalance(
-        accounts.user.address,
         SUBGRAPH_IDS.SUBGRAPH_A,
         indexers[1],
       )
@@ -353,7 +380,6 @@ describe('IndexingSignal', () => {
 
       // Get available balance
       const available = await indexingSignal.getVirtualBalance(
-        accounts.user.address,
         SUBGRAPH_IDS.SUBGRAPH_A,
         indexers[0],
       )
@@ -364,14 +390,13 @@ describe('IndexingSignal', () => {
       const balanceBefore = await graphToken.balanceOf(accounts.nonGovernor.address)
       await (indexingSignal as any)
         .connect(accounts.nonGovernor)
-        .collect(accounts.user.address, SUBGRAPH_IDS.SUBGRAPH_A, indexers[0], halfAmount)
+        ['collect(bytes32,address,uint256)'](SUBGRAPH_IDS.SUBGRAPH_A, indexers[0], halfAmount)
       const balanceAfter = await graphToken.balanceOf(accounts.nonGovernor.address)
 
       expect(balanceAfter - balanceBefore).to.equal(halfAmount)
 
       // Remaining virtual balance should be approximately half
       const remaining = await indexingSignal.getVirtualBalance(
-        accounts.user.address,
         SUBGRAPH_IDS.SUBGRAPH_A,
         indexers[0],
       )
@@ -379,7 +404,7 @@ describe('IndexingSignal', () => {
       expect(remaining).to.be.greaterThan(0n)
     })
 
-    it('should reject collect for indexer not in set', async () => {
+    it('should return zero when collecting for indexer with no agreement escrow', async () => {
       const freshSys = await deployIndexingSignalSystem()
       const { indexingSignal, graphToken, graphTokenHelper, accounts, addresses } = freshSys
       const depositAmount = ethersLib.parseEther('1000')
@@ -394,15 +419,20 @@ describe('IndexingSignal', () => {
         .connect(accounts.operator)
         .setDepositorIndexerSet(accounts.user.address, SUBGRAPH_IDS.SUBGRAPH_A, indexers)
 
+      await mineBlocks(10)
+
+      // Collect for an indexer NOT in the set — should succeed but return 0
       const notInSet = signers[15].address
-      await expect(
-        (indexingSignal as any)
-          .connect(accounts.nonGovernor)
-          .collect(accounts.user.address, SUBGRAPH_IDS.SUBGRAPH_A, notInSet, 0),
-      ).to.be.revertedWithCustomError(indexingSignal, 'IndexerNotInSet')
+      const balanceBefore = await graphToken.balanceOf(accounts.nonGovernor.address)
+      await (indexingSignal as any)
+        .connect(accounts.nonGovernor)
+        ['collect(bytes32,address,uint256)'](SUBGRAPH_IDS.SUBGRAPH_A, notInSet, 0)
+      const balanceAfter = await graphToken.balanceOf(accounts.nonGovernor.address)
+
+      expect(balanceAfter - balanceBefore).to.equal(0n)
     })
 
-    it('should reject collect when indexer set is empty', async () => {
+    it('should return zero when no indexer set is registered', async () => {
       const freshSys = await deployIndexingSignalSystem()
       const { indexingSignal, graphToken, graphTokenHelper, accounts, addresses } = freshSys
       const depositAmount = ethersLib.parseEther('1000')
@@ -411,13 +441,15 @@ describe('IndexingSignal', () => {
       await (graphToken as any).connect(accounts.user).approve(addresses.indexingSignal, depositAmount)
       await (indexingSignal as any).connect(accounts.user).deposit(SUBGRAPH_IDS.SUBGRAPH_A, depositAmount, 3)
 
-      // No indexer set registered — should fail
+      // No indexer set registered — collect should succeed but return 0
       const signers = await ethers.getSigners()
-      await expect(
-        (indexingSignal as any)
-          .connect(accounts.nonGovernor)
-          .collect(accounts.user.address, SUBGRAPH_IDS.SUBGRAPH_A, signers[10].address, 0),
-      ).to.be.revertedWithCustomError(indexingSignal, 'IndexerSetEmpty')
+      const balanceBefore = await graphToken.balanceOf(accounts.nonGovernor.address)
+      await (indexingSignal as any)
+        .connect(accounts.nonGovernor)
+        ['collect(bytes32,address,uint256)'](SUBGRAPH_IDS.SUBGRAPH_A, signers[10].address, 0)
+      const balanceAfter = await graphToken.balanceOf(accounts.nonGovernor.address)
+
+      expect(balanceAfter - balanceBefore).to.equal(0n)
     })
   })
 
@@ -441,7 +473,6 @@ describe('IndexingSignal', () => {
 
       // Virtual balance should be 0 at the same block (or close to it)
       const balance = await indexingSignal.getVirtualBalance(
-        accounts.user.address,
         SUBGRAPH_IDS.SUBGRAPH_A,
         indexers[0],
       )
@@ -467,7 +498,6 @@ describe('IndexingSignal', () => {
 
       // Check balance before mining
       const balanceBefore = await indexingSignal.getVirtualBalance(
-        accounts.user.address,
         SUBGRAPH_IDS.SUBGRAPH_A,
         indexers[0],
       )
@@ -477,7 +507,6 @@ describe('IndexingSignal', () => {
 
       // Check balance after
       const balanceAfter = await indexingSignal.getVirtualBalance(
-        accounts.user.address,
         SUBGRAPH_IDS.SUBGRAPH_A,
         indexers[0],
       )
@@ -485,7 +514,7 @@ describe('IndexingSignal', () => {
       expect(balanceAfter).to.be.greaterThan(balanceBefore)
     })
 
-    it('should return zero for indexer not in set', async () => {
+    it('should return zero for indexer with no agreement escrow', async () => {
       const freshSys = await deployIndexingSignalSystem()
       const { indexingSignal, graphToken, graphTokenHelper, accounts, addresses } = freshSys
       const depositAmount = ethersLib.parseEther('1000')
@@ -502,10 +531,9 @@ describe('IndexingSignal', () => {
 
       await mineBlocks(10)
 
-      // Check balance for address not in set
+      // Check balance for address not in set — no agreement escrow exists
       const notInSet = signers[15].address
       const balance = await indexingSignal.getVirtualBalance(
-        accounts.user.address,
         SUBGRAPH_IDS.SUBGRAPH_A,
         notInSet,
       )
@@ -531,28 +559,20 @@ describe('IndexingSignal', () => {
 
       // All three indexers should have the same virtual balance
       const balance0 = await indexingSignal.getVirtualBalance(
-        accounts.user.address,
         SUBGRAPH_IDS.SUBGRAPH_A,
         indexers[0],
       )
       const balance1 = await indexingSignal.getVirtualBalance(
-        accounts.user.address,
         SUBGRAPH_IDS.SUBGRAPH_A,
         indexers[1],
       )
       const balance2 = await indexingSignal.getVirtualBalance(
-        accounts.user.address,
         SUBGRAPH_IDS.SUBGRAPH_A,
         indexers[2],
       )
 
       expect(balance0).to.equal(balance1)
       expect(balance1).to.equal(balance2)
-
-      // Verify the three balances are equal (the main point of this test)
-      // getPendingIssuance counts from deposit time, while getVirtualBalance
-      // counts from indexer-set registration (later), so they won't match exactly.
-      // The key assertion is that all three indexers get equal shares.
       expect(balance0).to.be.greaterThan(0n)
     })
   })
@@ -583,7 +603,6 @@ describe('IndexingSignal', () => {
 
       // Check balance exists
       const balanceBefore = await indexingSignal.getVirtualBalance(
-        accounts.user.address,
         SUBGRAPH_IDS.SUBGRAPH_A,
         indexers[0],
       )
@@ -592,7 +611,7 @@ describe('IndexingSignal', () => {
       // Cancel RCA for indexer 0
       const tx = await (indexingSignal as any)
         .connect(accounts.nonGovernor)
-        .onRCACancelled(accounts.user.address, SUBGRAPH_IDS.SUBGRAPH_A, indexers[0])
+        .onRCACancelled(SUBGRAPH_IDS.SUBGRAPH_A, indexers[0])
 
       await expect(tx).to.emit(indexingSignal, 'IssuanceSettled')
 
@@ -602,7 +621,6 @@ describe('IndexingSignal', () => {
 
       // Virtual balance should be zero after cancellation
       const balanceAfter = await indexingSignal.getVirtualBalance(
-        accounts.user.address,
         SUBGRAPH_IDS.SUBGRAPH_A,
         indexers[0],
       )
@@ -610,7 +628,6 @@ describe('IndexingSignal', () => {
 
       // Other indexers should still have balances
       const balance1 = await indexingSignal.getVirtualBalance(
-        accounts.user.address,
         SUBGRAPH_IDS.SUBGRAPH_A,
         indexers[1],
       )
@@ -728,22 +745,33 @@ describe('IndexingSignal', () => {
       expect(delta).to.be.greaterThan(0n)
     })
 
-    it('should report pending issuance correctly', async () => {
+    it('should track agreement escrow state correctly', async () => {
       const freshSys = await deployIndexingSignalSystem()
       const { indexingSignal, graphToken, graphTokenHelper, accounts, addresses } = freshSys
-      const depositAmount = ethersLib.parseEther('1000')
+      const depositAmount = ethersLib.parseEther('900') // divisible by 3
 
       await graphTokenHelper.mint(accounts.user.address, depositAmount)
       await (graphToken as any).connect(accounts.user).approve(addresses.indexingSignal, depositAmount)
       await (indexingSignal as any).connect(accounts.user).deposit(SUBGRAPH_IDS.SUBGRAPH_A, depositAmount, 3)
 
+      const signers = await ethers.getSigners()
+      const indexers = [signers[10].address, signers[11].address, signers[12].address]
+      await (indexingSignal as any)
+        .connect(accounts.operator)
+        .setDepositorIndexerSet(accounts.user.address, SUBGRAPH_IDS.SUBGRAPH_A, indexers)
+
       await mineBlocks(10)
 
-      const pending = await indexingSignal.getPendingIssuance(accounts.user.address, SUBGRAPH_IDS.SUBGRAPH_A)
+      // Check agreement escrow for indexer 0
+      const escrow = await indexingSignal.getAgreementEscrow(SUBGRAPH_IDS.SUBGRAPH_A, indexers[0])
+      expect(escrow.signal).to.equal(depositAmount / 3n) // 300 GRT effective signal per indexer
 
-      // Should be approximately: 100 GRT/block * ~10 blocks * (1000/1000) = ~1000 GRT
-      // (total signal = 1000, deposit = 1000, so depositor gets 100%)
-      expect(pending).to.be.greaterThan(0n)
+      // Virtual balance should match the computed issuance from the escrow
+      const virtualBalance = await indexingSignal.getVirtualBalance(
+        SUBGRAPH_IDS.SUBGRAPH_A,
+        indexers[0],
+      )
+      expect(virtualBalance).to.be.greaterThan(0n)
     })
   })
 })
