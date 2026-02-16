@@ -713,6 +713,131 @@ describe('IndexingSignal', () => {
     })
   })
 
+  // -- Bug: deposit() re-deposit corrupts state --
+
+  describe('deposit() re-deposit guard', () => {
+    it('should reject deposit when position already exists', async () => {
+      const freshSys = await deployIndexingSignalSystem()
+      const { indexingSignal, graphToken, graphTokenHelper, accounts, addresses } = freshSys
+      const amount = ethersLib.parseEther('1000')
+
+      // First deposit
+      await graphTokenHelper.mint(accounts.user.address, amount * 2n)
+      await (graphToken as any).connect(accounts.user).approve(addresses.indexingSignal, amount * 2n)
+      await (indexingSignal as any).connect(accounts.user).deposit(SUBGRAPH_IDS.SUBGRAPH_A, amount, 3)
+
+      // Second deposit to same subgraph should revert
+      await expect(
+        (indexingSignal as any).connect(accounts.user).deposit(SUBGRAPH_IDS.SUBGRAPH_A, amount, 3),
+      ).to.be.revertedWithCustomError(indexingSignal, 'ExistingPosition')
+    })
+
+    it('should not corrupt totals on re-deposit', async () => {
+      const freshSys = await deployIndexingSignalSystem()
+      const { indexingSignal, graphToken, graphTokenHelper, accounts, addresses } = freshSys
+      const firstAmount = ethersLib.parseEther('1000')
+      const secondAmount = ethersLib.parseEther('500')
+
+      await graphTokenHelper.mint(accounts.user.address, firstAmount + secondAmount)
+      await (graphToken as any).connect(accounts.user).approve(addresses.indexingSignal, firstAmount + secondAmount)
+
+      // First deposit
+      await (indexingSignal as any).connect(accounts.user).deposit(SUBGRAPH_IDS.SUBGRAPH_A, firstAmount, 3)
+
+      // Verify totals after first deposit
+      expect(await indexingSignal.getTotalSignal()).to.equal(firstAmount)
+      expect(await indexingSignal.getSubgraphSignal(SUBGRAPH_IDS.SUBGRAPH_A)).to.equal(firstAmount)
+
+      // Attempt second deposit — should revert, so totals stay correct
+      await expect(
+        (indexingSignal as any).connect(accounts.user).deposit(SUBGRAPH_IDS.SUBGRAPH_A, secondAmount, 3),
+      ).to.be.revertedWithCustomError(indexingSignal, 'ExistingPosition')
+
+      // Totals must still reflect only the first deposit
+      expect(await indexingSignal.getTotalSignal()).to.equal(firstAmount)
+      expect(await indexingSignal.getSubgraphSignal(SUBGRAPH_IDS.SUBGRAPH_A)).to.equal(firstAmount)
+    })
+  })
+
+  // -- Bug: rounding underflow in addSignal/withdraw --
+
+  describe('rounding safety in addSignal/withdraw', () => {
+    it('should allow full withdrawal after multiple small addSignal calls', async () => {
+      const freshSys = await deployIndexingSignalSystem()
+      const { indexingSignal, graphToken, graphTokenHelper, accounts, addresses } = freshSys
+
+      // Deposit 1 wei with indexerCount = 3
+      const initialDeposit = 1n
+      const totalMint = ethersLib.parseEther('1') // plenty for fees
+      await graphTokenHelper.mint(accounts.user.address, totalMint)
+      await (graphToken as any).connect(accounts.user).approve(addresses.indexingSignal, totalMint)
+
+      // Grant privileged status to bypass minimum indexer count (need count=3 but small amounts)
+      await (indexingSignal as any).connect(accounts.governor).setPrivilegedSignaler(accounts.user.address, true)
+      await (indexingSignal as any).connect(accounts.user).deposit(SUBGRAPH_IDS.SUBGRAPH_A, initialDeposit, 3)
+
+      // Set up indexer set
+      const signers = await ethers.getSigners()
+      const indexers = [signers[10].address, signers[11].address, signers[12].address]
+      await (indexingSignal as any)
+        .connect(accounts.operator)
+        .setDepositorIndexerSet(accounts.user.address, SUBGRAPH_IDS.SUBGRAPH_A, indexers)
+
+      // Each indexer has floor(1/3) = 0 signal
+
+      // Add 1 wei twice — each addition: floor(1/3) = 0, so escrow signal stays 0
+      await (indexingSignal as any).connect(accounts.user).addSignal(SUBGRAPH_IDS.SUBGRAPH_A, 1n)
+      await (indexingSignal as any).connect(accounts.user).addSignal(SUBGRAPH_IDS.SUBGRAPH_A, 1n)
+
+      // pos.tokens is now 3. floor(3/3) = 1 per indexer for withdrawal.
+      // But escrow signal is 0 for each indexer. 0 - 1 = underflow!
+      // This should NOT revert — the contract must handle rounding correctly.
+      await (indexingSignal as any).connect(accounts.user).withdraw(SUBGRAPH_IDS.SUBGRAPH_A, 3n)
+
+      // Position should be empty
+      const position = await indexingSignal.getDepositorPosition(accounts.user.address, SUBGRAPH_IDS.SUBGRAPH_A)
+      expect(position.tokens).to.equal(0n)
+
+      // Agreement escrows should have 0 signal (no negative values)
+      for (const indexer of indexers) {
+        const escrow = await indexingSignal.getAgreementEscrow(SUBGRAPH_IDS.SUBGRAPH_A, indexer)
+        expect(escrow.signal).to.equal(0n)
+      }
+    })
+
+    it('should maintain consistent escrow signal across add/withdraw cycles', async () => {
+      const freshSys = await deployIndexingSignalSystem()
+      const { indexingSignal, graphToken, graphTokenHelper, accounts, addresses } = freshSys
+
+      // Use amounts that don't divide evenly by 3
+      const initialDeposit = ethersLib.parseEther('100')
+      const addAmount = ethersLib.parseEther('1') // 1e18 / 3 has remainder
+      await graphTokenHelper.mint(accounts.user.address, initialDeposit + addAmount * 5n)
+      await (graphToken as any).connect(accounts.user).approve(addresses.indexingSignal, initialDeposit + addAmount * 5n)
+
+      await (indexingSignal as any).connect(accounts.user).deposit(SUBGRAPH_IDS.SUBGRAPH_A, initialDeposit, 3)
+
+      const signers = await ethers.getSigners()
+      const indexers = [signers[10].address, signers[11].address, signers[12].address]
+      await (indexingSignal as any)
+        .connect(accounts.operator)
+        .setDepositorIndexerSet(accounts.user.address, SUBGRAPH_IDS.SUBGRAPH_A, indexers)
+
+      // Add signal 5 times
+      for (let i = 0; i < 5; i++) {
+        await (indexingSignal as any).connect(accounts.user).addSignal(SUBGRAPH_IDS.SUBGRAPH_A, addAmount)
+      }
+
+      // Total position is 100 + 5 = 105 ETH. Expected signal per indexer: floor(105e18 / 3) = 35e18
+      const expectedSignal = (initialDeposit + addAmount * 5n) / 3n
+
+      // Each indexer's escrow signal should match what setDepositorIndexerSet would compute
+      // from the full position — i.e. no rounding drift from incremental adds
+      const escrow = await indexingSignal.getAgreementEscrow(SUBGRAPH_IDS.SUBGRAPH_A, indexers[0])
+      expect(escrow.signal).to.equal(expectedSignal)
+    })
+  })
+
   // -- Issuance Accumulator Tests --
 
   describe('issuance accumulation', () => {
