@@ -59,6 +59,17 @@ export async function deployMockRewardsManager() {
 }
 
 /**
+ * Deploy a MockGraphPayments
+ */
+export async function deployMockGraphPayments(graphTokenAddress: string) {
+  const ethers = await getEthers()
+  const Factory = await ethers.getContractFactory('MockGraphPayments')
+  const mock = await Factory.deploy(graphTokenAddress)
+  await mock.waitForDeployment()
+  return mock
+}
+
+/**
  * Deploy the IndexingSignal contract with proxy
  */
 export async function deployIndexingSignal(
@@ -107,14 +118,18 @@ export interface IndexingSignalSystem {
   graphToken: any
   graphTokenHelper: GraphTokenHelper
   mockRewardsManager: any
+  mockGraphPayments: any | null
   indexingSignal: any
   curationAddress: string
+  escrowRouterSigner: any
   accounts: TestAccounts
   addresses: {
     graphToken: string
     mockRewardsManager: string
     indexingSignal: string
     curation: string
+    escrowRouter: string
+    graphPayments: string
   }
 }
 
@@ -124,6 +139,7 @@ export interface IndexingSignalSystem {
 export async function deployIndexingSignalSystem(
   minimumIndexerCount = 3,
   issuancePerBlock = DEFAULT_ISSUANCE_PER_BLOCK,
+  { withMockGraphPayments = false } = {},
 ): Promise<IndexingSignalSystem> {
   const accounts = await getTestAccounts()
   const { governor } = accounts
@@ -139,17 +155,24 @@ export async function deployIndexingSignalSystem(
   await (mockRewardsManager as any).setAllocatedIssuancePerBlock(issuancePerBlock)
 
   // Use a dedicated signer address as "curation" — just needs to hold GRT
-  // We use a deterministic address; any EOA can be the curation contract for testing
   const ethers = await getEthers()
   const signers = await ethers.getSigners()
-  const curationSigner = signers[8] // Use signer index 8 to avoid conflict with test accounts
+  const curationSigner = signers[8]
   const curationAddress = curationSigner.address
 
-  // Use dedicated signer addresses as mock escrow router and graph payments
+  // EscrowRouter is always a signer (tests impersonate it for escrow collect calls)
   const escrowRouterSigner = signers[9]
-  const graphPaymentsSigner = signers[10]
   const escrowRouterAddress = escrowRouterSigner.address
-  const graphPaymentsAddress = graphPaymentsSigner.address
+
+  // GraphPayments: deploy mock contract if requested, otherwise use EOA signer
+  let graphPaymentsAddress: string
+  let mockGraphPayments: any | null = null
+  if (withMockGraphPayments) {
+    mockGraphPayments = await deployMockGraphPayments(graphTokenAddress)
+    graphPaymentsAddress = await mockGraphPayments.getAddress()
+  } else {
+    graphPaymentsAddress = signers[10].address
+  }
 
   // Deploy IndexingSignal
   const indexingSignal = await deployIndexingSignal(
@@ -173,14 +196,18 @@ export async function deployIndexingSignalSystem(
     graphToken,
     graphTokenHelper,
     mockRewardsManager,
+    mockGraphPayments,
     indexingSignal,
     curationAddress,
+    escrowRouterSigner,
     accounts,
     addresses: {
       graphToken: graphTokenAddress,
       mockRewardsManager: rewardsManagerAddress,
       indexingSignal: indexingSignalAddress,
       curation: curationAddress,
+      escrowRouter: escrowRouterAddress,
+      graphPayments: graphPaymentsAddress,
     },
   }
 }

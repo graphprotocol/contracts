@@ -62,4 +62,4 @@ Moved to Resolved.
 
 ### ~~3. IS mints to msg.sender, skips GraphPayments distribution~~
 
-**Resolved**: IS now has two collect paths: (1) direct `IIndexingSignal.collect()` mints to msg.sender (existing), (2) `IPaymentsEscrow.collect()` with collectionContext — guarded by `msg.sender == ESCROW_ROUTER`, mints to self, approves GraphPayments, calls `GRAPH_PAYMENTS.collect()` for standard distribution (protocol tax, data service cut, delegation).
+**Resolved**: Direct `IIndexingSignal.collect()` removed. Only collection path is `IPaymentsEscrow.collect()` with collectionContext — guarded by `msg.sender == ESCROW_ROUTER`, mints to self, approves GraphPayments, calls `GRAPH_PAYMENTS.collect()` for standard distribution (protocol tax, data service cut, delegation).
