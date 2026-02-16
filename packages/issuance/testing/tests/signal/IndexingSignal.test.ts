@@ -307,7 +307,7 @@ describe('IndexingSignal', () => {
       const callerBalanceBefore = await graphToken.balanceOf(accounts.nonGovernor.address)
       const tx = await (indexingSignal as any)
         .connect(accounts.nonGovernor)
-        ['collect(bytes32,address,uint256)'](SUBGRAPH_IDS.SUBGRAPH_A, indexers[0], 0)
+        .collectTest(SUBGRAPH_IDS.SUBGRAPH_A, indexers[0], 0)
       const receipt = await tx.wait()
 
       // Verify GRT was minted to caller
@@ -344,7 +344,7 @@ describe('IndexingSignal', () => {
       // Collect for indexer 0
       await (indexingSignal as any)
         .connect(accounts.nonGovernor)
-        ['collect(bytes32,address,uint256)'](SUBGRAPH_IDS.SUBGRAPH_A, indexers[0], 0)
+        .collectTest(SUBGRAPH_IDS.SUBGRAPH_A, indexers[0], 0)
 
       // After collecting for indexer 0, their virtual balance should be 0
       const balance0After = await indexingSignal.getVirtualBalance(
@@ -390,7 +390,7 @@ describe('IndexingSignal', () => {
       const balanceBefore = await graphToken.balanceOf(accounts.nonGovernor.address)
       await (indexingSignal as any)
         .connect(accounts.nonGovernor)
-        ['collect(bytes32,address,uint256)'](SUBGRAPH_IDS.SUBGRAPH_A, indexers[0], halfAmount)
+        .collectTest(SUBGRAPH_IDS.SUBGRAPH_A, indexers[0], halfAmount)
       const balanceAfter = await graphToken.balanceOf(accounts.nonGovernor.address)
 
       expect(balanceAfter - balanceBefore).to.equal(halfAmount)
@@ -426,7 +426,7 @@ describe('IndexingSignal', () => {
       const balanceBefore = await graphToken.balanceOf(accounts.nonGovernor.address)
       await (indexingSignal as any)
         .connect(accounts.nonGovernor)
-        ['collect(bytes32,address,uint256)'](SUBGRAPH_IDS.SUBGRAPH_A, notInSet, 0)
+        .collectTest(SUBGRAPH_IDS.SUBGRAPH_A, notInSet, 0)
       const balanceAfter = await graphToken.balanceOf(accounts.nonGovernor.address)
 
       expect(balanceAfter - balanceBefore).to.equal(0n)
@@ -446,7 +446,7 @@ describe('IndexingSignal', () => {
       const balanceBefore = await graphToken.balanceOf(accounts.nonGovernor.address)
       await (indexingSignal as any)
         .connect(accounts.nonGovernor)
-        ['collect(bytes32,address,uint256)'](SUBGRAPH_IDS.SUBGRAPH_A, signers[10].address, 0)
+        .collectTest(SUBGRAPH_IDS.SUBGRAPH_A, signers[10].address, 0)
       const balanceAfter = await graphToken.balanceOf(accounts.nonGovernor.address)
 
       expect(balanceAfter - balanceBefore).to.equal(0n)
@@ -608,9 +608,9 @@ describe('IndexingSignal', () => {
       )
       expect(balanceBefore).to.be.greaterThan(0n)
 
-      // Cancel RCA for indexer 0
+      // Cancel RCA for indexer 0 (operator has INDEXER_SET_OPERATOR_ROLE)
       const tx = await (indexingSignal as any)
-        .connect(accounts.nonGovernor)
+        .connect(accounts.operator)
         .onRCACancelled(SUBGRAPH_IDS.SUBGRAPH_A, indexers[0])
 
       await expect(tx).to.emit(indexingSignal, 'IssuanceSettled')

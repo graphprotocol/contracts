@@ -309,21 +309,6 @@ interface IIndexingSignal {
     // -- Collection (Virtual Escrow) --
 
     /**
-     * @notice Collect issuance for a (subgraph, indexer) agreement
-     * @dev Computes accumulated virtual balance from the agreement escrow.
-     * Mints GRT up to the requested amount and transfers to the caller for distribution.
-     * @param subgraphDeploymentID The subgraph deployment
-     * @param indexer The indexer (receiver)
-     * @param amount Maximum amount to collect (0 = collect all available)
-     * @return collectedTokens Amount of GRT minted and transferred
-     */
-    function collect(
-        bytes32 subgraphDeploymentID,
-        address indexer,
-        uint256 amount
-    ) external returns (uint256 collectedTokens);
-
-    /**
      * @notice Settle uncollected issuance when an RCA is cancelled
      * @dev Snapshots accrued issuance and zeroes it out, making it uncollectable.
      * Signal remains in the escrow for new agreement assignments.
