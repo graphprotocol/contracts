@@ -420,7 +420,7 @@ contract RewardsManager is
      * When multiple conditions apply, prefers conditions with configured reclaim addresses.
      * @param _subgraphDeploymentID Subgraph deployment
      * @return newRewards Rewards accumulated since last snapshot
-     * @return subgraphAllocatedTokens Total tokens allocated (0 if condition is not NONE)
+     * @return subgraphAllocatedTokens Total tokens allocated to this subgraph
      * @return condition The effective condition for reclaim routing (NONE if claimable)
      */
     function _getSubgraphRewardsState(
@@ -534,7 +534,7 @@ contract RewardsManager is
         subgraph.accRewardsForSubgraphSnapshot = newAccRewardsForSubgraph;
 
         newAccRewardsPerAllocatedToken = accRewardsPerAllocatedToken;
-        if (undistributedRewards != 0 && subgraphAllocatedTokens != 0) {
+        if (undistributedRewards != 0) {
             newAccRewardsPerAllocatedToken = accRewardsPerAllocatedToken.add(
                 undistributedRewards.mul(FIXED_POINT_SCALING_FACTOR).div(subgraphAllocatedTokens)
             );
