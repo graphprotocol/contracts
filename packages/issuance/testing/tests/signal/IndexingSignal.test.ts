@@ -633,6 +633,17 @@ describe('IndexingSignal', () => {
       )
       expect(balance1).to.be.greaterThan(0n)
     })
+
+    it('should reject unauthorized callers', async () => {
+      const freshSys = await deployIndexingSignalSystem()
+      const { indexingSignal, accounts } = freshSys
+
+      await expect(
+        (indexingSignal as any)
+          .connect(accounts.nonGovernor)
+          .onRCACancelled(SUBGRAPH_IDS.SUBGRAPH_A, accounts.user.address),
+      ).to.be.revertedWithCustomError(indexingSignal, 'AccessControlUnauthorizedAccount')
+    })
   })
 
   // -- Indexer Count Tests --
