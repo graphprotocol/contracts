@@ -54,7 +54,7 @@ Moved to Resolved.
 
 ### ~~7. RCA creation is not automatic~~
 
-**Resolved**: Contract approver support implemented. `IContractApprover` interface + `Authorizable` code.length branch + `RC.acceptFromContract()` + `SS.acceptIndexingAgreementFromContract()`. IS implements `IContractApprover` with `prepareAgreement()` / `isAuthorizedAgreement()`. Operator prepares agreement hashes, indexer accepts without ECDSA. EOA/Dipper path unchanged. See [ContractAuthorization.md](./ContractAuthorization.md).
+**Resolved**: Contract approver support implemented. `IContractApprover` (single `isAuthorizedAgreement` callback) + `RC.acceptFromContract()` + `SS.acceptIndexingAgreementFromContract()`. IS implements `IContractApprover` with `prepareAgreement()` / `isAuthorizedAgreement()`. Authorizable unchanged — contract approver path bypasses it entirely. Operator prepares agreement hashes, indexer accepts without ECDSA. EOA/Dipper path unchanged. See [ContractAuthorization.md](./ContractAuthorization.md).
 
 ### ~~2. collect() signature mismatch → escrow key mapping~~
 
