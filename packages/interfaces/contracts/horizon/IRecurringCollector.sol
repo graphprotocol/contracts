@@ -286,6 +286,12 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
     error RecurringCollectorInvalidSigner();
 
     /**
+     * @notice Thrown when the contract approver is not a contract
+     * @param approver The address that was expected to be a contract
+     */
+    error RecurringCollectorApproverNotContract(address approver);
+
+    /**
      * @notice Thrown when the payment type is not IndexingFee
      * @param invalidPaymentType The invalid payment type
      */
@@ -484,6 +490,20 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
     function accept(
         RecurringCollectionAgreement calldata rca,
         bytes calldata signature
+    ) external returns (bytes16 agreementId);
+
+    /**
+     * @notice Accept an RCA where the approver is an authorized contract (no ECDSA signature needed).
+     * @dev The contract approver must be authorized by the payer via {IAuthorizable.authorizeSigner}
+     * and must confirm the agreement via {IContractApprover.isAuthorizedAgreement}.
+     * Caller must be the data service the RCA was issued to.
+     * @param rca The Recurring Collection Agreement to accept
+     * @param contractApprover The address of the contract that authorized this agreement
+     * @return agreementId The deterministically generated agreement ID
+     */
+    function acceptFromContract(
+        RecurringCollectionAgreement calldata rca,
+        address contractApprover
     ) external returns (bytes16 agreementId);
 
     /**

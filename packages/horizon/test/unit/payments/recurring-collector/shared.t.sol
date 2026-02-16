@@ -238,7 +238,7 @@ contract RecurringCollectorSharedTest is Test, Bounder {
         );
 
         bytes memory data = _generateCollectData(
-            _generateCollectParams(_rca, agreementId, _fuzzyParams.collectionId, tokens, _fuzzyParams.dataServiceCut)
+            _generateCollectParams(_rca, agreementId, _fuzzyParams, tokens)
         );
 
         return (data, collectionSeconds, tokens);
@@ -247,19 +247,18 @@ contract RecurringCollectorSharedTest is Test, Bounder {
     function _generateCollectParams(
         IRecurringCollector.RecurringCollectionAgreement memory _rca,
         bytes16 _agreementId,
-        bytes32 _collectionId,
-        uint256 _tokens,
-        uint256 _dataServiceCut
+        IRecurringCollector.CollectParams memory _fuzzyParams,
+        uint256 _tokens
     ) internal pure returns (IRecurringCollector.CollectParams memory) {
         return
             IRecurringCollector.CollectParams({
                 agreementId: _agreementId,
-                collectionId: _collectionId,
+                collectionId: _fuzzyParams.collectionId,
                 tokens: _tokens,
-                dataServiceCut: _dataServiceCut,
+                dataServiceCut: _fuzzyParams.dataServiceCut,
                 receiverDestination: _rca.serviceProvider,
                 maxSlippage: type(uint256).max,
-                collectionContext: bytes32(0)
+                collectionContext: _fuzzyParams.collectionContext
             });
     }
 

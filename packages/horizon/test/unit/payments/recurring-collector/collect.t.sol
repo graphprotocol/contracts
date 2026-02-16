@@ -118,9 +118,8 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         IRecurringCollector.CollectParams memory collectParams = _generateCollectParams(
             acceptedRca,
             agreementId,
-            collectData.collectionId,
-            collectData.tokens,
-            collectData.dataServiceCut
+            collectData,
+            collectData.tokens
         );
         bytes memory data = _generateCollectData(collectParams);
 
@@ -164,9 +163,8 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         IRecurringCollector.CollectParams memory collectParams = _generateCollectParams(
             acceptedRca,
             agreementId,
-            fuzzy.collectParams.collectionId,
-            bound(fuzzy.collectParams.tokens, 1, type(uint256).max),
-            fuzzy.collectParams.dataServiceCut
+            fuzzy.collectParams,
+            bound(fuzzy.collectParams.tokens, 1, type(uint256).max)
         );
         data = _generateCollectData(collectParams);
         bytes memory expectedErr = abi.encodeWithSelector(
@@ -295,9 +293,8 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         IRecurringCollector.CollectParams memory collectParams = _generateCollectParams(
             acceptedRca,
             agreementId,
-            fuzzy.collectParams.collectionId,
-            tokens,
-            fuzzy.collectParams.dataServiceCut
+            fuzzy.collectParams,
+            tokens
         );
         bytes memory data = _generateCollectData(collectParams);
         vm.prank(acceptedRca.dataService);

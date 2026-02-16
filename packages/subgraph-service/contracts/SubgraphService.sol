@@ -415,6 +415,42 @@ contract SubgraphService is
 
     /**
      * @inheritdoc ISubgraphService
+     * @notice Accept an indexing agreement where the approver is a contract.
+     *
+     * See {IndexingAgreement.acceptFromContract}.
+     *
+     * Requirements:
+     * - The contract must not be paused
+     * - The indexer must be registered and have a valid provision
+     * - The caller must be the indexer or an authorized operator
+     *
+     * @param allocationId The id of the allocation
+     * @param rca The Recurring Collection Agreement
+     * @param contractApprover The address of the contract that authorized this agreement
+     * @return agreementId The ID of the accepted indexing agreement
+     */
+    function acceptIndexingAgreementFromContract(
+        address allocationId,
+        IRecurringCollector.RecurringCollectionAgreement calldata rca,
+        address contractApprover
+    )
+        external
+        whenNotPaused
+        onlyAuthorizedForProvision(rca.serviceProvider)
+        onlyValidProvision(rca.serviceProvider)
+        onlyRegisteredIndexer(rca.serviceProvider)
+        returns (bytes16)
+    {
+        return IndexingAgreement._getStorageManager().acceptFromContract(
+            _allocations,
+            allocationId,
+            rca,
+            contractApprover
+        );
+    }
+
+    /**
+     * @inheritdoc ISubgraphService
      * @notice Update an indexing agreement.
      *
      * See {IndexingAgreement.update}.

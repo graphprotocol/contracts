@@ -43,11 +43,11 @@ This isn't a security requirement. It's an implementation choice: ECDSA was simp
 
 For IS specifically: the contract's authorization logic would be governed (only callers with appropriate roles can trigger agreement creation). The authorization chain is: governance grants role → role holder calls IS → IS creates RCA → RC accepts. Every step is on-chain and auditable.
 
-## Proposed Change: Contract Signer Support in Authorizable
+## Proposed Change: Contract Approver Support in Authorizable
 
 ### Design
 
-Add a parallel authorization path for contract signers. When the signer is a contract, skip ECDSA proof — instead verify the contract confirms the authorization via a callback.
+Add a parallel authorization path for contract approvers. When the signer is a contract, skip ECDSA proof — instead verify the contract confirms the authorization via a callback.
 
 **Key insight from user**: `isValidSignature` (EIP-1271's name) is misleading here. IS isn't validating a signature — it's confirming it authorized an agreement. The naming should reflect what's actually happening.
 
@@ -55,7 +55,7 @@ Add a parallel authorization path for contract signers. When the signer is a con
 
 ```solidity
 /// @notice Interface for contracts that can act as authorized agreement creators
-interface IContractSigner {
+interface IContractApprover {
     /// @notice Confirms this contract authorized the given signer authorization
     /// @param authorizer The payer authorizing this contract
     /// @return magic bytes4(keccak256("isAuthorizedSigner(address)"))
@@ -70,9 +70,9 @@ function authorizeSigner(address signer, uint256 proofDeadline, bytes calldata p
     require(authorizations[signer].authorizer == address(0), ...);
 
     if (signer.code.length > 0) {
-        // Contract signer: verify via callback
-        bytes4 magic = IContractSigner(signer).isAuthorizedSigner(msg.sender);
-        require(magic == IContractSigner.isAuthorizedSigner.selector, AuthorizableInvalidSignerProof());
+        // Contract approver: verify via callback
+        bytes4 magic = IContractApprover(signer).isAuthorizedSigner(msg.sender);
+        require(magic == IContractApprover.isAuthorizedSigner.selector, AuthorizableInvalidSignerProof());
     } else {
         // EOA signer: verify via ECDSA proof (existing path)
         _verifyAuthorizationProof(proof, proofDeadline, signer);
@@ -94,14 +94,14 @@ function _requireAuthorizedRCASigner(SignedRCA memory _signedRCA) private view r
 
     // If recovered address is a contract, verify via callback instead
     if (signer.code.length > 0) {
-        // For contract signers, the "signature" encodes the contract address
+        // For contract approvers, the "signature" encodes the contract address
         // The contract must confirm it created this agreement
-        address contractSigner = abi.decode(_signedRCA.signature, (address));
+        address contractApprover = abi.decode(_signedRCA.signature, (address));
         require(
-            IContractSigner(contractSigner).isAuthorizedAgreement(messageHash),
+            IContractApprover(contractApprover).isAuthorizedAgreement(messageHash),
             RecurringCollectorInvalidSigner()
         );
-        signer = contractSigner;
+        signer = contractApprover;
     }
 
     require(_isAuthorized(_signedRCA.rca.payer, signer), RecurringCollectorInvalidSigner());
@@ -120,16 +120,16 @@ Instead of overloading the signature field, add a distinct method:
 /// @dev Contract must be authorized via authorizeSigner() and confirm via callback
 function acceptFromContract(
     RecurringCollectionAgreement calldata rca,
-    address contractSigner
+    address contractApprover
 ) external returns (bytes16) {
     require(msg.sender == rca.dataService, ...);
-    require(contractSigner.code.length > 0, ...);
-    require(_isAuthorized(rca.payer, contractSigner), ...);
+    require(contractApprover.code.length > 0, ...);
+    require(_isAuthorized(rca.payer, contractApprover), ...);
 
     // Verify the contract actually created this agreement
     bytes32 agreementHash = _hashRCA(rca);
-    bytes4 magic = IContractSigner(contractSigner).isAuthorizedAgreement(agreementHash);
-    require(magic == IContractSigner.isAuthorizedAgreement.selector, ...);
+    bytes4 magic = IContractApprover(contractApprover).isAuthorizedAgreement(agreementHash);
+    require(magic == IContractApprover.isAuthorizedAgreement.selector, ...);
 
     // Same acceptance logic as accept()
     ...
@@ -158,7 +158,7 @@ if (signer.code.length > 0) {
 
 ## Recommendation
 
-**Option B** (separate `acceptFromContract`) with a custom `IContractSigner` interface.
+**Option B** (separate `acceptFromContract`) with a custom `IContractApprover` interface.
 
 Rationale:
 - Cleanest separation: EOA path unchanged, contract path explicit
@@ -167,10 +167,10 @@ Rationale:
 - Authorization gate in Authorizable uses `isAuthorizedSigner` — clear intent
 - EIP-1271 compatibility can be added later if needed (wrapper that delegates)
 
-### IContractSigner Interface
+### IContractApprover Interface
 
 ```solidity
-interface IContractSigner {
+interface IContractApprover {
     /// @notice Confirms this contract is willing to be authorized as signer for the given authorizer
     function isAuthorizedSigner(address authorizer) external view returns (bytes4);
 
@@ -212,11 +212,11 @@ interface IContractSigner {
 | Component | Change | Impact |
 |-----------|--------|--------|
 | `IAuthorizable` | No change (interface stays the same) | None |
-| `Authorizable` | `authorizeSigner()` checks `code.length`, calls `IContractSigner` for contracts | Additive |
+| `Authorizable` | `authorizeSigner()` checks `code.length`, calls `IContractApprover` for contracts | Additive |
 | `IRecurringCollector` | Add `acceptFromContract()` | Additive |
 | `RecurringCollector` | Implement `acceptFromContract()` sharing logic with `accept()` | Moderate |
-| `IContractSigner` | New interface | New |
-| `IndexingSignal` | Implement `IContractSigner`, add agreement creation logic | Moderate |
+| `IContractApprover` | New interface | New |
+| `IndexingSignal` | Implement `IContractApprover`, add agreement creation logic | Moderate |
 
 Neither RC nor Authorizable are deployed, so no migration concerns.
 

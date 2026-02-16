@@ -34,11 +34,9 @@ Design references `/git/graphprotocol/contracts/indexing-payments/...`. Actual p
 
 **Impact**: Doc-only. Trivial fix.
 
-### 7. RCA creation is not automatic
+### ~~7. RCA creation is not automatic~~
 
-Design says "RCAs auto-created" for depositor-indexer pairs. RecurringCollector requires EIP712-signed `SignedRCA` structs accepted via `accept()`. IS manages indexer sets but doesn't interact with RecurringCollector at all.
-
-**Impact**: Off-chain process needed to sign/offer RCAs. Design doc implies more automation than exists.
+Moved to Resolved.
 
 ## Resolved
 
@@ -56,7 +54,7 @@ Design says "RCAs auto-created" for depositor-indexer pairs. RecurringCollector 
 
 ### ~~7. RCA creation is not automatic~~
 
-**Decision**: Off-chain Dipper/IISA signs RCAs as authorized signer for depositor (via RC's Authorizable). Indexer accepts on-chain via existing SS.acceptIndexingAgreement(). No on-chain RCA automation. "Auto-created" in design doc means Dipper reacts to IS events automatically.
+**Resolved**: Contract approver support implemented. `IContractApprover` interface + `Authorizable` code.length branch + `RC.acceptFromContract()` + `SS.acceptIndexingAgreementFromContract()`. IS implements `IContractApprover` with `prepareAgreement()` / `isAuthorizedAgreement()`. Operator prepares agreement hashes, indexer accepts without ECDSA. EOA/Dipper path unchanged. See [ContractAuthorization.md](./ContractAuthorization.md).
 
 ### ~~2. collect() signature mismatch → escrow key mapping~~
 

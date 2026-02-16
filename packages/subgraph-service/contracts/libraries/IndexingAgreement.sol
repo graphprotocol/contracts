@@ -265,7 +265,7 @@ library IndexingAgreement {
 
     /* solhint-disable function-max-lines */
     /**
-     * @notice Accept an indexing agreement.
+     * @notice Accept an indexing agreement (ECDSA-signed).
      *
      * Requirements:
      * - Allocation must belong to the indexer and be open
@@ -294,58 +294,7 @@ library IndexingAgreement {
         IRecurringCollector.RecurringCollectionAgreement calldata rca,
         bytes calldata authData
     ) external returns (bytes16) {
-        IAllocation.State memory allocation = _requireValidAllocation(allocations, allocationId, rca.serviceProvider);
-
-        require(rca.dataService == address(this), IndexingAgreementWrongDataService(address(this), rca.dataService));
-
-        AcceptIndexingAgreementMetadata memory metadata = IndexingAgreementDecoder.decodeRCAMetadata(rca.metadata);
-
-        bytes16 agreementId = _directory().recurringCollector().generateAgreementId(
-            rca.payer,
-            rca.dataService,
-            rca.serviceProvider,
-            rca.deadline,
-            rca.nonce
-        );
-
-        IIndexingAgreement.State storage agreement = self.agreements[agreementId];
-
-        require(agreement.allocationId == address(0), IndexingAgreementAlreadyAccepted(agreementId));
-
-        require(
-            allocation.subgraphDeploymentId == metadata.subgraphDeploymentId,
-            IndexingAgreementDeploymentIdMismatch(
-                metadata.subgraphDeploymentId,
-                allocationId,
-                allocation.subgraphDeploymentId
-            )
-        );
-
-        // Ensure that an allocation can only have one active indexing agreement
-        require(
-            self.allocationToActiveAgreementId[allocationId] == bytes16(0),
-            AllocationAlreadyHasIndexingAgreement(allocationId)
-        );
-        self.allocationToActiveAgreementId[allocationId] = agreementId;
-
-        agreement.version = metadata.version;
-        agreement.allocationId = allocationId;
-
-        require(
-            metadata.version == IIndexingAgreement.IndexingAgreementVersion.V1,
-            IndexingAgreementInvalidVersion(metadata.version)
-        );
-        _setTermsV1(self, agreementId, metadata.terms, rca.maxOngoingTokensPerSecond);
-
-        emit IndexingAgreementAccepted(
-            rca.serviceProvider,
-            rca.payer,
-            agreementId,
-            allocationId,
-            metadata.subgraphDeploymentId,
-            metadata.version,
-            metadata.terms
-        );
+        bytes16 agreementId = _validateAndPrepareAccept(self, allocations, allocationId, rca);
 
         require(
             _directory().recurringCollector().accept(rca, authData) == agreementId,
@@ -354,6 +303,35 @@ library IndexingAgreement {
         return agreementId;
     }
     /* solhint-enable function-max-lines */
+
+    /**
+     * @notice Accept an indexing agreement where the approver is a contract (no ECDSA signature).
+     *
+     * Requirements are the same as {accept}, but uses contract-based authorization.
+     *
+     * Emits {IndexingAgreementAccepted} event
+     *
+     * @param self The indexing agreement storage manager
+     * @param allocations The mapping of allocation IDs to their states
+     * @param allocationId The id of the allocation
+     * @param rca The Recurring Collection Agreement
+     * @param contractApprover The address of the contract that authorized this agreement
+     */
+    function acceptFromContract(
+        StorageManager storage self,
+        mapping(address allocationId => IAllocation.State allocation) storage allocations,
+        address allocationId,
+        IRecurringCollector.RecurringCollectionAgreement calldata rca,
+        address contractApprover
+    ) external returns (bytes16) {
+        bytes16 agreementId = _validateAndPrepareAccept(self, allocations, allocationId, rca);
+
+        require(
+            _directory().recurringCollector().acceptFromContract(rca, contractApprover) == agreementId,
+            "internal: agreement ID mismatch"
+        );
+        return agreementId;
+    }
 
     /**
      * @notice Update an indexing agreement.
@@ -636,6 +614,83 @@ library IndexingAgreement {
         _validateTermsAgainstRCA(newTerms, maxOngoingTokensPerSecond);
         _manager.termsV1[_agreementId].tokensPerSecond = newTerms.tokensPerSecond;
         _manager.termsV1[_agreementId].tokensPerEntityPerSecond = newTerms.tokensPerEntityPerSecond;
+    }
+
+    /**
+     * @notice Shared validation and state setup for both accept paths (ECDSA and contract signer).
+     * @dev Validates allocation, data service, deployment ID match, uniqueness constraints,
+     * stores agreement state, and emits the IndexingAgreementAccepted event.
+     * The caller is responsible for forwarding to the appropriate RecurringCollector method.
+     *
+     * @param _self The indexing agreement storage manager
+     * @param _allocations The mapping of allocation IDs to their states
+     * @param _allocationId The id of the allocation
+     * @param _rca The Recurring Collection Agreement
+     * @return agreementId The deterministically generated agreement ID
+     */
+    function _validateAndPrepareAccept(
+        StorageManager storage _self,
+        mapping(address => IAllocation.State) storage _allocations,
+        address _allocationId,
+        IRecurringCollector.RecurringCollectionAgreement calldata _rca
+    ) private returns (bytes16) {
+        IAllocation.State memory allocation = _requireValidAllocation(_allocations, _allocationId, _rca.serviceProvider);
+
+        require(
+            _rca.dataService == address(this),
+            IndexingAgreementWrongDataService(address(this), _rca.dataService)
+        );
+
+        AcceptIndexingAgreementMetadata memory metadata = IndexingAgreementDecoder.decodeRCAMetadata(_rca.metadata);
+
+        bytes16 agreementId = _directory().recurringCollector().generateAgreementId(
+            _rca.payer,
+            _rca.dataService,
+            _rca.serviceProvider,
+            _rca.deadline,
+            _rca.nonce
+        );
+
+        IIndexingAgreement.State storage agreement = _self.agreements[agreementId];
+
+        require(agreement.allocationId == address(0), IndexingAgreementAlreadyAccepted(agreementId));
+
+        require(
+            allocation.subgraphDeploymentId == metadata.subgraphDeploymentId,
+            IndexingAgreementDeploymentIdMismatch(
+                metadata.subgraphDeploymentId,
+                _allocationId,
+                allocation.subgraphDeploymentId
+            )
+        );
+
+        // Ensure that an allocation can only have one active indexing agreement
+        require(
+            _self.allocationToActiveAgreementId[_allocationId] == bytes16(0),
+            AllocationAlreadyHasIndexingAgreement(_allocationId)
+        );
+        _self.allocationToActiveAgreementId[_allocationId] = agreementId;
+
+        agreement.version = metadata.version;
+        agreement.allocationId = _allocationId;
+
+        require(
+            metadata.version == IIndexingAgreement.IndexingAgreementVersion.V1,
+            IndexingAgreementInvalidVersion(metadata.version)
+        );
+        _setTermsV1(_self, agreementId, metadata.terms, _rca.maxOngoingTokensPerSecond);
+
+        emit IndexingAgreementAccepted(
+            _rca.serviceProvider,
+            _rca.payer,
+            agreementId,
+            _allocationId,
+            metadata.subgraphDeploymentId,
+            metadata.version,
+            metadata.terms
+        );
+
+        return agreementId;
     }
 
     /**
