@@ -982,4 +982,232 @@ describe('IndexingSignal', () => {
       expect(virtualBalance).to.be.greaterThan(0n)
     })
   })
+
+  // -- Contract Approver Tests --
+
+  describe('contract approver (prepareAgreement / isAuthorizedAgreement)', () => {
+    it('should prepare and authorize an agreement hash', async () => {
+      const freshSys = await deployIndexingSignalSystem()
+      const { indexingSignal, graphToken, graphTokenHelper, accounts, addresses } = freshSys
+      const depositAmount = ethersLib.parseEther('1000')
+
+      // Set up: deposit + indexer set to create non-zero signal in agreement escrow
+      await graphTokenHelper.mint(accounts.user.address, depositAmount)
+      await (graphToken as any).connect(accounts.user).approve(addresses.indexingSignal, depositAmount)
+      await (indexingSignal as any).connect(accounts.user).deposit(SUBGRAPH_IDS.SUBGRAPH_A, depositAmount, 3)
+
+      const signers = await ethers.getSigners()
+      const indexers = [signers[10].address, signers[11].address, signers[12].address]
+      await (indexingSignal as any)
+        .connect(accounts.operator)
+        .setDepositorIndexerSet(accounts.user.address, SUBGRAPH_IDS.SUBGRAPH_A, indexers)
+
+      // Prepare agreement
+      const agreementHash = ethersLib.keccak256(ethersLib.toUtf8Bytes('test-rca-hash'))
+      const encodedRCA = ethersLib.toUtf8Bytes('mock-encoded-rca')
+      const tx = await (indexingSignal as any)
+        .connect(accounts.operator)
+        .prepareAgreement(SUBGRAPH_IDS.SUBGRAPH_A, indexers[0], agreementHash, encodedRCA)
+
+      await expect(tx)
+        .to.emit(indexingSignal, 'AgreementPrepared')
+        .withArgs(SUBGRAPH_IDS.SUBGRAPH_A, indexers[0], agreementHash, ethersLib.hexlify(encodedRCA))
+
+      // isAuthorizedAgreement should return the magic value (function selector)
+      const magicValue = await indexingSignal.isAuthorizedAgreement(agreementHash)
+      // IContractApprover.isAuthorizedAgreement.selector = first 4 bytes of keccak256("isAuthorizedAgreement(bytes32)")
+      const expectedSelector = ethersLib.dataSlice(
+        ethersLib.keccak256(ethersLib.toUtf8Bytes('isAuthorizedAgreement(bytes32)')),
+        0,
+        4,
+      )
+      expect(magicValue).to.equal(expectedSelector)
+    })
+
+    it('should revert for unauthorized agreement hash', async () => {
+      const freshSys = await deployIndexingSignalSystem()
+      const { indexingSignal } = freshSys
+      const unknownHash = ethersLib.keccak256(ethersLib.toUtf8Bytes('unknown-hash'))
+
+      await expect(indexingSignal.isAuthorizedAgreement(unknownHash)).to.be.revertedWithCustomError(
+        indexingSignal,
+        'AgreementNotPrepared',
+      )
+    })
+
+    it('should clear a prepared agreement', async () => {
+      const freshSys = await deployIndexingSignalSystem()
+      const { indexingSignal, graphToken, graphTokenHelper, accounts, addresses } = freshSys
+      const depositAmount = ethersLib.parseEther('1000')
+
+      // Set up
+      await graphTokenHelper.mint(accounts.user.address, depositAmount)
+      await (graphToken as any).connect(accounts.user).approve(addresses.indexingSignal, depositAmount)
+      await (indexingSignal as any).connect(accounts.user).deposit(SUBGRAPH_IDS.SUBGRAPH_A, depositAmount, 3)
+
+      const signers = await ethers.getSigners()
+      const indexers = [signers[10].address, signers[11].address, signers[12].address]
+      await (indexingSignal as any)
+        .connect(accounts.operator)
+        .setDepositorIndexerSet(accounts.user.address, SUBGRAPH_IDS.SUBGRAPH_A, indexers)
+
+      // Prepare then clear
+      const agreementHash = ethersLib.keccak256(ethersLib.toUtf8Bytes('clearable-hash'))
+      await (indexingSignal as any)
+        .connect(accounts.operator)
+        .prepareAgreement(SUBGRAPH_IDS.SUBGRAPH_A, indexers[0], agreementHash, '0x')
+
+      const clearTx = await (indexingSignal as any)
+        .connect(accounts.operator)
+        .clearPreparedAgreement(agreementHash)
+      await expect(clearTx).to.emit(indexingSignal, 'AgreementCleared').withArgs(agreementHash)
+
+      // Should no longer be authorized
+      await expect(indexingSignal.isAuthorizedAgreement(agreementHash)).to.be.revertedWithCustomError(
+        indexingSignal,
+        'AgreementNotPrepared',
+      )
+    })
+
+    it('should reject prepareAgreement when agreement escrow has no signal', async () => {
+      const freshSys = await deployIndexingSignalSystem()
+      const { indexingSignal, graphToken, graphTokenHelper, accounts, addresses } = freshSys
+      const depositAmount = ethersLib.parseEther('1000')
+
+      // Deposit but don't set indexer set — escrow signal is 0
+      await graphTokenHelper.mint(accounts.user.address, depositAmount)
+      await (graphToken as any).connect(accounts.user).approve(addresses.indexingSignal, depositAmount)
+      await (indexingSignal as any).connect(accounts.user).deposit(SUBGRAPH_IDS.SUBGRAPH_A, depositAmount, 3)
+
+      const signers = await ethers.getSigners()
+      const agreementHash = ethersLib.keccak256(ethersLib.toUtf8Bytes('no-signal-hash'))
+
+      await expect(
+        (indexingSignal as any)
+          .connect(accounts.operator)
+          .prepareAgreement(SUBGRAPH_IDS.SUBGRAPH_A, signers[10].address, agreementHash, '0x'),
+      ).to.be.revertedWithCustomError(indexingSignal, 'NoAgreementSignal')
+    })
+
+    it('should reject prepareAgreement from non-operator', async () => {
+      const freshSys = await deployIndexingSignalSystem()
+      const { indexingSignal, accounts } = freshSys
+      const agreementHash = ethersLib.keccak256(ethersLib.toUtf8Bytes('unauth-hash'))
+
+      await expect(
+        (indexingSignal as any)
+          .connect(accounts.nonGovernor)
+          .prepareAgreement(SUBGRAPH_IDS.SUBGRAPH_A, accounts.user.address, agreementHash, '0x'),
+      ).to.be.revertedWithCustomError(indexingSignal, 'AccessControlUnauthorizedAccount')
+    })
+  })
+
+  // -- EscrowRouter Collect Path Tests --
+
+  describe('escrow collect path (IPaymentsEscrow)', () => {
+    it('should collect via EscrowRouter and distribute through GraphPayments', async () => {
+      const freshSys = await deployIndexingSignalSystem(3, DEFAULT_ISSUANCE_PER_BLOCK, {
+        withMockGraphPayments: true,
+      })
+      const {
+        indexingSignal,
+        graphToken,
+        graphTokenHelper,
+        mockGraphPayments,
+        escrowRouterSigner,
+        accounts,
+        addresses,
+      } = freshSys
+      const depositAmount = ethersLib.parseEther('1000')
+
+      // Set up: deposit + indexer set
+      await graphTokenHelper.mint(accounts.user.address, depositAmount)
+      await (graphToken as any).connect(accounts.user).approve(addresses.indexingSignal, depositAmount)
+      await (indexingSignal as any).connect(accounts.user).deposit(SUBGRAPH_IDS.SUBGRAPH_A, depositAmount, 3)
+
+      const signers = await ethers.getSigners()
+      const indexers = [signers[13].address, signers[14].address, signers[15].address]
+      await (indexingSignal as any)
+        .connect(accounts.operator)
+        .setDepositorIndexerSet(accounts.user.address, SUBGRAPH_IDS.SUBGRAPH_A, indexers)
+
+      // Mine blocks to accrue issuance
+      await mineBlocks(10)
+
+      // Verify virtual balance exists
+      const virtualBalance = await indexingSignal.getVirtualBalance(SUBGRAPH_IDS.SUBGRAPH_A, indexers[0])
+      expect(virtualBalance).to.be.greaterThan(0n)
+
+      // Call escrow collect as the EscrowRouter signer
+      // PaymentTypes.IndexingFee = 0 (first enum value)
+      const indexerBalanceBefore = await graphToken.balanceOf(indexers[0])
+
+      const tx = await (indexingSignal as any)
+        .connect(escrowRouterSigner)
+        ['collect(uint8,address,address,uint256,address,uint256,address,bytes32)'](
+          0, // PaymentTypes.IndexingFee
+          addresses.indexingSignal, // payer (IS)
+          indexers[0], // receiver (indexer)
+          0, // amount (0 = collect all)
+          accounts.operator.address, // dataService
+          0, // dataServiceCut
+          indexers[0], // receiverDestination
+          SUBGRAPH_IDS.SUBGRAPH_A, // collectionContext
+        )
+
+      // Verify IssuanceCollected event
+      await expect(tx).to.emit(indexingSignal, 'IssuanceCollected')
+
+      // MockGraphPayments should have been called
+      expect(await mockGraphPayments.collectCallCount()).to.equal(1n)
+      expect(await mockGraphPayments.lastReceiver()).to.equal(indexers[0])
+
+      // Indexer should have received GRT (MockGraphPayments forwards tokens)
+      const indexerBalanceAfter = await graphToken.balanceOf(indexers[0])
+      expect(indexerBalanceAfter - indexerBalanceBefore).to.be.greaterThan(0n)
+
+      // Virtual balance should be 0 after full collection
+      const balanceAfter = await indexingSignal.getVirtualBalance(SUBGRAPH_IDS.SUBGRAPH_A, indexers[0])
+      expect(balanceAfter).to.equal(0n)
+    })
+
+    it('should reject escrow collect from non-router caller', async () => {
+      const freshSys = await deployIndexingSignalSystem()
+      const { indexingSignal, accounts } = freshSys
+
+      await expect(
+        (indexingSignal as any)
+          .connect(accounts.nonGovernor)
+          ['collect(uint8,address,address,uint256,address,uint256,address,bytes32)'](
+            0,
+            accounts.user.address,
+            accounts.user.address,
+            0,
+            accounts.operator.address,
+            0,
+            accounts.user.address,
+            SUBGRAPH_IDS.SUBGRAPH_A,
+          ),
+      ).to.be.revertedWithCustomError(indexingSignal, 'UnauthorizedEscrowCaller')
+    })
+
+    it('should revert context-less escrow collect', async () => {
+      const freshSys = await deployIndexingSignalSystem()
+      const { indexingSignal, escrowRouterSigner } = freshSys
+
+      await expect(
+        (indexingSignal as any)
+          .connect(escrowRouterSigner)
+          ['collect(uint8,address,address,uint256,address,uint256,address)'](
+            0,
+            escrowRouterSigner.address,
+            escrowRouterSigner.address,
+            0,
+            escrowRouterSigner.address,
+            0,
+            escrowRouterSigner.address,
+          ),
+      ).to.be.revertedWithCustomError(indexingSignal, 'CollectionContextRequired')
+    })
+  })
 })
