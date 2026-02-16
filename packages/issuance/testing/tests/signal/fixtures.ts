@@ -71,7 +71,7 @@ export async function deployIndexingSignal(
   minimumIndexerCount: number,
 ) {
   return deployAsProxy(
-    'IndexingSignal',
+    'IndexingSignalTestHarness',
     [graphTokenAddress, rewardsManagerAddress, curationAddress, escrowRouterAddress, graphPaymentsAddress], // constructor args
     [governor.address, minimumIndexerCount], // initialize args
     governor,

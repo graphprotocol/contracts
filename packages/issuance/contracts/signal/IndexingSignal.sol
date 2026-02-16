@@ -406,26 +406,6 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
         emit AgreementCleared(agreementHash);
     }
 
-    // -- Collection (Virtual Escrow) --
-
-    /**
-     * @inheritdoc IIndexingSignal
-     */
-    function collect(
-        bytes32 subgraphDeploymentID,
-        address indexer,
-        uint256 amount
-    ) external override whenNotPaused returns (uint256 collectedTokens) {
-        collectedTokens = _collectVirtual(subgraphDeploymentID, indexer, amount);
-
-        if (collectedTokens > 0) {
-            // Mint GRT and transfer to caller for distribution
-            GRAPH_TOKEN.mint(msg.sender, collectedTokens);
-        }
-
-        emit IssuanceCollected(subgraphDeploymentID, indexer, collectedTokens);
-    }
-
     // -- IPaymentsEscrow Implementation (Virtual Escrow) --
 
     /**
@@ -490,8 +470,7 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
     function onRCACancelled(
         bytes32 subgraphDeploymentID,
         address indexer
-    ) external override whenNotPaused {
-        // TODO: Access control - only callable by authorized cancellation source
+    ) external override whenNotPaused onlyRole(INDEXER_SET_OPERATOR_ROLE) {
         IndexingSignalData storage $ = _getStorage();
 
         // Update accumulator to current block
