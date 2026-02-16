@@ -49,6 +49,6 @@ library RewardsCondition {
     /// @notice Subgraph signal below minimumSubgraphSignal threshold
     bytes32 public constant BELOW_MINIMUM_SIGNAL = keccak256("BELOW_MINIMUM_SIGNAL");
 
-    /// @notice No allocations exist for subgraph
-    bytes32 public constant NO_ALLOCATION = keccak256("NO_ALLOCATION");
+    /// @notice No tokens allocated to subgraph
+    bytes32 public constant NO_ALLOCATED_TOKENS = keccak256("NO_ALLOCATED_TOKENS");
 }

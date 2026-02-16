@@ -4,18 +4,18 @@ Quick reference for all reward conditions and how they are handled across Reward
 
 ## Summary Table
 
-| Condition              | Identifier                          | Handled By        | Action                    | Rewards Outcome                       |
-| ---------------------- | ----------------------------------- | ----------------- | ------------------------- | ------------------------------------- |
-| `NONE`                 | `bytes32(0)`                        | —                 | Normal path               | Claimed by indexer                    |
-| `NO_SIGNAL`            | `keccak256("NO_SIGNAL")`            | RewardsManager    | Reclaim                   | To reclaim address                    |
+| Condition              | Identifier                          | Handled By        | Action                    | Rewards Outcome                        |
+| ---------------------- | ----------------------------------- | ----------------- | ------------------------- | -------------------------------------- |
+| `NONE`                 | `bytes32(0)`                        | —                 | Normal path               | Claimed by indexer                     |
+| `NO_SIGNAL`            | `keccak256("NO_SIGNAL")`            | RewardsManager    | Reclaim                   | To reclaim address                     |
 | `SUBGRAPH_DENIED`      | `keccak256("SUBGRAPH_DENIED")`      | Both              | Reclaim (RM) / Defer (AM) | New: reclaimed; Uncollected: preserved |
-| `BELOW_MINIMUM_SIGNAL` | `keccak256("BELOW_MINIMUM_SIGNAL")` | RewardsManager    | Reclaim                   | To reclaim address                    |
-| `NO_ALLOCATION`        | `keccak256("NO_ALLOCATION")`        | RewardsManager    | Reclaim                   | To reclaim address                    |
-| `INDEXER_INELIGIBLE`   | `keccak256("INDEXER_INELIGIBLE")`   | RewardsManager    | Reclaim                   | To reclaim address                    |
-| `STALE_POI`            | `keccak256("STALE_POI")`            | AllocationManager | Reclaim                   | To reclaim address                    |
-| `ZERO_POI`             | `keccak256("ZERO_POI")`             | AllocationManager | Reclaim                   | To reclaim address                    |
-| `ALLOCATION_TOO_YOUNG` | `keccak256("ALLOCATION_TOO_YOUNG")` | AllocationManager | Defer                     | Preserved for later                   |
-| `CLOSE_ALLOCATION`     | `keccak256("CLOSE_ALLOCATION")`     | AllocationManager | Reclaim                   | To reclaim address                    |
+| `BELOW_MINIMUM_SIGNAL` | `keccak256("BELOW_MINIMUM_SIGNAL")` | RewardsManager    | Reclaim                   | To reclaim address                     |
+| `NO_ALLOCATED_TOKENS`  | `keccak256("NO_ALLOCATED_TOKENS")`  | RewardsManager    | Reclaim                   | To reclaim address                     |
+| `INDEXER_INELIGIBLE`   | `keccak256("INDEXER_INELIGIBLE")`   | RewardsManager    | Reclaim                   | To reclaim address                     |
+| `STALE_POI`            | `keccak256("STALE_POI")`            | AllocationManager | Reclaim                   | To reclaim address                     |
+| `ZERO_POI`             | `keccak256("ZERO_POI")`             | AllocationManager | Reclaim                   | To reclaim address                     |
+| `ALLOCATION_TOO_YOUNG` | `keccak256("ALLOCATION_TOO_YOUNG")` | AllocationManager | Defer                     | Preserved for later                    |
+| `CLOSE_ALLOCATION`     | `keccak256("CLOSE_ALLOCATION")`     | AllocationManager | Reclaim                   | To reclaim address                     |
 
 ## Reward Distribution Levels
 
@@ -36,7 +36,7 @@ Rewards flow through three levels, with reclaim possible at each:
 │  ─────────────────────────────────────────────────────────────────  │
 │  onSubgraphSignalUpdate() / onSubgraphAllocationUpdate()            │
 │                                                                     │
-│  Reclaim: SUBGRAPH_DENIED, BELOW_MINIMUM_SIGNAL, NO_ALLOCATION      │
+│  Reclaim: SUBGRAPH_DENIED, BELOW_MINIMUM_SIGNAL, NO_ALLOCATED_TOKENS      │
 │                                                                     │
 │  Behavior:                                                          │
 │  - accRewardsForSubgraph only increases when claimable              │
@@ -104,7 +104,7 @@ Rewards flow through three levels, with reclaim possible at each:
 - **Effect**: `accRewardsPerAllocatedToken` stops increasing
 - **Handling**: Rewards reclaimed to configured address
 
-#### NO_ALLOCATION
+#### NO_ALLOCATED_TOKENS
 
 - **Trigger**: Subgraph has signal but zero allocated tokens
 - **Effect**: Rewards cannot be distributed to allocations

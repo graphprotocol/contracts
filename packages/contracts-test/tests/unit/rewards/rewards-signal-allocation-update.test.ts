@@ -449,15 +449,15 @@ describe('Rewards: Signal and Allocation Update Accounting', () => {
   })
 
   describe('onSubgraphSignalUpdate with no allocations', function () {
-    it('should reclaim as NO_ALLOCATION when signal exists but no allocations', async function () {
+    it('should reclaim as NO_ALLOCATED_TOKENS when signal exists but no allocations', async function () {
       // Setup: only signal, no allocation
       await grt.connect(governor).mint(curator.address, tokensToSignal)
       await grt.connect(curator).approve(curation.address, tokensToSignal)
       await curation.connect(curator).mint(subgraphDeploymentID, tokensToSignal, 0)
 
-      // Configure reclaim address for NO_ALLOCATION
-      const NO_ALLOCATION = hre.ethers.utils.id('NO_ALLOCATION')
-      await rewardsManager.connect(governor).setReclaimAddress(NO_ALLOCATION, governor.address)
+      // Configure reclaim address for NO_ALLOCATED_TOKENS
+      const NO_ALLOCATED_TOKENS = hre.ethers.utils.id('NO_ALLOCATED_TOKENS')
+      await rewardsManager.connect(governor).setReclaimAddress(NO_ALLOCATED_TOKENS, governor.address)
 
       // Record initial state
       const initialState = await rewardsManager.subgraphs(subgraphDeploymentID)
@@ -465,7 +465,7 @@ describe('Rewards: Signal and Allocation Update Accounting', () => {
       // Advance blocks - rewards should accumulate
       await helpers.mine(100)
 
-      // Call onSubgraphSignalUpdate - should reclaim as NO_ALLOCATION
+      // Call onSubgraphSignalUpdate - should reclaim as NO_ALLOCATED_TOKENS
       const tx = await rewardsManager.connect(governor).onSubgraphSignalUpdate(subgraphDeploymentID)
       const receipt = await tx.wait()
       const afterSignalUpdate = await rewardsManager.subgraphs(subgraphDeploymentID)
@@ -476,10 +476,10 @@ describe('Rewards: Signal and Allocation Update Accounting', () => {
         'accRewardsForSubgraph should not change when no allocations (rewards reclaimed)',
       )
 
-      // Verify reclaim event was emitted with NO_ALLOCATION reason
+      // Verify reclaim event was emitted with NO_ALLOCATED_TOKENS reason
       const reclaimEvent = receipt.events?.find((e) => e.event === 'RewardsReclaimed')
       expect(reclaimEvent).to.not.be.undefined
-      expect(reclaimEvent!.args![0]).to.equal(NO_ALLOCATION, 'Should reclaim with NO_ALLOCATION reason')
+      expect(reclaimEvent!.args![0]).to.equal(NO_ALLOCATED_TOKENS, 'Should reclaim with NO_ALLOCATED_TOKENS reason')
       expect(reclaimEvent!.args![1]).to.be.gt(0, 'Should have reclaimed rewards')
     })
 
@@ -496,8 +496,8 @@ describe('Rewards: Signal and Allocation Update Accounting', () => {
       await helpers.mine(100)
 
       // Configure reclaim and call signal update
-      const NO_ALLOCATION = hre.ethers.utils.id('NO_ALLOCATION')
-      await rewardsManager.connect(governor).setReclaimAddress(NO_ALLOCATION, governor.address)
+      const NO_ALLOCATED_TOKENS = hre.ethers.utils.id('NO_ALLOCATED_TOKENS')
+      await rewardsManager.connect(governor).setReclaimAddress(NO_ALLOCATED_TOKENS, governor.address)
       await rewardsManager.connect(governor).onSubgraphSignalUpdate(subgraphDeploymentID)
 
       // View should remain stable (rewards reclaimed)

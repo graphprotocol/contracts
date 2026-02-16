@@ -348,7 +348,7 @@ describe('Rewards', () => {
         await curation.connect(curator1).mint(subgraphDeploymentID1, signalled1, 0)
         await curation.connect(curator2).mint(subgraphDeploymentID2, signalled2, 0)
 
-        // Create allocations for both subgraphs so rewards are accumulated (not reclaimed as NO_ALLOCATION)
+        // Create allocations for both subgraphs so rewards are accumulated (not reclaimed as NO_ALLOCATED_TOKENS)
         await grt.connect(governor).mint(indexer1.address, tokensToStake)
         await grt.connect(indexer1).approve(staking.address, tokensToStake)
         await staking.connect(indexer1).stake(tokensToStake)
@@ -426,7 +426,7 @@ describe('Rewards', () => {
         const signalled1 = toGRT('1500')
         await curation.connect(curator1).mint(subgraphDeploymentID1, signalled1, 0)
 
-        // Create an allocation so rewards are accumulated (not reclaimed as NO_ALLOCATION)
+        // Create an allocation so rewards are accumulated (not reclaimed as NO_ALLOCATED_TOKENS)
         const tokensToStake = toGRT('100000')
         const tokensToAllocate = toGRT('10000')
         await grt.connect(governor).mint(indexer1.address, tokensToStake)

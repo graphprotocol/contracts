@@ -416,7 +416,7 @@ contract RewardsManager is
 
     /**
      * @notice Get subgraph rewards state including effective reclaim condition
-     * @dev Determines claimability with priority: SUBGRAPH_DENIED > BELOW_MINIMUM_SIGNAL > NO_ALLOCATION > NONE
+     * @dev Determines claimability with priority: SUBGRAPH_DENIED > BELOW_MINIMUM_SIGNAL > NO_ALLOCATED_TOKENS > NONE
      * When multiple conditions apply, prefers conditions with configured reclaim addresses.
      * @param _subgraphDeploymentID Subgraph deployment
      * @return newRewards Rewards accumulated since last snapshot
@@ -440,7 +440,7 @@ contract RewardsManager is
         if (
             subgraphAllocatedTokens == 0 &&
             (condition == RewardsCondition.NONE || reclaimAddresses[condition] == address(0))
-        ) condition = RewardsCondition.NO_ALLOCATION;
+        ) condition = RewardsCondition.NO_ALLOCATED_TOKENS;
     }
 
     /**
