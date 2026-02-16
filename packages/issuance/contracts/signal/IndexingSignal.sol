@@ -267,6 +267,11 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
             }
         }
 
+        // Clean up stale state on full withdrawal
+        if (pos.tokens == 0) {
+            delete $.indexerSets[msg.sender][subgraphDeploymentID];
+        }
+
         // Update totals
         $.subgraphSignal[subgraphDeploymentID] -= tokens;
         $.totalIndexingSignal -= tokens;
