@@ -298,9 +298,6 @@ contract RecurringCollector is
         // Verify contractApprover is actually a contract
         require(contractApprover.code.length > 0, RecurringCollectorApproverNotContract(contractApprover));
 
-        // Verify the contract is authorized by the payer
-        require(_isAuthorized(rca.payer, contractApprover), RecurringCollectorInvalidSigner());
-
         // Verify the contract confirms this specific agreement
         bytes32 rcaHash = _hashRCA(rca);
         require(

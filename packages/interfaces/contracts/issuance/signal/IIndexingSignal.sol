@@ -9,45 +9,50 @@ pragma solidity ^0.7.6 || ^0.8.0;
  *
  * @dev Indexing Signal allows users to lock GRT as signal for specific subgraph deployments.
  * The protocol mints new GRT proportional to signal, funding Recurring Collection Agreements (RCAs)
- * between signal depositors and indexers.
+ * between IS (as payer) and indexers.
  *
  * Uses a virtual escrow model: no GRT is physically deposited or held as escrow. Escrow "balances"
  * are computed from accumulators and represent accumulated uncollected issuance. GRT is minted only
  * at the moment of collection.
+ *
+ * Two layers:
+ * - Signal layer: per-depositor positions and indexer set preferences
+ * - Escrow layer: per-(subgraph, indexer) agreement escrows tracking effective signal and accrued issuance
  *
  * Key properties:
  * - 1:1 GRT to signal (no bonding curve)
  * - Lock with immediate withdraw
  * - Self-minting issuance using same per-signal rate as RewardsManager
  * - Per-depositor indexer sets with protocol-enforced minimum count
- * - Equal issuance split across matched indexer set
+ * - Per-agreement escrow: effective signal aggregated across depositors, one agreement per (subgraph, indexer)
  * - Virtual escrow: balances computed from accumulators, mint-on-collect
  */
 interface IIndexingSignal {
     // -- Structs --
 
     /**
-     * @dev Per-subgraph aggregated signal pool
-     * @param totalTokens Total GRT locked as signal for this subgraph
-     * @param accIssuancePerSignalSnapshot Snapshot of global accumulator at last update
-     * @param accIssuanceForSubgraph Total accumulated issuance for this subgraph
-     */
-    struct SignalPool {
-        uint256 totalTokens;
-        uint256 accIssuancePerSignalSnapshot;
-        uint256 accIssuanceForSubgraph;
-    }
-
-    /**
-     * @dev Per-depositor per-subgraph position
+     * @dev Per-depositor per-subgraph position (signal layer)
      * @param tokens GRT locked by this depositor for this subgraph
-     * @param accIssuanceSnapshot Snapshot of global accumulator for pending issuance calculation
      * @param indexerCount Depositor's desired number of indexers
      */
     struct DepositorPosition {
         uint256 tokens;
-        uint256 accIssuanceSnapshot;
         uint256 indexerCount;
+    }
+
+    /**
+     * @dev Per-(subgraph, indexer) agreement escrow (escrow layer)
+     * Tracks effective signal and accumulated issuance for one agreement.
+     * Signal is the sum of (tokens_d / indexerSetLength_d) across all depositors
+     * who have this indexer in their set for this subgraph.
+     * @param signal Effective signal backing this agreement
+     * @param accIssuanceSnapshot Global accumulator value at last update
+     * @param accruedIssuance Accumulated but uncollected issuance
+     */
+    struct AgreementEscrow {
+        uint256 signal;
+        uint256 accIssuanceSnapshot;
+        uint256 accruedIssuance;
     }
 
     // -- Events --
@@ -110,13 +115,11 @@ interface IIndexingSignal {
 
     /**
      * @notice Emitted when issuance is collected (minted and distributed)
-     * @param depositor Address of the depositor
      * @param subgraphDeploymentID Subgraph deployment
      * @param indexer Address of the indexer (receiver)
      * @param tokens Amount of GRT minted and distributed
      */
     event IssuanceCollected(
-        address indexed depositor,
         bytes32 indexed subgraphDeploymentID,
         address indexed indexer,
         uint256 tokens
@@ -124,13 +127,11 @@ interface IIndexingSignal {
 
     /**
      * @notice Emitted when an RCA is cancelled and uncollected issuance is settled
-     * @param depositor Address of the depositor
      * @param subgraphDeploymentID Subgraph deployment
      * @param indexer Address of the indexer whose RCA was cancelled
      * @param settledTokens Amount of issuance that was settled (never minted)
      */
     event IssuanceSettled(
-        address indexed depositor,
         bytes32 indexed subgraphDeploymentID,
         address indexed indexer,
         uint256 settledTokens
@@ -177,18 +178,25 @@ interface IIndexingSignal {
     /// @param agreementHash The agreement hash that was not found
     error AgreementNotPrepared(bytes32 agreementHash);
 
+    /// @notice Thrown when the agreement escrow has no signal
+    error NoAgreementSignal(bytes32 subgraphDeploymentID, address indexer);
+
     /**
-     * @notice Emitted when an agreement hash is prepared for contract approval
-     * @param depositor Address of the depositor (payer)
+     * @notice Emitted when an agreement is prepared for contract approval
+     * @dev The encodedRCA contains the ABI-encoded RecurringCollectionAgreement struct.
+     * Indexers should verify the RCA fields match the agreementHash before accepting.
+     * The hash is the EIP712 hash computed by RecurringCollector — IS cannot compute it
+     * on-chain, so the operator provides it. A mismatch causes acceptance to fail at RC.
      * @param subgraphDeploymentID Subgraph deployment
-     * @param indexer Address of the indexer
-     * @param agreementHash The EIP712 hash of the prepared RCA
+     * @param indexer Address of the indexer (serviceProvider in the RCA)
+     * @param agreementHash The EIP712 hash of the RCA (computed off-chain via RC)
+     * @param encodedRCA ABI-encoded RecurringCollectionAgreement for indexer verification
      */
     event AgreementPrepared(
-        address indexed depositor,
         bytes32 indexed subgraphDeploymentID,
         address indexed indexer,
-        bytes32 agreementHash
+        bytes32 agreementHash,
+        bytes encodedRCA
     );
 
     /**
@@ -211,7 +219,8 @@ interface IIndexingSignal {
 
     /**
      * @notice Add more GRT to an existing signal position
-     * @dev Position must already exist. Increases signal proportionally.
+     * @dev Position must already exist. Updates agreement escrows for all indexers in the
+     * depositor's set to reflect the increased signal.
      * @param subgraphDeploymentID The subgraph deployment
      * @param tokens Amount of GRT to add
      */
@@ -219,7 +228,8 @@ interface IIndexingSignal {
 
     /**
      * @notice Withdraw GRT from a signal position
-     * @dev Immediately returns tokens to the depositor. Reduces signal proportionally.
+     * @dev Immediately returns tokens to the depositor. Updates agreement escrows for all
+     * indexers in the depositor's set to reflect the reduced signal.
      * @param subgraphDeploymentID The subgraph deployment
      * @param tokens Amount of GRT to withdraw
      */
@@ -255,7 +265,8 @@ interface IIndexingSignal {
     /**
      * @notice Register the matched indexer set for a depositor's position
      * @dev Called by authorized off-chain role. indexers.length must equal the depositor's indexerCount.
-     * Creates RCAs for added indexers, cancels RCAs for removed indexers.
+     * Updates agreement escrows: removes depositor's signal contribution from old indexers,
+     * adds to new indexers.
      * @param depositor The depositor whose set is being updated
      * @param subgraphDeploymentID The subgraph deployment
      * @param indexers Array of indexer addresses in the matched set
@@ -269,21 +280,26 @@ interface IIndexingSignal {
     // -- Contract Approver (Agreement Preparation) --
 
     /**
-     * @notice Prepare an agreement hash for contract-based RCA approval.
-     * @dev Only callable by INDEXER_SET_OPERATOR_ROLE. The off-chain operator constructs
-     * the RCA, computes its EIP712 hash via RecurringCollector.hashRCA(), and registers
-     * it here. When the indexer later accepts via acceptFromContract, RecurringCollector
-     * will call back isAuthorizedAgreement to verify this hash was prepared.
-     * @param depositor The depositor who owns the position (payer in the RCA)
+     * @notice Prepare an agreement for contract-based RCA approval.
+     * @dev Only callable by INDEXER_SET_OPERATOR_ROLE. The operator constructs the full
+     * RCA off-chain, computes its EIP712 hash via RecurringCollector, and registers both
+     * here. IS stores the hash for the isAuthorizedAgreement callback and emits the full
+     * RCA details in the AgreementPrepared event so indexers can verify on-chain.
+     *
+     * Validates that the (subgraph, indexer) agreement escrow has non-zero signal.
+     * The indexer later accepts by passing the same RCA to acceptIndexingAgreementFromContract.
+     * RecurringCollector calls back isAuthorizedAgreement(hash) to verify it was prepared.
+     *
      * @param subgraphDeploymentID The subgraph deployment
-     * @param indexer The indexer for this agreement
-     * @param agreementHash The EIP712 hash of the RCA to authorize
+     * @param indexer The indexer for this agreement (serviceProvider in the RCA)
+     * @param agreementHash The EIP712 hash of the RCA (computed off-chain via RC)
+     * @param encodedRCA ABI-encoded RecurringCollectionAgreement struct
      */
     function prepareAgreement(
-        address depositor,
         bytes32 subgraphDeploymentID,
         address indexer,
-        bytes32 agreementHash
+        bytes32 agreementHash,
+        bytes calldata encodedRCA
     ) external;
 
     /**
@@ -296,19 +312,15 @@ interface IIndexingSignal {
     // -- Collection (Virtual Escrow) --
 
     /**
-     * @notice Collect issuance for a depositor-subgraph-indexer tuple
-     * @dev Computes accumulated virtual balance since last collection for this specific
-     * (depositor, subgraph, indexer) tuple. Mints GRT up to the requested amount and
-     * transfers to the caller for distribution. Updates per-indexer collection snapshot.
-     * Called during RCA collection flow (via escrow router delegation).
-     * @param depositor The depositor whose issuance is being collected
+     * @notice Collect issuance for a (subgraph, indexer) agreement
+     * @dev Computes accumulated virtual balance from the agreement escrow.
+     * Mints GRT up to the requested amount and transfers to the caller for distribution.
      * @param subgraphDeploymentID The subgraph deployment
      * @param indexer The indexer (receiver)
      * @param amount Maximum amount to collect (0 = collect all available)
      * @return collectedTokens Amount of GRT minted and transferred
      */
     function collect(
-        address depositor,
         bytes32 subgraphDeploymentID,
         address indexer,
         uint256 amount
@@ -316,15 +328,12 @@ interface IIndexingSignal {
 
     /**
      * @notice Settle uncollected issuance when an RCA is cancelled
-     * @dev Updates the per-indexer collection snapshot to current accumulator value,
-     * making accumulated but uncollected issuance no longer collectible.
-     * Signal remains active for new indexer assignments.
-     * @param depositor The depositor
+     * @dev Snapshots accrued issuance and zeroes it out, making it uncollectable.
+     * Signal remains in the escrow for new agreement assignments.
      * @param subgraphDeploymentID The subgraph deployment
      * @param indexer The indexer whose RCA was cancelled
      */
     function onRCACancelled(
-        address depositor,
         bytes32 subgraphDeploymentID,
         address indexer
     ) external;
@@ -368,31 +377,27 @@ interface IIndexingSignal {
     ) external view returns (address[] memory);
 
     /**
-     * @notice Get the virtual escrow balance for a depositor-subgraph-indexer tuple
-     * @dev Computed from accumulators. Represents uncollected issuance since last
-     * collection for this specific indexer (1/N of total pending since last collect).
-     * @param depositor The depositor address
+     * @notice Get the virtual escrow balance for a (subgraph, indexer) agreement
+     * @dev Computed from the agreement escrow accumulator. Represents uncollected issuance.
      * @param subgraphDeploymentID The subgraph deployment
      * @param indexer The indexer address
      * @return Virtual balance (collectable amount)
      */
     function getVirtualBalance(
-        address depositor,
         bytes32 subgraphDeploymentID,
         address indexer
     ) external view returns (uint256);
 
     /**
-     * @notice Get total pending (unminted) issuance for a depositor-subgraph pair
-     * @dev This is the total across all indexers, before per-indexer split.
-     * @param depositor The depositor address
+     * @notice Get the agreement escrow state for a (subgraph, indexer) pair
      * @param subgraphDeploymentID The subgraph deployment
-     * @return Total pending issuance
+     * @param indexer The indexer address
+     * @return The agreement escrow state
      */
-    function getPendingIssuance(
-        address depositor,
-        bytes32 subgraphDeploymentID
-    ) external view returns (uint256);
+    function getAgreementEscrow(
+        bytes32 subgraphDeploymentID,
+        address indexer
+    ) external view returns (AgreementEscrow memory);
 
     /**
      * @notice Get total indexing signal across all subgraphs
