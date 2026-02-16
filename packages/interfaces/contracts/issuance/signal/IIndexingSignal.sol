@@ -171,12 +171,6 @@ interface IIndexingSignal {
     /// @notice Thrown when indexer set length does not match depositor's indexerCount
     error IndexerSetSizeMismatch(uint256 provided, uint256 expected);
 
-    /// @notice Thrown when indexer is not in the depositor's matched set
-    error IndexerNotInSet(address indexer);
-
-    /// @notice Thrown when the indexer set is empty (no indexers matched yet)
-    error IndexerSetEmpty();
-
     /// @notice Thrown when a pending agreement hash is not found
     /// @param agreementHash The agreement hash that was not found
     error AgreementNotPrepared(bytes32 agreementHash);

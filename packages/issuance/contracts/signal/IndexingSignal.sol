@@ -187,6 +187,7 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
 
         // Create depositor position (no indexer set yet — set later by operator)
         DepositorPosition storage pos = $.positions[msg.sender][subgraphDeploymentID];
+        require(pos.tokens == 0, ExistingPosition(msg.sender, subgraphDeploymentID));
         pos.tokens = tokens;
         pos.indexerCount = indexerCount;
 
@@ -217,15 +218,17 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
         _updateAccIssuancePerSignal($);
 
         // Update agreement escrows for this depositor's indexers
+        // Use floor(newTotal/n) - floor(oldTotal/n) to avoid rounding drift
         address[] storage indexerSet = $.indexerSets[msg.sender][subgraphDeploymentID];
+        uint256 oldTokens = pos.tokens;
+        pos.tokens = oldTokens + tokens;
         if (indexerSet.length > 0) {
-            uint256 addedSignalPerIndexer = tokens / indexerSet.length;
+            uint256 n = indexerSet.length;
+            uint256 addedSignalPerIndexer = (pos.tokens / n) - (oldTokens / n);
             for (uint256 i = 0; i < indexerSet.length; i++) {
                 _snapshotAndUpdateSignal($, subgraphDeploymentID, indexerSet[i], addedSignalPerIndexer, true);
             }
         }
-
-        pos.tokens += tokens;
 
         // Update totals
         $.subgraphSignal[subgraphDeploymentID] += tokens;
@@ -252,16 +255,17 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
         _updateAccIssuancePerSignal($);
 
         // Update agreement escrows for this depositor's indexers
+        // Use floor(oldTotal/n) - floor(newTotal/n) to avoid rounding drift
         address[] storage indexerSet = $.indexerSets[msg.sender][subgraphDeploymentID];
+        uint256 oldTokens = pos.tokens;
+        pos.tokens = oldTokens - tokens;
         if (indexerSet.length > 0) {
-            uint256 removedSignalPerIndexer = tokens / indexerSet.length;
+            uint256 n = indexerSet.length;
+            uint256 removedSignalPerIndexer = (oldTokens / n) - (pos.tokens / n);
             for (uint256 i = 0; i < indexerSet.length; i++) {
                 _snapshotAndUpdateSignal($, subgraphDeploymentID, indexerSet[i], removedSignalPerIndexer, false);
             }
         }
-
-        // Remove tokens from position
-        pos.tokens -= tokens;
 
         // Update totals
         $.subgraphSignal[subgraphDeploymentID] -= tokens;
@@ -701,17 +705,6 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
         $.accIssuancePerSignal += newIssuance;
         $.accIssuancePerSignalLastBlock = block.number;
         return $.accIssuancePerSignal;
-    }
-
-    /**
-     * @dev Check if an indexer is in the given set
-     */
-    function _isInIndexerSet(address[] storage indexerSet, address indexer) internal view returns (bool) {
-        uint256 length = indexerSet.length;
-        for (uint256 i = 0; i < length; i++) {
-            if (indexerSet[i] == indexer) return true;
-        }
-        return false;
     }
 
     /**
