@@ -849,6 +849,78 @@ describe('IndexingSignal', () => {
     })
   })
 
+  // -- Bug: stale indexer set after full withdrawal --
+
+  describe('full withdrawal cleanup', () => {
+    it('should clear indexer set on full withdrawal', async () => {
+      const freshSys = await deployIndexingSignalSystem()
+      const { indexingSignal, graphToken, graphTokenHelper, accounts, addresses } = freshSys
+      const amount = ethersLib.parseEther('1000')
+
+      // Deposit and set indexer set
+      await graphTokenHelper.mint(accounts.user.address, amount)
+      await (graphToken as any).connect(accounts.user).approve(addresses.indexingSignal, amount)
+      await (indexingSignal as any).connect(accounts.user).deposit(SUBGRAPH_IDS.SUBGRAPH_A, amount, 3)
+
+      const signers = await ethers.getSigners()
+      const indexers = [signers[10].address, signers[11].address, signers[12].address]
+      await (indexingSignal as any)
+        .connect(accounts.operator)
+        .setDepositorIndexerSet(accounts.user.address, SUBGRAPH_IDS.SUBGRAPH_A, indexers)
+
+      // Full withdrawal
+      await (indexingSignal as any).connect(accounts.user).withdraw(SUBGRAPH_IDS.SUBGRAPH_A, amount)
+
+      // Indexer set should be cleared
+      const set = await indexingSignal.getDepositorIndexerSet(accounts.user.address, SUBGRAPH_IDS.SUBGRAPH_A)
+      expect(set.length).to.equal(0)
+    })
+
+    it('should allow clean re-deposit after full withdrawal', async () => {
+      const freshSys = await deployIndexingSignalSystem()
+      const { indexingSignal, graphToken, graphTokenHelper, accounts, addresses } = freshSys
+
+      // First cycle: deposit, set indexers, withdraw all
+      const firstAmount = ethersLib.parseEther('1000')
+      await graphTokenHelper.mint(accounts.user.address, firstAmount)
+      await (graphToken as any).connect(accounts.user).approve(addresses.indexingSignal, firstAmount)
+      await (indexingSignal as any).connect(accounts.user).deposit(SUBGRAPH_IDS.SUBGRAPH_A, firstAmount, 3)
+
+      const signers = await ethers.getSigners()
+      const oldIndexers = [signers[10].address, signers[11].address, signers[12].address]
+      await (indexingSignal as any)
+        .connect(accounts.operator)
+        .setDepositorIndexerSet(accounts.user.address, SUBGRAPH_IDS.SUBGRAPH_A, oldIndexers)
+
+      await (indexingSignal as any).connect(accounts.user).withdraw(SUBGRAPH_IDS.SUBGRAPH_A, firstAmount)
+
+      // Second cycle: re-deposit with different indexerCount, new indexer set
+      await (indexingSignal as any).connect(accounts.governor).setPrivilegedSignaler(accounts.user.address, true)
+      const secondAmount = ethersLib.parseEther('500')
+      await graphTokenHelper.mint(accounts.user.address, secondAmount)
+      await (graphToken as any).connect(accounts.user).approve(addresses.indexingSignal, secondAmount)
+      await (indexingSignal as any).connect(accounts.user).deposit(SUBGRAPH_IDS.SUBGRAPH_A, secondAmount, 2)
+
+      const newIndexers = [signers[13].address, signers[14].address]
+      await (indexingSignal as any)
+        .connect(accounts.operator)
+        .setDepositorIndexerSet(accounts.user.address, SUBGRAPH_IDS.SUBGRAPH_A, newIndexers)
+
+      // New indexers should have correct signal: floor(500e18 / 2)
+      const expectedSignal = secondAmount / 2n
+      for (const indexer of newIndexers) {
+        const escrow = await indexingSignal.getAgreementEscrow(SUBGRAPH_IDS.SUBGRAPH_A, indexer)
+        expect(escrow.signal).to.equal(expectedSignal)
+      }
+
+      // Old indexers should have zero signal
+      for (const indexer of oldIndexers) {
+        const escrow = await indexingSignal.getAgreementEscrow(SUBGRAPH_IDS.SUBGRAPH_A, indexer)
+        expect(escrow.signal).to.equal(0n)
+      }
+    })
+  })
+
   // -- Issuance Accumulator Tests --
 
   describe('issuance accumulation', () => {
