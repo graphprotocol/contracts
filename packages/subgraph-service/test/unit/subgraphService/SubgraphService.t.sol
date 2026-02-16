@@ -130,10 +130,8 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         IAllocation.State memory afterAllocation = subgraphService.getAllocation(_allocationId);
         uint256 accRewardsPerAllocatedTokenDelta = afterAllocation.accRewardsPerAllocatedToken -
             beforeAllocation.accRewardsPerAllocatedToken;
-        uint256 afterAccRewardsPending = rewardsManager.calcRewards(
-            beforeAllocation.tokens,
-            accRewardsPerAllocatedTokenDelta
-        );
+        uint256 afterAccRewardsPending = beforeAllocation.accRewardsPending +
+            rewardsManager.calcRewards(beforeAllocation.tokens, accRewardsPerAllocatedTokenDelta);
 
         // check state
         if (_tokens > beforeAllocation.tokens) {

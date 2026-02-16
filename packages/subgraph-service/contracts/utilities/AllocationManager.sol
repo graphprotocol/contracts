@@ -261,7 +261,8 @@ abstract contract AllocationManager is
     /**
      * @notice Resize an allocation
      * @dev Will lock or release tokens in the provision tracker depending on the new allocation size.
-     * Rewards accrued but not issued before the resize will be accounted for as pending rewards.
+     * Rewards accrued but not issued before the resize will be accounted for as pending rewards,
+     * unless the allocation is stale, in which case pending rewards are reclaimed.
      * These will be paid out when the indexer presents a POI.
      *
      * Requirements:
@@ -303,6 +304,13 @@ abstract contract AllocationManager is
             oldTokens,
             accRewardsPerAllocatedTokenPending
         );
+
+        // If allocation is stale, reclaim pending rewards defensively.
+        // Stale allocations are not performing, so rewards should not accumulate.
+        if (allocation.isStale(maxPOIStaleness)) {
+            _graphRewardsManager().reclaimRewards(RewardsCondition.STALE_POI, _allocationId);
+            _allocations.clearPendingRewards(_allocationId);
+        }
 
         // Update total allocated tokens for the subgraph deployment
         if (_tokens > oldTokens) {
