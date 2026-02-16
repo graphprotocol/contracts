@@ -16,20 +16,14 @@ RecurringCollector and Authorizable are **not deployed** to any network. No Igni
 
 Both steps use `ECDSA.recover()` — only EOAs with private keys can participate. Contracts cannot produce ECDSA signatures.
 
-### Two ECDSA Gates
+### The Two ECDSA Gates
 
 | Gate | Where | What's Signed |
 |------|-------|---------------|
 | Authorization proof | `Authorizable._verifyAuthorizationProof()` | `(chainId, RC, "authorizeSignerProof", deadline, authorizer)` |
 | RCA signature | `RC._recoverRCASigner()` → `_requireAuthorizedRCASigner()` | EIP712 hash of full RCA struct |
 
-Both must be unlocked for a contract to create RCAs.
-
-## The Restriction
-
-The current design **assumes** RCA creation happens off-chain. This is baked in at the protocol level — there's no option for on-chain creation, even where it would be natural (like IS reacting to signal events).
-
-This isn't a security requirement. It's an implementation choice: ECDSA was simpler and sufficient for the original use case (bilateral agreements between known parties). But it makes the authorization model unnecessarily narrow.
+Both must be bypassed for a contract to create RCAs.
 
 ## Contract Authorization: Different Trust Model, Not Weaker
 
@@ -41,187 +35,126 @@ This isn't a security requirement. It's an implementation choice: ECDSA was simp
 | **Revocation** | Thaw → revoke signer | Same (contract is the signer) |
 | **Attack surface** | Key compromise | Contract bug or governance attack |
 
-For IS specifically: the contract's authorization logic would be governed (only callers with appropriate roles can trigger agreement creation). The authorization chain is: governance grants role → role holder calls IS → IS creates RCA → RC accepts. Every step is on-chain and auditable.
+For IS specifically: the contract's authorization logic is governed (only callers with appropriate roles can trigger agreement creation). The authorization chain is: governance grants role → role holder calls IS → IS creates RCA → RC accepts. Every step is on-chain and auditable.
 
-## Proposed Change: Contract Approver Support in Authorizable
+## Options Considered
 
-### Design
+### Option A: Overload ECDSA Recovery
 
-Add a parallel authorization path for contract approvers. When the signer is a contract, skip ECDSA proof — instead verify the contract confirms the authorization via a callback.
+Add code.length checks to both Authorizable.authorizeSigner() and RC._requireAuthorizedRCASigner(). **Rejected** — ECDSA.recover on non-ECDSA signature returns garbage address. Can't cleanly distinguish contract vs EOA.
 
-**Key insight from user**: `isValidSignature` (EIP-1271's name) is misleading here. IS isn't validating a signature — it's confirming it authorized an agreement. The naming should reflect what's actually happening.
+### Option B: Separate Accept Path (Chosen)
 
-### Option A: Custom Interface (Recommended)
+Add `RC.acceptFromContract(rca, contractApprover)` — distinct method, no signature overloading. Contract implements `IContractApprover.isAuthorizedAgreement(hash)` callback.
 
-```solidity
-/// @notice Interface for contracts that can act as authorized agreement creators
-interface IContractApprover {
-    /// @notice Confirms this contract authorized the given signer authorization
-    /// @param authorizer The payer authorizing this contract
-    /// @return magic bytes4(keccak256("isAuthorizedSigner(address)"))
-    function isAuthorizedSigner(address authorizer) external view returns (bytes4);
-}
-```
+### Option C: EIP-1271
 
-In Authorizable:
+Use standard `isValidSignature`. **Rejected** — misleading name. IS isn't validating a signature, it's confirming it authorized an agreement.
 
-```solidity
-function authorizeSigner(address signer, uint256 proofDeadline, bytes calldata proof) external {
-    require(authorizations[signer].authorizer == address(0), ...);
+## What Was Implemented
 
-    if (signer.code.length > 0) {
-        // Contract approver: verify via callback
-        bytes4 magic = IContractApprover(signer).isAuthorizedSigner(msg.sender);
-        require(magic == IContractApprover.isAuthorizedSigner.selector, AuthorizableInvalidSignerProof());
-    } else {
-        // EOA signer: verify via ECDSA proof (existing path)
-        _verifyAuthorizationProof(proof, proofDeadline, signer);
-    }
+Option B, but simplified from the original proposal:
 
-    authorizations[signer].authorizer = msg.sender;
-    emit SignerAuthorized(msg.sender, signer);
-}
-```
-
-For RCA signing, RC would similarly check if the recovered "signer" is a contract:
-
-```solidity
-function _requireAuthorizedRCASigner(SignedRCA memory _signedRCA) private view returns (address) {
-    bytes32 messageHash = _hashRCA(_signedRCA.rca);
-
-    // Try ECDSA recovery first
-    address signer = ECDSA.recover(messageHash, _signedRCA.signature);
-
-    // If recovered address is a contract, verify via callback instead
-    if (signer.code.length > 0) {
-        // For contract approvers, the "signature" encodes the contract address
-        // The contract must confirm it created this agreement
-        address contractApprover = abi.decode(_signedRCA.signature, (address));
-        require(
-            IContractApprover(contractApprover).isAuthorizedAgreement(messageHash),
-            RecurringCollectorInvalidSigner()
-        );
-        signer = contractApprover;
-    }
-
-    require(_isAuthorized(_signedRCA.rca.payer, signer), RecurringCollectorInvalidSigner());
-    return signer;
-}
-```
-
-**Problem**: ECDSA.recover on a non-ECDSA signature returns a garbage address, not a contract. The "try ECDSA first" approach doesn't cleanly distinguish contract vs EOA signatures.
-
-### Option B: Separate Accept Path (Cleaner)
-
-Instead of overloading the signature field, add a distinct method:
-
-```solidity
-/// @notice Accept an RCA where the signer is an authorized contract
-/// @dev Contract must be authorized via authorizeSigner() and confirm via callback
-function acceptFromContract(
-    RecurringCollectionAgreement calldata rca,
-    address contractApprover
-) external returns (bytes16) {
-    require(msg.sender == rca.dataService, ...);
-    require(contractApprover.code.length > 0, ...);
-    require(_isAuthorized(rca.payer, contractApprover), ...);
-
-    // Verify the contract actually created this agreement
-    bytes32 agreementHash = _hashRCA(rca);
-    bytes4 magic = IContractApprover(contractApprover).isAuthorizedAgreement(agreementHash);
-    require(magic == IContractApprover.isAuthorizedAgreement.selector, ...);
-
-    // Same acceptance logic as accept()
-    ...
-}
-```
-
-This avoids overloading the signature semantics entirely.
-
-### Option C: EIP-1271 (Standard but Misnamed)
-
-Use EIP-1271's `isValidSignature(bytes32 hash, bytes signature)` standard interface. All EIP-1271-compatible wallets (Safe, etc.) would work automatically.
-
-```solidity
-import { IERC1271 } from "@openzeppelin/contracts/interfaces/IERC1271.sol";
-
-// In _recoverRCASigner or a new validation function:
-if (signer.code.length > 0) {
-    require(
-        IERC1271(signer).isValidSignature(messageHash, _signedRCA.signature) == IERC1271.isValidSignature.selector,
-        RecurringCollectorInvalidSigner()
-    );
-}
-```
-
-**Downside**: As noted, `isValidSignature` is misleading for what IS does. IS isn't validating an external signature — it's confirming its own authorization. But it's a widely-recognized standard.
-
-## Recommendation
-
-**Option B** (separate `acceptFromContract`) with a custom `IContractApprover` interface.
-
-Rationale:
-- Cleanest separation: EOA path unchanged, contract path explicit
-- No ambiguity in signature parsing
-- Interface name reflects what's happening (`isAuthorizedAgreement`, not `isValidSignature`)
-- Authorization gate in Authorizable uses `isAuthorizedSigner` — clear intent
-- EIP-1271 compatibility can be added later if needed (wrapper that delegates)
-
-### IContractApprover Interface
+### IContractApprover (single function)
 
 ```solidity
 interface IContractApprover {
-    /// @notice Confirms this contract is willing to be authorized as signer for the given authorizer
-    function isAuthorizedSigner(address authorizer) external view returns (bytes4);
-
-    /// @notice Confirms this contract authorized the creation of the given agreement
     function isAuthorizedAgreement(bytes32 agreementHash) external view returns (bytes4);
 }
 ```
 
+`isAuthorizedSigner` was removed — per-payer Authorizable setup is unnecessary. The contract's callback *is* the authorization.
+
+### RC.acceptFromContract (no _isAuthorized check)
+
+```solidity
+function acceptFromContract(
+    RecurringCollectionAgreement calldata rca,
+    address contractApprover
+) external returns (bytes16) {
+    require(contractApprover.code.length > 0, ...);
+    bytes32 agreementHash = _hashRCA(rca);
+    require(
+        IContractApprover(contractApprover).isAuthorizedAgreement(agreementHash) ==
+            IContractApprover.isAuthorizedAgreement.selector, ...
+    );
+    return _validateAndStoreAgreement(rca);
+}
+```
+
+No `_isAuthorized(rca.payer, contractApprover)` check. The contract's `isAuthorizedAgreement` callback is the only gate. The trust chain is:
+- `_validateAndStoreAgreement` checks `msg.sender == rca.dataService`
+- DataService (SS) has its own access control (allocation validation, etc.)
+- The contract approver confirms the specific agreement hash
+- The contract approver's `prepareAgreement()` has role-based access control
+
+### Authorizable unchanged
+
+No code.length branch. The original plan to modify Authorizable was reverted — it was solving a problem that doesn't exist when the contract approver path bypasses Authorizable entirely.
+
+### What changed vs original proposal
+
+| Proposed | Implemented | Why |
+|----------|-------------|-----|
+| `IContractApprover` with `isAuthorizedSigner` + `isAuthorizedAgreement` | Only `isAuthorizedAgreement` | Per-payer auth unnecessary — contract callback is sufficient |
+| Authorizable code.length branch | No change to Authorizable | acceptFromContract bypasses Authorizable entirely |
+| `_isAuthorized` check in acceptFromContract | Removed | Same reason — contract path doesn't need Authorizable |
+| Two-function interface | Single-function interface | Simpler, only one gate needed |
+
 ## IS Flow With Contract Authorization
 
 ```
-1. Governance authorizes IS as signer for depositor:
-   depositor.authorizeSigner(IS_address, ...)
-     → Authorizable checks IS.isAuthorizedSigner(depositor) → magic value
-     → stores authorization
+1. Governance setup:
+   - EscrowRouter.setEscrowOverride(IS_address, IS) — routes collection to IS
+   - IS grants INDEXER_SET_OPERATOR_ROLE to operator
 
-2. Signal event triggers agreement creation:
-   Dipper calls IS.createAgreement(indexer, subgraphDeploymentID, params)
-     → IS constructs RCA struct
-     → IS stores agreementHash in pending set
-     → IS calls SS.acceptIndexingAgreement(rca, IS_address)
-       → SS calls RC.acceptFromContract(rca, IS_address)
-         → RC calls IS.isAuthorizedAgreement(hash) → magic value
-         → Agreement accepted
+2. Operator prepares agreement:
+   operator calls IS.prepareAgreement(subgraphID, indexer, agreementHash, encodedRCA)
+     → IS validates agreement escrow has signal for (subgraph, indexer)
+     → IS stores pendingAgreements[hash] = true
+     → IS emits AgreementPrepared(subgraph, indexer, hash, encodedRCA)
 
-3. Collection proceeds normally:
-   SS → IA → RC → EscrowRouter → IS → GraphPayments
+3. Indexer accepts:
+   indexer calls SS.acceptIndexingAgreementFromContract(allocationId, rca, IS_address)
+     → SS validates allocation, metadata, subgraph match
+     → SS calls RC.acceptFromContract(rca, IS_address)
+       → RC verifies IS_address.code.length > 0
+       → RC calls IS.isAuthorizedAgreement(hash) → magic value
+       → RC calls _validateAndStoreAgreement(rca) → agreement stored
+
+4. Collection:
+   SS → IndexingAgreement → RC.collect() → EscrowRouter.collect()
+     → EscrowRouter sees override for IS_address → delegates to IS
+     → IS._collectVirtual(subgraph, indexer, amount) → mints GRT
+     → IS distributes via GraphPayments
 ```
-
-## What This Enables
-
-- IS reacts to signal deposits/indexer set changes by creating agreements on-chain
-- No off-chain signing infrastructure needed for the IS path
-- Dipper still exists but as a trigger (calling IS functions), not as a key holder
-- EOA path completely unchanged — existing bilateral agreements work identically
 
 ## What Changes
 
 | Component | Change | Impact |
 |-----------|--------|--------|
-| `IAuthorizable` | No change (interface stays the same) | None |
-| `Authorizable` | `authorizeSigner()` checks `code.length`, calls `IContractApprover` for contracts | Additive |
+| `IAuthorizable` | No change | None |
+| `Authorizable` | No change | None |
 | `IRecurringCollector` | Add `acceptFromContract()` | Additive |
-| `RecurringCollector` | Implement `acceptFromContract()` sharing logic with `accept()` | Moderate |
-| `IContractApprover` | New interface | New |
-| `IndexingSignal` | Implement `IContractApprover`, add agreement creation logic | Moderate |
+| `RecurringCollector` | Implement `acceptFromContract()` with shared `_validateAndStoreAgreement()` | Moderate |
+| `IContractApprover` | New interface (single function) | New |
+| `ISubgraphService` | Add `acceptIndexingAgreementFromContract()` | Additive |
+| `SubgraphService` | Implement `acceptIndexingAgreementFromContract()` | Additive |
+| `IndexingAgreement` (library) | Add `acceptFromContract()` with shared `_validateAndPrepareAccept()` | Moderate |
+| `IndexingSignal` | Implement `IContractApprover`, add `prepareAgreement()` / `clearPreparedAgreement()` | Moderate |
 
 Neither RC nor Authorizable are deployed, so no migration concerns.
+
+## Open Questions
+
+**RC authorization gap**: `acceptFromContract` has no check on *who* the contractApprover is — any contract that returns the magic value can approve agreements. The current trust relies on:
+- SS access control (only valid allocations can call)
+- The contract approver's own internal logic (IS uses role-based `prepareAgreement`)
+
+Should RC have a governance whitelist of approved contract approvers? The `_validateAndStoreAgreement` check that `msg.sender == rca.dataService` limits exposure (only the data service can trigger acceptance), but the data service can pass any contractApprover address.
 
 ## Navigation
 
 - [Status.md](./Status.md)
 - [CollectionContext.md](./CollectionContext.md)
-- [Disconnects.md](./Disconnects.md) — see #7 (RCA creation)
+- [Disconnects.md](./Disconnects.md)
