@@ -402,7 +402,7 @@ describe('Rewards - Calculations', () => {
 
         // Prepare expected results
         // Option B model: accRewardsForSubgraph only tracks distributable rewards
-        // 2 blocks before allocation = reclaimed (NO_ALLOCATION), 5 blocks after = distributable
+        // 2 blocks before allocation = reclaimed (NO_ALLOCATED_TOKENS), 5 blocks after = distributable
         const expectedSubgraphRewards = toGRT('1000') // 5 blocks × 200 GRT/block
         const expectedRewardsAT = toGRT('0.08') // 1000 GRT / 12500 allocated tokens
 

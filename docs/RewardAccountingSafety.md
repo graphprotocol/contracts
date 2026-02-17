@@ -82,7 +82,7 @@ _allocations.snapshotRewards(..., onSubgraphAllocationUpdate()); // ③ Updates 
 
 **Why this order matters**:
 
-- Step ① with zero allocations → triggers NO_ALLOCATION reclaim for gap period
+- Step ① with zero allocations → triggers NO_ALLOCATED_TOKENS reclaim for gap period
 - Step ② creates allocation → now allocatedTokens > 0
 - Step ③ same block → newRewards ≈ 0, just confirms snapshot
 
@@ -112,7 +112,7 @@ Every reward path that cannot reach an allocation has a reclaim handler:
 | No global signal     | `updateAccRewardsPerSignal()` with signalledTokens = 0       | `NO_SIGNAL`              |
 | Subgraph denied      | `onSubgraphSignalUpdate()` or `onSubgraphAllocationUpdate()` | `SUBGRAPH_DENIED`        |
 | Below minimum signal | `onSubgraphSignalUpdate()` or `onSubgraphAllocationUpdate()` | `BELOW_MINIMUM_SIGNAL`   |
-| No allocations       | `onSubgraphSignalUpdate()` or `onSubgraphAllocationUpdate()` | `NO_ALLOCATION`          |
+| No allocations       | `onSubgraphSignalUpdate()` or `onSubgraphAllocationUpdate()` | `NO_ALLOCATED_TOKENS`    |
 | Indexer ineligible   | `takeRewards()`                                              | `INDEXER_INELIGIBLE`     |
 | Stale/zero POI       | `_presentPoi()`                                              | `STALE_POI` / `ZERO_POI` |
 | Allocation close     | `_closeAllocation()`                                         | `CLOSE_ALLOCATION`       |
@@ -124,7 +124,7 @@ Every reward path that cannot reach an allocation has a reclaim handler:
 | Failure Mode                 | How Prevented                                                                        |
 | ---------------------------- | ------------------------------------------------------------------------------------ |
 | Double-mint same rewards     | Snapshot updated after every claim; same-block calls return ~0                       |
-| Rewards stuck in accumulator | NO_ALLOCATION reclaim before allocation creation                                     |
+| Rewards stuck in accumulator | NO_ALLOCATED_TOKENS reclaim before allocation creation                               |
 | Gap period loss              | `_getAllocationData` calls `onSubgraphAllocationUpdate` before allocation exists     |
 | Denial-period accumulation   | `accRewardsForSubgraph` tracks; `accRewardsPerAllocatedToken` frozen; diff reclaimed |
 | Signal change mid-period     | `onSubgraphSignalUpdate` hook called before signal changes                           |
@@ -148,8 +148,8 @@ RewardsManager and issuers share responsibility for correct reward accounting:
 **Example - Subgraph Denial** (see [RewardConditions.md](./RewardConditions.md#subgraph_denied) for full details):
 
 - RM: Reclaims new rewards; freezes `accRewardsPerAllocatedToken`
-- AM: Defers claim; preserves pre-denial rewards in allocation snapshot
-- After undeny: AM can claim the preserved pre-denial rewards
+- AM: Defers claim; preserves uncollected rewards (no snapshot update)
+- After undeny: AM can claim preserved uncollected rewards
 
 ## Issuer Requirements
 

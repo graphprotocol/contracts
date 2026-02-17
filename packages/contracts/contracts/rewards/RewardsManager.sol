@@ -115,6 +115,24 @@ contract RewardsManager is
      * @inheritdoc IRewardsManager
      * @dev Can be set to zero which means that this feature is not being used
      * @param _minimumSubgraphSignal Minimum signaled tokens
+     *
+     * IMPORTANT: This function does not update existing subgraphs. When subgraphs are later
+     * updated, the current threshold is applied to ALL pending rewards since their last update,
+     * regardless of historical threshold values.
+     *
+     * ## Rewards Accounting Issue
+     *
+     * - Threshold increase: Pending rewards on previously eligible subgraphs are reclaimed
+     * - Threshold decrease: Previously ineligible subgraphs retroactively accumulate pending rewards
+     *
+     * ## Mitigation
+     *
+     * 1. Communicate the planned threshold change with a specific future date
+     * 2. Wait - notice period allows participants to adjust signal if desired
+     * 3. Identify affected subgraphs off-chain (those crossing the threshold)
+     * 4. Call onSubgraphSignalUpdate() for all affected subgraphs to accumulate pending rewards
+     *    under current eligibility rules
+     * 5. Execute threshold change via this function (promptly after step 4, ideally same block)
      */
     function setMinimumSubgraphSignal(uint256 _minimumSubgraphSignal) external override {
         // Caller can be the SAO or the governor
@@ -398,11 +416,11 @@ contract RewardsManager is
 
     /**
      * @notice Get subgraph rewards state including effective reclaim condition
-     * @dev Determines claimability with priority: SUBGRAPH_DENIED > BELOW_MINIMUM_SIGNAL > NO_ALLOCATION > NONE
+     * @dev Determines claimability with priority: SUBGRAPH_DENIED > BELOW_MINIMUM_SIGNAL > NO_ALLOCATED_TOKENS > NONE
      * When multiple conditions apply, prefers conditions with configured reclaim addresses.
      * @param _subgraphDeploymentID Subgraph deployment
      * @return newRewards Rewards accumulated since last snapshot
-     * @return subgraphAllocatedTokens Total tokens allocated (0 if condition is not NONE)
+     * @return subgraphAllocatedTokens Total tokens allocated to this subgraph
      * @return condition The effective condition for reclaim routing (NONE if claimable)
      */
     function _getSubgraphRewardsState(
@@ -422,7 +440,7 @@ contract RewardsManager is
         if (
             subgraphAllocatedTokens == 0 &&
             (condition == RewardsCondition.NONE || reclaimAddresses[condition] == address(0))
-        ) condition = RewardsCondition.NO_ALLOCATION;
+        ) condition = RewardsCondition.NO_ALLOCATED_TOKENS;
     }
 
     /**
@@ -516,7 +534,7 @@ contract RewardsManager is
         subgraph.accRewardsForSubgraphSnapshot = newAccRewardsForSubgraph;
 
         newAccRewardsPerAllocatedToken = accRewardsPerAllocatedToken;
-        if (undistributedRewards != 0 && subgraphAllocatedTokens != 0) {
+        if (undistributedRewards != 0) {
             newAccRewardsPerAllocatedToken = accRewardsPerAllocatedToken.add(
                 undistributedRewards.mul(FIXED_POINT_SCALING_FACTOR).div(subgraphAllocatedTokens)
             );
@@ -601,9 +619,11 @@ contract RewardsManager is
 
     /**
      * @inheritdoc IRewardsManager
-     * @dev Returns claimable rewards based on current accumulator state.
-     * Reflects deterministic exclusions (denied, below minimum signal, no allocations) but NOT indexer eligibility.
-     * Indexer eligibility is checked at claim time and can change independently of reward accrual.
+     * @dev Reflects the gap between the subgraph accumulator and the allocation's snapshot, plus
+     * stored pending rewards. During exclusion (denied, below minimum signal, no allocations), the
+     * accumulator is frozen: new rewards are excluded but the existing gap remains claimable when
+     * conditions clear. Does not check indexer eligibility - that is verified at claim time via
+     * takeRewards().
      */
     function getRewards(address _rewardsIssuer, address _allocationID) external view override returns (uint256) {
         require(
@@ -714,6 +734,7 @@ contract RewardsManager is
         bytes32 subgraphDeploymentId
     ) private returns (uint256) {
         if (rewards == 0) return 0;
+        if (reason == RewardsCondition.NONE) return 0; // NONE cannot be used as reclaim reason
 
         address target = reclaimAddresses[reason];
         if (target == address(0)) target = defaultReclaimAddress;
@@ -793,7 +814,8 @@ contract RewardsManager is
 
     /**
      * @inheritdoc IRewardsManager
-     * @dev bytes32(0) as a reason is reserved as a no-op and will not be reclaimed.
+     * @dev bytes32(0) (NONE) cannot be used as a reclaim reason and will return 0.
+     * Use specific RewardsCondition constants for reclaim reasons.
      */
     function reclaimRewards(bytes32 reason, address allocationID) external override returns (uint256) {
         address rewardsIssuer = msg.sender;

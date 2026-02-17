@@ -380,7 +380,7 @@ describe('Rewards - SubgraphService', () => {
         // Mine blocks
         await helpers.mine(5)
 
-        // Get rewards - Option B: with no allocations, rewards are reclaimed (NO_ALLOCATION)
+        // Get rewards - Option B: with no allocations, rewards are reclaimed (NO_ALLOCATED_TOKENS)
         // so both accRewardsPerAllocatedToken and accRewardsForSubgraph remain 0
         const [accRewardsPerAllocatedToken, accRewardsForSubgraph] =
           await rewardsManager.getAccRewardsPerAllocatedToken(subgraphDeploymentID1)

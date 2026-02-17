@@ -30,7 +30,7 @@ function expectApproxEq(actual: BigNumber, expected: BigNumber, message: string)
     `${message}: difference ${diff.toString()} exceeds tolerance ${REWARDS_TOLERANCE}`,
   ).to.be.true
 }
-const NO_ALLOCATION = utils.id('NO_ALLOCATION')
+const NO_ALLOCATED_TOKENS = utils.id('NO_ALLOCATED_TOKENS')
 const BELOW_MINIMUM_SIGNAL = utils.id('BELOW_MINIMUM_SIGNAL')
 
 describe('Rewards - Reclaim Addresses', () => {
@@ -879,10 +879,10 @@ describe('Rewards - Reclaim Addresses', () => {
     })
   })
 
-  describe('reclaim NO_ALLOCATION - signal but no allocations', function () {
-    it('should reclaim when signal exists but no allocations and NO_ALLOCATION address set', async function () {
-      // Set reclaim address for NO_ALLOCATION
-      await rewardsManager.connect(governor).setReclaimAddress(NO_ALLOCATION, reclaimWallet.address)
+  describe('reclaim NO_ALLOCATED_TOKENS - signal but no allocations', function () {
+    it('should reclaim when signal exists but no allocations and NO_ALLOCATED_TOKENS address set', async function () {
+      // Set reclaim address for NO_ALLOCATED_TOKENS
+      await rewardsManager.connect(governor).setReclaimAddress(NO_ALLOCATED_TOKENS, reclaimWallet.address)
 
       // Create signal but NO allocation
       const signalled1 = toGRT('1500')

@@ -451,7 +451,8 @@ library AllocationHandler {
     /**
      * @notice Resize an allocation
      * @dev Will lock or release tokens in the provision tracker depending on the new allocation size.
-     * Rewards accrued but not issued before the resize will be accounted for as pending rewards.
+     * Rewards accrued but not issued before the resize will be accounted for as pending rewards,
+     * unless the allocation is stale, in which case pending rewards are reclaimed.
      * These will be paid out when the indexer presents a POI.
      *
      * Requirements:
@@ -469,7 +470,9 @@ library AllocationHandler {
      * @param _allocationId The id of the allocation to be resized
      * @param _tokens The new amount of tokens to allocate
      * @param _delegationRatio The delegation ratio to consider when locking tokens
+     * @param _maxPOIStaleness The maximum staleness of the POI in seconds
      */
+    // forge-lint: disable-next-item(mixed-case-variable)
     function resizeAllocation(
         mapping(address allocationId => IAllocation.State allocation) storage _allocations,
         mapping(address indexer => uint256 tokens) storage allocationProvisionTracker,
@@ -478,7 +481,8 @@ library AllocationHandler {
         IRewardsManager graphRewardsManager,
         address _allocationId,
         uint256 _tokens,
-        uint32 _delegationRatio
+        uint32 _delegationRatio,
+        uint256 _maxPOIStaleness
     ) external {
         IAllocation.State memory allocation = _allocations.get(_allocationId);
         require(allocation.isOpen(), AllocationHandler.AllocationHandlerAllocationClosed(_allocationId));
@@ -510,6 +514,13 @@ library AllocationHandler {
             oldTokens,
             accRewardsPerAllocatedTokenPending
         );
+
+        // If allocation is stale, reclaim pending rewards defensively.
+        // Stale allocations are not performing, so rewards should not accumulate.
+        if (allocation.isStale(_maxPOIStaleness)) {
+            graphRewardsManager.reclaimRewards(RewardsCondition.STALE_POI, _allocationId);
+            _allocations.clearPendingRewards(_allocationId);
+        }
 
         // Update total allocated tokens for the subgraph deployment
         if (_tokens > oldTokens) {

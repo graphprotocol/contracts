@@ -4,18 +4,18 @@ Quick reference for all reward conditions and how they are handled across Reward
 
 ## Summary Table
 
-| Condition              | Identifier                          | Handled By        | Action                    | Rewards Outcome                       |
-| ---------------------- | ----------------------------------- | ----------------- | ------------------------- | ------------------------------------- |
-| `NONE`                 | `bytes32(0)`                        | —                 | Normal path               | Claimed by indexer                    |
-| `NO_SIGNAL`            | `keccak256("NO_SIGNAL")`            | RewardsManager    | Reclaim                   | To reclaim address                    |
-| `SUBGRAPH_DENIED`      | `keccak256("SUBGRAPH_DENIED")`      | Both              | Reclaim (RM) / Defer (AM) | New: reclaimed; Pre-denial: preserved |
-| `BELOW_MINIMUM_SIGNAL` | `keccak256("BELOW_MINIMUM_SIGNAL")` | RewardsManager    | Reclaim                   | To reclaim address                    |
-| `NO_ALLOCATION`        | `keccak256("NO_ALLOCATION")`        | RewardsManager    | Reclaim                   | To reclaim address                    |
-| `INDEXER_INELIGIBLE`   | `keccak256("INDEXER_INELIGIBLE")`   | RewardsManager    | Reclaim                   | To reclaim address                    |
-| `STALE_POI`            | `keccak256("STALE_POI")`            | AllocationManager | Reclaim                   | To reclaim address                    |
-| `ZERO_POI`             | `keccak256("ZERO_POI")`             | AllocationManager | Reclaim                   | To reclaim address                    |
-| `ALLOCATION_TOO_YOUNG` | `keccak256("ALLOCATION_TOO_YOUNG")` | AllocationManager | Defer                     | Preserved for later                   |
-| `CLOSE_ALLOCATION`     | `keccak256("CLOSE_ALLOCATION")`     | AllocationManager | Reclaim                   | To reclaim address                    |
+| Condition              | Identifier                          | Handled By        | Action                    | Rewards Outcome                        |
+| ---------------------- | ----------------------------------- | ----------------- | ------------------------- | -------------------------------------- |
+| `NONE`                 | `bytes32(0)`                        | —                 | Normal path               | Claimed by indexer                     |
+| `NO_SIGNAL`            | `keccak256("NO_SIGNAL")`            | RewardsManager    | Reclaim                   | To reclaim address                     |
+| `SUBGRAPH_DENIED`      | `keccak256("SUBGRAPH_DENIED")`      | Both              | Reclaim (RM) / Defer (AM) | New: reclaimed; Uncollected: preserved |
+| `BELOW_MINIMUM_SIGNAL` | `keccak256("BELOW_MINIMUM_SIGNAL")` | RewardsManager    | Reclaim                   | To reclaim address                     |
+| `NO_ALLOCATED_TOKENS`  | `keccak256("NO_ALLOCATED_TOKENS")`  | RewardsManager    | Reclaim                   | To reclaim address                     |
+| `INDEXER_INELIGIBLE`   | `keccak256("INDEXER_INELIGIBLE")`   | RewardsManager    | Reclaim                   | To reclaim address                     |
+| `STALE_POI`            | `keccak256("STALE_POI")`            | AllocationManager | Reclaim                   | To reclaim address                     |
+| `ZERO_POI`             | `keccak256("ZERO_POI")`             | AllocationManager | Reclaim                   | To reclaim address                     |
+| `ALLOCATION_TOO_YOUNG` | `keccak256("ALLOCATION_TOO_YOUNG")` | AllocationManager | Defer                     | Preserved for later                    |
+| `CLOSE_ALLOCATION`     | `keccak256("CLOSE_ALLOCATION")`     | AllocationManager | Reclaim                   | To reclaim address                     |
 
 ## Reward Distribution Levels
 
@@ -36,7 +36,7 @@ Rewards flow through three levels, with reclaim possible at each:
 │  ─────────────────────────────────────────────────────────────────  │
 │  onSubgraphSignalUpdate() / onSubgraphAllocationUpdate()            │
 │                                                                     │
-│  Reclaim: SUBGRAPH_DENIED, BELOW_MINIMUM_SIGNAL, NO_ALLOCATION      │
+│  Reclaim: SUBGRAPH_DENIED, BELOW_MINIMUM_SIGNAL, NO_ALLOCATED_TOKENS      │
 │                                                                     │
 │  Behavior:                                                          │
 │  - accRewardsForSubgraph only increases when claimable              │
@@ -73,20 +73,20 @@ Rewards flow through three levels, with reclaim possible at each:
 
 - **Trigger**: `isDenied(subgraphDeploymentId)` returns true
 - **Effect**: `accRewardsPerAllocatedToken` stops increasing
-- **Handling**: New rewards reclaimed; pre-denial rewards preserved in allocation snapshots
+- **Handling**: New rewards reclaimed; accumulator frozen (uncollected rewards preserved)
 - **Note**: If no SUBGRAPH_DENIED reclaim address AND signal < minimum, reclaims as BELOW_MINIMUM_SIGNAL instead
 
 **Reward disposition by period:**
 
 | Period        | Disposition                                              |
 | ------------- | -------------------------------------------------------- |
-| Pre-denial    | Claimable after undeny                                   |
+| Before denial | Claimable after undeny                                   |
 | During denial | Reclaimed to protocol (or dropped if no reclaim address) |
 | Post-undeny   | Claimable normally                                       |
 
 **Effect on allocations:**
 
-- _Existing allocations_: Pre-denial rewards preserved; cannot claim while denied; claimable after undeny
+- _Existing allocations_: Uncollected rewards preserved (accumulator frozen, snapshot unchanged); cannot claim while denied; claimable after undeny
 - _New allocations (created while denied)_: Start with frozen baseline; only earn rewards after undeny
 - _POI presentation_: Indexers should continue presenting POIs to prevent staleness (returns 0 but maintains allocation health)
 
@@ -104,7 +104,7 @@ Rewards flow through three levels, with reclaim possible at each:
 - **Effect**: `accRewardsPerAllocatedToken` stops increasing
 - **Handling**: Rewards reclaimed to configured address
 
-#### NO_ALLOCATION
+#### NO_ALLOCATED_TOKENS
 
 - **Trigger**: Subgraph has signal but zero allocated tokens
 - **Effect**: Rewards cannot be distributed to allocations
@@ -146,7 +146,7 @@ Conditions checked in order (first match wins):
 
 - **Trigger**: `isDenied(subgraphDeploymentId)` at POI presentation
 - **Effect**: Cannot claim while denied
-- **Handling**: **Deferred** (returns 0, no snapshot update, pre-denial rewards preserved)
+- **Handling**: **Deferred** (returns 0, no snapshot update, uncollected rewards preserved)
 
 #### CLOSE_ALLOCATION
 
@@ -197,6 +197,33 @@ defaultReclaimAddress = treasuryAddress;  // Catch-all
 ```
 
 **Important**: Changes apply retroactively to all future reclaims.
+
+## Parameter Changes: minimumSubgraphSignal
+
+### Retroactive Application Risk
+
+When `minimumSubgraphSignal` is changed via `setMinimumSubgraphSignal()`, existing subgraphs are NOT automatically updated. When subgraphs are later updated (via signal/allocation changes), the **current** threshold is applied to ALL pending rewards since their last update, regardless of historical threshold values.
+
+**Impact:**
+
+| Change Direction    | Effect                                                                   |
+| ------------------- | ------------------------------------------------------------------------ |
+| Threshold increases | Pending rewards on previously eligible subgraphs are reclaimed           |
+| Threshold decreases | Previously ineligible subgraphs retroactively accumulate pending rewards |
+
+### Required Mitigation Process
+
+To prevent retroactive application to long historical periods:
+
+1. **Communicate** the planned threshold change with a specific future date
+2. **Wait** - notice period allows participants to adjust signal if desired
+3. **Identify** affected subgraphs off-chain (those crossing the threshold)
+4. **Call** `onSubgraphSignalUpdate()` for all affected subgraphs to accumulate pending rewards under current eligibility rules
+5. **Execute** threshold change via `setMinimumSubgraphSignal()` (promptly after step 4, ideally same block)
+
+**Responsibility:** Governance handles steps 3-5; participants may optionally adjust signal in step 2.
+
+For implementation details, see NatSpec documentation on `RewardsManager.setMinimumSubgraphSignal()`.
 
 ## Key Behaviors
 

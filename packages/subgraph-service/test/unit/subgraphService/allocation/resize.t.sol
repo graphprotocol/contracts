@@ -4,6 +4,7 @@ pragma solidity ^0.8.27;
 import { SubgraphServiceTest } from "../SubgraphService.t.sol";
 import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
 import { AllocationHandler } from "../../../../contracts/libraries/AllocationHandler.sol";
+import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 
 contract SubgraphServiceAllocationResizeTest is SubgraphServiceTest {
@@ -104,5 +105,42 @@ contract SubgraphServiceAllocationResizeTest is SubgraphServiceTest {
             abi.encodeWithSelector(AllocationHandler.AllocationHandlerAllocationClosed.selector, allocationId)
         );
         subgraphService.resizeAllocation(users.indexer, allocationId, resizeTokens);
+    }
+
+    function test_SubgraphService_Allocation_Resize_StaleAllocation_ReclaimsPending(
+        uint256 tokens,
+        uint256 resizeTokens
+    ) public useIndexer useAllocation(tokens) {
+        resizeTokens = bound(resizeTokens, 1, MAX_TOKENS);
+        vm.assume(resizeTokens != tokens);
+
+        // Skip past MAX_POI_STALENESS to make allocation stale
+        skip(MAX_POI_STALENESS + 1);
+
+        mint(users.indexer, resizeTokens);
+        _addToProvision(users.indexer, resizeTokens);
+        subgraphService.resizeAllocation(users.indexer, allocationId, resizeTokens);
+
+        // Pending rewards should be zero after stale resize
+        IAllocation.State memory allocation = subgraphService.getAllocation(allocationId);
+        assertEq(allocation.accRewardsPending, 0);
+        assertEq(allocation.tokens, resizeTokens);
+    }
+
+    function test_SubgraphService_Allocation_Resize_NotStale_PreservesPending(
+        uint256 tokens,
+        uint256 resizeTokens
+    ) public useIndexer useAllocation(tokens) {
+        resizeTokens = bound(resizeTokens, 1, MAX_TOKENS);
+        vm.assume(resizeTokens != tokens);
+
+        mint(users.indexer, resizeTokens);
+        _addToProvision(users.indexer, resizeTokens);
+        subgraphService.resizeAllocation(users.indexer, allocationId, resizeTokens);
+
+        // Pending rewards should be preserved (non-zero) for non-stale allocation
+        IAllocation.State memory allocation = subgraphService.getAllocation(allocationId);
+        uint256 expectedPending = rewardsManager.calcRewards(tokens, REWARDS_PER_SUBGRAPH_ALLOCATION_UPDATE);
+        assertEq(allocation.accRewardsPending, expectedPending);
     }
 }
