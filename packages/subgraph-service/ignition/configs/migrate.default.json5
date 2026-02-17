@@ -20,6 +20,7 @@
     "subgraphServiceProxyAddress": "",
     "subgraphServiceProxyAdminAddress": "",
     "graphTallyCollectorAddress": "",
+    "recurringCollectorAddress": "",
     "curationImplementationAddress": ""
   },
   "DisputeManager": {
@@ -34,5 +35,6 @@
     "stakeToFeesRatio": 2,
     "maxPOIStaleness": 2419200, // 28 days = 2419200 seconds
     "curationCut": 100000,
+    "indexingFeesCut": 100000,
   }
 }

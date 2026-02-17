@@ -20,6 +20,7 @@
     "subgraphServiceProxyAddress": "0xc24A3dAC5d06d771f657A48B20cE1a671B78f26b",
     "subgraphServiceProxyAdminAddress": "0x15737D9f8635cAcd43e110327c930bd5EC1fe098",
     "graphTallyCollectorAddress": "0x382863e7B662027117449bd2c49285582bbBd21B",
+    "recurringCollectorAddress": "",
     "curationImplementationAddress": "0xbC8F4355f346e47eef8A0DBFF4a58616ACf7DaCA",
   },
   "DisputeManager": {
@@ -34,5 +35,6 @@
     "stakeToFeesRatio": 10,
     "maxPOIStaleness": 28800,
     "curationCut": 100000,
+    "indexingFeesCut": 100000,
   }
 }

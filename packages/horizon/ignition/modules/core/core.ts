@@ -3,6 +3,7 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 import GraphPaymentsModule, { MigrateGraphPaymentsModule } from './GraphPayments'
 import GraphTallyCollectorModule, { MigrateGraphTallyCollectorModule } from './GraphTallyCollector'
 import HorizonStakingModule, { MigrateHorizonStakingDeployerModule } from './HorizonStaking'
+import RecurringCollectorModule, { MigrateRecurringCollectorModule } from './RecurringCollector'
 import PaymentsEscrowModule, { MigratePaymentsEscrowModule } from './PaymentsEscrow'
 
 export default buildModule('GraphHorizon_Core', (m) => {
@@ -10,6 +11,7 @@ export default buildModule('GraphHorizon_Core', (m) => {
   const { GraphPaymentsProxyAdmin, GraphPayments, GraphPaymentsImplementation } = m.useModule(GraphPaymentsModule)
   const { PaymentsEscrowProxyAdmin, PaymentsEscrow, PaymentsEscrowImplementation } = m.useModule(PaymentsEscrowModule)
   const { GraphTallyCollector } = m.useModule(GraphTallyCollectorModule)
+  const { RecurringCollector } = m.useModule(RecurringCollectorModule)
 
   return {
     HorizonStaking,
@@ -21,6 +23,7 @@ export default buildModule('GraphHorizon_Core', (m) => {
     PaymentsEscrow,
     PaymentsEscrowImplementation,
     GraphTallyCollector,
+    RecurringCollector,
   }
 })
 
@@ -31,6 +34,7 @@ export const MigrateHorizonCoreModule = buildModule('GraphHorizon_Core', (m) => 
   const { GraphPayments, GraphPaymentsImplementation } = m.useModule(MigrateGraphPaymentsModule)
   const { PaymentsEscrow, PaymentsEscrowImplementation } = m.useModule(MigratePaymentsEscrowModule)
   const { GraphTallyCollector } = m.useModule(MigrateGraphTallyCollectorModule)
+  const { RecurringCollector } = m.useModule(MigrateRecurringCollectorModule)
 
   return {
     HorizonStaking,
@@ -40,5 +44,6 @@ export const MigrateHorizonCoreModule = buildModule('GraphHorizon_Core', (m) => 
     PaymentsEscrow,
     PaymentsEscrowImplementation,
     GraphTallyCollector,
+    RecurringCollector,
   }
 })
