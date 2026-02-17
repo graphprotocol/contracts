@@ -27,10 +27,12 @@ abstract contract DataServiceRescuable is DataService, IDataServiceRescuable {
     /// @notice List of rescuers and their allowed status
     mapping(address rescuer => bool allowed) public rescuers;
 
+    // forge-lint: disable-next-item(mixed-case-variable)
     /// @dev Gap to allow adding variables in future upgrades
     /// Note that this contract is not upgradeable but might be inherited by an upgradeable contract
     uint256[50] private __gap;
 
+    // forge-lint: disable-next-item(unwrapped-modifier-logic)
     /**
      * @notice Checks if the caller is a rescuer.
      */
@@ -39,11 +41,13 @@ abstract contract DataServiceRescuable is DataService, IDataServiceRescuable {
         _;
     }
 
+    // forge-lint: disable-next-item(mixed-case-function)
     /// @inheritdoc IDataServiceRescuable
     function rescueGRT(address to, uint256 tokens) external virtual onlyRescuer {
         _rescueTokens(to, address(_graphToken()), tokens);
     }
 
+    // forge-lint: disable-next-item(mixed-case-function)
     /// @inheritdoc IDataServiceRescuable
     function rescueETH(address payable to, uint256 tokens) external virtual onlyRescuer {
         _rescueTokens(to, Denominations.NATIVE_TOKEN, tokens);

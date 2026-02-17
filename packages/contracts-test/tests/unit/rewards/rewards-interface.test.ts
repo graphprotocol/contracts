@@ -8,7 +8,7 @@ import hre from 'hardhat'
 
 import { NetworkFixture } from '../lib/fixtures'
 
-describe.skip('RewardsManager interfaces', () => {
+describe('RewardsManager interfaces', () => {
   const graph = hre.graph()
   let governor: SignerWithAddress
 
@@ -58,7 +58,7 @@ describe.skip('RewardsManager interfaces', () => {
     })
 
     it('IRewardsManager should have stable interface ID', () => {
-      expect(IRewardsManager__factory.interfaceId).to.equal('0xa0a2f219')
+      expect(IRewardsManager__factory.interfaceId).to.equal('0x36b70adb')
     })
   })
 

@@ -19,12 +19,11 @@ const baseConfig = hardhatBaseConfig(require)
 const config: HardhatUserConfig = {
   ...baseConfig,
   solidity: {
-    version: '0.8.27',
+    version: '0.8.33',
     settings: {
-      optimizer: {
-        enabled: true,
-        runs: 10,
-      },
+      optimizer: { enabled: true, runs: 100 },
+      evmVersion: 'cancun',
+      viaIR: true,
     },
   },
   sourcify: {

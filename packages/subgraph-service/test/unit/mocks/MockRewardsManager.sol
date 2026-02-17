@@ -51,21 +51,33 @@ contract MockRewardsManager is IRewardsManager {
 
     function setReclaimAddress(bytes32, address) external {}
 
-    function reclaimRewards(bytes32, address _allocationId, bytes calldata) external view returns (uint256) {
+    function setDefaultReclaimAddress(address) external {}
+
+    function reclaimRewards(bytes32, address _allocationId) external view returns (uint256) {
         address rewardsIssuer = msg.sender;
-        (bool isActive, , , uint256 tokens, uint256 accRewardsPerAllocatedToken, ) = IRewardsIssuer(rewardsIssuer)
-            .getAllocationData(_allocationId);
+        (
+            bool isActive,
+            ,
+            ,
+            uint256 tokens,
+            uint256 accRewardsPerAllocatedToken,
+            uint256 accRewardsPending
+        ) = IRewardsIssuer(rewardsIssuer).getAllocationData(_allocationId);
 
         if (!isActive) {
             return 0;
         }
 
-        // Calculate accumulated but unclaimed rewards
-        uint256 accRewardsPerTokens = tokens.mulPPM(rewardsPerSignal);
-        uint256 rewards = accRewardsPerTokens - accRewardsPerAllocatedToken;
+        // Mirror real _calcAllocationRewards: pending + delta from current accumulator
+        uint256 newRewards = 0;
+        if (rewardsPerSubgraphAllocationUpdate > accRewardsPerAllocatedToken) {
+            newRewards =
+                ((rewardsPerSubgraphAllocationUpdate - accRewardsPerAllocatedToken) * tokens) /
+                FIXED_POINT_SCALING_FACTOR;
+        }
 
         // Note: We don't mint tokens for reclaimed rewards, they are just discarded
-        return rewards;
+        return accRewardsPending + newRewards;
     }
 
     // -- Getters --
@@ -75,6 +87,10 @@ contract MockRewardsManager is IRewardsManager {
     }
 
     function getReclaimAddress(bytes32) external pure returns (address) {
+        return address(0);
+    }
+
+    function getDefaultReclaimAddress() external pure returns (address) {
         return address(0);
     }
 
@@ -92,7 +108,9 @@ contract MockRewardsManager is IRewardsManager {
 
     function getRewards(address, address) external view returns (uint256) {}
 
-    function calcRewards(uint256, uint256) external pure returns (uint256) {}
+    function calcRewards(uint256 _tokens, uint256 _accRewardsPerAllocatedToken) external pure returns (uint256) {
+        return (_accRewardsPerAllocatedToken * _tokens) / FIXED_POINT_SCALING_FACTOR;
+    }
 
     function getAllocatedIssuancePerBlock() external view returns (uint256) {}
 
