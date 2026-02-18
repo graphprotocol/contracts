@@ -1,6 +1,6 @@
 # IssuanceAllocator Deployment
 
-This document describes the deployment sequence for IssuanceAllocator. For contract architecture, behavior, and technical details, see [IssuanceAllocator.md](../../../../issuance/contracts/allocate/IssuanceAllocator.md).
+This document describes the deployment sequence for IssuanceAllocator. For contract architecture, behavior, and technical details, see [IssuanceAllocator.md](../../../issuance/contracts/allocate/IssuanceAllocator.md).
 
 ## Prerequisites
 
@@ -18,7 +18,7 @@ The deployment strategy safely replicates existing issuance configuration during
 - Granting of minter role can be delayed until replication of initial configuration with upgraded RewardsManager is verified to allow seamless transition to use of IssuanceAllocator
 - **Governance control**: This contract uses OpenZeppelin's TransparentUpgradeableProxy pattern (not custom GraphProxy). GraphIssuanceProxyAdmin (owned by protocol governance) controls upgrades, while GOVERNOR_ROLE controls operations. The same governance address should have both roles.
 
-For the general governance-gated upgrade workflow, see [GovernanceWorkflow.md](../../../docs/GovernanceWorkflow.md).
+For the general governance-gated upgrade workflow, see [GovernanceWorkflow.md](../GovernanceWorkflow.md).
 
 ## Deployment Sequence
 
@@ -156,5 +156,5 @@ When `setIssuancePerBlock()` is called, the L1GraphTokenGateway's `updateL2MintA
 
 ## See Also
 
-- [IssuanceAllocator.md](../../../../issuance/contracts/allocate/IssuanceAllocator.md) - Contract architecture and technical details
-- [GovernanceWorkflow.md](../../../docs/GovernanceWorkflow.md) - General governance-gated upgrade workflow
+- [IssuanceAllocator.md](../../../issuance/contracts/allocate/IssuanceAllocator.md) - Contract architecture and technical details
+- [GovernanceWorkflow.md](../GovernanceWorkflow.md) - General governance-gated upgrade workflow
