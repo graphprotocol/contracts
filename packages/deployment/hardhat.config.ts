@@ -27,6 +27,14 @@ const __dirname = path.dirname(__filename)
 // Package paths
 const packageRoot = __dirname
 
+// Hardhat v3 does not auto-set HARDHAT_NETWORK (v2 did).
+// isLocalNetworkMode() in address-book-utils.ts relies on this env var to
+// select addresses-local-network.json over addresses.json.
+const networkArg = process.argv.find((_, i, a) => a[i - 1] === '--network')
+if (networkArg === 'localNetwork') {
+  process.env.HARDHAT_NETWORK = 'localNetwork'
+}
+
 // RPC URLs with defaults
 const ARBITRUM_ONE_RPC = process.env.ARBITRUM_ONE_RPC || 'https://arb1.arbitrum.io/rpc'
 const ARBITRUM_SEPOLIA_RPC = process.env.ARBITRUM_SEPOLIA_RPC || 'https://sepolia-rollup.arbitrum.io/rpc'
