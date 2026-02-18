@@ -89,6 +89,17 @@ const config: HardhatUserConfig = {
 
   // Chain descriptors for fork execution and local development
   chainDescriptors: {
+    // Graph Local Network (rem-local-network, docker-compose stack)
+    1337: {
+      name: 'Graph Local Network',
+      hardforkHistory: {
+        berlin: { blockNumber: 0 },
+        london: { blockNumber: 0 },
+        merge: { blockNumber: 0 },
+        shanghai: { blockNumber: 0 },
+        cancun: { blockNumber: 0 },
+      },
+    },
     // Local hardhat network (for non-fork runs)
     31337: {
       name: 'Hardhat Local',
@@ -165,6 +176,17 @@ const config: HardhatUserConfig = {
             enabled: true,
           }
         : undefined,
+    },
+    // Graph Local Network (rem-local-network docker-compose stack)
+    // Contracts deployed fresh with hardhat-graph-protocol (Phase 1)
+    // Address books use addresses-local-network.json files
+    localNetwork: {
+      type: 'http',
+      url: process.env.LOCAL_NETWORK_RPC || 'http://chain:8545',
+      chainId: 1337,
+      accounts: {
+        mnemonic: 'test test test test test test test test test test test junk',
+      },
     },
     arbitrumOne: {
       type: 'http',
