@@ -24,7 +24,7 @@ For the general governance-gated upgrade workflow, see [GovernanceWorkflow.md](.
 
 ### Step 1: Deploy and Initialize (deployment account)
 
-**Script:** [01_deploy.ts](./01_deploy.ts)
+**Script:** [01_deploy.ts](../../deploy/allocate/allocator/01_deploy.ts)
 
 - Deploy IssuanceAllocator implementation with GraphToken address
 - Deploy TransparentUpgradeableProxy with implementation, GraphIssuanceProxyAdmin, and initialization data
@@ -36,7 +36,7 @@ For the general governance-gated upgrade workflow, see [GovernanceWorkflow.md](.
 
 ### Step 2: Set Issuance Rate (deployment account)
 
-**Script:** [02_configure.ts](./02_configure.ts)
+**Script:** [04_configure.ts](../../deploy/allocate/allocator/04_configure.ts)
 
 - Query current rate from RewardsManager: `rate = rewardsManager.issuancePerBlock()`
 - Call `setIssuancePerBlock(rate)` to replicate existing rate
@@ -45,7 +45,7 @@ For the general governance-gated upgrade workflow, see [GovernanceWorkflow.md](.
 
 ### Step 3: Assign RewardsManager Allocation (deployment account)
 
-**Script:** [02_configure.ts](./02_configure.ts)
+**Script:** [04_configure.ts](../../deploy/allocate/allocator/04_configure.ts)
 
 - Call `setTargetAllocation(rewardsManagerAddress, 0, issuancePerBlock)`
 - `allocatorMintingRate = 0` (RewardsManager will self-mint)
@@ -54,7 +54,7 @@ For the general governance-gated upgrade workflow, see [GovernanceWorkflow.md](.
 
 ### Step 4: Verify Configuration Before Transfer (deployment account)
 
-**Script:** [02_configure.ts](./02_configure.ts)
+**Script:** [04_configure.ts](../../deploy/allocate/allocator/04_configure.ts)
 
 - Verify contract is not paused (`paused()` returns false)
 - Verify `getIssuancePerBlock()` returns expected rate (matches RewardsManager)
@@ -65,7 +65,7 @@ For the general governance-gated upgrade workflow, see [GovernanceWorkflow.md](.
 
 ### Step 5: Distribute Issuance (anyone - no role required)
 
-**Script:** [02_configure.ts](./02_configure.ts)
+**Script:** [04_configure.ts](../../deploy/allocate/allocator/04_configure.ts)
 
 - Call `distributeIssuance()` to bring contract to fully current state
 - Updates `lastDistributionBlock` to current block
@@ -74,7 +74,7 @@ For the general governance-gated upgrade workflow, see [GovernanceWorkflow.md](.
 
 ### Step 6: Set Pause Controls and Transfer Governance (deployment account)
 
-**Script:** [03_transfer_governance.ts](./03_transfer_governance.ts)
+**Script:** [06_transfer_governance.ts](../../deploy/allocate/allocator/06_transfer_governance.ts)
 
 - Grant PAUSE_ROLE to pause guardian (same account as used for RewardsManager pause control)
 - Grant GOVERNOR_ROLE to actual governor address (protocol governance multisig)
@@ -83,7 +83,7 @@ For the general governance-gated upgrade workflow, see [GovernanceWorkflow.md](.
 
 ### Step 7: Verify Deployment and Configuration (governor)
 
-**Script:** [04_verify.ts](./04_verify.ts)
+**Script:** [05_verify_governance.ts](../../deploy/allocate/allocator/05_verify_governance.ts)
 
 **Bytecode verification:**
 
@@ -117,7 +117,7 @@ For the general governance-gated upgrade workflow, see [GovernanceWorkflow.md](.
 
 ### Step 8: Configure RewardsManager (governor)
 
-**Script:** [05_configure_rewards_manager.ts](./05_configure_rewards_manager.ts)
+**Script:** [07_activate.ts](../../deploy/allocate/allocator/07_activate.ts)
 
 - Call `rewardsManager.setIssuanceAllocator(issuanceAllocatorAddress)`
 - RewardsManager will now query IssuanceAllocator for its issuance rate
@@ -125,13 +125,13 @@ For the general governance-gated upgrade workflow, see [GovernanceWorkflow.md](.
 
 ### Step 9: Grant Minter Role (governor, only when configuration verified)
 
-**Script:** [06_grant_minter.ts](./06_grant_minter.ts)
+**Script:** [07_activate.ts](../../deploy/allocate/allocator/07_activate.ts)
 
 - Grant minter role to IssuanceAllocator on Graph Token
 
 ### Step 10: Set Default Target (governor, optional, recommended)
 
-**Script:** [07_set_default_target.ts](./07_set_default_target.ts)
+**Script:** [07_activate.ts](../../deploy/allocate/allocator/07_activate.ts)
 
 - Call `setDefaultTarget()` to receive future unallocated issuance
 
