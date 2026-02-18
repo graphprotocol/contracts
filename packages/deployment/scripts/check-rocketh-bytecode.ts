@@ -1,6 +1,7 @@
 import { readFileSync } from 'fs'
-import { computeBytecodeHash } from '../lib/bytecode-utils.js'
+
 import { loadSubgraphServiceArtifact } from '../lib/artifact-loaders.js'
+import { computeBytecodeHash } from '../lib/bytecode-utils.js'
 
 async function main() {
   console.log('\n📋 Rocketh vs Local Artifact Comparison\n')
@@ -18,7 +19,10 @@ async function main() {
     if (rockethData.deployedBytecode) {
       const rockethHash = computeBytecodeHash(rockethData.deployedBytecode)
       console.log('Rocketh stored hash:', rockethHash)
-      console.log('\nComparison:', localHash === rockethHash ? '✓ MATCH (deploy will skip)' : '✗ DIFFERENT (deploy will redeploy)')
+      console.log(
+        '\nComparison:',
+        localHash === rockethHash ? '✓ MATCH (deploy will skip)' : '✗ DIFFERENT (deploy will redeploy)',
+      )
     } else {
       console.log('Rocketh stored hash: (no deployedBytecode)')
     }
