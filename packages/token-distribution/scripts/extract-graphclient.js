@@ -5,7 +5,14 @@
  *
  * This script extracts only the minimal TypeScript types and query documents
  * needed for compilation from the full GraphClient build output.
- * The extracted files are small and can be committed to git.
+ *
+ * Benefits:
+ * - Enables builds without STUDIO_API_KEY (extracted files ~few KB vs full download ~hundreds of KB)
+ * - Prevents git repository bloat from large GraphClient artifacts
+ * - Provides build stability without external API dependency
+ *
+ * Output is deterministic (sorted types, formatted) to prevent git thrash.
+ * See README.md "Build Process" section for details.
  */
 
 const fs = require('fs')
@@ -72,49 +79,58 @@ function createMinimalArtifacts() {
 // Extract specific types from the original types file
 function extractSpecificTypes(content, neededTypes) {
   const lines = content.split('\n')
-  const result = []
+  const extractedTypes = new Map() // Store types by name for sorting
   let currentType = null
+  let currentTypeLines = []
   let braceDepth = 0
   let inNeededType = false
 
-  // Always include imports and utility types
   for (const line of lines) {
-    if (line.includes('import ') || line.includes('export {')) {
-      result.push(line)
-      continue
-    }
-
     // Check if this starts a type we need
     const typeMatch = line.match(/export (?:type|interface) (\w+)/)
     if (typeMatch) {
+      // Save previous type if we were extracting one
+      if (inNeededType && currentType) {
+        extractedTypes.set(currentType, currentTypeLines.join('\n'))
+      }
+
       currentType = typeMatch[1]
       if (neededTypes.includes(currentType)) {
         inNeededType = true
+        currentTypeLines = [line]
         braceDepth = 0
-        result.push(line)
         braceDepth += (line.match(/{/g) || []).length
         braceDepth -= (line.match(/}/g) || []).length
         if (line.trim().endsWith(';') && braceDepth === 0) {
+          extractedTypes.set(currentType, currentTypeLines.join('\n'))
           inNeededType = false
         }
-        continue
       } else {
         inNeededType = false
-        continue
+        currentTypeLines = []
       }
+      continue
     }
 
     if (inNeededType) {
-      result.push(line)
+      currentTypeLines.push(line)
       braceDepth += (line.match(/{/g) || []).length
       braceDepth -= (line.match(/}/g) || []).length
       if (braceDepth === 0 && (line.trim().endsWith(';') || line.trim().endsWith('}'))) {
+        extractedTypes.set(currentType, currentTypeLines.join('\n'))
         inNeededType = false
+        currentTypeLines = []
       }
     }
   }
 
-  return result.join('\n')
+  // Sort types alphabetically by name and join with blank line separator
+  const sortedTypes = Array.from(extractedTypes.entries())
+    .sort(([nameA], [nameB]) => nameA.localeCompare(nameB))
+    .map(([, typeContent]) => typeContent)
+    .join('\n')
+
+  return sortedTypes
 }
 
 // Create minimal JS with only needed queries
@@ -179,10 +195,24 @@ async function extract() {
     const artifacts = createMinimalArtifacts()
 
     // Write the minimal types and runtime code
-    fs.writeFileSync(path.join(extractedDir, 'index.d.ts'), artifacts.types)
-    fs.writeFileSync(path.join(extractedDir, 'index.js'), artifacts.js)
+    const typesPath = path.join(extractedDir, 'index.d.ts')
+    const jsPath = path.join(extractedDir, 'index.js')
+    fs.writeFileSync(typesPath, artifacts.types)
+    fs.writeFileSync(jsPath, artifacts.js)
 
-    console.log(`✅ Extracted minimal artifacts to ${extractedDir}/`)
+    // Format with prettier for consistent output
+    const { execSync } = require('child_process')
+    try {
+      const pkgRoot = path.resolve(__dirname, '..')
+      execSync(`npx prettier --write "${typesPath}" "${jsPath}"`, {
+        cwd: pkgRoot,
+        stdio: 'inherit',
+      })
+      console.log(`✅ Extracted and formatted minimal artifacts to ${extractedDir}/`)
+    } catch {
+      console.warn('⚠️  Prettier formatting failed, but extraction succeeded')
+      console.log(`✅ Extracted minimal artifacts to ${extractedDir}/`)
+    }
   } catch (error) {
     console.error('❌ Extraction failed:', error.message)
     process.exit(1)

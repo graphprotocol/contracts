@@ -2,6 +2,7 @@
 // So we need to re-type it... this file should be a copy of hardhat-graph-protocol/src/type-extensions.ts
 import 'hardhat/types/config'
 import 'hardhat/types/runtime'
+
 import type { GraphDeployments, GraphRuntimeEnvironment, GraphRuntimeEnvironmentOptions } from 'hardhat-graph-protocol'
 
 declare module 'hardhat/types/runtime' {

@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
+pragma solidity ^0.8.27;
 
-import "forge-std/Test.sol";
-
-import { Allocation } from "../../../../contracts/libraries/Allocation.sol";
-import { AllocationManager } from "../../../../contracts/utilities/AllocationManager.sol";
 import { SubgraphServiceTest } from "../SubgraphService.t.sol";
 import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
+import { IAllocationManager } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocationManager.sol";
+import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 
 contract SubgraphServiceAllocationResizeTest is SubgraphServiceTest {
@@ -23,7 +21,7 @@ contract SubgraphServiceAllocationResizeTest is SubgraphServiceTest {
 
         mint(users.indexer, resizeTokens);
         _addToProvision(users.indexer, resizeTokens);
-        _resizeAllocation(users.indexer, allocationID, resizeTokens);
+        _resizeAllocation(users.indexer, allocationId, resizeTokens);
     }
 
     function test_SubgraphService_Allocation_Resize_AfterCollectingIndexingRewards(
@@ -39,10 +37,11 @@ contract SubgraphServiceAllocationResizeTest is SubgraphServiceTest {
         vm.roll(block.number + EPOCH_LENGTH);
 
         IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
-        bytes memory data = abi.encode(allocationID, bytes32("POI1"), _getHardcodedPOIMetadata());
+        // forge-lint: disable-next-line(unsafe-typecast)
+        bytes memory data = abi.encode(allocationId, bytes32("POI1"), _getHardcodedPoiMetadata());
         _collect(users.indexer, paymentType, data);
         _addToProvision(users.indexer, resizeTokens);
-        _resizeAllocation(users.indexer, allocationID, resizeTokens);
+        _resizeAllocation(users.indexer, allocationId, resizeTokens);
     }
 
     function test_SubgraphService_Allocation_Resize_SecondTime(
@@ -57,11 +56,11 @@ contract SubgraphServiceAllocationResizeTest is SubgraphServiceTest {
 
         mint(users.indexer, firstResizeTokens);
         _addToProvision(users.indexer, firstResizeTokens);
-        _resizeAllocation(users.indexer, allocationID, firstResizeTokens);
+        _resizeAllocation(users.indexer, allocationId, firstResizeTokens);
 
         mint(users.indexer, secondResizeTokens);
         _addToProvision(users.indexer, secondResizeTokens);
-        _resizeAllocation(users.indexer, allocationID, secondResizeTokens);
+        _resizeAllocation(users.indexer, allocationId, secondResizeTokens);
     }
 
     function test_SubgraphService_Allocation_Resize_RevertWhen_NotAuthorized(
@@ -76,19 +75,23 @@ contract SubgraphServiceAllocationResizeTest is SubgraphServiceTest {
             abi.encodeWithSelector(
                 ISubgraphService.SubgraphServiceAllocationNotAuthorized.selector,
                 newIndexer,
-                allocationID
+                allocationId
             )
         );
-        subgraphService.resizeAllocation(newIndexer, allocationID, resizeTokens);
+        subgraphService.resizeAllocation(newIndexer, allocationId, resizeTokens);
     }
 
     function test_SubgraphService_Allocation_Resize_RevertWhen_SameSize(
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
         vm.expectRevert(
-            abi.encodeWithSelector(AllocationManager.AllocationManagerAllocationSameSize.selector, allocationID, tokens)
+            abi.encodeWithSelector(
+                IAllocationManager.AllocationManagerAllocationSameSize.selector,
+                allocationId,
+                tokens
+            )
         );
-        subgraphService.resizeAllocation(users.indexer, allocationID, tokens);
+        subgraphService.resizeAllocation(users.indexer, allocationId, tokens);
     }
 
     function test_SubgraphService_Allocation_Resize_RevertIf_AllocationIsClosed(
@@ -96,11 +99,48 @@ contract SubgraphServiceAllocationResizeTest is SubgraphServiceTest {
         uint256 resizeTokens
     ) public useIndexer useAllocation(tokens) {
         resizeTokens = bound(resizeTokens, tokens + 1, MAX_TOKENS);
-        bytes memory data = abi.encode(allocationID);
+        bytes memory data = abi.encode(allocationId);
         _stopService(users.indexer, data);
         vm.expectRevert(
-            abi.encodeWithSelector(AllocationManager.AllocationManagerAllocationClosed.selector, allocationID)
+            abi.encodeWithSelector(IAllocationManager.AllocationManagerAllocationClosed.selector, allocationId)
         );
-        subgraphService.resizeAllocation(users.indexer, allocationID, resizeTokens);
+        subgraphService.resizeAllocation(users.indexer, allocationId, resizeTokens);
+    }
+
+    function test_SubgraphService_Allocation_Resize_StaleAllocation_ReclaimsPending(
+        uint256 tokens,
+        uint256 resizeTokens
+    ) public useIndexer useAllocation(tokens) {
+        resizeTokens = bound(resizeTokens, 1, MAX_TOKENS);
+        vm.assume(resizeTokens != tokens);
+
+        // Skip past MAX_POI_STALENESS to make allocation stale
+        skip(MAX_POI_STALENESS + 1);
+
+        mint(users.indexer, resizeTokens);
+        _addToProvision(users.indexer, resizeTokens);
+        subgraphService.resizeAllocation(users.indexer, allocationId, resizeTokens);
+
+        // Pending rewards should be zero after stale resize
+        IAllocation.State memory allocation = subgraphService.getAllocation(allocationId);
+        assertEq(allocation.accRewardsPending, 0);
+        assertEq(allocation.tokens, resizeTokens);
+    }
+
+    function test_SubgraphService_Allocation_Resize_NotStale_PreservesPending(
+        uint256 tokens,
+        uint256 resizeTokens
+    ) public useIndexer useAllocation(tokens) {
+        resizeTokens = bound(resizeTokens, 1, MAX_TOKENS);
+        vm.assume(resizeTokens != tokens);
+
+        mint(users.indexer, resizeTokens);
+        _addToProvision(users.indexer, resizeTokens);
+        subgraphService.resizeAllocation(users.indexer, allocationId, resizeTokens);
+
+        // Pending rewards should be preserved (non-zero) for non-stale allocation
+        IAllocation.State memory allocation = subgraphService.getAllocation(allocationId);
+        uint256 expectedPending = rewardsManager.calcRewards(tokens, REWARDS_PER_SUBGRAPH_ALLOCATION_UPDATE);
+        assertEq(allocation.accRewardsPending, expectedPending);
     }
 }

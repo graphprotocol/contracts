@@ -55,6 +55,7 @@
   "dependencies": {
     "@graphprotocol/address-book": "workspace:^",
     "@graphprotocol/interfaces": "workspace:^",
+    "@graphprotocol/issuance": "workspace:^",
     "@nomicfoundation/hardhat-ethers": "catalog:",
     "debug": "^4.4.0",
     "ethers": "catalog:",

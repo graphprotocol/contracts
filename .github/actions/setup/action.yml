@@ -17,7 +17,7 @@ runs:
     - name: Install Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: 20
+        node-version: 22
         cache: 'pnpm'
     - name: Set up pnpm via Corepack
       shell: bash

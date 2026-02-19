@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.27;
+pragma solidity 0.8.27 || 0.8.33;
 
 import { IDataServiceFees } from "@graphprotocol/interfaces/contracts/data-service/IDataServiceFees.sol";
 import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
@@ -143,6 +143,7 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
         return claims[_claimId].nextClaim;
     }
 
+    // forge-lint: disable-next-item(asm-keccak256)
     /**
      * @notice Builds a stake claim ID
      * @param _serviceProvider The address of the service provider

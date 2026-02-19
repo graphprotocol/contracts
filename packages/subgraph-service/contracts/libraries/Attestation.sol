@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.27;
+pragma solidity 0.8.33;
 
 // TODO: Re-enable and fix issues when publishing a new version
 // solhint-disable gas-strict-inequalities
+// forge-lint: disable-start(mixed-case-variable)
 
 import { IAttestation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAttestation.sol";
 
@@ -104,7 +105,7 @@ library Attestation {
         uint8 tempUint;
 
         // solhint-disable-next-line no-inline-assembly
-        assembly {
+        assembly ("memory-safe") {
             // Load the 32-byte word from memory starting at `_bytes + _start + 1`
             // The `0x1` accounts for the fact that we want only the first byte (uint8)
             // of the loaded 32 bytes.
@@ -128,7 +129,7 @@ library Attestation {
         bytes32 tempBytes32;
 
         // solhint-disable-next-line no-inline-assembly
-        assembly {
+        assembly ("memory-safe") {
             tempBytes32 := mload(add(add(_bytes, 0x20), _start))
         }
 

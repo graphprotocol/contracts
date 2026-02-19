@@ -1,18 +1,13 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
-
-import "forge-std/Test.sol";
+pragma solidity ^0.8.27;
 
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/utilities/ProvisionManager.sol";
 import { ProvisionTracker } from "@graphprotocol/horizon/contracts/data-service/libraries/ProvisionTracker.sol";
 import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
+import { IAllocationManager } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocationManager.sol";
 import { ILegacyAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/ILegacyAllocation.sol";
-
-import { Allocation } from "../../../../contracts/libraries/Allocation.sol";
-import { AllocationManager } from "../../../../contracts/utilities/AllocationManager.sol";
 import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
-import { LegacyAllocation } from "../../../../contracts/libraries/LegacyAllocation.sol";
 import { SubgraphServiceTest } from "../SubgraphService.t.sol";
 
 contract SubgraphServiceAllocationStartTest is SubgraphServiceTest {
@@ -21,9 +16,9 @@ contract SubgraphServiceAllocationStartTest is SubgraphServiceTest {
      */
 
     function test_SubgraphService_Allocation_Start(uint256 tokens) public useIndexer {
-        tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
+        tokens = bound(tokens, MINIMUM_PROVISION_TOKENS, MAX_TOKENS);
 
-        _createProvision(users.indexer, tokens, fishermanRewardPercentage, disputePeriod);
+        _createProvision(users.indexer, tokens, FISHERMAN_REWARD_PERCENTAGE, DISPUTE_PERIOD);
         _register(users.indexer, abi.encode("url", "geoHash", address(0)));
 
         bytes memory data = _generateData(tokens);
@@ -31,9 +26,9 @@ contract SubgraphServiceAllocationStartTest is SubgraphServiceTest {
     }
 
     function test_SubgraphService_Allocation_Start_AllowsZeroTokens(uint256 tokens) public useIndexer {
-        tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
+        tokens = bound(tokens, MINIMUM_PROVISION_TOKENS, MAX_TOKENS);
 
-        _createProvision(users.indexer, tokens, fishermanRewardPercentage, disputePeriod);
+        _createProvision(users.indexer, tokens, FISHERMAN_REWARD_PERCENTAGE, DISPUTE_PERIOD);
         _register(users.indexer, abi.encode("url", "geoHash", address(0)));
 
         bytes memory data = _generateData(0);
@@ -41,9 +36,9 @@ contract SubgraphServiceAllocationStartTest is SubgraphServiceTest {
     }
 
     function test_SubgraphService_Allocation_Start_ByOperator(uint256 tokens) public useOperator {
-        tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
+        tokens = bound(tokens, MINIMUM_PROVISION_TOKENS, MAX_TOKENS);
 
-        _createProvision(users.indexer, tokens, fishermanRewardPercentage, disputePeriod);
+        _createProvision(users.indexer, tokens, FISHERMAN_REWARD_PERCENTAGE, DISPUTE_PERIOD);
         _register(users.indexer, abi.encode("url", "geoHash", address(0)));
 
         bytes memory data = _generateData(tokens);
@@ -51,9 +46,9 @@ contract SubgraphServiceAllocationStartTest is SubgraphServiceTest {
     }
 
     function test_SubgraphService_Allocation_Start_RevertWhen_NotAuthorized(uint256 tokens) public useIndexer {
-        tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
+        tokens = bound(tokens, MINIMUM_PROVISION_TOKENS, MAX_TOKENS);
 
-        _createProvision(users.indexer, tokens, fishermanRewardPercentage, disputePeriod);
+        _createProvision(users.indexer, tokens, FISHERMAN_REWARD_PERCENTAGE, DISPUTE_PERIOD);
         _register(users.indexer, abi.encode("url", "geoHash", address(0)));
 
         resetPrank(users.operator);
@@ -69,7 +64,7 @@ contract SubgraphServiceAllocationStartTest is SubgraphServiceTest {
     }
 
     function test_SubgraphService_Allocation_Start_RevertWhen_NoValidProvision(uint256 tokens) public useIndexer {
-        tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
+        tokens = bound(tokens, MINIMUM_PROVISION_TOKENS, MAX_TOKENS);
 
         bytes memory data = _generateData(tokens);
         vm.expectRevert(
@@ -79,9 +74,9 @@ contract SubgraphServiceAllocationStartTest is SubgraphServiceTest {
     }
 
     function test_SubgraphService_Allocation_Start_RevertWhen_NotRegistered(uint256 tokens) public useIndexer {
-        tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
+        tokens = bound(tokens, MINIMUM_PROVISION_TOKENS, MAX_TOKENS);
 
-        _createProvision(users.indexer, tokens, fishermanRewardPercentage, disputePeriod);
+        _createProvision(users.indexer, tokens, FISHERMAN_REWARD_PERCENTAGE, DISPUTE_PERIOD);
 
         bytes memory data = _generateData(tokens);
         vm.expectRevert(
@@ -91,45 +86,45 @@ contract SubgraphServiceAllocationStartTest is SubgraphServiceTest {
     }
 
     function test_SubgraphService_Allocation_Start_RevertWhen_ZeroAllocationId(uint256 tokens) public useIndexer {
-        tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
+        tokens = bound(tokens, MINIMUM_PROVISION_TOKENS, MAX_TOKENS);
 
-        _createProvision(users.indexer, tokens, fishermanRewardPercentage, disputePeriod);
+        _createProvision(users.indexer, tokens, FISHERMAN_REWARD_PERCENTAGE, DISPUTE_PERIOD);
         _register(users.indexer, abi.encode("url", "geoHash", address(0)));
 
         bytes32 digest = subgraphService.encodeAllocationProof(users.indexer, address(0));
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(allocationIDPrivateKey, digest);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(allocationIdPrivateKey, digest);
         bytes memory data = abi.encode(subgraphDeployment, tokens, address(0), abi.encodePacked(r, s, v));
-        vm.expectRevert(abi.encodeWithSelector(AllocationManager.AllocationManagerInvalidZeroAllocationId.selector));
+        vm.expectRevert(abi.encodeWithSelector(IAllocationManager.AllocationManagerInvalidZeroAllocationId.selector));
         subgraphService.startService(users.indexer, data);
     }
 
     function test_SubgraphService_Allocation_Start_RevertWhen_InvalidSignature(uint256 tokens) public useIndexer {
-        tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
+        tokens = bound(tokens, MINIMUM_PROVISION_TOKENS, MAX_TOKENS);
 
-        _createProvision(users.indexer, tokens, fishermanRewardPercentage, disputePeriod);
+        _createProvision(users.indexer, tokens, FISHERMAN_REWARD_PERCENTAGE, DISPUTE_PERIOD);
         _register(users.indexer, abi.encode("url", "geoHash", address(0)));
 
         (address signer, uint256 signerPrivateKey) = makeAddrAndKey("invalidSigner");
-        bytes32 digest = subgraphService.encodeAllocationProof(users.indexer, allocationID);
+        bytes32 digest = subgraphService.encodeAllocationProof(users.indexer, allocationId);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, digest);
-        bytes memory data = abi.encode(subgraphDeployment, tokens, allocationID, abi.encodePacked(r, s, v));
+        bytes memory data = abi.encode(subgraphDeployment, tokens, allocationId, abi.encodePacked(r, s, v));
         vm.expectRevert(
             abi.encodeWithSelector(
-                AllocationManager.AllocationManagerInvalidAllocationProof.selector,
+                IAllocationManager.AllocationManagerInvalidAllocationProof.selector,
                 signer,
-                allocationID
+                allocationId
             )
         );
         subgraphService.startService(users.indexer, data);
     }
 
     function test_SubgraphService_Allocation_Start_RevertWhen_InvalidData(uint256 tokens) public useIndexer {
-        tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
+        tokens = bound(tokens, MINIMUM_PROVISION_TOKENS, MAX_TOKENS);
 
-        _createProvision(users.indexer, tokens, fishermanRewardPercentage, disputePeriod);
+        _createProvision(users.indexer, tokens, FISHERMAN_REWARD_PERCENTAGE, DISPUTE_PERIOD);
         _register(users.indexer, abi.encode("url", "geoHash", address(0)));
 
-        bytes memory data = abi.encode(subgraphDeployment, tokens, allocationID, _generateRandomHexBytes(32));
+        bytes memory data = abi.encode(subgraphDeployment, tokens, allocationId, _generateRandomHexBytes(32));
         vm.expectRevert(abi.encodeWithSelector(ECDSA.ECDSAInvalidSignatureLength.selector, 32));
         subgraphService.startService(users.indexer, data);
     }
@@ -137,44 +132,44 @@ contract SubgraphServiceAllocationStartTest is SubgraphServiceTest {
     function test_SubgraphService_Allocation_Start_RevertWhen_AlreadyExists_SubgraphService(
         uint256 tokens
     ) public useIndexer {
-        tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
+        tokens = bound(tokens, MINIMUM_PROVISION_TOKENS, MAX_TOKENS);
 
-        _createProvision(users.indexer, tokens, fishermanRewardPercentage, disputePeriod);
+        _createProvision(users.indexer, tokens, FISHERMAN_REWARD_PERCENTAGE, DISPUTE_PERIOD);
         _register(users.indexer, abi.encode("url", "geoHash", address(0)));
 
         bytes memory data = _generateData(tokens);
         _startService(users.indexer, data);
 
-        vm.expectRevert(abi.encodeWithSelector(IAllocation.AllocationAlreadyExists.selector, allocationID));
+        vm.expectRevert(abi.encodeWithSelector(IAllocation.AllocationAlreadyExists.selector, allocationId));
         subgraphService.startService(users.indexer, data);
     }
 
     function test_SubgraphService_Allocation_Start_RevertWhen_AlreadyExists_Migrated(uint256 tokens) public useIndexer {
-        tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
+        tokens = bound(tokens, MINIMUM_PROVISION_TOKENS, MAX_TOKENS);
 
-        _createProvision(users.indexer, tokens, fishermanRewardPercentage, disputePeriod);
+        _createProvision(users.indexer, tokens, FISHERMAN_REWARD_PERCENTAGE, DISPUTE_PERIOD);
         _register(users.indexer, abi.encode("url", "geoHash", address(0)));
 
         resetPrank(users.governor);
-        _migrateLegacyAllocation(users.indexer, allocationID, subgraphDeployment);
+        _migrateLegacyAllocation(users.indexer, allocationId, subgraphDeployment);
 
         resetPrank(users.indexer);
         bytes memory data = _generateData(tokens);
-        vm.expectRevert(abi.encodeWithSelector(ILegacyAllocation.LegacyAllocationAlreadyExists.selector, allocationID));
+        vm.expectRevert(abi.encodeWithSelector(ILegacyAllocation.LegacyAllocationAlreadyExists.selector, allocationId));
         subgraphService.startService(users.indexer, data);
     }
 
     function test_SubgraphService_Allocation_Start_RevertWhen_AlreadyExists_Staking(uint256 tokens) public useIndexer {
-        tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
+        tokens = bound(tokens, MINIMUM_PROVISION_TOKENS, MAX_TOKENS);
 
-        _createProvision(users.indexer, tokens, fishermanRewardPercentage, disputePeriod);
+        _createProvision(users.indexer, tokens, FISHERMAN_REWARD_PERCENTAGE, DISPUTE_PERIOD);
         _register(users.indexer, abi.encode("url", "geoHash", address(0)));
 
         // create dummy allo in staking contract
-        _setStorage_allocation_hardcoded(users.indexer, allocationID, tokens);
+        _setStorageAllocationHardcoded(users.indexer, allocationId, tokens);
 
         bytes memory data = _generateData(tokens);
-        vm.expectRevert(abi.encodeWithSelector(ILegacyAllocation.LegacyAllocationAlreadyExists.selector, allocationID));
+        vm.expectRevert(abi.encodeWithSelector(ILegacyAllocation.LegacyAllocationAlreadyExists.selector, allocationId));
         subgraphService.startService(users.indexer, data);
     }
 
@@ -182,10 +177,10 @@ contract SubgraphServiceAllocationStartTest is SubgraphServiceTest {
         uint256 tokens,
         uint256 lockTokens
     ) public useIndexer {
-        tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS - 1);
+        tokens = bound(tokens, MINIMUM_PROVISION_TOKENS, MAX_TOKENS - 1);
         lockTokens = bound(lockTokens, tokens + 1, MAX_TOKENS);
 
-        _createProvision(users.indexer, tokens, fishermanRewardPercentage, disputePeriod);
+        _createProvision(users.indexer, tokens, FISHERMAN_REWARD_PERCENTAGE, DISPUTE_PERIOD);
         _register(users.indexer, abi.encode("url", "geoHash", address(0)));
 
         bytes memory data = _generateData(lockTokens);
@@ -200,7 +195,7 @@ contract SubgraphServiceAllocationStartTest is SubgraphServiceTest {
      */
 
     function _generateData(uint256 tokens) private view returns (bytes memory) {
-        return _createSubgraphAllocationData(users.indexer, subgraphDeployment, allocationIDPrivateKey, tokens);
+        return _createSubgraphAllocationData(users.indexer, subgraphDeployment, allocationIdPrivateKey, tokens);
     }
 
     function _generateRandomHexBytes(uint256 length) private view returns (bytes memory) {

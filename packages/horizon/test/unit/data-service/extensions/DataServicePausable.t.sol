@@ -18,16 +18,16 @@ contract DataServicePausableTest is HorizonStakingSharedTest {
     }
 
     modifier whenTheCallerIsAPauseGuardian() {
-        _assert_setPauseGuardian(address(this), true);
+        _assertSetPauseGuardian(address(this), true);
         _;
     }
 
     function test_Pause_WhenTheProtocolIsNotPaused() external whenTheCallerIsAPauseGuardian {
-        _assert_pause();
+        _assertPause();
     }
 
     function test_Pause_RevertWhen_TheProtocolIsPaused() external whenTheCallerIsAPauseGuardian {
-        _assert_pause();
+        _assertPause();
 
         vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
         dataService.pause();
@@ -41,8 +41,8 @@ contract DataServicePausableTest is HorizonStakingSharedTest {
     }
 
     function test_Unpause_WhenTheProtocolIsPaused() external whenTheCallerIsAPauseGuardian {
-        _assert_pause();
-        _assert_unpause();
+        _assertPause();
+        _assertUnpause();
     }
 
     function test_Unpause_RevertWhen_TheProtocolIsNotPaused() external whenTheCallerIsAPauseGuardian {
@@ -52,9 +52,9 @@ contract DataServicePausableTest is HorizonStakingSharedTest {
     }
 
     function test_Unpause_RevertWhen_TheCallerIsNotAPauseGuardian() external {
-        _assert_setPauseGuardian(address(this), true);
-        _assert_pause();
-        _assert_setPauseGuardian(address(this), false);
+        _assertSetPauseGuardian(address(this), true);
+        _assertPause();
+        _assertSetPauseGuardian(address(this), false);
 
         vm.expectRevert(abi.encodeWithSignature("DataServicePausableNotPauseGuardian(address)", address(this)));
         dataService.unpause();
@@ -62,16 +62,16 @@ contract DataServicePausableTest is HorizonStakingSharedTest {
     }
 
     function test_SetPauseGuardian_WhenSettingAPauseGuardian() external {
-        _assert_setPauseGuardian(address(this), true);
+        _assertSetPauseGuardian(address(this), true);
     }
 
     function test_SetPauseGuardian_WhenRemovingAPauseGuardian() external {
-        _assert_setPauseGuardian(address(this), true);
-        _assert_setPauseGuardian(address(this), false);
+        _assertSetPauseGuardian(address(this), true);
+        _assertSetPauseGuardian(address(this), false);
     }
 
     function test_SetPauseGuardian_RevertWhen_AlreadyPauseGuardian() external {
-        _assert_setPauseGuardian(address(this), true);
+        _assertSetPauseGuardian(address(this), true);
         vm.expectRevert(
             abi.encodeWithSignature("DataServicePausablePauseGuardianNoChange(address,bool)", address(this), true)
         );
@@ -79,8 +79,8 @@ contract DataServicePausableTest is HorizonStakingSharedTest {
     }
 
     function test_SetPauseGuardian_RevertWhen_AlreadyNotPauseGuardian() external {
-        _assert_setPauseGuardian(address(this), true);
-        _assert_setPauseGuardian(address(this), false);
+        _assertSetPauseGuardian(address(this), true);
+        _assertSetPauseGuardian(address(this), false);
         vm.expectRevert(
             abi.encodeWithSignature("DataServicePausablePauseGuardianNoChange(address,bool)", address(this), false)
         );
@@ -88,8 +88,8 @@ contract DataServicePausableTest is HorizonStakingSharedTest {
     }
 
     function test_PausedProtectedFn_RevertWhen_TheProtocolIsPaused() external {
-        _assert_setPauseGuardian(address(this), true);
-        _assert_pause();
+        _assertSetPauseGuardian(address(this), true);
+        _assertPause();
 
         vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
         dataService.pausedProtectedFn();
@@ -102,8 +102,8 @@ contract DataServicePausableTest is HorizonStakingSharedTest {
     }
 
     function test_UnpausedProtectedFn_WhenTheProtocolIsPaused() external {
-        _assert_setPauseGuardian(address(this), true);
-        _assert_pause();
+        _assertSetPauseGuardian(address(this), true);
+        _assertPause();
 
         vm.expectEmit();
         emit DataServiceImpPausable.UnpausedProtectedFn();
@@ -115,21 +115,21 @@ contract DataServicePausableTest is HorizonStakingSharedTest {
         dataService.unpausedProtectedFn();
     }
 
-    function _assert_pause() private {
+    function _assertPause() private {
         vm.expectEmit();
         emit Paused(address(this));
         dataService.pause();
         assertEq(dataService.paused(), true);
     }
 
-    function _assert_unpause() private {
+    function _assertUnpause() private {
         vm.expectEmit();
         emit Unpaused(address(this));
         dataService.unpause();
         assertEq(dataService.paused(), false);
     }
 
-    function _assert_setPauseGuardian(address pauseGuardian, bool allowed) private {
+    function _assertSetPauseGuardian(address pauseGuardian, bool allowed) private {
         vm.expectEmit();
         emit IDataServicePausable.PauseGuardianSet(pauseGuardian, allowed);
         dataService.setPauseGuardian(pauseGuardian, allowed);

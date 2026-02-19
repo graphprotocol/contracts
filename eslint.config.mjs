@@ -219,7 +219,7 @@ const eslintConfig = [
 
   // Add Mocha globals for test files
   {
-    files: ['**/*.test.ts', '**/*.test.js', '**/test/**/*.ts', '**/test/**/*.js'],
+    files: ['**/*.test.ts', '**/*.test.js', '**/test*/**/*.ts', '**/test*/**/*.js'],
     languageOptions: {
       globals: {
         ...globals.mocha,

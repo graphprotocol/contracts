@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "forge-std/Test.sol";
-
 import { Create2 } from "@openzeppelin/contracts/utils/Create2.sol";
 import { GraphProxyAdmin } from "@graphprotocol/contracts/contracts/upgrades/GraphProxyAdmin.sol";
 import { GraphProxy } from "@graphprotocol/contracts/contracts/upgrades/GraphProxy.sol";
@@ -103,7 +101,7 @@ abstract contract GraphBaseTest is IHorizonStakingTypes, Utils, Constants {
         GraphProxy stakingProxy = new GraphProxy(address(0), address(proxyAdmin));
 
         // GraphPayments predict address
-        bytes memory paymentsImplementationParameters = abi.encode(address(controller), protocolPaymentCut);
+        bytes memory paymentsImplementationParameters = abi.encode(address(controller), PROTOCOL_PAYMENT_CUT);
         bytes memory paymentsImplementationBytecode = abi.encodePacked(
             type(GraphPayments).creationCode,
             paymentsImplementationParameters
@@ -130,7 +128,7 @@ abstract contract GraphBaseTest is IHorizonStakingTypes, Utils, Constants {
         );
 
         // PaymentsEscrow
-        bytes memory escrowImplementationParameters = abi.encode(address(controller), withdrawEscrowThawingPeriod);
+        bytes memory escrowImplementationParameters = abi.encode(address(controller), WITHDRAW_ESCROW_THAWING_PERIOD);
         bytes memory escrowImplementationBytecode = abi.encodePacked(
             type(PaymentsEscrow).creationCode,
             escrowImplementationParameters
@@ -205,7 +203,7 @@ abstract contract GraphBaseTest is IHorizonStakingTypes, Utils, Constants {
             "GraphTallyCollector",
             "1",
             address(controller),
-            revokeSignerThawingPeriod
+            REVOKE_SIGNER_THAWING_PERIOD
         );
 
         resetPrank(users.governor);

@@ -1,18 +1,9 @@
 {
+  "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "target": "es2023",
-    "lib": ["es2023"],
-    "module": "Node16",
-    "moduleResolution": "node16",
-    "strict": true,
-    "esModuleInterop": true,
-    "declaration": true,
-    "resolveJsonModule": true,
-    "allowJs": true,
-    "checkJs": false,
-    "incremental": true
+    "outDir": "./dist",
+    "rootDir": "."
   },
-
-  "include": ["./scripts", "./test", "./typechain"],
-  "files": ["./hardhat.config.cjs"]
+  "include": ["./scripts", "./typechain"],
+  "files": ["./hardhat.config.ts"]
 }

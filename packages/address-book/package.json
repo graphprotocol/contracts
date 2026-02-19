@@ -9,6 +9,7 @@
   "license": "GPL-2.0-or-later",
   "exports": {
     "./horizon/addresses.json": "./src/horizon/addresses.json",
+    "./issuance/addresses.json": "./src/issuance/addresses.json",
     "./subgraph-service/addresses.json": "./src/subgraph-service/addresses.json"
   },
   "files": [

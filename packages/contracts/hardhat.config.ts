@@ -7,6 +7,7 @@ import 'solidity-coverage' // for coverage script
 import 'dotenv/config'
 import '@nomicfoundation/hardhat-verify'
 
+import { vars } from 'hardhat/config'
 import { HardhatUserConfig } from 'hardhat/config'
 
 // Default mnemonic for basic hardhat network
@@ -57,7 +58,15 @@ const config: HardhatUserConfig = {
     },
   },
   etherscan: {
-    apiKey: process.env.ARBISCAN_API_KEY,
+    // Use ARBISCAN_API_KEY for Arbitrum networks
+    // For mainnet Ethereum, use ETHERSCAN_API_KEY
+    apiKey: vars.has('ARBISCAN_API_KEY') ? vars.get('ARBISCAN_API_KEY') : '',
+  },
+  sourcify: {
+    enabled: false,
+  },
+  blockscout: {
+    enabled: false,
   },
   typechain: {
     outDir: 'types',

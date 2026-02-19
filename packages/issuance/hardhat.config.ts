@@ -1,23 +1,23 @@
-import '@nomicfoundation/hardhat-ethers'
-import '@typechain/hardhat'
-import 'hardhat-contract-sizer'
-import '@openzeppelin/hardhat-upgrades'
-import '@nomicfoundation/hardhat-verify'
-
+import hardhatEthers from '@nomicfoundation/hardhat-ethers'
+import hardhatChaiMatchers from '@nomicfoundation/hardhat-ethers-chai-matchers'
+import hardhatMocha from '@nomicfoundation/hardhat-mocha'
+import hardhatNetworkHelpers from '@nomicfoundation/hardhat-network-helpers'
+import hardhatVerify from '@nomicfoundation/hardhat-verify'
 import type { HardhatUserConfig } from 'hardhat/config'
 
-import { issuanceBaseConfig } from './hardhat.base.config'
+import { issuanceBaseConfig } from './hardhat.base.config.js'
 
 const config: HardhatUserConfig = {
   ...issuanceBaseConfig,
-  // Main config specific settings
-  typechain: {
-    outDir: 'types',
-    target: 'ethers-v6',
-  },
+
+  // HH v3 plugin registration
+  plugins: [hardhatEthers, hardhatChaiMatchers, hardhatMocha, hardhatNetworkHelpers, hardhatVerify],
+
   paths: {
     sources: './contracts',
-    tests: './test/tests',
+    tests: {
+      mocha: './testing/tests',
+    },
     artifacts: './artifacts',
     cache: './cache',
   },

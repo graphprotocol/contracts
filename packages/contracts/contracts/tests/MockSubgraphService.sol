@@ -108,20 +108,17 @@ contract MockSubgraphService is IRewardsIssuer {
      * @param rewardsManager Address of the RewardsManager contract
      * @param reason Reason identifier for reclaiming rewards
      * @param allocationId The allocation ID
-     * @param contextData Additional context data for the reclaim
      * @return Amount of rewards reclaimed
      */
     function callReclaimRewards(
         address rewardsManager,
         bytes32 reason,
-        address allocationId,
-        bytes calldata contextData
+        address allocationId
     ) external returns (uint256) {
         // Call reclaimRewards on the RewardsManager
         // solhint-disable-next-line avoid-low-level-calls
         (bool success, bytes memory data) = rewardsManager.call(
-            // solhint-disable-next-line gas-small-strings
-            abi.encodeWithSignature("reclaimRewards(bytes32,address,bytes)", reason, allocationId, contextData)
+            abi.encodeWithSignature("reclaimRewards(bytes32,address)", reason, allocationId)
         );
         require(success, "reclaimRewards call failed");
         return abi.decode(data, (uint256));

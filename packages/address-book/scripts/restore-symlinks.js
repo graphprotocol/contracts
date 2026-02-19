@@ -17,6 +17,10 @@ const SYMLINKS_TO_RESTORE = [
     link: 'src/horizon/addresses.json',
   },
   {
+    target: '../../../issuance/addresses.json',
+    link: 'src/issuance/addresses.json',
+  },
+  {
     target: '../../../subgraph-service/addresses.json',
     link: 'src/subgraph-service/addresses.json',
   },

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.27;
 
-import "forge-std/console.sol";
 import { Test } from "forge-std/Test.sol";
 import { LinkedList } from "../../../contracts/libraries/LinkedList.sol";
 import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
@@ -21,15 +20,15 @@ contract LinkedListTest is Test, ListImplementation {
     }
 
     function test_Add_GivenTheListIsEmpty() external {
-        _assert_addItem(_buildItemId(list.nonce), 0);
+        _assertAddItem(_buildItemId(list.nonce), 0);
     }
 
     function test_Add_GivenTheListIsNotEmpty() external {
         // init list
-        _assert_addItem(_buildItemId(list.nonce), 0);
+        _assertAddItem(_buildItemId(list.nonce), 0);
 
         // add to a non empty list
-        _assert_addItem(_buildItemId(list.nonce), 1);
+        _assertAddItem(_buildItemId(list.nonce), 1);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -50,18 +49,18 @@ contract LinkedListTest is Test, ListImplementation {
     }
 
     function test_Remove_GivenTheListIsNotEmpty() external {
-        _assert_addItem(_buildItemId(list.nonce), 0);
-        _assert_removeItem();
+        _assertAddItem(_buildItemId(list.nonce), 0);
+        _assertRemoveItem();
     }
 
     function test_TraverseGivenTheListIsEmpty() external {
-        _assert_traverseList(_processItemAddition, abi.encode(0), 0, abi.encode(0));
+        _assertTraverseList(_processItemAddition, abi.encode(0), 0, abi.encode(0));
     }
 
     modifier givenTheListIsNotEmpty() {
         for (uint256 i = 0; i < LIST_LENGTH; i++) {
             bytes32 id = _buildItemId(list.nonce);
-            _assert_addItem(id, i);
+            _assertAddItem(id, i);
         }
         _;
     }
@@ -72,7 +71,7 @@ contract LinkedListTest is Test, ListImplementation {
         for (uint256 i = 0; i < list.count; i++) {
             sum += i;
         }
-        _assert_traverseList(_processItemAddition, abi.encode(0), 0, abi.encode(sum));
+        _assertTraverseList(_processItemAddition, abi.encode(0), 0, abi.encode(sum));
     }
 
     function test_TraverseWhenIterationsAreSpecified(uint256 n) external givenTheListIsNotEmpty {
@@ -82,7 +81,7 @@ contract LinkedListTest is Test, ListImplementation {
         for (uint256 i = 0; i < n; i++) {
             sum += i;
         }
-        _assert_traverseList(_processItemAddition, abi.encode(0), n, abi.encode(sum));
+        _assertTraverseList(_processItemAddition, abi.encode(0), n, abi.encode(sum));
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -93,11 +92,11 @@ contract LinkedListTest is Test, ListImplementation {
             sum += i;
         }
         vm.expectRevert(ILinkedList.LinkedListInvalidIterations.selector);
-        _assert_traverseList(_processItemAddition, abi.encode(0), n, abi.encode(sum));
+        _assertTraverseList(_processItemAddition, abi.encode(0), n, abi.encode(sum));
     }
 
     // -- Assertions --
-    function _assert_addItem(bytes32 id, uint256 idIndex) internal {
+    function _assertAddItem(bytes32 id, uint256 idIndex) internal {
         uint256 beforeNonce = list.nonce;
         uint256 beforeCount = list.count;
         bytes32 beforeHead = list.head;
@@ -120,7 +119,7 @@ contract LinkedListTest is Test, ListImplementation {
         assertEq(afterTail, id);
     }
 
-    function _assert_removeItem() internal {
+    function _assertRemoveItem() internal {
         uint256 beforeNonce = list.nonce;
         uint256 beforeCount = list.count;
         bytes32 beforeTail = list.tail;
@@ -146,7 +145,7 @@ contract LinkedListTest is Test, ListImplementation {
         assertEq(afterHead, beforeHeadItem.next);
     }
 
-    function _assert_traverseList(
+    function _assertTraverseList(
         function(bytes32, bytes memory) internal returns (bool, bytes memory) _processItem,
         bytes memory _initAcc,
         uint256 _n,
