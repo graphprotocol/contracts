@@ -63,7 +63,7 @@
     "hardhat-secure-accounts": "0.0.6",
     "husky": "^7.0.4",
     "lint-staged": "^12.3.5",
-    "lodash": "^4.17.21",
+    "lodash": "^4.17.23",
     "markdownlint-cli": "0.45.0",
     "prettier": "catalog:",
     "prettier-plugin-solidity": "catalog:",
