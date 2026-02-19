@@ -17,7 +17,7 @@ Comprehensive test plans for validating The Graph Network after the Rewards Elig
 
 | Document | Purpose | Status |
 |----------|---------|--------|
-| [IndexerTestGuide.md](IndexerTestGuide.md) | Self-service indexer guide: baseline ops + eligibility testing (6 sets, 11 tests) | ✅ Complete |
+| [IndexerTestGuide.md](IndexerTestGuide.md) | Indexer eligibility tests: renew/expire/recover flows (5 sets, 8 tests) | ✅ Complete |
 | [BaselineTestPlan.md](BaselineTestPlan.md) | Detailed baseline indexer operational tests (7 cycles, 22 tests) | ✅ Complete |
 | [ReoTestPlan.md](ReoTestPlan.md) | Comprehensive REO behavior, eligibility logic, and edge cases (8 cycles, 31 tests) | ✅ Complete |
 

@@ -170,7 +170,7 @@ The tests are organized into 7 cycles. Cycles 1-6 cover individual operations; C
     id
     stakedTokens
     allocatedTokens
-    unallocatedStake
+    availableStake
   }
 }
 ```
@@ -200,7 +200,7 @@ The tests are organized into 7 cycles. Cycles 1-6 cover individual operations; C
   indexers(where: { id: "INDEXER_ADDRESS" }) {
     id
     stakedTokens
-    unallocatedStake
+    availableStake
   }
   thawRequests(where: { indexer_: { id: "INDEXER_ADDRESS" } }) {
     id
@@ -273,7 +273,7 @@ graph indexer provisions add <AMOUNT>
     tokensAllocated
     indexer {
       stakedTokens
-      unallocatedStake
+      availableStake
     }
   }
 }
@@ -282,7 +282,7 @@ graph indexer provisions add <AMOUNT>
 **Pass Criteria**:
 
 - `tokensProvisioned` increases by the added amount
-- `unallocatedStake` decreases correspondingly
+- `availableStake` decreases correspondingly
 
 ---
 
@@ -306,7 +306,7 @@ graph indexer provisions thaw <AMOUNT>
     tokensThawing
   }
   thawRequests(
-    where: { indexer_: { id: "INDEXER_ADDRESS" }, type: "ProvisionThaw" }
+    where: { indexer_: { id: "INDEXER_ADDRESS" }, type: Provision }
   ) {
     id
     tokens
@@ -342,7 +342,7 @@ graph indexer provisions remove
     tokensThawing
   }
   indexers(where: { id: "INDEXER_ADDRESS" }) {
-    unallocatedStake
+    availableStake
   }
 }
 ```
@@ -351,7 +351,7 @@ graph indexer provisions remove
 
 - `tokensThawing` decreases to 0
 - `tokensProvisioned` decreases by the removed amount
-- `unallocatedStake` increases correspondingly
+- `availableStake` increases correspondingly
 
 ---
 
@@ -667,10 +667,10 @@ graph indexer allocations close <ALLOCATION_ID> --poi <NON_ZERO_POI>
     geoHash
     stakedTokens
     allocatedTokens
-    unallocatedStake
+    availableStake
     delegatedTokens
     queryFeesCollected
-    indexingRewardAmount
+    rewardsEarned
     allocations(where: { status: "Active" }) {
       id
       subgraphDeployment {
@@ -788,7 +788,7 @@ Run these operations in sequence to validate a complete indexer lifecycle:
 
 **Allocation creation fails**:
 
-- Check `unallocatedStake` is sufficient
+- Check `availableStake` is sufficient
 - Verify graph-node is syncing the target deployment
 - Ensure provision has enough tokens
 

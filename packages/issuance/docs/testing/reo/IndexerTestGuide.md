@@ -1,19 +1,29 @@
-# Indexer Test Guide
+# Indexer Eligibility Test Plan
 
-> **Navigation**: [← Back to REO Testing](README.md) | [Baseline Details](BaselineTestPlan.md) | [REO Details](ReoTestPlan.md)
+> **Navigation**: [← Back to REO Testing](README.md) | [BaselineTestPlan](BaselineTestPlan.md) | [ReoTestPlan](ReoTestPlan.md)
 
-Self-contained guide for indexers to verify correct eligibility handling on Arbitrum Sepolia. You control your own eligibility via the ORACLE_ROLE granted to your indexer address.
+Tests for indexers to verify correct eligibility handling on Arbitrum Sepolia. Each indexer controls their own eligibility via the ORACLE_ROLE granted to their address.
 
-## Environment
+Each test includes CLI commands, verification queries against the network subgraph, and pass/fail criteria.
 
-The coordinator configures the test environment before testing begins:
+> All GraphQL queries run against the network subgraph. All addresses must be **lowercase**.
 
-- **Eligibility validation**: enabled (so eligibility state matters)
-- **Eligibility period**: short (e.g. 10-15 minutes) for practical testing
-- **Oracle timeout**: set very high (no fail-open during testing)
+---
+
+## Prerequisites
+
+- Completed [BaselineTestPlan](BaselineTestPlan.md) Cycles 1-4 (indexer staked, provisioned, can allocate)
+- `cast` (Foundry) installed for contract interaction
+- Indexer private key available for signing transactions
+
+### Environment Configuration (set by coordinator)
+
+- **Eligibility validation**: enabled
+- **Eligibility period**: short (e.g. 10-15 minutes)
+- **Oracle timeout**: very high (no fail-open during testing)
 - **ORACLE_ROLE**: granted to each participating indexer
 
-Confirm the environment is ready before starting:
+### Environment Variables
 
 ```bash
 export RPC="https://sepolia-rollup.arbitrum.io/rpc"
@@ -25,6 +35,8 @@ export REO=0x62c2305739cc75f19a3a6d52387ceb3690d99a99
 export REWARDS_MANAGER=0x1f49cae7669086c8ba53cc35d1e9f80176d67e79
 ```
 
+### Verify Environment
+
 ```bash
 # Validation must be enabled
 cast call $REO "getEligibilityValidation()(bool)" --rpc-url $RPC
@@ -35,58 +47,41 @@ ORACLE_ROLE=$(cast keccak "ORACLE_ROLE")
 cast call $REO "hasRole(bytes32,address)(bool)" $ORACLE_ROLE $INDEXER --rpc-url $RPC
 # Expected: true
 
-# Note the eligibility period (seconds) — this is how long your renewal lasts
+# Note the eligibility period (seconds)
 cast call $REO "getEligibilityPeriod()(uint256)" --rpc-url $RPC
-```
-
-### Eligibility Commands Reference
-
-You will use these throughout the tests:
-
-```bash
-# Renew your own eligibility
-cast send $REO "renewIndexerEligibility(address[],bytes)" "[$INDEXER]" "0x" \
-  --rpc-url $RPC --private-key $INDEXER_KEY
-
-# Check if you are eligible
-cast call $REO "isEligible(address)(bool)" $INDEXER --rpc-url $RPC
-
-# Check your last renewal timestamp
-cast call $REO "getEligibilityRenewalTime(address)(uint256)" $INDEXER --rpc-url $RPC
-
-# Current block timestamp (to compare with renewal + period)
-cast block latest --field timestamp --rpc-url $RPC
 ```
 
 ---
 
-## Test Sets
+## Test Sequence Overview
 
-### Set 1: Prepare Allocations
+| Set | Area | Tests |
+| --- | ---- | ----- |
+| 1 | Prepare Allocations | 1.1 |
+| 2 | Eligible — Receive Rewards | 2.1 - 2.2 |
+| 3 | Ineligible — Verify Denial | 3.1 - 3.2 |
+| 4 | Optimistic Recovery | 4.1 - 4.2 |
+| 5 | Validation Disabled | 5.1 |
 
-Open multiple allocations now — they need to mature across epochs before you can close them in later sets. You need at least 3 allocations on different deployments (one per eligibility test).
+**Timing**: Set 1 opens allocations that need epoch maturity. Sets 2-4 are sequential (renew → eligible close → wait for expiry → ineligible close → re-renew → recovery close). Set 5 requires coordinator to toggle validation.
 
-#### 1.1 Open Allocations
+---
 
-**Steps:**
+## Set 1: Prepare Allocations
 
-1. Find subgraph deployments with signal:
+### 1.1 Open allocations for eligibility tests
 
-```graphql
-{
-  subgraphDeployments(
-    where: { signalledTokens_gt: "0" }
-    orderBy: signalledTokens
-    orderDirection: desc
-    first: 5
-  ) {
-    id { id }
-    signalledTokens
-  }
-}
-```
+**Objective**: Open 3+ allocations on different deployments. These need to mature across epochs before they can be closed in Sets 2-4.
 
-2. Open allocations on 3+ different deployments:
+**Prerequisites**: Indexer is staked, provisioned, and registered (BaselineTestPlan Cycles 1-3). Subgraph deployments with signal exist.
+
+**Steps**:
+
+1. Find subgraph deployments with signal
+2. Open allocations on 3+ different deployments
+3. Record allocation IDs and current epoch
+
+**Command**:
 
 ```bash
 graph indexer actions queue allocate <DEPLOYMENT_1> <AMOUNT>
@@ -95,11 +90,11 @@ graph indexer actions queue allocate <DEPLOYMENT_3> <AMOUNT>
 graph indexer actions approve
 ```
 
-3. Record the allocation IDs and current epoch:
+**Verification Query**:
 
 ```graphql
 {
-  indexer(id: "<INDEXER_ADDRESS>") {
+  indexer(id: "INDEXER_ADDRESS") {
     allocations(where: { status: "Active" }) {
       id
       subgraphDeployment { id { id } }
@@ -113,63 +108,66 @@ graph indexer actions approve
 }
 ```
 
-**Pass criteria:**
-- 3+ active allocations created
-- Allocation epoch recorded (need at least 1 epoch to pass before closing)
+**Pass Criteria**:
 
-> **While waiting for epoch maturity, proceed to Set 2.**
+- 3+ active allocations visible in subgraph
+- `createdAtEpoch` recorded (need at least 1 epoch to pass before closing)
+
+> While waiting for epoch maturity, proceed to Set 2 to renew eligibility.
 
 ---
 
-### Set 2: Eligible — Close Allocation and Receive Rewards
+## Set 2: Eligible — Receive Rewards
 
-Renew your eligibility, then close an allocation. You should receive indexing rewards.
+### 2.1 Renew eligibility
 
-#### 2.1 Renew Eligibility
+**Objective**: Renew your own eligibility and confirm the REO reflects it.
 
-**Steps:**
+**Prerequisites**: ORACLE_ROLE confirmed in environment check.
 
-1. Renew your eligibility:
+**Command**:
 
 ```bash
 cast send $REO "renewIndexerEligibility(address[],bytes)" "[$INDEXER]" "0x" \
   --rpc-url $RPC --private-key $INDEXER_KEY
 ```
 
-2. Confirm eligibility:
+**Verification**:
 
 ```bash
 cast call $REO "isEligible(address)(bool)" $INDEXER --rpc-url $RPC
 # Expected: true
-```
 
-3. Note your renewal timestamp (you'll need this to know when it expires):
-
-```bash
 cast call $REO "getEligibilityRenewalTime(address)(uint256)" $INDEXER --rpc-url $RPC
+# Record this timestamp — eligibility expires at: renewal_time + eligibility_period
 ```
 
-**Pass criteria:**
+**Pass Criteria**:
+
 - `isEligible` returns `true`
+- `getEligibilityRenewalTime` returns a recent timestamp
 
-#### 2.2 Close Allocation While Eligible
+---
 
-**Prerequisites:** At least 1 epoch has passed since allocation was opened.
+### 2.2 Close allocation while eligible
 
-**Steps:**
+**Objective**: Verify that an eligible indexer receives indexing rewards when closing an allocation.
 
-1. Close an allocation:
+**Prerequisites**: `isEligible` returns `true`. Allocation from Set 1 is at least 1 epoch old.
+
+**Command**:
 
 ```bash
 graph indexer actions queue close <ALLOCATION_ID>
 graph indexer actions approve
 ```
 
-2. Verify rewards were received:
+**Verification Query**:
 
 ```graphql
 {
-  allocation(id: "<ALLOCATION_ID>") {
+  allocations(where: { id: "ALLOCATION_ID" }) {
+    id
     status
     indexingRewards
     closedAtEpoch
@@ -177,59 +175,78 @@ graph indexer actions approve
 }
 ```
 
-**Pass criteria:**
-- Allocation status is `Closed`
-- `indexingRewards` > 0
+**Pass Criteria**:
+
+- Status changes to `Closed`
+- `indexingRewards` is non-zero
+- `closedAtEpoch` is current epoch
 
 ---
 
-### Set 3: Ineligible — Close Allocation and Verify Denial
+## Set 3: Ineligible — Verify Denial
 
-Wait for your eligibility to expire, then close an allocation. You should receive zero rewards.
+### 3.1 Wait for eligibility expiry
 
-#### 3.1 Wait for Eligibility Expiry
+**Objective**: Confirm that eligibility expires after the configured period.
 
-**Steps:**
+**Prerequisites**: Renewal timestamp and eligibility period recorded from Set 2.1.
 
-1. Calculate when your eligibility expires: `renewal_timestamp + eligibility_period`
+**Steps**:
 
-2. Monitor until expired:
+1. Calculate expiry time: `renewal_timestamp + eligibility_period`
+2. Wait until current block time exceeds expiry
+3. Verify eligibility has expired
 
-```bash
-cast call $REO "isEligible(address)(bool)" $INDEXER --rpc-url $RPC
-# Wait until this returns: false
-```
-
-> **While waiting, you can review test results from Set 2.**
-
-**Pass criteria:**
-- `isEligible` returns `false`
-
-#### 3.2 Close Allocation While Ineligible
-
-**Prerequisites:** `isEligible` returns `false`. At least 1 epoch has passed since allocation was opened.
-
-**Steps:**
-
-1. Confirm you are ineligible:
+**Verification**:
 
 ```bash
 cast call $REO "isEligible(address)(bool)" $INDEXER --rpc-url $RPC
 # Expected: false
+
+# Confirm by comparing timestamps:
+cast call $REO "getEligibilityRenewalTime(address)(uint256)" $INDEXER --rpc-url $RPC
+cast call $REO "getEligibilityPeriod()(uint256)" --rpc-url $RPC
+cast block latest --field timestamp --rpc-url $RPC
+# block_timestamp > renewal_time + period
 ```
 
-2. Close an allocation:
+**Pass Criteria**:
+
+- `isEligible` returns `false`
+- Block timestamp exceeds renewal time + eligibility period
+
+---
+
+### 3.2 Close allocation while ineligible
+
+**Objective**: Verify that an ineligible indexer receives zero indexing rewards when closing an allocation. Denied rewards are routed to the reclaim contract.
+
+**Prerequisites**: `isEligible` returns `false`. Allocation from Set 1 is at least 1 epoch old.
+
+**Steps**:
+
+1. Confirm ineligibility
+2. Close an allocation
+3. Verify zero rewards
+
+**Command**:
 
 ```bash
+# Confirm ineligible
+cast call $REO "isEligible(address)(bool)" $INDEXER --rpc-url $RPC
+# Expected: false
+
+# Close allocation
 graph indexer actions queue close <ALLOCATION_ID>
 graph indexer actions approve
 ```
 
-3. Check rewards:
+**Verification Query**:
 
 ```graphql
 {
-  allocation(id: "<ALLOCATION_ID>") {
+  allocations(where: { id: "ALLOCATION_ID" }) {
+    id
     status
     indexingRewards
     closedAtEpoch
@@ -237,121 +254,104 @@ graph indexer actions approve
 }
 ```
 
-**Pass criteria:**
-- Allocation status is `Closed`
-- `indexingRewards` is `0`
+**Pass Criteria**:
 
-> Denied rewards are routed to the reclaim contract, not to the indexer.
+- Status changes to `Closed`
+- `indexingRewards` is `0`
+- Contrast with Set 2.2 where `indexingRewards` was non-zero
 
 ---
 
-### Set 4: Optimistic Recovery — Full Rewards After Re-Renewal
+## Set 4: Optimistic Recovery
 
-Re-renew eligibility after expiry and close an allocation. You should receive full rewards including accrual during the ineligible period.
+Eligibility denial is **optimistic**: rewards accrue to allocations during ineligible periods and are paid in full when the indexer closes while eligible. This is the key behavioral difference from subgraph denial.
 
-This is the key behavioral difference from subgraph denial: eligibility denial is **optimistic** — rewards accrue during ineligible periods and are paid in full upon re-renewal.
+### 4.1 Re-renew eligibility
 
-#### 4.1 Re-Renew Eligibility
+**Objective**: Restore eligibility after expiry and confirm the REO reflects it.
 
-**Steps:**
+**Prerequisites**: Eligibility expired (Set 3.1). Do this promptly after Set 3.
 
-1. Re-renew your eligibility:
+**Command**:
 
 ```bash
 cast send $REO "renewIndexerEligibility(address[],bytes)" "[$INDEXER]" "0x" \
   --rpc-url $RPC --private-key $INDEXER_KEY
 ```
 
-2. Confirm eligibility restored:
+**Verification**:
 
 ```bash
 cast call $REO "isEligible(address)(bool)" $INDEXER --rpc-url $RPC
 # Expected: true
 ```
 
-**Pass criteria:**
+**Pass Criteria**:
+
 - `isEligible` returns `true` after re-renewal
 
-#### 4.2 Close Allocation — Full Rewards
+---
 
-**Prerequisites:** You have an active allocation that has been open across multiple epochs (including the ineligible period from Set 3).
+### 4.2 Close allocation — full rewards after re-renewal
 
-**Steps:**
+**Objective**: Verify that an allocation closed after re-renewal receives full rewards for its entire duration, including the ineligible period.
 
-1. Close the allocation:
+**Prerequisites**: `isEligible` returns `true`. Active allocation from Set 1 has been open across multiple epochs including the ineligible period.
+
+**Command**:
 
 ```bash
 graph indexer actions queue close <ALLOCATION_ID>
 graph indexer actions approve
 ```
 
-2. Check rewards:
+**Verification Query**:
 
 ```graphql
 {
-  allocation(id: "<ALLOCATION_ID>") {
+  allocations(where: { id: "ALLOCATION_ID" }) {
+    id
     status
     indexingRewards
-    closedAtEpoch
     createdAtEpoch
+    closedAtEpoch
   }
 }
 ```
 
-3. Compare: this allocation was open for more epochs than the one closed in Set 2, including the ineligible period. Rewards should reflect the **full** duration.
+**Pass Criteria**:
 
-**Pass criteria:**
-- `indexingRewards` > 0
-- Rewards reflect the full allocation duration (not reduced by the ineligible period)
-- This confirms the optimistic model: accrual continues during ineligibility
+- Status changes to `Closed`
+- `indexingRewards` is non-zero
+- Rewards reflect the full allocation duration (`closedAtEpoch - createdAtEpoch`), not reduced by the ineligible period
+- Compare with Set 2.2: this allocation was open longer and should have proportionally more rewards
 
 ---
 
-### Set 5: Validation Disabled — All Eligible
+## Set 5: Validation Disabled
 
-When validation is disabled, all indexers are eligible regardless of renewal status. This is the default state and the emergency fallback.
+### 5.1 Verify eligibility when validation is off
 
-#### 5.1 Verify Eligibility When Validation Is Off
+**Objective**: Confirm that all indexers are eligible when validation is disabled, regardless of renewal status. This is the default state and the emergency fallback.
 
-**Prerequisites:** Coordinator has disabled validation (`setEligibilityValidation(false)`).
+**Prerequisites**: Coordinator has disabled validation (`setEligibilityValidation(false)`).
 
-**Steps:**
-
-1. Confirm validation is disabled:
+**Verification**:
 
 ```bash
 cast call $REO "getEligibilityValidation()(bool)" --rpc-url $RPC
 # Expected: false
-```
 
-2. Check eligibility (should be true regardless of renewal status):
-
-```bash
 cast call $REO "isEligible(address)(bool)" $INDEXER --rpc-url $RPC
 # Expected: true
 ```
 
-**Pass criteria:**
+**Pass Criteria**:
+
+- `getEligibilityValidation` returns `false`
 - `isEligible` returns `true` even without a recent renewal
 
 ---
-
-## Test Sequence Summary
-
-| Set | What You Do | Expected Outcome | Time |
-|-----|-------------|------------------|------|
-| 1 | Open 3+ allocations | Allocations created, wait for epoch maturity | 5 min + wait |
-| 2 | Renew eligibility → close allocation | Rewards received | 5 min |
-| 3 | Wait for expiry → close allocation | Zero rewards (denied) | Wait + 5 min |
-| 4 | Re-renew → close allocation | Full rewards (optimistic recovery) | 5 min |
-| 5 | Validation disabled → check eligibility | All eligible | 2 min |
-
-**Timing notes:**
-- Set 1 should be done first; allocations need epoch maturity before closing
-- Set 2 requires epoch maturity from Set 1
-- Set 3 requires eligibility expiry after Set 2 renewal
-- Set 4 uses remaining allocation from Set 1, close promptly after Set 3
-- Set 5 requires coordinator to disable validation
 
 ## Troubleshooting
 
