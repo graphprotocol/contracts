@@ -75,7 +75,7 @@
     "hardhat-gas-reporter": "^1.0.1",
     "hardhat-ignore-warnings": "catalog:",
     "inquirer": "8.0.0",
-    "lodash": "^4.17.21",
+    "lodash": "^4.17.23",
     "markdownlint-cli": "0.45.0",
     "p-queue": "^6.6.2",
     "prettier": "catalog:",
