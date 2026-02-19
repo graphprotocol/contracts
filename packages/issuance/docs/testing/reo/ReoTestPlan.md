@@ -8,33 +8,91 @@ Tests specific to the Rewards Eligibility Oracle upgrade. Run these **after** th
 
 ## Contract Addresses
 
-Fill in per network before testing:
-
 | Contract                         | Arbitrum Sepolia                             | Arbitrum One |
 | -------------------------------- | -------------------------------------------- | ------------ |
 | RewardsEligibilityOracle (proxy) | `0x62c2305739cc75f19a3a6d52387ceb3690d99a99` | TBD          |
-| IssuanceAllocator (proxy)        | TBD                                          | TBD          |
-| RewardsManager (proxy)           | TBD                                          | TBD          |
-| GraphToken                       | TBD                                          | TBD          |
+| IssuanceAllocator (proxy)        | Not yet deployed                             | TBD          |
+| RewardsManager (proxy)           | `0x1f49cae7669086c8ba53cc35d1e9f80176d67e79` | TBD          |
+| GraphToken (L2)                  | `0xf8c05dcf59e8b28bfd5eed176c562bebcfc7ac04` | TBD          |
+
+**Address sources**: `packages/issuance/addresses.json` (REO), `packages/horizon/addresses.json` (RewardsManager, GraphToken) in the `post-audit` worktree.
+
+### RPC
+
+| Network          | RPC URL                                   |
+| ---------------- | ----------------------------------------- |
+| Arbitrum Sepolia | `https://sepolia-rollup.arbitrum.io/rpc`  |
+
+### Hardhat Tasks
+
+The deployment package provides Hardhat tasks that read from the address books and handle governance workflow automatically. Run from `packages/deployment` in the `post-audit` worktree:
+
+```bash
+npx hardhat reo:status  --network arbitrumSepolia   # Full status: config, oracle activity, role holders
+npx hardhat reo:enable  --network arbitrumSepolia   # Enable eligibility validation (requires OPERATOR_ROLE)
+npx hardhat reo:disable --network arbitrumSepolia   # Disable eligibility validation (requires OPERATOR_ROLE)
+```
+
+These are alternatives to the raw `cast` commands used below. `reo:status` in particular is useful as a quick check at any point during testing.
+
+---
+
+## Execution Notes
+
+### Roles needed
+
+Testing requires access to three roles on the REO contract. On Arbitrum Sepolia:
+
+| Role          | Needed for                              | Current holder                                  |
+| ------------- | --------------------------------------- | ----------------------------------------------- |
+| OPERATOR_ROLE | Enable/disable validation, set periods, grant ORACLE_ROLE | NetworkOperator: `0xade6b8eb69a49b56929c1d4f4b428d791861db6f` |
+| ORACLE_ROLE   | Renew indexer eligibility               | Not yet assigned -- must be granted in Cycle 3  |
+| PAUSE_ROLE    | Pause/unpause (Cycle 8)                 | Check with `reo:status`                         |
+
+The tester needs the NetworkOperator key (or governance access) to execute Cycles 3-5 and 8. If the tester doesn't hold OPERATOR_ROLE directly, the Hardhat tasks generate governance TX files for Safe multisig execution.
+
+### Advance planning for Cycle 6
+
+Cycle 6 tests reward integration with live indexers. These tests take multiple epochs (~110 minutes each on Sepolia) and require allocations that were opened **before** validation was enabled. Plan ahead:
+
+1. During **Cycle 2** (validation still disabled): open allocations for at least two indexers on rewarded deployments -- one that will be renewed (for test 6.1) and one that will NOT be renewed (for test 6.2)
+2. These allocations need to mature for 2-3 epochs before they can be closed in Cycle 6
+3. When you enable validation in **Cycle 4**, the non-renewed indexer becomes ineligible while their allocation is still open -- this is the setup for test 6.2
+
+### Parameter changes during testing
+
+Tests 4.4, 5.1, and 8.1 temporarily modify live parameters (eligibility period, oracle timeout, pause state). Each test includes a restore step. If a session is interrupted:
+
+```bash
+# Verify and restore defaults
+npx hardhat reo:status --network arbitrumSepolia
+
+# If needed, restore manually (as operator):
+cast send <REO_PROXY> "setEligibilityPeriod(uint256)" 1209600 --rpc-url <RPC> --private-key <OPERATOR_KEY>
+cast send <REO_PROXY> "setOracleUpdateTimeout(uint256)" 604800 --rpc-url <RPC> --private-key <OPERATOR_KEY>
+cast send <REO_PROXY> "unpause()" --rpc-url <RPC> --private-key <PAUSE_KEY>
+```
 
 ---
 
 ## Test Sequence Overview
 
-| Cycle | Area                                             | Tests     |
-| ----- | ------------------------------------------------ | --------- |
-| 1     | Deployment Verification                          | 1.1 - 1.5 |
-| 2     | Eligibility: Default State (Validation Disabled) | 2.1 - 2.3 |
-| 3     | Oracle Operations                                | 3.1 - 3.5 |
-| 4     | Eligibility: Validation Enabled                  | 4.1 - 4.4 |
-| 5     | Eligibility: Timeout Fail-Open                   | 5.1 - 5.2 |
-| 6     | Integration with Rewards                         | 6.1 - 6.4 |
-| 7     | IssuanceAllocator                                | 7.1 - 7.4 |
-| 8     | Emergency Operations                             | 8.1 - 8.3 |
+| Cycle | Area                                             | Tests     | Notes                                      |
+| ----- | ------------------------------------------------ | --------- | ------------------------------------------ |
+| 1     | Deployment Verification                          | 1.1 - 1.5 | Read-only, no role access needed           |
+| 2     | Eligibility: Default State (Validation Disabled) | 2.1 - 2.3 | Open allocations here for Cycle 6          |
+| 3     | Oracle Operations                                | 3.1 - 3.5 | Requires OPERATOR_ROLE + ORACLE_ROLE       |
+| 4     | Eligibility: Validation Enabled                  | 4.1 - 4.4 | Requires OPERATOR_ROLE; 4.4 changes params |
+| 5     | Eligibility: Timeout Fail-Open                   | 5.1 - 5.2 | Requires OPERATOR_ROLE; 5.1 changes params |
+| 6     | Integration with Rewards                         | 6.1 - 6.4 | Requires mature allocations from Cycle 2   |
+| 7     | IssuanceAllocator                                | 7.1 - 7.4 | Skip if IssuanceAllocator not yet deployed |
+| 8     | Emergency Operations                             | 8.1 - 8.3 | Requires PAUSE_ROLE; changes live state    |
 
 ---
 
 ## Cycle 1: Deployment Verification
+
+> Tests 1.2, 1.3, and 1.5 can be checked in one step with `npx hardhat reo:status --network arbitrumSepolia`, which displays role holders, configuration, and contract state. The individual `cast` commands below are useful for scripted or more granular verification.
 
 ### 1.1 Verify proxy and implementation
 
@@ -197,7 +255,15 @@ cast call <REO_PROXY> "isEligible(address)(bool)" <NEVER_RENEWED_INDEXER> --rpc-
 
 **Objective**: Confirm the baseline rewards flow is unaffected by the REO when validation is off.
 
-**Steps**: Run [Baseline Test Plan Cycle 5.2](./BaselineTestPlan.md#52-close-allocation-and-collect-indexing-rewards) (close allocation and collect rewards).
+**Prerequisites**: Indexer has an active allocation on a rewarded deployment, open for at least 2 epochs. This should already exist from running [Baseline Cycle 4](./BaselineTestPlan.md#cycle-4-allocation-management).
+
+**Steps**: Close the allocation per [Baseline 5.2](./BaselineTestPlan.md#52-close-allocation-and-collect-indexing-rewards) and verify rewards.
+
+> **Advance setup for Cycle 6**: Before moving to Cycle 3, open allocations for the indexers you plan to use in Cycle 6. You need at least:
+> - One allocation for a **renewed** indexer (test 6.1 -- will receive rewards)
+> - One allocation for a **non-renewed** indexer (test 6.2 -- will be denied rewards)
+>
+> These allocations must mature for 2-3 epochs before Cycle 6. Since validation is still disabled, both will accrue potential rewards. Use [Baseline 4.2](./BaselineTestPlan.md#42-create-allocation-manually) to create them.
 
 **Pass Criteria**:
 
@@ -326,10 +392,12 @@ cast send <REO_PROXY> "renewIndexerEligibility(address[],bytes)" "[<INDEXER_ADDR
 
 **Prerequisites**: OPERATOR_ROLE holder. Some indexers should have been renewed (Cycle 3), others not.
 
+> **Before enabling**: Confirm the allocations you opened during Cycle 2 for Cycle 6 testing are still active. Once validation is enabled, any non-renewed indexer with an open allocation becomes ineligible for rewards -- this is the intended setup for test 6.2.
+
 **Steps**:
 
 ```bash
-# Enable validation
+# Enable validation (alternative: npx hardhat reo:enable --network arbitrumSepolia)
 cast send <REO_PROXY> "setEligibilityValidation(bool)" true --rpc-url <RPC> --private-key <OPERATOR_KEY>
 
 # Verify
@@ -485,13 +553,15 @@ cast call <REO_PROXY> "getLastOracleUpdateTime()(uint256)" --rpc-url <RPC>
 
 ## Cycle 6: Integration with Rewards
 
-These tests verify the end-to-end interaction between the REO and the rewards system.
+These tests verify the end-to-end interaction between the REO and the rewards system using live indexers.
+
+> **Timing**: These tests require allocations that have been open for 2-3 epochs (~3.5-5.5 hours on Sepolia). The allocations should have been opened during Cycle 2, before validation was enabled. If they weren't, you'll need to open them now and wait before proceeding. Cycles 7 and 8 can be run while waiting.
 
 ### 6.1 Eligible indexer receives indexing rewards
 
 **Objective**: Confirm that a renewed (eligible) indexer receives rewards when closing an allocation.
 
-**Prerequisites**: Validation enabled. Indexer renewed by oracle. Indexer has an active allocation open for several epochs on a rewarded deployment.
+**Prerequisites**: Validation enabled (Cycle 4). Indexer renewed by oracle (Cycle 3). Indexer has an active allocation open for several epochs on a rewarded deployment (opened during Cycle 2).
 
 **Steps**:
 
@@ -523,7 +593,7 @@ These tests verify the end-to-end interaction between the REO and the rewards sy
 
 **Objective**: Confirm that a non-renewed (ineligible) indexer receives zero rewards when closing an allocation.
 
-**Prerequisites**: Validation enabled. Indexer has NOT been renewed (or renewal expired). Indexer has an active allocation on a rewarded deployment.
+**Prerequisites**: Validation enabled (Cycle 4). Indexer has NOT been renewed by the oracle. Indexer has an active allocation on a rewarded deployment that was opened during Cycle 2 (before validation was enabled).
 
 **Steps**:
 
@@ -566,12 +636,14 @@ cast logs --from-block <CLOSE_TX_BLOCK> --to-block <CLOSE_TX_BLOCK> --address <R
 
 **Objective**: After an indexer's eligibility expires and they are denied rewards, verify that a new oracle renewal restores their ability to earn rewards.
 
+> **Timing**: This test requires opening a new allocation and waiting 2-3 epochs (~3.5-5.5 hours). It can be run as the final validation step, or skipped on testnet if time is constrained and covered by the combination of 6.2 + Cycle 3 (which together demonstrate the renewal mechanism works).
+
 **Steps**:
 
-1. Confirm indexer is currently ineligible
-2. Renew the indexer via oracle
+1. Confirm indexer is currently ineligible (the indexer from test 6.2)
+2. Renew the indexer via oracle (as in test 3.2)
 3. Confirm eligibility restored: `isEligible` = `true`
-4. Open new allocation, wait, close, check rewards
+4. Open new allocation, wait 2-3 epochs, close, check rewards
 
 **Pass Criteria**:
 
@@ -581,6 +653,8 @@ cast logs --from-block <CLOSE_TX_BLOCK> --to-block <CLOSE_TX_BLOCK> --address <R
 ---
 
 ## Cycle 7: IssuanceAllocator
+
+> **Deployment status**: The IssuanceAllocator is not yet deployed on Arbitrum Sepolia. Skip this cycle until deployment is complete, then fill in the contract address above.
 
 ### 7.1 Verify IssuanceAllocator configuration
 
@@ -705,7 +779,7 @@ cast send <REO_PROXY> "unpause()" --rpc-url <RPC> --private-key <PAUSE_KEY>
 **Steps**:
 
 ```bash
-# Disable validation
+# Disable validation (alternative: npx hardhat reo:disable --network arbitrumSepolia)
 cast send <REO_PROXY> "setEligibilityValidation(bool)" false --rpc-url <RPC> --private-key <OPERATOR_KEY>
 
 # Previously ineligible indexer should now be eligible
@@ -744,7 +818,7 @@ cast send <REO_PROXY> "pause()" --rpc-url <RPC> --private-key <RANDOM_KEY>
 
 ## Post-Testing Cleanup Checklist
 
-After completing all tests, ensure the REO is left in the expected state:
+Run `npx hardhat reo:status --network arbitrumSepolia` to verify. Ensure the REO is left in the expected state:
 
 - [ ] `eligibilityValidation` set to intended value (disabled or enabled per rollout plan)
 - [ ] `eligibilityPeriod` = `1209600` (14 days)

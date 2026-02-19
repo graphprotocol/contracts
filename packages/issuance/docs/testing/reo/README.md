@@ -6,8 +6,9 @@ Comprehensive test plans for validating The Graph Network after the Rewards Elig
 
 1. **Understand the objectives** → Read [Goal.md](Goal.md)
 2. **Check current progress** → Read [Status.md](Status.md)
-3. **Run baseline tests** → Follow [BaselineTestPlan.md](BaselineTestPlan.md)
-4. **Run REO-specific tests** → Follow [ReoTestPlan.md](ReoTestPlan.md)
+3. **Review automation strategy** → Read [AutomationAnalysis.md](AutomationAnalysis.md)
+4. **Run baseline tests** → Follow [BaselineTestPlan.md](BaselineTestPlan.md)
+5. **Run REO-specific tests** → Follow [ReoTestPlan.md](ReoTestPlan.md)
 
 ## Documentation
 
@@ -17,6 +18,12 @@ Comprehensive test plans for validating The Graph Network after the Rewards Elig
 |----------|---------|--------|
 | [BaselineTestPlan.md](BaselineTestPlan.md) | Upgrade-agnostic indexer operational tests covering 7 cycles (22 tests) | ✅ Complete |
 | [ReoTestPlan.md](ReoTestPlan.md) | Tests for REO behavior, eligibility logic, and edge cases | ✅ Complete |
+
+### Automation Strategy
+
+| Document | Purpose | Status |
+|----------|---------|--------|
+| [AutomationAnalysis.md](AutomationAnalysis.md) | Analysis of automation opportunities, local network testing, and implementation roadmap | ✅ Complete |
 
 ### Project Management
 

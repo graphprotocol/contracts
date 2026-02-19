@@ -1,6 +1,6 @@
 # REO Testing: Goal
 
-> **Navigation**: [← Back to REO Testing](README.md) | [Status](Status.md) | [BaselineTestPlan](BaselineTestPlan.md)
+> **Navigation**: [← Back to REO Testing](README.md) | [Status](Status.md) | [AutomationAnalysis](AutomationAnalysis.md) | [BaselineTestPlan](BaselineTestPlan.md)
 
 ## Objective
 
@@ -29,4 +29,4 @@ The baseline test plan was extracted from the Horizon upgrade test documentation
 
 ---
 
-**Related**: [Status.md](Status.md) | [BaselineTestPlan.md](BaselineTestPlan.md) | [ReoTestPlan.md](ReoTestPlan.md)
+**Related**: [Status.md](Status.md) | [AutomationAnalysis.md](AutomationAnalysis.md) | [BaselineTestPlan.md](BaselineTestPlan.md) | [ReoTestPlan.md](ReoTestPlan.md)
