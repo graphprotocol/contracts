@@ -97,7 +97,7 @@ graph indexer actions approve
   indexer(id: "INDEXER_ADDRESS") {
     allocations(where: { status: "Active" }) {
       id
-      subgraphDeployment { id { id } }
+      subgraphDeployment { ipfsHash }
       allocatedTokens
       createdAtEpoch
     }
