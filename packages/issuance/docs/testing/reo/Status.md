@@ -1,26 +1,36 @@
 # REO Testing: Status
 
-> **Navigation**: [← Back to REO Testing](README.md) | [Goal](Goal.md) | [AutomationAnalysis](AutomationAnalysis.md) | [BaselineTestPlan](BaselineTestPlan.md) | [ReoTestPlan](ReoTestPlan.md)
+> **Navigation**: [← Back to REO Testing](README.md) | [Goal](Goal.md) | [AutomationAnalysis](AutomationAnalysis.md) | [BaselineTestPlan](BaselineTestPlan.md) | [ReoTestPlan](ReoTestPlan.md) | [Meeting Notes](./docs/2026-02-11/20260211_Meeting.md)
 
 > **Process note**: Update this file after every step. Return to it before starting the next step to determine what to do next.
 
 ## Current State
 
-**Phase**: Test plans reviewed and updated. Ready for live testnet verification.
+**Phase**: Test plans finalized with meeting feedback. Ready for live testnet verification.
 
 **Current Status**:
 - ✅ Test plans documented, reviewed for completeness, and updated with practical execution guidance
 - ✅ Contract addresses filled in for Arbitrum Sepolia (REO, RewardsManager, GraphToken)
 - ✅ Sequencing dependencies identified and documented (Cycle 6 requires advance allocation setup in Cycle 2)
 - ✅ Hardhat task references added (`reo:status`, `reo:enable`, `reo:disable`)
+- ✅ Meeting feedback incorporated: multi-indexer cycling, UI/subgraph verification (Cycle 9), timeline
 - ⏸️ IssuanceAllocator not yet deployed on Sepolia -- Cycle 7 blocked
 - ⏸️ Live testnet execution not yet started
 
 **Next step**: Begin live testnet verification on Arbitrum Sepolia:
 
-1. Confirm role access: run `npx hardhat reo:status --network arbitrumSepolia` from `packages/deployment` in `post-audit` worktree to verify who holds OPERATOR_ROLE and whether ORACLE_ROLE is assigned
-2. Run [BaselineTestPlan.md](./BaselineTestPlan.md) Cycles 1-7 to confirm standard indexer operations work
-3. Run [ReoTestPlan.md](./ReoTestPlan.md) Cycles 1-8, following the sequencing notes (open Cycle 6 allocations during Cycle 2, before enabling validation in Cycle 4)
+1. ~~Update REO test plan with multi-indexer cycling approach~~ Done
+2. ~~Add UI/Explorer/subgraph verification steps for denial scenarios~~ Done (Cycle 9)
+3. ~~Add testnet parameter acceleration guidance~~ Done
+4. ~~Add timeline with testing phases starting ~2026-02-22~~ Done
+5. Review test plan for completeness, compare against Tomas's previous checkbox format
+6. Coordinate with Explorer team, network subgraph team, and selected indexers
+7. Set up Discord channel for testing coordination
+8. Confirm role access: run `npx hardhat reo:status --network arbitrumSepolia` from `packages/deployment` in `post-audit` worktree
+9. Run [BaselineTestPlan.md](./BaselineTestPlan.md) Cycles 1-7 to confirm standard indexer operations work
+10. Run [ReoTestPlan.md](./ReoTestPlan.md) Cycles 1-9, following the sequencing notes
+
+**Follow-up call**: Mid-week (~2026-02-13), attendees: core team, Explorer team, network subgraph, selected indexers
 
 ## Research Findings
 
@@ -85,8 +95,9 @@ Source: `packages/deployment` (see `post-audit` worktree for latest)
 | Extract baseline tests from Horizon docs   | ✅ Done  | 22 tests across 7 cycles                                   |
 | Document baseline test plan                | ✅ Done  | [BaselineTestPlan.md](BaselineTestPlan.md)                 |
 | Research REO mechanics                     | ✅ Done  | Contract analysis, edge cases, deployment infra            |
-| Document REO test plan                     | ✅ Done  | [ReoTestPlan.md](ReoTestPlan.md) - 30 tests across 8 cycles |
+| Document REO test plan                     | ✅ Done  | [ReoTestPlan.md](ReoTestPlan.md) - 36 tests across 9 cycles |
 | Review for completeness                    | ✅ Done  | Addresses filled in, sequencing documented, tooling linked |
+| Incorporate meeting feedback               | ✅ Done  | Multi-indexer cycling, UI verification, timeline           |
 | Analyze automation opportunities           | ✅ Done  | [AutomationAnalysis.md](AutomationAnalysis.md)             |
 
 ### Automated Test Coverage
@@ -102,8 +113,8 @@ Source: `packages/deployment` (see `post-audit` worktree for latest)
 
 | Environment      | Baseline Tests | REO Tests | Status        | Notes                              |
 | ---------------- | -------------- | --------- | ------------- | ---------------------------------- |
-| Arbitrum Sepolia | 0/22           | 0/30      | ⏸️ Not started | Requires live indexer stack        |
-| Arbitrum One     | 0/22           | 0/30      | ⏸️ Not started | Execute after successful testnet   |
+| Arbitrum Sepolia | 0/22           | 0/36      | ⏸️ Not started | Requires live indexer stack        |
+| Arbitrum One     | 0/22           | 0/36      | ⏸️ Not started | Execute after successful testnet   |
 
 ### Implementation Milestones
 
@@ -128,7 +139,9 @@ Source: `packages/deployment` (see `post-audit` worktree for latest)
 | 2025-02-11 | Completed automation analysis: identified 87% existing coverage, defined 4 implementation milestones, created roadmap         |
 | 2025-02-11 | Updated Status.md to accurately reflect current state: planning complete, awaiting implementation decisions                   |
 | 2026-02-11 | Reviewed test plans for completeness: filled in Sepolia addresses, added sequencing guidance, linked Hardhat tasks, noted IssuanceAllocator not yet deployed |
+| 2026-02-11 | [Test plan meeting](./docs/2026-02-11/20260211_Meeting.md): multi-indexer cycling, UI/subgraph verification, fake oracle, timeline ~Feb 22 |
+| 2026-02-19 | Merged parallel work from `/work/reo-testing` and `/git/graphprotocol/contracts/reo-testing` into single source of truth |
 
 ---
 
-**Related**: [Goal.md](Goal.md) | [AutomationAnalysis.md](AutomationAnalysis.md) | [BaselineTestPlan.md](BaselineTestPlan.md) | [ReoTestPlan.md](ReoTestPlan.md)
+**Related**: [Goal.md](Goal.md) | [AutomationAnalysis.md](AutomationAnalysis.md) | [BaselineTestPlan.md](BaselineTestPlan.md) | [ReoTestPlan.md](ReoTestPlan.md) | [Meeting Notes](./docs/2026-02-11/20260211_Meeting.md)
