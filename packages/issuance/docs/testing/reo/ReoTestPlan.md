@@ -11,7 +11,6 @@ Tests specific to the Rewards Eligibility Oracle upgrade. Run these **after** th
 | Contract                         | Arbitrum Sepolia                             | Arbitrum One |
 | -------------------------------- | -------------------------------------------- | ------------ |
 | RewardsEligibilityOracle (proxy) | `0x62c2305739cc75f19a3a6d52387ceb3690d99a99` | TBD          |
-| IssuanceAllocator (proxy)        | Not yet deployed                             | TBD          |
 | RewardsManager (proxy)           | `0x1f49cae7669086c8ba53cc35d1e9f80176d67e79` | TBD          |
 | GraphToken (L2)                  | `0xf8c05dcf59e8b28bfd5eed176c562bebcfc7ac04` | TBD          |
 
@@ -69,12 +68,12 @@ Based on [2026-02-11 meeting](./docs/2026-02-11/20260211_Meeting.md) decisions:
 
 | Date        | Phase       | Activity                                                                                 |
 | ----------- | ----------- | ---------------------------------------------------------------------------------------- |
-| ~2026-02-13 | Preparation | Follow-up call: finalize plan with Explorer team, subgraph team, indexers                |
+| 2026-02-19  | Preparation | Follow-up call: finalize plan with Explorer team, subgraph team, indexers                |
 | ~2026-02-18 | Setup       | Baseline tests (Cycles 1-7), testnet environment confirmed                               |
 | ~2026-02-22 | REO Phase 1 | Deployment verification (Cycle 1), default state (Cycle 2), oracle setup (Cycle 3)       |
 | ~2026-02-24 | REO Phase 2 | Validation enabled (Cycle 4), timeout fail-open (Cycle 5), begin indexer cycling         |
 | ~2026-02-26 | REO Phase 3 | Integration with rewards (Cycle 6), multi-indexer denial/renewal cycling                 |
-| ~2026-02-28 | REO Phase 4 | IssuanceAllocator (Cycle 7), emergency ops (Cycle 8), UI/subgraph verification (Cycle 9) |
+| ~2026-02-28 | REO Phase 4 | Emergency ops (Cycle 7), UI/subgraph verification (Cycle 8)                              |
 | ~2026-03-03 | Wrap-up     | Results review, cleanup checklist, mainnet readiness assessment                          |
 
 > Dates are approximate. Actual schedule depends on follow-up call decisions and indexer availability.
@@ -128,10 +127,9 @@ cast send <REO_PROXY> "unpause()" --rpc-url <RPC> --private-key <PAUSE_KEY>
 | 3     | Oracle Operations                                | 3.1 - 3.5 | Requires OPERATOR_ROLE + ORACLE_ROLE       |
 | 4     | Eligibility: Validation Enabled                  | 4.1 - 4.4 | Requires OPERATOR_ROLE; 4.4 changes params |
 | 5     | Eligibility: Timeout Fail-Open                   | 5.1 - 5.2 | Requires OPERATOR_ROLE; 5.1 changes params |
-| 6     | Integration with Rewards                         | 6.1 - 6.7 | Requires mature allocations from Cycle 2   |
-| 7     | IssuanceAllocator                                | 7.1 - 7.4 | Skip if IssuanceAllocator not yet deployed |
-| 8     | Emergency Operations                             | 8.1 - 8.3 | Requires PAUSE_ROLE; changes live state    |
-| 9     | UI and Subgraph Verification                     | 9.1 - 9.3 | Coordinate with Explorer and subgraph teams |
+| 6     | Integration with Rewards                         | 6.1 - 6.6 | Requires mature allocations from Cycle 2   |
+| 7     | Emergency Operations                             | 7.1 - 7.3 | Requires PAUSE_ROLE; changes live state    |
+| 8     | UI and Subgraph Verification                     | 8.1 - 8.3 | Coordinate with Explorer and subgraph teams |
 
 ---
 
@@ -720,139 +718,33 @@ cast call <REWARDS_MANAGER> "getRewards(bytes32)(uint256)" <ALLOCATION_ID> --rpc
 
 ---
 
-### 6.6 Denial preserves previously accumulated rewards
+### 6.6 Eligibility denial is optimistic -- full rewards after re-renewal
 
-**Objective**: When an indexer becomes ineligible mid-way through an allocation's life, rewards accumulated before ineligibility should be preserved (not lost). Only accumulation during the denial period stops.
+**Objective**: Verify that rewards continue accumulating during an ineligible period (optimistic model). After re-renewal, closing the allocation yields the full accumulated amount including epochs where the indexer was ineligible. This differs from subgraph denial, which permanently stops accumulation.
 
-**Steps**:
-
-1. Open allocation with eligible indexer, wait several epochs (accumulates rewards)
-2. Let eligibility expire (or disable via validation toggle)
-3. Wait additional epochs while ineligible
-4. Renew eligibility
-5. Close allocation and check rewards
-
-**Pass Criteria**:
-
-- `indexingRewards` is non-zero (reflecting the eligible epochs)
-- Rewards are less than what a continuously-eligible indexer would receive for the same period
-- Rewards are greater than zero (previously accumulated rewards not lost)
-
----
-
-### 6.7 Eligibility-based denial is optimistic
-
-**Objective**: Unlike subgraph denial (which permanently stops accumulation), eligibility-based denial should be optimistic -- rewards continue accumulating because eligibility status can change.
-
-**Prerequisites**: Understand the distinction: subgraph denial is permanent per-deployment, eligibility denial is temporary per-indexer.
+**Prerequisites**: Indexer has an active allocation open for several epochs. Indexer was eligible when allocation was opened.
 
 **Steps**:
 
-1. Open allocation on a rewarded deployment
-2. Let indexer eligibility expire
-3. Observe reward accumulation behavior during ineligible period
-4. Renew eligibility and close allocation
+1. Confirm indexer is currently eligible with an active allocation
+2. Let eligibility expire (or reduce eligibility period as in test 4.4)
+3. Confirm `isEligible(indexer)` = `false`
+4. Wait 1-2 additional epochs while ineligible
+5. Re-renew the indexer via oracle
+6. Confirm `isEligible(indexer)` = `true`
+7. Close allocation and check rewards
 
 **Pass Criteria**:
 
-- Rewards accumulate during the ineligible period (optimistic model)
-- After renewal, closing the allocation yields rewards including the ineligible-period accumulation
-- This differs from subgraph denial where accumulation stops entirely
-
-> **Note**: Tests 6.6 and 6.7 may appear contradictory. The distinction is: subgraph denial stops accumulation (6.6 describes this case), while eligibility denial does not (6.7). Verify both behaviors apply to their respective denial types.
+- `indexingRewards` reflects the full allocation lifetime (eligible + ineligible epochs)
+- Amount is comparable to what a continuously-eligible indexer would earn for the same period
+- Temporary ineligibility does not cause permanent reward loss
 
 ---
 
-## Cycle 7: IssuanceAllocator
+## Cycle 7: Emergency Operations
 
-> **Deployment status**: The IssuanceAllocator is not yet deployed on Arbitrum Sepolia. Skip this cycle until deployment is complete, then fill in the contract address above.
-
-### 7.1 Verify IssuanceAllocator configuration
-
-**Objective**: Confirm the IssuanceAllocator is correctly configured with RewardsManager as a self-minting target.
-
-**Steps**:
-
-```bash
-# Check issuance rate
-cast call <ISSUANCE_ALLOCATOR> "getIssuancePerBlock()(uint256)" --rpc-url <RPC>
-
-# Check RewardsManager target allocation
-cast call <ISSUANCE_ALLOCATOR> "getTargetIssuancePerBlock(address)(uint256,uint256)" <REWARDS_MANAGER> --rpc-url <RPC>
-
-# Check if IssuanceAllocator is minter
-cast call <GRAPH_TOKEN> "isMinter(address)(bool)" <ISSUANCE_ALLOCATOR> --rpc-url <RPC>
-
-# Check RewardsManager knows about IssuanceAllocator
-cast call <REWARDS_MANAGER> "getIssuanceAllocator()(address)" --rpc-url <RPC>
-```
-
-**Pass Criteria**:
-
-- `getIssuancePerBlock` returns the expected issuance rate
-- RewardsManager has self-minting allocation = 100% of issuance
-- IssuanceAllocator is a minter on GraphToken
-- RewardsManager points to IssuanceAllocator
-
----
-
-### 7.2 Distribute issuance
-
-**Objective**: Verify `distributeIssuance()` executes correctly.
-
-**Steps**:
-
-```bash
-# Anyone can call this
-cast send <ISSUANCE_ALLOCATOR> "distributeIssuance()" --rpc-url <RPC> --private-key <ANY_KEY>
-```
-
-**Pass Criteria**:
-
-- Transaction succeeds
-- No unexpected reverts
-
----
-
-### 7.3 Verify issuance rate matches RewardsManager
-
-**Objective**: Confirm the issuance rate in IssuanceAllocator matches what RewardsManager expects.
-
-**Steps**:
-
-```bash
-# IssuanceAllocator rate
-cast call <ISSUANCE_ALLOCATOR> "getIssuancePerBlock()(uint256)" --rpc-url <RPC>
-
-# RewardsManager effective rate
-cast call <REWARDS_MANAGER> "issuancePerBlock()(uint256)" --rpc-url <RPC>
-```
-
-**Pass Criteria**:
-
-- Both values are identical
-
----
-
-### 7.4 IssuanceAllocator not paused
-
-**Objective**: Confirm the IssuanceAllocator is operational.
-
-**Steps**:
-
-```bash
-cast call <ISSUANCE_ALLOCATOR> "paused()(bool)" --rpc-url <RPC>
-```
-
-**Pass Criteria**:
-
-- Returns `false`
-
----
-
-## Cycle 8: Emergency Operations
-
-### 8.1 Pause REO
+### 7.1 Pause REO
 
 **Objective**: Verify the pause guardian can pause the REO.
 
@@ -883,7 +775,7 @@ cast send <REO_PROXY> "unpause()" --rpc-url <RPC> --private-key <PAUSE_KEY>
 
 ---
 
-### 8.2 Disable eligibility validation (emergency override)
+### 7.2 Disable eligibility validation (emergency override)
 
 **Objective**: Verify an operator can disable validation to immediately make all indexers eligible.
 
@@ -904,7 +796,7 @@ cast call <REO_PROXY> "isEligible(address)(bool)" <PREVIOUSLY_INELIGIBLE_INDEXER
 
 ---
 
-### 8.3 Access control prevents unauthorized configuration
+### 7.3 Access control prevents unauthorized configuration
 
 **Objective**: Verify that only authorized roles can perform privileged operations.
 
@@ -927,11 +819,11 @@ cast send <REO_PROXY> "pause()" --rpc-url <RPC> --private-key <RANDOM_KEY>
 
 ---
 
-## Cycle 9: UI and Subgraph Verification
+## Cycle 8: UI and Subgraph Verification
 
 These tests verify that the Graph Explorer and network subgraph correctly reflect eligibility states and denial scenarios. Run these in coordination with the Explorer and subgraph teams.
 
-### 9.1 Explorer displays correct rewards during denial
+### 8.1 Explorer displays correct rewards during denial
 
 **Objective**: Verify that the Graph Explorer does not show incorrect indexing reward amounts when an indexer is ineligible and claims are denied.
 
@@ -952,7 +844,7 @@ These tests verify that the Graph Explorer and network subgraph correctly reflec
 
 ---
 
-### 9.2 Network subgraph reflects eligibility transitions
+### 8.2 Network subgraph reflects eligibility transitions
 
 **Objective**: Verify the network subgraph correctly indexes eligibility renewal events and displays accurate stake/delegation amounts through state transitions.
 
@@ -983,7 +875,7 @@ These tests verify that the Graph Explorer and network subgraph correctly reflec
 
 ---
 
-### 9.3 Denied transaction appears correct in Explorer history
+### 8.3 Denied transaction appears correct in Explorer history
 
 **Objective**: When an ineligible indexer closes an allocation and rewards are denied, the transaction should not appear "successful" in a way that misleads the indexer.
 
@@ -1022,7 +914,6 @@ After the upgrade is live, continuously monitor:
 - [ ] `lastOracleUpdateTime` advancing (oracles are active)
 - [ ] No `RewardsDeniedDueToEligibility` events for indexers that should be eligible
 - [ ] Epoch progression and total rewards issuance unchanged from pre-upgrade baseline
-- [ ] IssuanceAllocator `distributeIssuance()` executing without errors
 
 ---
 

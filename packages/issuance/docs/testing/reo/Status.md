@@ -4,33 +4,29 @@
 
 > **Process note**: Update this file after every step. Return to it before starting the next step to determine what to do next.
 
-## Current State
+## What To Do
 
-**Phase**: Test plans finalized with meeting feedback. Ready for live testnet verification.
+**Follow-up call**: 2026-02-19 (today). Attendees: core team, Explorer team, network subgraph, selected indexers.
 
-**Current Status**:
-- ✅ Test plans documented, reviewed for completeness, and updated with practical execution guidance
-- ✅ Contract addresses filled in for Arbitrum Sepolia (REO, RewardsManager, GraphToken)
-- ✅ Sequencing dependencies identified and documented (Cycle 6 requires advance allocation setup in Cycle 2)
-- ✅ Hardhat task references added (`reo:status`, `reo:enable`, `reo:disable`)
-- ✅ Meeting feedback incorporated: multi-indexer cycling, UI/subgraph verification (Cycle 9), timeline
-- ⏸️ IssuanceAllocator not yet deployed on Sepolia -- Cycle 7 blocked
-- ⏸️ Live testnet execution not yet started
+### Before the call (today)
 
-**Next step**: Begin live testnet verification on Arbitrum Sepolia:
+1. Review test plans for shareability — walk-through ready?
+2. Fix ReoTestPlan 6.6/6.7 contradiction (eligibility denial is optimistic, not partial)
+3. Fill remaining `<PLACEHOLDER>` tokens with actual Sepolia values where known
+4. Confirm role access: `npx hardhat reo:status --network arbitrumSepolia` from `packages/deployment` in `post-audit` worktree
+5. Prepare asks for the call: indexer availability, Discord channel ownership, Explorer/subgraph team involvement
 
-1. ~~Update REO test plan with multi-indexer cycling approach~~ Done
-2. ~~Add UI/Explorer/subgraph verification steps for denial scenarios~~ Done (Cycle 9)
-3. ~~Add testnet parameter acceleration guidance~~ Done
-4. ~~Add timeline with testing phases starting ~2026-02-22~~ Done
-5. Review test plan for completeness, compare against Tomas's previous checkbox format
-6. Coordinate with Explorer team, network subgraph team, and selected indexers
-7. Set up Discord channel for testing coordination
-8. Confirm role access: run `npx hardhat reo:status --network arbitrumSepolia` from `packages/deployment` in `post-audit` worktree
-9. Run [BaselineTestPlan.md](./BaselineTestPlan.md) Cycles 1-7 to confirm standard indexer operations work
-10. Run [ReoTestPlan.md](./ReoTestPlan.md) Cycles 1-9, following the sequencing notes
+### Before testing (~Feb 22)
 
-**Follow-up call**: Mid-week (~2026-02-13), attendees: core team, Explorer team, network subgraph, selected indexers
+6. Set up Discord channel for testing coordination
+7. Create fake oracle account, document its address
+8. Convert plans to indexer-trackable format (checkboxes, per Tomas's previous approach)
+9. Coordinate schedule with Explorer team, subgraph team, selected indexers
+
+### Testing execution
+
+10. Run [BaselineTestPlan.md](./BaselineTestPlan.md) Cycles 1-7
+11. Run [ReoTestPlan.md](./ReoTestPlan.md) Cycles 1-8
 
 ## Research Findings
 
@@ -95,7 +91,7 @@ Source: `packages/deployment` (see `post-audit` worktree for latest)
 | Extract baseline tests from Horizon docs   | ✅ Done  | 22 tests across 7 cycles                                   |
 | Document baseline test plan                | ✅ Done  | [BaselineTestPlan.md](BaselineTestPlan.md)                 |
 | Research REO mechanics                     | ✅ Done  | Contract analysis, edge cases, deployment infra            |
-| Document REO test plan                     | ✅ Done  | [ReoTestPlan.md](ReoTestPlan.md) - 36 tests across 9 cycles |
+| Document REO test plan                     | ✅ Done  | [ReoTestPlan.md](ReoTestPlan.md) - 31 tests across 8 cycles |
 | Review for completeness                    | ✅ Done  | Addresses filled in, sequencing documented, tooling linked |
 | Incorporate meeting feedback               | ✅ Done  | Multi-indexer cycling, UI verification, timeline           |
 | Analyze automation opportunities           | ✅ Done  | [AutomationAnalysis.md](AutomationAnalysis.md)             |
@@ -129,15 +125,15 @@ Source: `packages/deployment` (see `post-audit` worktree for latest)
 
 | Date       | Change                                                                                                                        |
 | ---------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| 2025-02-11 | Extracted baseline test plan from Horizon test docs                                                                           |
-| 2025-02-11 | Created Goal.md and Status.md                                                                                                 |
-| 2025-02-11 | Added next step: research REO mechanics before defining test scenarios                                                        |
-| 2025-02-11 | Completed REO research: contract mechanics, edge cases, deployment infra                                                      |
-| 2025-02-11 | Drafted REO test plan: 8 cycles, 30 tests covering eligibility, oracle ops, rewards, emergency                                |
-| 2025-02-11 | Both test plans complete. Next: review and begin testnet execution                                                            |
-| 2025-02-11 | Moved all docs into contracts repo worktree at `packages/issuance/docs/testing/reo/`                                         |
-| 2025-02-11 | Completed automation analysis: identified 87% existing coverage, defined 4 implementation milestones, created roadmap         |
-| 2025-02-11 | Updated Status.md to accurately reflect current state: planning complete, awaiting implementation decisions                   |
+| 2026-02-11 | Extracted baseline test plan from Horizon test docs                                                                           |
+| 2026-02-11 | Created Goal.md and Status.md                                                                                                 |
+| 2026-02-11 | Added next step: research REO mechanics before defining test scenarios                                                        |
+| 2026-02-11 | Completed REO research: contract mechanics, edge cases, deployment infra                                                      |
+| 2026-02-11 | Drafted REO test plan: 8 cycles, 30 tests covering eligibility, oracle ops, rewards, emergency                                |
+| 2026-02-11 | Both test plans complete. Next: review and begin testnet execution                                                            |
+| 2026-02-11 | Moved all docs into contracts repo worktree at `packages/issuance/docs/testing/reo/`                                         |
+| 2026-02-11 | Completed automation analysis: identified 87% existing coverage, defined 4 implementation milestones, created roadmap         |
+| 2026-02-11 | Updated Status.md to accurately reflect current state: planning complete, awaiting implementation decisions                   |
 | 2026-02-11 | Reviewed test plans for completeness: filled in Sepolia addresses, added sequencing guidance, linked Hardhat tasks, noted IssuanceAllocator not yet deployed |
 | 2026-02-11 | [Test plan meeting](./docs/2026-02-11/20260211_Meeting.md): multi-indexer cycling, UI/subgraph verification, fake oracle, timeline ~Feb 22 |
 | 2026-02-19 | Merged parallel work from `/work/reo-testing` and `/git/graphprotocol/contracts/reo-testing` into single source of truth |
