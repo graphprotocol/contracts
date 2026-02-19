@@ -1,6 +1,6 @@
 # IssuanceAllocator Test Plan
 
-> **Navigation**: [← Back to REO Testing](README.md) | [Status](Status.md)
+> **Navigation**: [← Back to REO Testing](README.md)
 
 Separated from the REO test plan — IssuanceAllocator is independent of the Rewards Eligibility Oracle. Test when deployed.
 

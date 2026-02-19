@@ -1,6 +1,6 @@
 # Notion Tracker Setup
 
-> **Navigation**: [← Back to REO Testing](README.md) | [Status](Status.md)
+> **Navigation**: [← Back to REO Testing](README.md)
 
 Instructions for setting up the Notion-based test tracker from [NotionTracker.csv](NotionTracker.csv).
 
@@ -9,7 +9,7 @@ Instructions for setting up the Notion-based test tracker from [NotionTracker.cs
 1. Open Notion, navigate to the workspace where you want the tracker
 2. Click **Import** (sidebar → Import, or `...` menu → Import)
 3. Select **CSV** and upload `NotionTracker.csv`
-4. Notion creates a database with all 53 tests (22 baseline + 31 REO)
+4. Notion creates a database with 11 indexer tests across 6 sets
 
 ## Configure Column Types
 
@@ -21,44 +21,26 @@ After import, change these column types in the database:
 | Indexer B | **Checkbox** | Same                                                            |
 | Indexer C | **Checkbox** | Same                                                            |
 | Status    | **Select**   | Options: Not Started, In Progress, Pass, Fail, Blocked, Skipped |
-| Link      | **URL**      | See [Fix Links](#fix-links) below                               |
-| Cycle     | **Number**   | Enables sorting by cycle                                        |
-| Plan      | **Select**   | Baseline / REO                                                  |
-| Executor  | **Select**   | Indexer, Operator, Oracle, etc.                                 |
+| Link      | **URL**      | Links are already full GitHub URLs                              |
+| Set       | **Select**   | Enables grouping by test set                                    |
 
 ### Add Indexer Columns
 
 If you have more than 3 indexers, add additional checkbox columns. Rename the generic "Indexer A/B/C" columns to the actual indexer names or addresses.
 
-### Fix Links
-
-The `Link` column contains relative paths like `BaselineTestPlan.md#11-setup-indexer-via-explorer`. To make them clickable, prefix with the GitHub base URL:
-
-```
-https://github.com/graphprotocol/contracts/blob/reo-testing/packages/issuance/docs/testing/reo/
-```
-
-For example: `BaselineTestPlan.md#11-setup-indexer-via-explorer` becomes:
-
-```
-https://github.com/graphprotocol/contracts/blob/reo-testing/packages/issuance/docs/testing/reo/BaselineTestPlan.md#11-setup-indexer-via-explorer
-```
-
-You can bulk-edit these in Notion or use find-and-replace before import.
-
 ## Recommended Views
 
 ### 1. Main Tracker (Table)
 
-Default view — all tests in sequence. Group by **Plan**, then sort by **Cycle** and **Test ID**.
+Default view — all tests in sequence. Sort by **Test ID**.
 
-### 2. By Cycle (Board)
+### 2. By Set (Board)
 
-Board view grouped by **Cycle Name**. Shows progress through each testing phase at a glance.
+Board view grouped by **Set**. Shows progress through each testing phase at a glance.
 
-### 3. Indexer A/B/C (Filtered Tables)
+### 3. Per-Indexer (Filtered Tables)
 
-Create a filtered table for each indexer showing only tests relevant to them (Executor = "Indexer" or their specific role).
+Create a filtered table for each indexer showing their checkbox and status columns.
 
 ### 4. Blocked / Failed
 
@@ -73,20 +55,16 @@ Filter: Status = Fail or Blocked. Use during testing to track issues.
 
 ## Column Reference
 
-| Column      | Purpose                                                             |
-| ----------- | ------------------------------------------------------------------- |
-| Test ID     | Unique identifier (B-1.1 = Baseline test 1.1, R-1.1 = REO test 1.1) |
-| Plan        | Which test plan (Baseline or REO)                                   |
-| Cycle       | Cycle number within the plan                                        |
-| Cycle Name  | Human-readable cycle description                                    |
-| Test Name   | Short test title                                                    |
-| Description | One-line summary of what's being tested                             |
-| Executor    | Who runs this test (Indexer, Operator, Oracle, etc.)                |
-| Link        | Link to detailed test steps in the markdown doc                     |
-| Indexer A-C | Checkboxes for each indexer to confirm completion                   |
-| Status      | Current test status                                                 |
-| Notes       | Free text for issues, observations, tx hashes                       |
+| Column      | Purpose                                                  |
+| ----------- | -------------------------------------------------------- |
+| Test ID     | Unique identifier (e.g. 3.2 = Set 3, test 2)            |
+| Set         | Testing phase (Baseline Operations, Eligible, etc.)      |
+| Test Name   | Short test title                                         |
+| Link        | Link to detailed test steps in IndexerTestGuide.md       |
+| Indexer A-C | Checkboxes for each indexer to confirm completion        |
+| Status      | Current test status                                      |
+| Notes       | Free text for issues, observations, tx hashes            |
 
 ---
 
-**Related**: [NotionTracker.csv](NotionTracker.csv) | [BaselineTestPlan.md](BaselineTestPlan.md) | [ReoTestPlan.md](ReoTestPlan.md) | [Status.md](Status.md)
+**Related**: [NotionTracker.csv](NotionTracker.csv) | [IndexerTestGuide.md](IndexerTestGuide.md)

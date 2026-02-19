@@ -4,11 +4,12 @@ Comprehensive test plans for validating The Graph Network after the Rewards Elig
 
 ## Quick Start
 
-1. **Understand the objectives** → Read [Goal.md](Goal.md)
-2. **Check current progress** → Read [Status.md](Status.md)
-3. **Review automation strategy** → Read [AutomationAnalysis.md](AutomationAnalysis.md)
-4. **Run baseline tests** → Follow [BaselineTestPlan.md](BaselineTestPlan.md)
-5. **Run REO-specific tests** → Follow [ReoTestPlan.md](ReoTestPlan.md)
+1. **Indexers start here** → Follow [IndexerTestGuide.md](IndexerTestGuide.md)
+2. **Understand the objectives** → Read [Goal.md](Goal.md)
+3. **Check current progress** → Read [Status.md](Status.md)
+4. **Review automation strategy** → Read [AutomationAnalysis.md](AutomationAnalysis.md)
+5. **Detailed baseline reference** → [BaselineTestPlan.md](BaselineTestPlan.md)
+6. **Detailed REO reference** → [ReoTestPlan.md](ReoTestPlan.md)
 
 ## Documentation
 
@@ -16,8 +17,9 @@ Comprehensive test plans for validating The Graph Network after the Rewards Elig
 
 | Document | Purpose | Status |
 |----------|---------|--------|
-| [BaselineTestPlan.md](BaselineTestPlan.md) | Upgrade-agnostic indexer operational tests covering 7 cycles (22 tests) | ✅ Complete |
-| [ReoTestPlan.md](ReoTestPlan.md) | Tests for REO behavior, eligibility logic, and edge cases | ✅ Complete |
+| [IndexerTestGuide.md](IndexerTestGuide.md) | Self-service indexer guide: baseline ops + eligibility testing (6 sets, 11 tests) | ✅ Complete |
+| [BaselineTestPlan.md](BaselineTestPlan.md) | Detailed baseline indexer operational tests (7 cycles, 22 tests) | ✅ Complete |
+| [ReoTestPlan.md](ReoTestPlan.md) | Comprehensive REO behavior, eligibility logic, and edge cases (8 cycles, 31 tests) | ✅ Complete |
 
 ### Automation Strategy
 

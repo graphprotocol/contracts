@@ -1,6 +1,6 @@
 # REO Testing Automation Analysis
 
-> **Navigation**: [← Back to REO Testing](README.md) | [Status](Status.md) | [BaselineTestPlan](BaselineTestPlan.md) | [ReoTestPlan](ReoTestPlan.md)
+> **Navigation**: [← Back to REO Testing](README.md) | [BaselineTestPlan](BaselineTestPlan.md) | [ReoTestPlan](ReoTestPlan.md)
 
 ## Executive Summary
 
@@ -507,4 +507,4 @@ node scripts/test-emergency-operations.ts --network arbitrum-sepolia
 
 ---
 
-**Related**: [Status.md](Status.md) | [BaselineTestPlan.md](BaselineTestPlan.md) | [ReoTestPlan.md](ReoTestPlan.md)
+**Related**: [BaselineTestPlan.md](BaselineTestPlan.md) | [ReoTestPlan.md](ReoTestPlan.md)

@@ -1,6 +1,6 @@
 # REO Test Plan: Rewards Eligibility Oracle
 
-> **Navigation**: [← Back to REO Testing](README.md) | [Goal](Goal.md) | [Status](Status.md) | [BaselineTestPlan](BaselineTestPlan.md) | [Meeting Notes](./docs/2026-02-11/20260211_Meeting.md)
+> **Navigation**: [← Back to REO Testing](README.md) | [BaselineTestPlan](BaselineTestPlan.md) | [Meeting Notes](./docs/2026-02-11/20260211_Meeting.md)
 
 Tests specific to the Rewards Eligibility Oracle upgrade. Run these **after** the [baseline tests](./BaselineTestPlan.md) pass to confirm standard indexer operations are unaffected.
 
@@ -920,8 +920,6 @@ After the upgrade is live, continuously monitor:
 ## Related Documentation
 
 - [← Back to REO Testing](README.md)
-- [Goal.md](Goal.md) - Testing objectives and deliverables
-- [Status.md](Status.md) - Current progress and next steps
 - [BaselineTestPlan.md](BaselineTestPlan.md) - Baseline operational tests (run first)
 - [Meeting Notes](./docs/2026-02-11/20260211_Meeting.md) - 2026-02-11 test plan meeting
 

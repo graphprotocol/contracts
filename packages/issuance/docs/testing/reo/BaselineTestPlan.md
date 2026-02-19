@@ -1,6 +1,6 @@
 # Indexer Baseline Test Plan: Post-Upgrade Verification
 
-> **Navigation**: [← Back to REO Testing](README.md) | [Goal](Goal.md) | [Status](Status.md)
+> **Navigation**: [← Back to REO Testing](README.md)
 
 This test plan validates that indexers can perform standard operational cycles on The Graph Network after a protocol upgrade. It is upgrade-agnostic and covers the core indexer workflows that must function correctly regardless of what changed.
 
@@ -832,8 +832,6 @@ Run these operations in sequence to validate a complete indexer lifecycle:
 ## Related Documentation
 
 - [← Back to REO Testing](README.md)
-- [Goal.md](Goal.md) - Testing objectives and deliverables
-- [Status.md](Status.md) - Current progress and next steps
 - [notion/](notion/) - Archived source material from Horizon upgrade
 
 ---

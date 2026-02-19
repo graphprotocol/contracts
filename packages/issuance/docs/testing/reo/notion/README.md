@@ -8,9 +8,9 @@ This directory contains the original Notion export from The Graph's Horizon upgr
 
 For clean, organized test documentation, see:
 
+- **[../IndexerTestGuide.md](../IndexerTestGuide.md)** - Self-service indexer test guide
 - **[../BaselineTestPlan.md](../BaselineTestPlan.md)** - Upgrade-agnostic indexer operational test plan
-- **[../Goal.md](../Goal.md)** - Testing objectives and deliverables
-- **[../Status.md](../Status.md)** - Current progress and next steps
+- **[../ReoTestPlan.md](../ReoTestPlan.md)** - REO-specific test plan
 
 ## Contents
 
