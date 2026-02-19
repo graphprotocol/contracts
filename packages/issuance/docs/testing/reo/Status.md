@@ -20,7 +20,7 @@
 
 6. Set up Discord channel for testing coordination
 7. Create fake oracle account, document its address
-8. Convert plans to indexer-trackable format (checkboxes, per Tomas's previous approach)
+8. ~~Convert plans to indexer-trackable format (checkboxes, per Tomas's previous approach)~~ → Done: [NotionSetup.md](NotionSetup.md), import [NotionTracker.csv](NotionTracker.csv) into Notion
 9. Coordinate schedule with Explorer team, subgraph team, selected indexers
 
 ### Testing execution
@@ -137,7 +137,8 @@ Source: `packages/deployment` (see `post-audit` worktree for latest)
 | 2026-02-11 | Reviewed test plans for completeness: filled in Sepolia addresses, added sequencing guidance, linked Hardhat tasks, noted IssuanceAllocator not yet deployed |
 | 2026-02-11 | [Test plan meeting](./docs/2026-02-11/20260211_Meeting.md): multi-indexer cycling, UI/subgraph verification, fake oracle, timeline ~Feb 22 |
 | 2026-02-19 | Merged parallel work from `/work/reo-testing` and `/git/graphprotocol/contracts/reo-testing` into single source of truth |
+| 2026-02-19 | Created Notion tracker: [NotionTracker.csv](NotionTracker.csv) (53 tests) + [NotionSetup.md](NotionSetup.md) import guide |
 
 ---
 
-**Related**: [Goal.md](Goal.md) | [AutomationAnalysis.md](AutomationAnalysis.md) | [BaselineTestPlan.md](BaselineTestPlan.md) | [ReoTestPlan.md](ReoTestPlan.md) | [Meeting Notes](./docs/2026-02-11/20260211_Meeting.md)
+**Related**: [Goal.md](Goal.md) | [AutomationAnalysis.md](AutomationAnalysis.md) | [BaselineTestPlan.md](BaselineTestPlan.md) | [ReoTestPlan.md](ReoTestPlan.md) | [NotionSetup.md](NotionSetup.md) | [Meeting Notes](./docs/2026-02-11/20260211_Meeting.md)
