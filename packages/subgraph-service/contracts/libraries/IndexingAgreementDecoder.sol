@@ -4,6 +4,11 @@ pragma solidity 0.8.33;
 import { IndexingAgreementDecoderRaw } from "./IndexingAgreementDecoderRaw.sol";
 import { IndexingAgreement } from "./IndexingAgreement.sol";
 
+/**
+ * @title IndexingAgreementDecoder library
+ * @author Edge & Node
+ * @notice Safe decoder for indexing agreement data structures, reverting with typed errors on malformed input.
+ */
 library IndexingAgreementDecoder {
     /**
      * @notice Thrown when the data can't be decoded as expected
@@ -33,7 +38,6 @@ library IndexingAgreementDecoder {
      * @param data The data to decode.
      * @return The decoded data. See {IndexingAgreement.AcceptIndexingAgreementMetadata}
      */
-    // forge-lint: disable-next-item(mixed-case-function)
     function decodeRCAMetadata(
         bytes memory data
     ) public pure returns (IndexingAgreement.AcceptIndexingAgreementMetadata memory) {
@@ -52,7 +56,6 @@ library IndexingAgreementDecoder {
      * @param data The data to decode.
      * @return The decoded data. See {IndexingAgreement.UpdateIndexingAgreementMetadata}
      */
-    // forge-lint: disable-next-item(mixed-case-function)
     function decodeRCAUMetadata(
         bytes memory data
     ) public pure returns (IndexingAgreement.UpdateIndexingAgreementMetadata memory) {

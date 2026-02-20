@@ -6,6 +6,12 @@ import { IHorizonStaking } from "@graphprotocol/interfaces/contracts/horizon/IHo
 import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
 import { LinkedList } from "../../libraries/LinkedList.sol";
 
+/**
+ * @title StakeClaims library
+ * @author Edge & Node
+ * @notice Manages stake claims for data service fee payments, allowing service providers
+ * to lock and release provisioned stake through linked-list-based claim tracking.
+ */
 library StakeClaims {
     using ProvisionTracker for mapping(address => uint256);
     using LinkedList for ILinkedList.List;
@@ -27,6 +33,7 @@ library StakeClaims {
         bytes32 nextClaim;
     }
 
+    /* solhint-disable gas-indexed-events */
     /**
      * @notice Emitted when a stake claim is created and stake is locked.
      * @param serviceProvider The address of the service provider
@@ -62,6 +69,7 @@ library StakeClaims {
      * @param tokensReleased The total amount of tokens being released
      */
     event StakeClaimsReleased(address indexed serviceProvider, uint256 claimsCount, uint256 tokensReleased);
+    /* solhint-enable gas-indexed-events */
 
     /**
      * @notice Thrown when attempting to get a stake claim that does not exist.
@@ -209,6 +217,7 @@ library StakeClaims {
         address _serviceProvider,
         uint256 _nonce
     ) internal pure returns (bytes32) {
+        // forge-lint: disable-next-line(asm-keccak256)
         return keccak256(abi.encodePacked(_dataService, _serviceProvider, _nonce));
     }
 }

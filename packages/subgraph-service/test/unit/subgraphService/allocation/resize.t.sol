@@ -85,11 +85,7 @@ contract SubgraphServiceAllocationResizeTest is SubgraphServiceTest {
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
         vm.expectRevert(
-            abi.encodeWithSelector(
-                AllocationHandler.AllocationHandlerAllocationSameSize.selector,
-                allocationId,
-                tokens
-            )
+            abi.encodeWithSelector(AllocationHandler.AllocationHandlerAllocationSameSize.selector, allocationId, tokens)
         );
         subgraphService.resizeAllocation(users.indexer, allocationId, tokens);
     }

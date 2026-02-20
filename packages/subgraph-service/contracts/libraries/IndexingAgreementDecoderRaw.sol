@@ -3,6 +3,11 @@ pragma solidity 0.8.33;
 
 import { IndexingAgreement } from "./IndexingAgreement.sol";
 
+/**
+ * @title IndexingAgreementDecoderRaw library
+ * @author Edge & Node
+ * @notice Low-level decoder for indexing agreement data structures, propagating native revert on malformed input.
+ */
 library IndexingAgreementDecoderRaw {
     /**
      * @notice See {IndexingAgreementDecoder.decodeCollectIndexingFeeData}
@@ -20,7 +25,6 @@ library IndexingAgreementDecoderRaw {
      * @param data The data to decode
      * @return The decoded data
      */
-    // forge-lint: disable-next-item(mixed-case-function)
     function decodeRCAMetadata(
         bytes calldata data
     ) public pure returns (IndexingAgreement.AcceptIndexingAgreementMetadata memory) {
@@ -33,7 +37,6 @@ library IndexingAgreementDecoderRaw {
      * @param data The data to decode
      * @return The decoded data
      */
-    // forge-lint: disable-next-item(mixed-case-function)
     function decodeRCAUMetadata(
         bytes calldata data
     ) public pure returns (IndexingAgreement.UpdateIndexingAgreementMetadata memory) {

@@ -20,6 +20,7 @@ import { LegacyAllocation } from "../libraries/LegacyAllocation.sol";
 
 /**
  * @title AllocationHandler contract
+ * @author Edge & Node
  * @notice A helper contract implementing allocation lifecycle management.
  * Allows opening, resizing, and closing allocations, as well as collecting indexing rewards by presenting a Proof
  * of Indexing (POI).
@@ -75,7 +76,6 @@ library AllocationHandler {
      * @param _paymentsDestination The address to which the indexing rewards should be sent
      */
     struct PresentParams {
-        // forge-lint: disable-next-line(mixed-case-variable)
         uint256 maxPOIStaleness;
         IEpochManager graphEpochManager;
         IHorizonStaking graphStaking;
@@ -146,7 +146,7 @@ library AllocationHandler {
     );
 
     /**
-     * @dev Emitted when an indexer closes an allocation
+     * @notice Emitted when an indexer closes an allocation
      * @param indexer The address of the indexer
      * @param allocationId The id of the allocation
      * @param subgraphDeploymentId The id of the subgraph deployment
@@ -177,8 +177,8 @@ library AllocationHandler {
      * @notice Emitted when the maximum POI staleness is updated
      * @param maxPOIStaleness The max POI staleness in seconds
      */
-    // forge-lint: disable-next-item(mixed-case-variable)
     event MaxPOIStalenessSet(uint256 maxPOIStaleness);
+    // solhint-disable-previous-line gas-indexed-events
 
     /**
      * @notice Emitted when an indexer presents a POI for an allocation
@@ -244,7 +244,7 @@ library AllocationHandler {
         mapping(address allocationId => ILegacyAllocation.State allocation) storage _legacyAllocations,
         mapping(address indexer => uint256 tokens) storage allocationProvisionTracker,
         mapping(bytes32 subgraphDeploymentId => uint256 tokens) storage _subgraphAllocatedTokens,
-        AllocateParams memory params
+        AllocateParams calldata params
     ) external {
         require(params._allocationId != address(0), AllocationHandler.AllocationHandlerInvalidZeroAllocationId());
 
@@ -280,6 +280,7 @@ library AllocationHandler {
         );
     }
 
+    /* solhint-disable function-max-lines */
     /**
      * @notice Present a POI to collect indexing rewards for an allocation
      * Mints indexing rewards using the {RewardsManager} and distributes them to the indexer and delegators.
@@ -318,13 +319,11 @@ library AllocationHandler {
      * @return rewardsCollected The amount of tokens collected
      * @return allocationForceClosed True if the allocation was automatically closed due to over-allocation, false otherwise
      */
-    // solhint-disable-next-line function-max-lines
-    // forge-lint: disable-next-item(mixed-case-function)
     function presentPOI(
         mapping(address allocationId => IAllocation.State allocation) storage _allocations,
         mapping(address indexer => uint256 tokens) storage allocationProvisionTracker,
         mapping(bytes32 subgraphDeploymentId => uint256 tokens) storage _subgraphAllocatedTokens,
-        PresentParams memory params
+        PresentParams calldata params
     ) external returns (uint256 rewardsCollected, bool allocationForceClosed) {
         IAllocation.State memory allocation = _allocations.get(params._allocationId);
         require(allocation.isOpen(), AllocationHandler.AllocationHandlerAllocationClosed(params._allocationId));
@@ -413,6 +412,7 @@ library AllocationHandler {
             );
         }
     }
+    /* solhint-enable function-max-lines */
 
     /**
      * @notice Close an allocation
@@ -448,6 +448,7 @@ library AllocationHandler {
         );
     }
 
+    /* solhint-disable function-max-lines */
     /**
      * @notice Resize an allocation
      * @dev Will lock or release tokens in the provision tracker depending on the new allocation size.
@@ -472,7 +473,6 @@ library AllocationHandler {
      * @param _delegationRatio The delegation ratio to consider when locking tokens
      * @param _maxPOIStaleness The maximum staleness of the POI in seconds
      */
-    // forge-lint: disable-next-item(mixed-case-variable)
     function resizeAllocation(
         mapping(address allocationId => IAllocation.State allocation) storage _allocations,
         mapping(address indexer => uint256 tokens) storage allocationProvisionTracker,
@@ -537,6 +537,7 @@ library AllocationHandler {
             oldTokens
         );
     }
+    /* solhint-enable function-max-lines */
 
     /**
      * @notice Checks if an allocation is over-allocated

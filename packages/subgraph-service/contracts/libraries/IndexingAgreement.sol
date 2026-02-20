@@ -12,6 +12,13 @@ import { Directory } from "../utilities/Directory.sol";
 import { Allocation } from "./Allocation.sol";
 import { IndexingAgreementDecoder } from "./IndexingAgreementDecoder.sol";
 
+/**
+ * @title IndexingAgreement library
+ * @author Edge & Node
+ * @notice Manages indexing agreement lifecycle: acceptance, updates, cancellation and fee collection.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
+ */
 library IndexingAgreement {
     using IndexingAgreement for StorageManager;
     using Allocation for IAllocation.State;
@@ -256,6 +263,7 @@ library IndexingAgreement {
      */
     error IndexingAgreementInvalidTerms(uint256 tokensPerSecond, uint256 maxOngoingTokensPerSecond);
 
+    /* solhint-disable function-max-lines */
     /**
      * @notice Accept an indexing agreement.
      *
@@ -274,12 +282,12 @@ library IndexingAgreement {
      * @param allocations The mapping of allocation IDs to their states
      * @param allocationId The id of the allocation
      * @param signedRCA The signed Recurring Collection Agreement
+     * @return The agreement ID assigned to the accepted indexing agreement
      */
     function accept(
         StorageManager storage self,
         mapping(address allocationId => IAllocation.State allocation) storage allocations,
         address allocationId,
-        // forge-lint: disable-next-line(mixed-case-variable)
         IRecurringCollector.SignedRCA calldata signedRCA
     ) external returns (bytes16) {
         IAllocation.State memory allocation = _requireValidAllocation(
@@ -347,6 +355,7 @@ library IndexingAgreement {
         require(_directory().recurringCollector().accept(signedRCA) == agreementId, "internal: agreement ID mismatch");
         return agreementId;
     }
+    /* solhint-enable function-max-lines */
 
     /**
      * @notice Update an indexing agreement.
@@ -366,7 +375,6 @@ library IndexingAgreement {
     function update(
         StorageManager storage self,
         address indexer,
-        // forge-lint: disable-next-line(mixed-case-variable)
         IRecurringCollector.SignedRCAU calldata signedRCAU
     ) external {
         IIndexingAgreement.AgreementWrapper memory wrapper = _get(self, signedRCAU.rcau.agreementId);
@@ -506,6 +514,7 @@ library IndexingAgreement {
         );
     }
 
+    /* solhint-disable function-max-lines */
     /**
      * @notice Collect Indexing fees
      * @dev Uses the {RecurringCollector} to collect payment from Graph Horizon payments protocol.
@@ -528,7 +537,7 @@ library IndexingAgreement {
     function collect(
         StorageManager storage self,
         mapping(address allocationId => IAllocation.State allocation) storage allocations,
-        CollectParams memory params
+        CollectParams calldata params
     ) external returns (address, uint256) {
         IIndexingAgreement.AgreementWrapper memory wrapper = _get(self, params.agreementId);
         IAllocation.State memory allocation = _requireValidAllocation(
@@ -589,6 +598,7 @@ library IndexingAgreement {
 
         return (wrapper.collectorAgreement.serviceProvider, tokensCollected);
     }
+    /* solhint-enable function-max-lines */
 
     /**
      * @notice Get the indexing agreement for a given agreement ID.
@@ -733,15 +743,6 @@ library IndexingAgreement {
     }
 
     /**
-     * @notice Checks if the agreement is collectable
-     * Requirements:
-     * - The indexing agreement is valid
-     * - The underlying collector agreement is collectable
-     * @param wrapper The agreement wrapper containing the indexing agreement and collector agreement data
-     * @return True if the agreement is collectable, false otherwise
-     **/
-
-    /**
      * @notice Checks if the agreement is valid
      * Requirements:
      * - The underlying collector agreement's data service is this contract
@@ -784,12 +785,12 @@ library IndexingAgreement {
      * @param terms The indexing agreement terms to validate
      * @param maxOngoingTokensPerSecond The RCA maximum tokens per second limit
      */
-    // forge-lint: disable-next-item(mixed-case-function)
     function _validateTermsAgainstRCA(
         IndexingAgreementTermsV1 memory terms,
         uint256 maxOngoingTokensPerSecond
     ) private pure {
         require(
+            // solhint-disable-next-line gas-strict-inequalities
             terms.tokensPerSecond <= maxOngoingTokensPerSecond,
             IndexingAgreementInvalidTerms(terms.tokensPerSecond, maxOngoingTokensPerSecond)
         );

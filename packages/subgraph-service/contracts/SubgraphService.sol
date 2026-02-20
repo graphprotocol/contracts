@@ -377,7 +377,6 @@ contract SubgraphService is
         _setStakeToFeesRatio(stakeToFeesRatio_);
     }
 
-    // forge-lint: disable-next-item(mixed-case-function)
     /// @inheritdoc ISubgraphService
     function setMaxPOIStaleness(uint256 maxPoiStaleness_) external override onlyOwner {
         _setMaxPoiStaleness(maxPoiStaleness_);
@@ -423,7 +422,6 @@ contract SubgraphService is
      */
     function acceptIndexingAgreement(
         address allocationId,
-        // forge-lint: disable-next-line(mixed-case-variable)
         IRecurringCollector.SignedRCA calldata signedRCA
     )
         external
@@ -451,7 +449,6 @@ contract SubgraphService is
      */
     function updateIndexingAgreement(
         address indexer,
-        // forge-lint: disable-next-line(mixed-case-variable)
         IRecurringCollector.SignedRCAU calldata signedRCAU
     )
         external

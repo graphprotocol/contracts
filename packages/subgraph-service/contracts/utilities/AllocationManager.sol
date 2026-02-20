@@ -44,7 +44,6 @@ abstract contract AllocationManager is
         keccak256("AllocationIdProof(address indexer,address allocationId)");
     // solhint-disable-previous-line gas-small-strings
 
-    // forge-lint: disable-next-item(mixed-case-function)
     /**
      * @notice Initializes the contract and parent contracts
      * @param _name The name to use for EIP712 domain separation
@@ -55,7 +54,6 @@ abstract contract AllocationManager is
         __AllocationManager_init_unchained();
     }
 
-    // forge-lint: disable-next-item(mixed-case-function)
     /**
      * @notice Initializes the contract
      */
