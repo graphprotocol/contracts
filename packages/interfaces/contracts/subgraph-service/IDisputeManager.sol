@@ -3,6 +3,7 @@
 pragma solidity ^0.8.22;
 
 import { IAttestation } from "./internal/IAttestation.sol";
+import { IIndexingAgreement } from "./internal/IIndexingAgreement.sol";
 import { ISubgraphService } from "./ISubgraphService.sol";
 
 /**
@@ -18,7 +19,8 @@ interface IDisputeManager {
         Null,
         IndexingDispute,
         QueryDispute,
-        LegacyDispute
+        LegacyDispute,
+        IndexingFeeDispute
     }
 
     /// @notice Status of a dispute
@@ -117,6 +119,32 @@ interface IDisputeManager {
         bytes attestation,
         uint256 stakeSnapshot,
         uint256 cancellableAt
+    );
+
+    /**
+     * @notice Emitted when an indexing fee dispute is created for `agreementId` and `indexer`
+     * by `fisherman`.
+     * @dev The event emits the amount of `tokens` deposited by the fisherman.
+     * @param disputeId The dispute id
+     * @param indexer The indexer address
+     * @param fisherman The fisherman address
+     * @param tokens The amount of tokens deposited by the fisherman
+     * @param payer The address of the payer of the indexing fee
+     * @param agreementId The agreement id
+     * @param poi The POI disputed
+     * @param entities The entities disputed
+     * @param stakeSnapshot The stake snapshot of the indexer at the time of the dispute
+     */
+    event IndexingFeeDisputeCreated(
+        bytes32 indexed disputeId,
+        address indexed indexer,
+        address indexed fisherman,
+        uint256 tokens,
+        address payer,
+        bytes16 agreementId,
+        bytes32 poi,
+        uint256 entities,
+        uint256 stakeSnapshot
     );
 
     /**
@@ -359,6 +387,18 @@ interface IDisputeManager {
     error DisputeManagerSubgraphServiceNotSet();
 
     /**
+     * @notice Thrown when the Indexing Agreement is not disputable
+     * @param agreementId The indexing agreement id
+     */
+    error DisputeManagerIndexingAgreementNotDisputable(bytes16 agreementId);
+
+    /**
+     * @notice Thrown when the Indexing Agreement is not disputable
+     * @param version The indexing agreement version
+     */
+    error DisputeManagerIndexingAgreementInvalidVersion(IIndexingAgreement.IndexingAgreementVersion version);
+
+    /**
      * @notice Initialize this contract.
      * @param owner The owner of the contract
      * @param arbitrator_ Arbitrator role
@@ -502,6 +542,29 @@ interface IDisputeManager {
         address fisherman,
         uint256 tokensSlash,
         uint256 tokensRewards
+    ) external returns (bytes32);
+
+    /**
+     * @notice Create an indexing fee (version 1) dispute for the arbitrator to resolve.
+     * The disputes are created in reference to a version 1 indexing agreement and specifically
+     * a POI and entities provided when collecting that agreement.
+     * This function is called by a fisherman and it will pull `disputeDeposit` GRT tokens.
+     *
+     * Requirements:
+     * - fisherman must have previously approved this contract to pull `disputeDeposit` amount
+     *   of tokens from their balance.
+     *
+     * @param agreementId The indexing agreement to dispute
+     * @param poi The Proof of Indexing (POI) being disputed
+     * @param entities The number of entities disputed
+     * @param blockNumber The block number at which the indexing fee was collected
+     * @return The dispute id
+     */
+    function createIndexingFeeDisputeV1(
+        bytes16 agreementId,
+        bytes32 poi,
+        uint256 entities,
+        uint256 blockNumber
     ) external returns (bytes32);
 
     // -- Arbitrator --
