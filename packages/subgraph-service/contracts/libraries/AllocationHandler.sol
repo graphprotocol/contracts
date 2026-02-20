@@ -42,11 +42,11 @@ library AllocationHandler {
      * @param graphRewardsManager The rewards manager to handle rewards distribution
      * @param _encodeAllocationProof The EIP712 encoded allocation proof
      * @param _indexer The address of the indexer creating the allocation
+     * @param _delegationRatio The delegation ratio to consider when locking tokens
      * @param _allocationId The id of the allocation to be created
      * @param _subgraphDeploymentId The id of the subgraph deployment for which the allocation is created
      * @param _tokens The amount of tokens to allocate
      * @param _allocationProof The EIP712 proof, an EIP712 signed message of (indexer,allocationId)
-     * @param _delegationRatio The delegation ratio to consider when locking tokens
      */
     struct AllocateParams {
         uint256 currentEpoch;
@@ -54,11 +54,11 @@ library AllocationHandler {
         IRewardsManager graphRewardsManager;
         bytes32 _encodeAllocationProof;
         address _indexer;
+        uint32 _delegationRatio;
         address _allocationId;
         bytes32 _subgraphDeploymentId;
         uint256 _tokens;
         bytes _allocationProof;
-        uint32 _delegationRatio;
     }
 
     /**

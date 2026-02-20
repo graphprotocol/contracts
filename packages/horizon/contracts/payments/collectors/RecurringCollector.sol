@@ -452,6 +452,8 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
                 _collectionSeconds >= _agreement.minSecondsPerCollection,
                 RecurringCollectorCollectionTooSoon(
                     _agreementId,
+                    // casting to uint32 is safe because _collectionSeconds < minSecondsPerCollection (uint32)
+                    // forge-lint: disable-next-line(unsafe-typecast)
                     uint32(_collectionSeconds),
                     _agreement.minSecondsPerCollection
                 )
@@ -462,6 +464,8 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
             _collectionSeconds <= _agreement.maxSecondsPerCollection,
             RecurringCollectorCollectionTooLate(
                 _agreementId,
+                // casting to uint64 is safe because _collectionSeconds <= block.timestamp which fits in uint64
+                // forge-lint: disable-next-line(unsafe-typecast)
                 uint64(_collectionSeconds),
                 _agreement.maxSecondsPerCollection
             )
