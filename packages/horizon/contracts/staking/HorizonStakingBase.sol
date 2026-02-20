@@ -10,7 +10,7 @@ import { IHorizonStakingBase } from "@graphprotocol/interfaces/contracts/horizon
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
 
-import { MathUtils } from "../libraries/MathUtils.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { LinkedList } from "../libraries/LinkedList.sol";
 
 import { Multicall } from "@openzeppelin/contracts/utils/Multicall.sol";
@@ -130,7 +130,7 @@ abstract contract HorizonStakingBase is
         uint256 tokensAvailableDelegated = _getDelegatedTokensAvailable(serviceProvider, verifier);
 
         uint256 tokensDelegatedMax = tokensAvailableProvider * (uint256(delegationRatio));
-        uint256 tokensDelegatedCapacity = MathUtils.min(tokensAvailableDelegated, tokensDelegatedMax);
+        uint256 tokensDelegatedCapacity = Math.min(tokensAvailableDelegated, tokensDelegatedMax);
 
         return tokensAvailableProvider + tokensDelegatedCapacity;
     }

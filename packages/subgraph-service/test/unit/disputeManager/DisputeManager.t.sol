@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import { MathUtils } from "@graphprotocol/horizon/contracts/libraries/MathUtils.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 import { IDisputeManager } from "@graphprotocol/interfaces/contracts/subgraph-service/IDisputeManager.sol";
 import { IAttestation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAttestation.sol";
@@ -348,10 +348,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
             uint32 provisionMaxVerifierCut = staking
                 .getProvision(dispute.indexer, address(subgraphService))
                 .maxVerifierCut;
-            uint256 fishermanRewardPercentage = MathUtils.min(
-                disputeManager.fishermanRewardCut(),
-                provisionMaxVerifierCut
-            );
+            uint256 fishermanRewardPercentage = Math.min(disputeManager.fishermanRewardCut(), provisionMaxVerifierCut);
             fishermanReward = _tokensSlash.mulPPM(fishermanRewardPercentage);
         }
 

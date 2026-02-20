@@ -8,7 +8,7 @@ import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizo
 import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
 
 import { LinkedList } from "../../../../contracts/libraries/LinkedList.sol";
-import { MathUtils } from "../../../../contracts/libraries/MathUtils.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { PPMMath } from "../../../../contracts/libraries/PPMMath.sol";
 
 abstract contract HorizonStakingSharedTest is GraphBaseTest {
@@ -1389,8 +1389,8 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
 
         // Calculate expected tokens after slashing
         CalcValuesSlash memory calcValues;
-        calcValues.tokensToSlash = MathUtils.min(tokens, before.provision.tokens + before.pool.tokens);
-        calcValues.providerTokensSlashed = MathUtils.min(before.provision.tokens, calcValues.tokensToSlash);
+        calcValues.tokensToSlash = Math.min(tokens, before.provision.tokens + before.pool.tokens);
+        calcValues.providerTokensSlashed = Math.min(before.provision.tokens, calcValues.tokensToSlash);
         calcValues.delegationTokensSlashed = calcValues.tokensToSlash - calcValues.providerTokensSlashed;
 
         if (calcValues.tokensToSlash > 0) {

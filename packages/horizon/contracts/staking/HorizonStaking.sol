@@ -13,7 +13,7 @@ import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGra
 import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
 
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
-import { MathUtils } from "../libraries/MathUtils.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { PPMMath } from "../libraries/PPMMath.sol";
 import { LinkedList } from "../libraries/LinkedList.sol";
 
@@ -362,12 +362,12 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint256 tokensProvisionTotal = prov.tokens + pool.tokens;
         require(tokensProvisionTotal != 0, HorizonStakingNoTokensToSlash());
 
-        uint256 tokensToSlash = MathUtils.min(tokens, tokensProvisionTotal);
+        uint256 tokensToSlash = Math.min(tokens, tokensProvisionTotal);
 
         // Slash service provider first
         // - A portion goes to verifier as reward
         // - A portion gets burned
-        uint256 providerTokensSlashed = MathUtils.min(prov.tokens, tokensToSlash);
+        uint256 providerTokensSlashed = Math.min(prov.tokens, tokensToSlash);
         if (providerTokensSlashed > 0) {
             // Pay verifier reward - must be within the maxVerifierCut percentage
             uint256 maxVerifierTokens = providerTokensSlashed.mulPPM(prov.maxVerifierCut);
