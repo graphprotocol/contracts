@@ -14,3 +14,4 @@ no_match_coverage = "(^test/|/mocks/)"
 # Lint configuration
 [lint]
 ignore = ["contracts/mocks/imports.sol"]
+exclude_lints = ["mixed-case-function", "mixed-case-variable"]
