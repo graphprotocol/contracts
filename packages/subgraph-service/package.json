@@ -1,6 +1,6 @@
 {
   "name": "@graphprotocol/subgraph-service",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "publishConfig": {
     "access": "public"
   },
@@ -18,9 +18,10 @@
     "README.md"
   ],
   "scripts": {
-    "lint": "pnpm lint:ts; pnpm lint:sol; pnpm lint:md; pnpm lint:json",
+    "lint": "pnpm lint:ts; pnpm lint:sol; pnpm lint:forge; pnpm lint:md; pnpm lint:json",
     "lint:ts": "eslint --fix --cache '**/*.{js,ts,cjs,mjs,jsx,tsx}'; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
     "lint:sol": "solhint --fix --noPrompt --noPoster 'contracts/**/*.sol'; prettier -w --cache --log-level warn '**/*.sol'",
+    "lint:forge": "forge lint",
     "lint:md": "markdownlint --fix --ignore-path ../../.gitignore '**/*.md'; prettier -w --cache --log-level warn '**/*.md'",
     "lint:json": "prettier -w --cache --log-level warn '**/*.json'",
     "clean": "rm -rf build dist cache cache_forge typechain-types",
@@ -52,6 +53,7 @@
     "@openzeppelin/contracts": "^5.0.2",
     "@openzeppelin/contracts-upgradeable": "^5.0.2",
     "@openzeppelin/foundry-upgrades": "0.4.0",
+    "@tenderly/hardhat-tenderly": "^1.11.0",
     "@typechain/ethers-v6": "^0.5.0",
     "@typechain/hardhat": "^9.0.0",
     "@types/chai": "^4.2.0",
@@ -60,7 +62,7 @@
     "chai": "^4.2.0",
     "eslint": "catalog:",
     "ethers": "catalog:",
-    "forge-std": "https://github.com/foundry-rs/forge-std/tarball/v1.9.7",
+    "forge-std": "catalog:",
     "glob": "^11.0.1",
     "hardhat": "catalog:",
     "hardhat-contract-sizer": "^2.10.0",

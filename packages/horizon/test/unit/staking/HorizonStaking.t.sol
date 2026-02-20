@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "forge-std/Test.sol";
 import { stdStorage, StdStorage } from "forge-std/Test.sol";
 
 import { HorizonStakingSharedTest } from "../shared/horizon-staking/HorizonStakingShared.t.sol";
@@ -60,12 +59,12 @@ contract HorizonStakingTest is HorizonStakingSharedTest {
     modifier useUndelegate(uint256 shares) {
         resetPrank(users.delegator);
 
-        DelegationPoolInternalTest memory pool = _getStorage_DelegationPoolInternal(
+        DelegationPoolInternalTest memory pool = _getStorageDelegationPoolInternal(
             users.indexer,
             subgraphDataServiceAddress,
             false
         );
-        DelegationInternal memory delegation = _getStorage_Delegation(
+        DelegationInternal memory delegation = _getStorageDelegation(
             users.indexer,
             subgraphDataServiceAddress,
             users.delegator,

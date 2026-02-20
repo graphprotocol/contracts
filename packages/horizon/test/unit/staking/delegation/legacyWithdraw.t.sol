@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "forge-std/Test.sol";
-
 import { IHorizonStakingMain } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingMain.sol";
 import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
-import { LinkedList } from "../../../../contracts/libraries/LinkedList.sol";
 
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
@@ -27,8 +24,8 @@ contract HorizonStakingLegacyWithdrawDelegationTest is HorizonStakingTest {
         address _indexer,
         address _delegator,
         uint256 _shares,
-        uint256 __DEPRECATED_tokensLocked,
-        uint256 __DEPRECATED_tokensLockedUntil
+        uint256 _deprecatedTokensLocked,
+        uint256 _deprecatedTokensLockedUntil
     ) public {
         // Calculate the base storage slot for the serviceProvider in the mapping
         bytes32 baseSlot = keccak256(abi.encode(_indexer, uint256(20)));
@@ -38,8 +35,8 @@ contract HorizonStakingLegacyWithdrawDelegationTest is HorizonStakingTest {
 
         // Use vm.store to set each field of the struct
         vm.store(address(staking), bytes32(uint256(delegatorSlot)), bytes32(_shares));
-        vm.store(address(staking), bytes32(uint256(delegatorSlot) + 1), bytes32(__DEPRECATED_tokensLocked));
-        vm.store(address(staking), bytes32(uint256(delegatorSlot) + 2), bytes32(__DEPRECATED_tokensLockedUntil));
+        vm.store(address(staking), bytes32(uint256(delegatorSlot) + 1), bytes32(_deprecatedTokensLocked));
+        vm.store(address(staking), bytes32(uint256(delegatorSlot) + 2), bytes32(_deprecatedTokensLockedUntil));
     }
 
     /*
@@ -65,7 +62,7 @@ contract HorizonStakingLegacyWithdrawDelegationTest is HorizonStakingTest {
         assertEq(afterStakingBalance, beforeStakingBalance - pool.tokens);
         assertEq(afterDelegatorBalance - pool.tokens, beforeDelegatorBalance);
 
-        DelegationInternal memory delegation = _getStorage_Delegation(
+        DelegationInternal memory delegation = _getStorageDelegation(
             _indexer,
             subgraphDataServiceLegacyAddress,
             delegator,
@@ -83,15 +80,15 @@ contract HorizonStakingLegacyWithdrawDelegationTest is HorizonStakingTest {
     function testWithdraw_Legacy(uint256 tokensLocked) public useDelegator {
         vm.assume(tokensLocked > 0);
 
-        _setStorage_DelegationPool(users.indexer, tokensLocked, 0, 0);
+        _setStorageDelegationPool(users.indexer, tokensLocked, 0, 0);
         _setLegacyDelegation(users.indexer, users.delegator, 0, tokensLocked, 1);
-        token.transfer(address(staking), tokensLocked);
+        require(token.transfer(address(staking), tokensLocked), "Transfer failed");
 
         _legacyWithdrawDelegated(users.indexer);
     }
 
     function testWithdraw_Legacy_RevertWhen_NoTokens() public useDelegator {
-        _setStorage_DelegationPool(users.indexer, 0, 0, 0);
+        _setStorageDelegationPool(users.indexer, 0, 0, 0);
         _setLegacyDelegation(users.indexer, users.delegator, 0, 0, 0);
 
         bytes memory expectedError = abi.encodeWithSignature("HorizonStakingNothingToWithdraw()");

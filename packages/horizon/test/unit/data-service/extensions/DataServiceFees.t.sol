@@ -5,7 +5,6 @@ import { HorizonStakingSharedTest } from "../../shared/horizon-staking/HorizonSt
 import { DataServiceImpFees } from "../implementations/DataServiceImpFees.sol";
 import { IDataServiceFees } from "@graphprotocol/interfaces/contracts/data-service/IDataServiceFees.sol";
 import { ProvisionTracker } from "../../../../contracts/data-service/libraries/ProvisionTracker.sol";
-import { LinkedList } from "../../../../contracts/libraries/LinkedList.sol";
 import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
 
 contract DataServiceFeesTest is HorizonStakingSharedTest {
@@ -32,7 +31,7 @@ contract DataServiceFeesTest is HorizonStakingSharedTest {
     ) external useIndexer useProvisionDataService(address(dataService), PROVISION_TOKENS, 0, 0) {
         tokens = bound(tokens, 1, PROVISION_TOKENS / dataService.STAKE_TO_FEES_RATIO());
 
-        _assert_lockStake(users.indexer, tokens);
+        _assertLockStake(users.indexer, tokens);
     }
 
     function test_Lock_WhenTheProvisionHasJustEnoughTokens(
@@ -46,7 +45,7 @@ contract DataServiceFeesTest is HorizonStakingSharedTest {
         uint256 stepAmount = tokens / steps;
 
         for (uint256 i = 0; i < steps; i++) {
-            _assert_lockStake(users.indexer, stepAmount);
+            _assertLockStake(users.indexer, stepAmount);
         }
 
         uint256 lockedStake = dataService.feesProvisionTracker(users.indexer);
@@ -61,7 +60,7 @@ contract DataServiceFeesTest is HorizonStakingSharedTest {
         tokens = bound(tokens, 1, PROVISION_TOKENS / dataService.STAKE_TO_FEES_RATIO());
 
         // lock everything
-        _assert_lockStake(users.indexer, PROVISION_TOKENS / dataService.STAKE_TO_FEES_RATIO());
+        _assertLockStake(users.indexer, PROVISION_TOKENS / dataService.STAKE_TO_FEES_RATIO());
 
         // tryna lock some more
         uint256 additionalTokens = 10000;
@@ -94,12 +93,12 @@ contract DataServiceFeesTest is HorizonStakingSharedTest {
 
         // lock tokens staggering the release
         for (uint256 i = 0; i < steps; i++) {
-            _assert_lockStake(users.indexer, stepAmount);
+            _assertLockStake(users.indexer, stepAmount);
             vm.warp(block.timestamp + 5 seconds);
         }
 
         // it should release all expired claims
-        _assert_releaseStake(users.indexer, numClaimsToRelease);
+        _assertReleaseStake(users.indexer, numClaimsToRelease);
     }
 
     function test_Release_WhenNIsNotValid(
@@ -116,7 +115,7 @@ contract DataServiceFeesTest is HorizonStakingSharedTest {
 
         // lock tokens staggering the release
         for (uint256 i = 0; i < steps; i++) {
-            _assert_lockStake(users.indexer, stepAmount);
+            _assertLockStake(users.indexer, stepAmount);
             vm.warp(block.timestamp + 5 seconds);
         }
 
@@ -127,18 +126,18 @@ contract DataServiceFeesTest is HorizonStakingSharedTest {
 
     // -- Assertion functions --
     // use struct to avoid 'stack too deep' error
-    struct CalcValues_LockStake {
+    struct CalcValuesLockStake {
         uint256 unlockTimestamp;
         uint256 stakeToLock;
         bytes32 predictedClaimId;
     }
-    function _assert_lockStake(address serviceProvider, uint256 tokens) private {
+    function _assertLockStake(address serviceProvider, uint256 tokens) private {
         // before state
         (bytes32 beforeHead, , uint256 beforeNonce, uint256 beforeCount) = dataService.claimsLists(serviceProvider);
         uint256 beforeLockedStake = dataService.feesProvisionTracker(serviceProvider);
 
         // calc
-        CalcValues_LockStake memory calcValues = CalcValues_LockStake({
+        CalcValuesLockStake memory calcValues = CalcValuesLockStake({
             unlockTimestamp: block.timestamp + dataService.LOCK_DURATION(),
             stakeToLock: tokens * dataService.STAKE_TO_FEES_RATIO(),
             predictedClaimId: keccak256(abi.encodePacked(address(dataService), serviceProvider, beforeNonce))
@@ -180,12 +179,12 @@ contract DataServiceFeesTest is HorizonStakingSharedTest {
     }
 
     // use struct to avoid 'stack too deep' error
-    struct CalcValues_ReleaseStake {
+    struct CalcValuesReleaseStake {
         uint256 claimsCount;
         uint256 tokensReleased;
         bytes32 head;
     }
-    function _assert_releaseStake(address serviceProvider, uint256 numClaimsToRelease) private {
+    function _assertReleaseStake(address serviceProvider, uint256 numClaimsToRelease) private {
         // before state
         (bytes32 beforeHead, bytes32 beforeTail, uint256 beforeNonce, uint256 beforeCount) = dataService.claimsLists(
             serviceProvider
@@ -195,7 +194,7 @@ contract DataServiceFeesTest is HorizonStakingSharedTest {
         // calc and set events
         vm.expectEmit();
 
-        CalcValues_ReleaseStake memory calcValues = CalcValues_ReleaseStake({
+        CalcValuesReleaseStake memory calcValues = CalcValuesReleaseStake({
             claimsCount: 0,
             tokensReleased: 0,
             head: beforeHead

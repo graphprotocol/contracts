@@ -1,16 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.27;
-
-// TODO: Re-enable and fix issues when publishing a new version
-// solhint-disable gas-indexed-events
-// solhint-disable gas-small-strings
-// solhint-disable function-max-lines
+pragma solidity 0.8.33;
 
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
 import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
 import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
+import { IAllocationManager } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocationManager.sol";
 import { ILegacyAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/ILegacyAllocation.sol";
+import { RewardsCondition } from "@graphprotocol/interfaces/contracts/contracts/rewards/RewardsCondition.sol";
 
 import { GraphDirectory } from "@graphprotocol/horizon/contracts/utilities/GraphDirectory.sol";
 import { AllocationManagerV1Storage } from "./AllocationManagerStorage.sol";
@@ -32,7 +29,12 @@ import { ProvisionTracker } from "@graphprotocol/horizon/contracts/data-service/
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */
-abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, AllocationManagerV1Storage {
+abstract contract AllocationManager is
+    IAllocationManager,
+    EIP712Upgradeable,
+    GraphDirectory,
+    AllocationManagerV1Storage
+{
     using ProvisionTracker for mapping(address => uint256);
     using Allocation for mapping(address => IAllocation.State);
     using Allocation for IAllocation.State;
@@ -43,111 +45,9 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     ///@dev EIP712 typehash for allocation id proof
     bytes32 private constant EIP712_ALLOCATION_ID_PROOF_TYPEHASH =
         keccak256("AllocationIdProof(address indexer,address allocationId)");
+    // solhint-disable-previous-line gas-small-strings
 
-    /**
-     * @notice Emitted when an indexer creates an allocation
-     * @param indexer The address of the indexer
-     * @param allocationId The id of the allocation
-     * @param subgraphDeploymentId The id of the subgraph deployment
-     * @param tokens The amount of tokens allocated
-     * @param currentEpoch The current epoch
-     */
-    event AllocationCreated(
-        address indexed indexer,
-        address indexed allocationId,
-        bytes32 indexed subgraphDeploymentId,
-        uint256 tokens,
-        uint256 currentEpoch
-    );
-
-    /**
-     * @notice Emitted when an indexer collects indexing rewards for an allocation
-     * @param indexer The address of the indexer
-     * @param allocationId The id of the allocation
-     * @param subgraphDeploymentId The id of the subgraph deployment
-     * @param tokensRewards The amount of tokens collected
-     * @param tokensIndexerRewards The amount of tokens collected for the indexer
-     * @param tokensDelegationRewards The amount of tokens collected for delegators
-     * @param poi The POI presented
-     * @param poiMetadata The metadata associated with the POI
-     * @param currentEpoch The current epoch
-     */
-    event IndexingRewardsCollected(
-        address indexed indexer,
-        address indexed allocationId,
-        bytes32 indexed subgraphDeploymentId,
-        uint256 tokensRewards,
-        uint256 tokensIndexerRewards,
-        uint256 tokensDelegationRewards,
-        bytes32 poi,
-        bytes poiMetadata,
-        uint256 currentEpoch
-    );
-
-    /**
-     * @notice Emitted when an indexer resizes an allocation
-     * @param indexer The address of the indexer
-     * @param allocationId The id of the allocation
-     * @param subgraphDeploymentId The id of the subgraph deployment
-     * @param newTokens The new amount of tokens allocated
-     * @param oldTokens The old amount of tokens allocated
-     */
-    event AllocationResized(
-        address indexed indexer,
-        address indexed allocationId,
-        bytes32 indexed subgraphDeploymentId,
-        uint256 newTokens,
-        uint256 oldTokens
-    );
-
-    /**
-     * @notice Emitted when an indexer closes an allocation
-     * @param indexer The address of the indexer
-     * @param allocationId The id of the allocation
-     * @param subgraphDeploymentId The id of the subgraph deployment
-     * @param tokens The amount of tokens allocated
-     * @param forceClosed Whether the allocation was force closed
-     */
-    event AllocationClosed(
-        address indexed indexer,
-        address indexed allocationId,
-        bytes32 indexed subgraphDeploymentId,
-        uint256 tokens,
-        bool forceClosed
-    );
-
-    /**
-     * @notice Emitted when the maximum POI staleness is updated
-     * @param maxPOIStaleness The max POI staleness in seconds
-     */
-    event MaxPOIStalenessSet(uint256 maxPOIStaleness);
-
-    /**
-     * @notice Thrown when an allocation proof is invalid
-     * Both `signer` and `allocationId` should match for a valid proof.
-     * @param signer The address that signed the proof
-     * @param allocationId The id of the allocation
-     */
-    error AllocationManagerInvalidAllocationProof(address signer, address allocationId);
-
-    /**
-     * @notice Thrown when attempting to create an allocation with a zero allocation id
-     */
-    error AllocationManagerInvalidZeroAllocationId();
-
-    /**
-     * @notice Thrown when attempting to collect indexing rewards on a closed allocationl
-     * @param allocationId The id of the allocation
-     */
-    error AllocationManagerAllocationClosed(address allocationId);
-
-    /**
-     * @notice Thrown when attempting to resize an allocation with the same size
-     * @param allocationId The id of the allocation
-     * @param tokens The amount of tokens
-     */
-    error AllocationManagerAllocationSameSize(address allocationId, uint256 tokens);
-
+    // forge-lint: disable-next-item(mixed-case-function)
     /**
      * @notice Initializes the contract and parent contracts
      * @param _name The name to use for EIP712 domain separation
@@ -158,6 +58,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         __AllocationManager_init_unchained();
     }
 
+    // forge-lint: disable-next-item(mixed-case-function)
     /**
      * @notice Initializes the contract
      */
@@ -218,114 +119,137 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
 
     /**
      * @notice Present a POI to collect indexing rewards for an allocation
-     * This function will mint indexing rewards using the {RewardsManager} and distribute them to the indexer and delegators.
+     * Mints indexing rewards using the {RewardsManager} and distributes them to the indexer and delegators.
      *
-     * Conditions to qualify for indexing rewards:
+     * Requirements for indexing rewards:
      * - POI must be non-zero
-     * - POI must not be stale, i.e: older than `maxPOIStaleness`
-     * - allocation must not be altruistic (allocated tokens = 0)
-     * - allocation must be open for at least one epoch
+     * - POI must not be stale (older than `maxPOIStaleness`)
+     * - Allocation must be open for at least one epoch (returns early with 0 if too young)
      *
-     * Note that indexers are required to periodically (at most every `maxPOIStaleness`) present POIs to collect rewards.
-     * Rewards will not be issued to stale POIs, which means that indexers are advised to present a zero POI if they are
-     * unable to present a valid one to prevent being locked out of future rewards.
+     * ## Reward Paths
      *
-     * Note on allocation duration restriction: this is required to ensure that non protocol chains have a valid block number for
-     * which to calculate POIs. EBO posts once per epoch typically at each epoch change, so we restrict rewards to allocations
-     * that have gone through at least one epoch change.
+     * Rewards follow one of three paths based on allocation and POI state:
+     *
+     * **CLAIMED** (normal path): Valid POI, not stale, allocation mature, subgraph not denied
+     * - Calls `takeRewards()` to mint tokens to this contract
+     * - Distributes to indexer (stake or payments destination) and delegators
+     * - Snapshots allocation to prevent double-counting
+     *
+     * **RECLAIMED** (redirect path): STALE_POI or ZERO_POI conditions
+     * - Calls `reclaimRewards()` to mint tokens to configured reclaim address
+     * - If no reclaim address configured, rewards are dropped (not minted)
+     * - Snapshots allocation to prevent double-counting
+     *
+     * **DEFERRED** (early return): ALLOCATION_TOO_YOUNG or SUBGRAPH_DENIED conditions
+     * - Returns 0 without calling take or reclaim
+     * - Does NOT snapshot allocation (preserves rewards for later collection)
+     * - Allows rewards to be claimed when condition clears
+     *
+     * ## Subgraph Denial (Soft Deny)
+     *
+     * When a subgraph is denied, this function implements "soft deny":
+     * - Returns early without claiming or reclaiming
+     * - Allocation state is preserved (pending rewards not cleared)
+     * - Pre-denial rewards remain claimable after undeny
+     * - Ongoing issuance during denial is reclaimed at RewardsManager level (hard deny)
+     *
+     * Note: Indexers should present POIs at least every `maxPOIStaleness` to avoid being locked out of rewards.
+     * A zero POI can be presented if a valid one is unavailable, to prevent staleness and slashing.
+     *
+     * Note: Reclaim address changes in RewardsManager apply retroactively to all unclaimed rewards.
      *
      * Emits a {IndexingRewardsCollected} event.
      *
      * @param _allocationId The id of the allocation to collect rewards for
      * @param _poi The POI being presented
-     * @param _poiMetadata The metadata associated with the POI. The data and encoding format is for off-chain components to define, this function will only emit the value in an event as-is.
+     * @param _poiMetadata Metadata associated with the POI, emitted as-is for off-chain components
      * @param _delegationRatio The delegation ratio to consider when locking tokens
      * @param _paymentsDestination The address where indexing rewards should be sent
-     * @return The amount of tokens collected
+     * @return rewardsCollected Indexing rewards collected
      */
-    function _presentPOI(
+    // solhint-disable-next-line function-max-lines
+    function _presentPoi(
         address _allocationId,
         bytes32 _poi,
         bytes memory _poiMetadata,
         uint32 _delegationRatio,
         address _paymentsDestination
-    ) internal returns (uint256) {
+    ) internal returns (uint256 rewardsCollected) {
         IAllocation.State memory allocation = _allocations.get(_allocationId);
         require(allocation.isOpen(), AllocationManagerAllocationClosed(_allocationId));
+        _allocations.presentPOI(_allocationId); // Always record POI presentation to prevent staleness
 
-        // Mint indexing rewards if all conditions are met
-        uint256 tokensRewards = (!allocation.isStale(maxPOIStaleness) &&
-            !allocation.isAltruistic() &&
-            _poi != bytes32(0)) && _graphEpochManager().currentEpoch() > allocation.createdAtEpoch
-            ? _graphRewardsManager().takeRewards(_allocationId)
-            : 0;
+        uint256 currentEpoch = _graphEpochManager().currentEpoch();
+        // Scoped for stack management
+        {
+            // Determine rewards condition
+            bytes32 condition = RewardsCondition.NONE;
+            if (allocation.isStale(maxPOIStaleness)) condition = RewardsCondition.STALE_POI;
+            else if (_poi == bytes32(0))
+                condition = RewardsCondition.ZERO_POI;
+                // solhint-disable-next-line gas-strict-inequalities
+            else if (currentEpoch <= allocation.createdAtEpoch) condition = RewardsCondition.ALLOCATION_TOO_YOUNG;
+            else if (_graphRewardsManager().isDenied(allocation.subgraphDeploymentId))
+                condition = RewardsCondition.SUBGRAPH_DENIED;
 
-        // ... but we still take a snapshot to ensure the rewards are not accumulated for the next valid POI
+            emit POIPresented(
+                allocation.indexer,
+                _allocationId,
+                allocation.subgraphDeploymentId,
+                _poi,
+                _poiMetadata,
+                condition
+            );
+
+            // Early return skips the overallocation check intentionally to avoid loss of uncollected rewards
+            if (condition == RewardsCondition.ALLOCATION_TOO_YOUNG || condition == RewardsCondition.SUBGRAPH_DENIED) {
+                // Keep reward and reclaim accumulation current even if rewards are not collected
+                _graphRewardsManager().onSubgraphAllocationUpdate(allocation.subgraphDeploymentId);
+
+                return 0;
+            }
+
+            bool rewardsReclaimable = condition == RewardsCondition.STALE_POI || condition == RewardsCondition.ZERO_POI;
+            if (rewardsReclaimable) _graphRewardsManager().reclaimRewards(condition, _allocationId);
+            else rewardsCollected = _graphRewardsManager().takeRewards(_allocationId);
+        }
+
+        // Snapshot rewards to prevent accumulation for next POI, then clear pending
         _allocations.snapshotRewards(
             _allocationId,
             _graphRewardsManager().onSubgraphAllocationUpdate(allocation.subgraphDeploymentId)
         );
-        _allocations.presentPOI(_allocationId);
-
-        // Any pending rewards should have been collected now
         _allocations.clearPendingRewards(_allocationId);
 
-        uint256 tokensIndexerRewards = 0;
-        uint256 tokensDelegationRewards = 0;
-        if (tokensRewards != 0) {
-            // Distribute rewards to delegators
-            uint256 delegatorCut = _graphStaking().getDelegationFeeCut(
-                allocation.indexer,
-                address(this),
-                IGraphPayments.PaymentTypes.IndexingRewards
+        // Scoped for stack management
+        {
+            (uint256 tokensIndexerRewards, uint256 tokensDelegationRewards) = _distributeIndexingRewards(
+                allocation,
+                rewardsCollected,
+                _paymentsDestination
             );
-            IHorizonStakingTypes.DelegationPool memory delegationPool = _graphStaking().getDelegationPool(
-                allocation.indexer,
-                address(this)
-            );
-            // If delegation pool has no shares then we don't need to distribute rewards to delegators
-            tokensDelegationRewards = delegationPool.shares > 0 ? tokensRewards.mulPPM(delegatorCut) : 0;
-            if (tokensDelegationRewards > 0) {
-                _graphToken().approve(address(_graphStaking()), tokensDelegationRewards);
-                _graphStaking().addToDelegationPool(allocation.indexer, address(this), tokensDelegationRewards);
-            }
 
-            // Distribute rewards to indexer
-            tokensIndexerRewards = tokensRewards - tokensDelegationRewards;
-            if (tokensIndexerRewards > 0) {
-                if (_paymentsDestination == address(0)) {
-                    _graphToken().approve(address(_graphStaking()), tokensIndexerRewards);
-                    _graphStaking().stakeToProvision(allocation.indexer, address(this), tokensIndexerRewards);
-                } else {
-                    _graphToken().pushTokens(_paymentsDestination, tokensIndexerRewards);
-                }
-            }
+            emit IndexingRewardsCollected(
+                allocation.indexer,
+                _allocationId,
+                allocation.subgraphDeploymentId,
+                rewardsCollected,
+                tokensIndexerRewards,
+                tokensDelegationRewards,
+                _poi,
+                _poiMetadata,
+                currentEpoch
+            );
         }
 
-        emit IndexingRewardsCollected(
-            allocation.indexer,
-            _allocationId,
-            allocation.subgraphDeploymentId,
-            tokensRewards,
-            tokensIndexerRewards,
-            tokensDelegationRewards,
-            _poi,
-            _poiMetadata,
-            _graphEpochManager().currentEpoch()
-        );
-
-        // Check if the indexer is over-allocated and force close the allocation if necessary
-        if (_isOverAllocated(allocation.indexer, _delegationRatio)) {
-            _closeAllocation(_allocationId, true);
-        }
-
-        return tokensRewards;
+        if (_isOverAllocated(allocation.indexer, _delegationRatio)) _closeAllocation(_allocationId, true);
     }
 
     /**
      * @notice Resize an allocation
      * @dev Will lock or release tokens in the provision tracker depending on the new allocation size.
-     * Rewards accrued but not issued before the resize will be accounted for as pending rewards.
+     * Rewards accrued but not issued before the resize will be accounted for as pending rewards,
+     * unless the allocation is stale, in which case pending rewards are reclaimed.
      * These will be paid out when the indexer presents a POI.
      *
      * Requirements:
@@ -368,6 +292,13 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
             accRewardsPerAllocatedTokenPending
         );
 
+        // If allocation is stale, reclaim pending rewards defensively.
+        // Stale allocations are not performing, so rewards should not accumulate.
+        if (allocation.isStale(maxPOIStaleness)) {
+            _graphRewardsManager().reclaimRewards(RewardsCondition.STALE_POI, _allocationId);
+            _allocations.clearPendingRewards(_allocationId);
+        }
+
         // Update total allocated tokens for the subgraph deployment
         if (_tokens > oldTokens) {
             _subgraphAllocatedTokens[allocation.subgraphDeploymentId] += (_tokens - oldTokens);
@@ -381,9 +312,19 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     /**
      * @notice Close an allocation
      * Does not require presenting a POI, use {_collectIndexingRewards} to present a POI and collect rewards
-     * @dev Note that allocations are nowlong lived. All service payments, including indexing rewards, should be collected periodically
-     * without the need of closing the allocation. Allocations should only be closed when indexers want to reclaim the allocated
-     * tokens for other purposes.
+     * @dev Allocations are long-lived. All service payments, including indexing rewards, should be collected
+     * periodically without closing. Allocations should only be closed when indexers want to reclaim tokens.
+     *
+     * ## Reward Handling on Close
+     *
+     * Uncollected rewards are reclaimed with CLOSE_ALLOCATION reason:
+     * - If reclaim address configured: tokens minted to that address
+     * - If no reclaim address: rewards are dropped (not minted anywhere)
+     *
+     * ## Known Limitation
+     *
+     * `clearPendingRewards()` is only called when `0 < reclaimedRewards`. This means:
+     * - If no reclaim address is configured, `accRewardsPending` may remain non-zero
      *
      * Emits a {AllocationClosed} event
      *
@@ -393,11 +334,23 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     function _closeAllocation(address _allocationId, bool _forceClosed) internal {
         IAllocation.State memory allocation = _allocations.get(_allocationId);
 
+        // Reclaim uncollected rewards before closing
+        uint256 reclaimedRewards = _graphRewardsManager().reclaimRewards(
+            RewardsCondition.CLOSE_ALLOCATION,
+            _allocationId
+        );
+
         // Take rewards snapshot to prevent other allos from counting tokens from this allo
         _allocations.snapshotRewards(
             _allocationId,
             _graphRewardsManager().onSubgraphAllocationUpdate(allocation.subgraphDeploymentId)
         );
+
+        // Clear pending rewards only if rewards were reclaimed. This marks them as consumed,
+        // which could be useful for future logic that searches for unconsumed rewards.
+        // Known limitation: This capture is incomplete due to other code paths (e.g., _presentPOI)
+        // that clear pending even when rewards are not consumed.
+        if (0 < reclaimedRewards) _allocations.clearPendingRewards(_allocationId);
 
         _allocations.close(_allocationId);
         allocationProvisionTracker.release(allocation.indexer, allocation.tokens);
@@ -418,11 +371,11 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     /**
      * @notice Sets the maximum amount of time, in seconds, allowed between presenting POIs to qualify for indexing rewards
      * @dev Emits a {MaxPOIStalenessSet} event
-     * @param _maxPOIStaleness The max POI staleness in seconds
+     * @param _maxPoiStaleness The max POI staleness in seconds
      */
-    function _setMaxPOIStaleness(uint256 _maxPOIStaleness) internal {
-        maxPOIStaleness = _maxPOIStaleness;
-        emit MaxPOIStalenessSet(_maxPOIStaleness);
+    function _setMaxPoiStaleness(uint256 _maxPoiStaleness) internal {
+        maxPOIStaleness = _maxPoiStaleness;
+        emit MaxPOIStalenessSet(_maxPoiStaleness);
     }
 
     /**
@@ -443,6 +396,49 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      */
     function _isOverAllocated(address _indexer, uint32 _delegationRatio) internal view returns (bool) {
         return !allocationProvisionTracker.check(_graphStaking(), _indexer, _delegationRatio);
+    }
+
+    /**
+     * @notice Distributes indexing rewards to delegators and indexer
+     * @param _allocation The allocation state
+     * @param _rewardsCollected Total rewards to distribute
+     * @param _paymentsDestination Where to send indexer rewards (0 = stake)
+     * @return tokensIndexerRewards Amount sent to indexer
+     * @return tokensDelegationRewards Amount sent to delegation pool
+     */
+    function _distributeIndexingRewards(
+        IAllocation.State memory _allocation,
+        uint256 _rewardsCollected,
+        address _paymentsDestination
+    ) private returns (uint256 tokensIndexerRewards, uint256 tokensDelegationRewards) {
+        if (_rewardsCollected == 0) return (0, 0);
+
+        // Calculate and distribute delegator share
+        uint256 delegatorCut = _graphStaking().getDelegationFeeCut(
+            _allocation.indexer,
+            address(this),
+            IGraphPayments.PaymentTypes.IndexingRewards
+        );
+        IHorizonStakingTypes.DelegationPool memory pool = _graphStaking().getDelegationPool(
+            _allocation.indexer,
+            address(this)
+        );
+        tokensDelegationRewards = pool.shares > 0 ? _rewardsCollected.mulPPM(delegatorCut) : 0;
+        if (tokensDelegationRewards > 0) {
+            _graphToken().approve(address(_graphStaking()), tokensDelegationRewards);
+            _graphStaking().addToDelegationPool(_allocation.indexer, address(this), tokensDelegationRewards);
+        }
+
+        // Distribute indexer share
+        tokensIndexerRewards = _rewardsCollected - tokensDelegationRewards;
+        if (tokensIndexerRewards > 0) {
+            if (_paymentsDestination == address(0)) {
+                _graphToken().approve(address(_graphStaking()), tokensIndexerRewards);
+                _graphStaking().stakeToProvision(_allocation.indexer, address(this), tokensIndexerRewards);
+            } else {
+                _graphToken().pushTokens(_paymentsDestination, tokensIndexerRewards);
+            }
+        }
     }
 
     /**

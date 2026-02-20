@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.27;
+pragma solidity 0.8.27 || 0.8.33;
 
 import { IDataServicePausable } from "@graphprotocol/interfaces/contracts/data-service/IDataServicePausable.sol";
 
@@ -18,11 +18,13 @@ import { DataService } from "../DataService.sol";
  */
 abstract contract DataServicePausableUpgradeable is PausableUpgradeable, DataService, IDataServicePausable {
     /// @notice List of pause guardians and their allowed status
-    mapping(address pauseGuardian => bool allowed) public pauseGuardians;
+    mapping(address pauseGuardian => bool allowed) public override pauseGuardians;
 
+    // forge-lint: disable-next-item(mixed-case-variable)
     /// @dev Gap to allow adding variables in future upgrades
     uint256[50] private __gap;
 
+    // forge-lint: disable-next-item(unwrapped-modifier-logic)
     /**
      * @notice Checks if the caller is a pause guardian.
      */
@@ -41,6 +43,7 @@ abstract contract DataServicePausableUpgradeable is PausableUpgradeable, DataSer
         _unpause();
     }
 
+    // forge-lint: disable-next-item(mixed-case-function)
     /**
      * @notice Initializes the contract and parent contracts
      */
@@ -49,6 +52,7 @@ abstract contract DataServicePausableUpgradeable is PausableUpgradeable, DataSer
         __DataServicePausable_init_unchained();
     }
 
+    // forge-lint: disable-next-item(mixed-case-function)
     /**
      * @notice Initializes the contract
      */

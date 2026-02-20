@@ -1,9 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.27;
-
-// TODO: Re-enable and fix issues when publishing a new version
-// solhint-disable gas-strict-inequalities
-// solhint-disable function-max-lines
+pragma solidity 0.8.33;
 
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
@@ -44,9 +40,9 @@ contract SubgraphService is
     DataServiceFees,
     Directory,
     AllocationManager,
-    SubgraphServiceV1Storage,
     IRewardsIssuer,
-    ISubgraphService
+    ISubgraphService,
+    SubgraphServiceV1Storage
 {
     using PPMMath for uint256;
     using Allocation for mapping(address => IAllocation.State);
@@ -58,7 +54,7 @@ contract SubgraphService is
      * @param indexer The address of the indexer
      */
     modifier onlyRegisteredIndexer(address indexer) {
-        require(bytes(indexers[indexer].url).length > 0, SubgraphServiceIndexerNotRegistered(indexer));
+        _checkRegisteredIndexer(indexer);
         _;
     }
 
@@ -352,9 +348,10 @@ contract SubgraphService is
         _setStakeToFeesRatio(stakeToFeesRatio_);
     }
 
+    // forge-lint: disable-next-item(mixed-case-function)
     /// @inheritdoc ISubgraphService
-    function setMaxPOIStaleness(uint256 maxPOIStaleness_) external override onlyOwner {
-        _setMaxPOIStaleness(maxPOIStaleness_);
+    function setMaxPOIStaleness(uint256 maxPoiStaleness_) external override onlyOwner {
+        _setMaxPoiStaleness(maxPoiStaleness_);
     }
 
     /// @inheritdoc ISubgraphService
@@ -453,6 +450,14 @@ contract SubgraphService is
     }
 
     /**
+     * @notice Checks that an indexer is registered
+     * @param indexer The address of the indexer
+     */
+    function _checkRegisteredIndexer(address indexer) private view {
+        require(bytes(indexers[indexer].url).length > 0, SubgraphServiceIndexerNotRegistered(indexer));
+    }
+
+    /**
      * @notice Collect query fees
      * Stake equal to the amount being collected times the `stakeToFeesRatio` is locked into a stake claim.
      * This claim can be released at a later stage once expired.
@@ -482,6 +487,7 @@ contract SubgraphService is
      * be collected.
      * @return The amount of fees collected
      */
+    // solhint-disable-next-line function-max-lines
     function _collectQueryFees(address _indexer, bytes calldata _data) private returns (uint256) {
         (IGraphTallyCollector.SignedRAV memory signedRav, uint256 tokensToCollect) = abi.decode(
             _data,
@@ -494,11 +500,11 @@ contract SubgraphService is
 
         // Check that collectionId (256 bits) is a valid address (160 bits)
         // collectionId is expected to be a zero padded address so it's safe to cast to uint160
-        require(
-            uint256(signedRav.rav.collectionId) <= type(uint160).max,
-            SubgraphServiceInvalidCollectionId(signedRav.rav.collectionId)
-        );
-        address allocationId = address(uint160(uint256(signedRav.rav.collectionId)));
+        uint256 ravCollectionId = uint256(signedRav.rav.collectionId);
+        // solhint-disable-next-line gas-strict-inequalities
+        require(ravCollectionId <= type(uint160).max, SubgraphServiceInvalidCollectionId(signedRav.rav.collectionId));
+        // forge-lint: disable-next-line(unsafe-typecast)
+        address allocationId = address(uint160(ravCollectionId));
         IAllocation.State memory allocation = _allocations.get(allocationId);
 
         // Check RAV is consistent - RAV indexer must match the allocation's indexer
@@ -521,6 +527,7 @@ contract SubgraphService is
             );
 
             uint256 balanceAfter = _graphToken().balanceOf(address(this));
+            // solhint-disable-next-line gas-strict-inequalities
             require(balanceAfter >= balanceBefore, SubgraphServiceInconsistentCollection(balanceBefore, balanceAfter));
             tokensCurators = balanceAfter - balanceBefore;
         }
@@ -569,7 +576,7 @@ contract SubgraphService is
             _allocations.get(allocationId).indexer == _indexer,
             SubgraphServiceAllocationNotAuthorized(_indexer, allocationId)
         );
-        return _presentPOI(allocationId, poi_, poiMetadata_, _delegationRatio, paymentsDestination[_indexer]);
+        return _presentPoi(allocationId, poi_, poiMetadata_, _delegationRatio, paymentsDestination[_indexer]);
     }
 
     /**

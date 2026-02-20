@@ -3,12 +3,12 @@ pragma solidity 0.8.27;
 
 abstract contract Constants {
     uint32 internal constant MAX_PPM = 1000000; // 100% in parts per million
-    uint256 internal constant delegationFeeCut = 100000; // 10% in parts per million
+    uint256 internal constant DELEGATION_FEE_CUT = 100000; // 10% in parts per million
     uint256 internal constant MAX_STAKING_TOKENS = 10_000_000_000 ether;
     // GraphEscrow parameters
-    uint256 internal constant withdrawEscrowThawingPeriod = 60;
+    uint256 internal constant WITHDRAW_ESCROW_THAWING_PERIOD = 60;
     // GraphPayments parameters
-    uint256 internal constant protocolPaymentCut = 10000;
+    uint256 internal constant PROTOCOL_PAYMENT_CUT = 10000;
     // Staking constants
     uint256 internal constant MAX_THAW_REQUESTS = 1_000;
     uint64 internal constant MAX_THAWING_PERIOD = 28 days;
@@ -19,5 +19,5 @@ abstract contract Constants {
     // Rewards manager
     uint256 internal constant ALLOCATIONS_REWARD_CUT = 100 ether;
     // GraphTallyCollector
-    uint256 internal constant revokeSignerThawingPeriod = 7 days;
+    uint256 internal constant REVOKE_SIGNER_THAWING_PERIOD = 7 days;
 }

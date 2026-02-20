@@ -156,16 +156,6 @@ const config = {
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
-    customChains: [
-      {
-        network: 'arbitrum-sepolia',
-        chainId: 421614,
-        urls: {
-          apiURL: 'https://api-sepolia.arbiscan.io/api',
-          browserURL: 'https://sepolia.arbiscan.io',
-        },
-      },
-    ],
   },
   typechain: {
     outDir: 'types',

@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "forge-std/Test.sol";
-
 import { IHorizonStakingMain } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingMain.sol";
 
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
@@ -16,7 +14,7 @@ contract HorizonStakingForceWithdrawTest is HorizonStakingTest {
         (, address msgSender, ) = vm.readCallers();
 
         // before
-        ServiceProviderInternal memory beforeServiceProvider = _getStorage_ServiceProviderInternal(_serviceProvider);
+        ServiceProviderInternal memory beforeServiceProvider = _getStorageServiceProviderInternal(_serviceProvider);
         uint256 beforeServiceProviderBalance = token.balanceOf(_serviceProvider);
         uint256 beforeCallerBalance = token.balanceOf(msgSender);
         uint256 beforeStakingBalance = token.balanceOf(address(staking));
@@ -30,7 +28,7 @@ contract HorizonStakingForceWithdrawTest is HorizonStakingTest {
         staking.forceWithdraw(_serviceProvider);
 
         // after
-        ServiceProviderInternal memory afterServiceProvider = _getStorage_ServiceProviderInternal(_serviceProvider);
+        ServiceProviderInternal memory afterServiceProvider = _getStorageServiceProviderInternal(_serviceProvider);
         uint256 afterServiceProviderBalance = token.balanceOf(_serviceProvider);
         uint256 afterCallerBalance = token.balanceOf(msgSender);
         uint256 afterStakingBalance = token.balanceOf(address(staking));
@@ -63,8 +61,8 @@ contract HorizonStakingForceWithdrawTest is HorizonStakingTest {
         tokensLocked = bound(tokensLocked, 1, tokens);
 
         // simulate locked tokens ready to withdraw
-        token.transfer(address(staking), tokens);
-        _setStorage_ServiceProvider(users.indexer, tokens, 0, tokensLocked, block.number, 0);
+        require(token.transfer(address(staking), tokens), "transfer failed");
+        _setStorageServiceProvider(users.indexer, tokens, 0, tokensLocked, block.number, 0);
 
         _createProvision(users.indexer, subgraphDataServiceAddress, tokens, 0, MAX_THAWING_PERIOD);
 
@@ -79,13 +77,13 @@ contract HorizonStakingForceWithdrawTest is HorizonStakingTest {
         tokensLocked = bound(tokensLocked, 1, tokens);
 
         // simulate locked tokens ready to withdraw
-        token.transfer(address(staking), tokens);
-        _setStorage_ServiceProvider(users.indexer, tokens, 0, tokensLocked, block.number, 0);
+        require(token.transfer(address(staking), tokens), "transfer failed");
+        _setStorageServiceProvider(users.indexer, tokens, 0, tokensLocked, block.number, 0);
 
         _createProvision(users.indexer, subgraphDataServiceAddress, tokens, 0, MAX_THAWING_PERIOD);
 
         // before
-        ServiceProviderInternal memory beforeServiceProvider = _getStorage_ServiceProviderInternal(users.indexer);
+        ServiceProviderInternal memory beforeServiceProvider = _getStorageServiceProviderInternal(users.indexer);
         uint256 beforeServiceProviderBalance = token.balanceOf(users.indexer);
         uint256 beforeStakingBalance = token.balanceOf(address(staking));
 
@@ -95,7 +93,7 @@ contract HorizonStakingForceWithdrawTest is HorizonStakingTest {
         staking.forceWithdraw(users.indexer);
 
         // after
-        ServiceProviderInternal memory afterServiceProvider = _getStorage_ServiceProviderInternal(users.indexer);
+        ServiceProviderInternal memory afterServiceProvider = _getStorageServiceProviderInternal(users.indexer);
         uint256 afterServiceProviderBalance = token.balanceOf(users.indexer);
         uint256 afterStakingBalance = token.balanceOf(address(staking));
 
@@ -113,8 +111,8 @@ contract HorizonStakingForceWithdrawTest is HorizonStakingTest {
         tokens = bound(tokens, 1, MAX_STAKING_TOKENS);
 
         // simulate zero locked tokens
-        token.transfer(address(staking), tokens);
-        _setStorage_ServiceProvider(users.indexer, tokens, 0, 0, 0, 0);
+        require(token.transfer(address(staking), tokens), "transfer failed");
+        _setStorageServiceProvider(users.indexer, tokens, 0, 0, 0, 0);
 
         _createProvision(users.indexer, subgraphDataServiceLegacyAddress, tokens, 0, MAX_THAWING_PERIOD);
 

@@ -23,7 +23,7 @@ type GraphRuntimeEnvironmentOptions = {
 }
 
 interface EtherscanConfig {
-  apiKey: string
+  apiKey: string | Record<string, string>
   customChains: {
     network: string
     chainId: number
@@ -56,6 +56,8 @@ export const projectPathsUserConfig: ProjectPathsUserConfig = {
   sources: './contracts',
 }
 
+// Etherscan v2 API uses a single API key for all networks
+// See: https://docs.etherscan.io/etherscan-v2/getting-started/creating-an-account
 export const etherscanUserConfig: Partial<EtherscanConfig> = {
   apiKey: vars.has('ETHERSCAN_API_KEY') ? vars.get('ETHERSCAN_API_KEY') : '',
 }

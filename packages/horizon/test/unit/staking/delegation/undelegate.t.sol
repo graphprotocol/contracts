@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "forge-std/Test.sol";
-
 import { IHorizonStakingMain } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingMain.sol";
 
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
@@ -17,7 +15,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         uint256 delegationAmount
     ) public useIndexer useProvision(amount, 0, 0) useDelegation(delegationAmount) {
         resetPrank(users.delegator);
-        DelegationInternal memory delegation = _getStorage_Delegation(
+        DelegationInternal memory delegation = _getStorageDelegation(
             users.indexer,
             subgraphDataServiceAddress,
             users.delegator,
@@ -36,7 +34,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
 
         resetPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationAmount, 0);
-        DelegationInternal memory delegation = _getStorage_Delegation(
+        DelegationInternal memory delegation = _getStorageDelegation(
             users.indexer,
             subgraphDataServiceAddress,
             users.delegator,
@@ -48,7 +46,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
             _undelegate(users.indexer, subgraphDataServiceAddress, undelegateAmount);
         }
 
-        delegation = _getStorage_Delegation(users.indexer, subgraphDataServiceAddress, users.delegator, false);
+        delegation = _getStorageDelegation(users.indexer, subgraphDataServiceAddress, users.delegator, false);
         _undelegate(users.indexer, subgraphDataServiceAddress, delegation.shares);
     }
 
@@ -59,7 +57,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
     ) public useIndexer useProvision(amount, 0, 0) useDelegation(delegationAmount) {
         undelegateAmount = bound(undelegateAmount, 1, delegationAmount);
         resetPrank(users.delegator);
-        DelegationInternal memory delegation = _getStorage_Delegation(
+        DelegationInternal memory delegation = _getStorageDelegation(
             users.indexer,
             subgraphDataServiceAddress,
             users.delegator,
@@ -108,7 +106,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         uint256 overDelegationShares
     ) public useIndexer useProvision(amount, 0, 0) useDelegation(delegationAmount) {
         resetPrank(users.delegator);
-        DelegationInternal memory delegation = _getStorage_Delegation(
+        DelegationInternal memory delegation = _getStorageDelegation(
             users.indexer,
             subgraphDataServiceAddress,
             users.delegator,
@@ -133,7 +131,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         resetPrank(users.delegator);
         _delegate(users.indexer, delegationAmount);
 
-        DelegationInternal memory delegation = _getStorage_Delegation(
+        DelegationInternal memory delegation = _getStorageDelegation(
             users.indexer,
             subgraphDataServiceAddress,
             users.delegator,
@@ -157,7 +155,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
 
         // attempt to undelegate - should revert
         resetPrank(users.delegator);
-        DelegationInternal memory delegation = _getStorage_Delegation(
+        DelegationInternal memory delegation = _getStorageDelegation(
             users.indexer,
             subgraphDataServiceAddress,
             users.delegator,
@@ -193,7 +191,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         _addToDelegationPool(users.indexer, subgraphDataServiceAddress, delegationTokens);
 
         // undelegate -- should now work
-        DelegationInternal memory delegation = _getStorage_Delegation(
+        DelegationInternal memory delegation = _getStorageDelegation(
             users.indexer,
             subgraphDataServiceAddress,
             users.delegator,
@@ -216,7 +214,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
 
         // undelegate half shares so we have some thawing shares/tokens
-        DelegationInternal memory delegation = _getStorage_Delegation(
+        DelegationInternal memory delegation = _getStorageDelegation(
             users.indexer,
             subgraphDataServiceAddress,
             users.delegator,

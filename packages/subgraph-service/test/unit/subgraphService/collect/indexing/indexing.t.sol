@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
-
-import "forge-std/Test.sol";
+pragma solidity ^0.8.27;
 
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { IAllocationManager } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocationManager.sol";
+import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManager.sol";
 
 import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
 import { SubgraphServiceTest } from "../../SubgraphService.t.sol";
-import { Allocation } from "../../../../../contracts/libraries/Allocation.sol";
 contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
     /*
      * TESTS
@@ -15,7 +14,8 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
 
     function test_SubgraphService_Collect_Indexing(uint256 tokens) public useIndexer useAllocation(tokens) {
         IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
-        bytes memory data = abi.encode(allocationID, bytes32("POI"), _getHardcodedPOIMetadata());
+        // forge-lint: disable-next-line(unsafe-typecast)
+        bytes memory data = abi.encode(allocationId, bytes32("POI"), _getHardcodedPoiMetadata());
 
         // skip time to ensure allocation gets rewards
         vm.roll(block.number + EPOCH_LENGTH);
@@ -40,7 +40,8 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
         vm.roll(block.number + EPOCH_LENGTH);
 
         IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
-        bytes memory data = abi.encode(allocationID, bytes32("POI"), _getHardcodedPOIMetadata());
+        // forge-lint: disable-next-line(unsafe-typecast)
+        bytes memory data = abi.encode(allocationId, bytes32("POI"), _getHardcodedPoiMetadata());
         _collect(users.indexer, paymentType, data);
     }
 
@@ -65,7 +66,8 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
 
         resetPrank(users.indexer);
         IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
-        bytes memory data = abi.encode(allocationID, bytes32("POI"), _getHardcodedPOIMetadata());
+        // forge-lint: disable-next-line(unsafe-typecast)
+        bytes memory data = abi.encode(allocationId, bytes32("POI"), _getHardcodedPoiMetadata());
         _collect(users.indexer, paymentType, data);
     }
 
@@ -76,23 +78,25 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
         vm.roll(block.number + EPOCH_LENGTH);
 
         IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
-        bytes memory data = abi.encode(allocationID, bytes32("POI"), _getHardcodedPOIMetadata());
+        // forge-lint: disable-next-line(unsafe-typecast)
+        bytes memory data = abi.encode(allocationId, bytes32("POI"), _getHardcodedPoiMetadata());
         _collect(users.indexer, paymentType, data);
     }
 
     function test_subgraphService_Collect_Indexing_MultipleOverTime(
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
-        uint8 numberOfPOIs = 20;
-        uint256 timeBetweenPOIs = 5 days;
+        uint8 numberOfPoIs = 20;
+        uint256 timeBetweenPoIs = 5 days;
 
-        for (uint8 i = 0; i < numberOfPOIs; i++) {
+        for (uint8 i = 0; i < numberOfPoIs; i++) {
             // Skip forward
-            skip(timeBetweenPOIs);
+            skip(timeBetweenPoIs);
 
             resetPrank(users.indexer);
 
-            bytes memory data = abi.encode(allocationID, bytes32("POI"), _getHardcodedPOIMetadata());
+            // forge-lint: disable-next-line(unsafe-typecast)
+            bytes memory data = abi.encode(allocationId, bytes32("POI"), _getHardcodedPoiMetadata());
             _collect(users.indexer, IGraphPayments.PaymentTypes.IndexingRewards, data);
         }
     }
@@ -110,29 +114,30 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
             delegationFeeCut
         );
 
-        uint8 numberOfPOIs = 20;
-        uint256 timeBetweenPOIs = 5 days;
-        for (uint8 i = 0; i < numberOfPOIs; i++) {
+        uint8 numberOfPoIs = 20;
+        uint256 timeBetweenPoIs = 5 days;
+        for (uint8 i = 0; i < numberOfPoIs; i++) {
             // Skip forward
-            skip(timeBetweenPOIs);
+            skip(timeBetweenPoIs);
 
             resetPrank(users.indexer);
 
-            bytes memory data = abi.encode(allocationID, bytes32("POI"), _getHardcodedPOIMetadata());
+            // forge-lint: disable-next-line(unsafe-typecast)
+            bytes memory data = abi.encode(allocationId, bytes32("POI"), _getHardcodedPoiMetadata());
             _collect(users.indexer, IGraphPayments.PaymentTypes.IndexingRewards, data);
         }
     }
 
     function test_SubgraphService_Collect_Indexing_OverAllocated(uint256 tokens) public useIndexer {
-        tokens = bound(tokens, minimumProvisionTokens * 2, 10_000_000_000 ether);
+        tokens = bound(tokens, MINIMUM_PROVISION_TOKENS * 2, 10_000_000_000 ether);
 
         // setup allocation
-        _createProvision(users.indexer, tokens, fishermanRewardPercentage, disputePeriod);
+        _createProvision(users.indexer, tokens, FISHERMAN_REWARD_PERCENTAGE, DISPUTE_PERIOD);
         _register(users.indexer, abi.encode("url", "geoHash", address(0)));
         bytes memory data = _createSubgraphAllocationData(
             users.indexer,
             subgraphDeployment,
-            allocationIDPrivateKey,
+            allocationIdPrivateKey,
             tokens
         );
         _startService(users.indexer, data);
@@ -145,7 +150,8 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
 
         // this collection should close the allocation
         IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
-        bytes memory collectData = abi.encode(allocationID, bytes32("POI"), _getHardcodedPOIMetadata());
+        // forge-lint: disable-next-line(unsafe-typecast)
+        bytes memory collectData = abi.encode(allocationId, bytes32("POI"), _getHardcodedPoiMetadata());
         _collect(users.indexer, paymentType, collectData);
     }
 
@@ -156,7 +162,8 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
         // Setup new indexer
         address newIndexer = makeAddr("newIndexer");
         _createAndStartAllocation(newIndexer, tokens);
-        bytes memory data = abi.encode(allocationID, bytes32("POI"), _getHardcodedPOIMetadata());
+        // forge-lint: disable-next-line(unsafe-typecast)
+        bytes memory data = abi.encode(allocationId, bytes32("POI"), _getHardcodedPoiMetadata());
 
         // skip time to ensure allocation gets rewards
         vm.roll(block.number + EPOCH_LENGTH);
@@ -166,9 +173,105 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
             abi.encodeWithSelector(
                 ISubgraphService.SubgraphServiceAllocationNotAuthorized.selector,
                 newIndexer,
-                allocationID
+                allocationId
             )
         );
         subgraphService.collect(newIndexer, paymentType, data);
+    }
+
+    function test_SubgraphService_Collect_Indexing_ZeroRewards(uint256 tokens) public useIndexer useAllocation(tokens) {
+        IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
+        // forge-lint: disable-next-line(unsafe-typecast)
+        bytes memory data = abi.encode(allocationId, bytes32("POI"), _getHardcodedPoiMetadata());
+
+        // Don't skip time - collect immediately, expecting zero rewards
+        _collect(users.indexer, paymentType, data);
+    }
+
+    function test_SubgraphService_Collect_Indexing_ZeroPOI(uint256 tokens) public useIndexer useAllocation(tokens) {
+        IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
+        // Submit zero POI (bytes32(0))
+        bytes memory data = abi.encode(allocationId, bytes32(0), _getHardcodedPoiMetadata());
+
+        // skip time to ensure allocation could get rewards
+        vm.roll(block.number + EPOCH_LENGTH);
+
+        // Should succeed but reclaim rewards due to zero POI - just verify it doesn't revert
+        subgraphService.collect(users.indexer, paymentType, data);
+    }
+
+    function test_SubgraphService_Collect_Indexing_StalePOI(uint256 tokens) public useIndexer useAllocation(tokens) {
+        IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
+        // forge-lint: disable-next-line(unsafe-typecast)
+        bytes memory data = abi.encode(allocationId, bytes32("POI"), _getHardcodedPoiMetadata());
+
+        // Skip past MAX_POI_STALENESS to make allocation stale
+        skip(MAX_POI_STALENESS + 1);
+
+        // Should succeed but reclaim rewards due to stale POI - just verify it doesn't revert
+        subgraphService.collect(users.indexer, paymentType, data);
+    }
+
+    function test_SubgraphService_Collect_Indexing_DeniedSubgraph(
+        uint256 tokens
+    ) public useIndexer useAllocation(tokens) {
+        IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
+        // forge-lint: disable-next-line(unsafe-typecast)
+        bytes memory data = abi.encode(allocationId, bytes32("POI"), _getHardcodedPoiMetadata());
+
+        // skip time to ensure allocation is not too young (isDenied is only checked after epoch check)
+        vm.roll(block.number + EPOCH_LENGTH);
+
+        // Mock the rewards manager to deny this subgraph deployment
+        vm.mockCall(
+            address(rewardsManager),
+            abi.encodeWithSelector(IRewardsManager.isDenied.selector, subgraphDeployment),
+            abi.encode(true)
+        );
+
+        // Should succeed but return zero rewards due to denied subgraph
+        subgraphService.collect(users.indexer, paymentType, data);
+    }
+
+    function test_SubgraphService_Collect_Indexing_AltruisticAllocation(uint256 tokens) public useIndexer {
+        tokens = bound(tokens, MINIMUM_PROVISION_TOKENS, MAX_TOKENS);
+
+        _createProvision(users.indexer, tokens, FISHERMAN_REWARD_PERCENTAGE, DISPUTE_PERIOD);
+        _register(users.indexer, abi.encode("url", "geoHash", address(0)));
+
+        // Create altruistic allocation (0 tokens)
+        bytes memory data = _createSubgraphAllocationData(users.indexer, subgraphDeployment, allocationIdPrivateKey, 0);
+        _startService(users.indexer, data);
+
+        IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
+        // forge-lint: disable-next-line(unsafe-typecast)
+        bytes memory collectData = abi.encode(allocationId, bytes32("POI"), _getHardcodedPoiMetadata());
+
+        // skip time to ensure allocation could get rewards
+        vm.roll(block.number + EPOCH_LENGTH);
+
+        // Should succeed but reclaim rewards due to altruistic allocation - just verify it doesn't revert
+        subgraphService.collect(users.indexer, paymentType, collectData);
+    }
+
+    function test_SubgraphService_Collect_Indexing_RevertWhen_AllocationClosed(
+        uint256 tokens
+    ) public useIndexer useAllocation(tokens) {
+        IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
+        // forge-lint: disable-next-line(unsafe-typecast)
+        bytes memory data = abi.encode(allocationId, bytes32("POI"), _getHardcodedPoiMetadata());
+
+        // Close the allocation
+        resetPrank(users.indexer);
+        subgraphService.stopService(users.indexer, abi.encode(allocationId));
+
+        // skip time to ensure allocation could get rewards
+        vm.roll(block.number + EPOCH_LENGTH);
+
+        // Attempt to collect on closed allocation should revert
+        vm.expectRevert(
+            abi.encodeWithSelector(IAllocationManager.AllocationManagerAllocationClosed.selector, allocationId)
+        );
+        subgraphService.collect(users.indexer, paymentType, data);
     }
 }

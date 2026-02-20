@@ -26,7 +26,7 @@ interface IGraphTokenLockWalletToolshed is IGraphTokenLockWallet {
         uint32 maxVerifierCut,
         uint64 thawingPeriod
     ) external;
-    function thaw(address serviceProvider, address verifier, uint256 tokens) external returns (bytes32);
+    function thaw(address serviceProvider, address verifier, uint256 tokens) external;
     function deprovision(address serviceProvider, address verifier, uint256 nThawRequests) external;
 
     // === PROVISION CONFIGURATION ===
@@ -45,5 +45,5 @@ interface IGraphTokenLockWalletToolshed is IGraphTokenLockWallet {
     function withdrawDelegated(address serviceProvider, address verifier, uint256 nThawRequests) external;
 
     // === LEGACY DELEGATION MANAGEMENT ===
-    function withdrawDelegated(address indexer, address __DEPRECATED_delegateToIndexer) external returns (uint256);
+    function withdrawDelegated(address indexer, address __DEPRECATED_delegateToIndexer) external;
 }

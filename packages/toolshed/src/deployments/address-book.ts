@@ -10,11 +10,56 @@ export type AddressBookJson<ChainId extends number = number, ContractName extend
   Record<ContractName, AddressBookEntry>
 >
 
-export type AddressBookEntry = {
+/**
+ * Metadata for a deployed contract, enabling verification and record reconstruction.
+ * Stored in address book to avoid relying on transient rocketh deployment records.
+ */
+export type DeploymentMetadata = {
+  /** Deployment transaction hash - enables recovery of all tx details */
+  txHash: string
+  /** ABI-encoded constructor arguments */
+  argsData: string
+  /** keccak256 of deployed bytecode (sans CBOR) for change detection */
+  bytecodeHash: string
+  /** Block number of deployment - useful for sync conflict detection */
+  blockNumber?: number
+  /** Block timestamp (ISO 8601) - human readable deployment time */
+  timestamp?: string
+  /** Block explorer verification URL */
+  verified?: string
+}
+
+/**
+ * Tracks a deployed implementation not yet activated on its proxy.
+ * Activation may require a governance transaction.
+ */
+export type PendingImplementation = {
+  /** Address of the deployed implementation contract */
   address: string
+  /** Full deployment metadata for verification and reconstruction */
+  deployment: DeploymentMetadata
+}
+
+/**
+ * An entry in the address book representing a deployed contract
+ */
+export type AddressBookEntry = {
+  /** The deployed contract address (proxy address if proxied, implementation if not) */
+  address: string
+  /** Proxy type: 'graph' for Graph custom proxy, 'transparent' for OZ TransparentProxy */
   proxy?: 'graph' | 'transparent'
+  /** Address of the ProxyAdmin contract that manages this proxy */
   proxyAdmin?: string
+  /** Address of the current active implementation (for proxied contracts) */
   implementation?: string
+  /** Pending implementation awaiting governance upgrade approval */
+  pendingImplementation?: PendingImplementation
+  /** Deployment metadata for non-proxied contracts */
+  deployment?: DeploymentMetadata
+  /** Deployment metadata for proxy contract (proxied contracts only) */
+  proxyDeployment?: DeploymentMetadata
+  /** Deployment metadata for implementation (proxied contracts only) */
+  implementationDeployment?: DeploymentMetadata
 }
 
 /**
@@ -76,7 +121,7 @@ export abstract class AddressBook<ChainId extends number = number, ContractName 
     // Create empty address book if file doesn't exist
     if (!fs.existsSync(this.file)) {
       const emptyAddressBook = { [this.chainId]: {} }
-      fs.writeFileSync(this.file, JSON.stringify(emptyAddressBook, null, 2))
+      fs.writeFileSync(this.file, JSON.stringify(emptyAddressBook, null, 2) + '\n')
       logDebug(`Created new address book at ${this.file}`)
     }
 
@@ -139,7 +184,7 @@ export abstract class AddressBook<ChainId extends number = number, ContractName 
     this._assertAddressBookEntry(entry)
     this.addressBook[this.chainId][name] = entry
     try {
-      fs.writeFileSync(this.file, JSON.stringify(this.addressBook, null, 2))
+      fs.writeFileSync(this.file, JSON.stringify(this.addressBook, null, 2) + '\n')
     } catch (e: unknown) {
       if (e instanceof Error) logError(`Error saving entry: ${e.message}`)
       else logError(`Error saving entry`)
@@ -223,7 +268,16 @@ export abstract class AddressBook<ChainId extends number = number, ContractName 
       throw new Error('Address book entry must have an address field')
     }
 
-    const allowedFields = ['address', 'implementation', 'proxyAdmin', 'proxy']
+    const allowedFields = [
+      'address',
+      'implementation',
+      'proxyAdmin',
+      'proxy',
+      'pendingImplementation',
+      'deployment',
+      'proxyDeployment',
+      'implementationDeployment',
+    ]
     const entryFields = Object.keys(entry)
     const invalidFields = entryFields.filter((field) => !allowedFields.includes(field))
     if (invalidFields.length > 0) {

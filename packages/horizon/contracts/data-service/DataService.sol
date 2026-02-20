@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.27;
+pragma solidity 0.8.27 || 0.8.33;
 
 import { IDataService } from "@graphprotocol/interfaces/contracts/data-service/IDataService.sol";
 
@@ -59,6 +59,7 @@ abstract contract DataService is GraphDirectory, ProvisionManager, DataServiceV1
         return _getDelegationRatio();
     }
 
+    // forge-lint: disable-next-item(mixed-case-function)
     /**
      * @notice Initializes the contract and any parent contracts.
      */
@@ -67,6 +68,7 @@ abstract contract DataService is GraphDirectory, ProvisionManager, DataServiceV1
         __DataService_init_unchained();
     }
 
+    // forge-lint: disable-next-item(mixed-case-function)
     /**
      * @notice Initializes the contract.
      */

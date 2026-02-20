@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "forge-std/Test.sol";
-
-import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingThawTest is HorizonStakingTest {

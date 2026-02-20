@@ -29,15 +29,21 @@ packages/*/.eslintcache
 dist/
 dist-v5/
 build/
-typechain/
-typechain-types/
-types/
-types-v5/
-wagmi/
-types/
 deployments/hardhat/
 *.js.map
 *.d.ts.map
+
+# Generated types (typechain output)
+typechain/
+typechain-src/
+typechain-types/
+types-v5/
+wagmi/
+packages/contracts/types/
+packages/contracts-test/types/
+packages/interfaces/types/
+packages/token-distribution/types/
+packages/issuance/types/
 
 # TypeScript incremental compilation cache
 **/tsconfig.tsbuildinfo
@@ -52,6 +58,7 @@ bin/
 .env
 .DS_Store
 .vscode
+core
 
 # Coverage and other reports
 coverage/
@@ -100,3 +107,9 @@ tx-builder-*.json
 
 # Claude AI settings
 .claude/
+
+# Tenderly
+.tenderly-artifacts/
+
+# NFS stale file handles
+.nfs*

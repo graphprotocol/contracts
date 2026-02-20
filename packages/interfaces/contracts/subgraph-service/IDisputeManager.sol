@@ -2,10 +2,8 @@
 
 pragma solidity ^0.8.22;
 
-// TODO: Re-enable and fix issues when publishing a new version
-// solhint-disable gas-indexed-events
-
 import { IAttestation } from "./internal/IAttestation.sol";
+import { ISubgraphService } from "./ISubgraphService.sol";
 
 /**
  * @title IDisputeManager
@@ -68,24 +66,28 @@ interface IDisputeManager {
      * @param disputePeriod The dispute period in seconds.
      */
     event DisputePeriodSet(uint64 disputePeriod);
+    // solhint-disable-previous-line gas-indexed-events
 
     /**
      * @notice Emitted when dispute deposit is set.
      * @param disputeDeposit The dispute deposit required to create a dispute.
      */
     event DisputeDepositSet(uint256 disputeDeposit);
+    // solhint-disable-previous-line gas-indexed-events
 
     /**
      * @notice Emitted when max slashing cut is set.
      * @param maxSlashingCut The maximum slashing cut that can be set.
      */
     event MaxSlashingCutSet(uint32 maxSlashingCut);
+    // solhint-disable-previous-line gas-indexed-events
 
     /**
      * @notice Emitted when fisherman reward cut is set.
      * @param fishermanRewardCut The fisherman reward cut.
      */
     event FishermanRewardCutSet(uint32 fishermanRewardCut);
+    // solhint-disable-previous-line gas-indexed-events
 
     /**
      * @notice Emitted when subgraph service is set.
@@ -340,17 +342,17 @@ interface IDisputeManager {
     /**
      * @notice Initialize this contract.
      * @param owner The owner of the contract
-     * @param arbitrator Arbitrator role
-     * @param disputePeriod Dispute period in seconds
-     * @param disputeDeposit Deposit required to create a Dispute
+     * @param arbitrator_ Arbitrator role
+     * @param disputePeriod_ Dispute period in seconds
+     * @param disputeDeposit_ Deposit required to create a Dispute
      * @param fishermanRewardCut_ Percent of slashed funds for fisherman (ppm)
      * @param maxSlashingCut_ Maximum percentage of indexer stake that can be slashed (ppm)
      */
     function initialize(
         address owner,
-        address arbitrator,
-        uint64 disputePeriod,
-        uint256 disputeDeposit,
+        address arbitrator_,
+        uint64 disputePeriod_,
+        uint256 disputeDeposit_,
         uint32 fishermanRewardCut_,
         uint32 maxSlashingCut_
     ) external;
@@ -358,23 +360,23 @@ interface IDisputeManager {
     /**
      * @notice Set the dispute period.
      * @dev Update the dispute period to `_disputePeriod` in seconds
-     * @param disputePeriod Dispute period in seconds
+     * @param newDisputePeriod Dispute period in seconds
      */
-    function setDisputePeriod(uint64 disputePeriod) external;
+    function setDisputePeriod(uint64 newDisputePeriod) external;
 
     /**
      * @notice Set the arbitrator address.
      * @dev Update the arbitrator to `_arbitrator`
-     * @param arbitrator The address of the arbitration contract or party
+     * @param newArbitrator The address of the arbitration contract or party
      */
-    function setArbitrator(address arbitrator) external;
+    function setArbitrator(address newArbitrator) external;
 
     /**
      * @notice Set the dispute deposit required to create a dispute.
      * @dev Update the dispute deposit to `_disputeDeposit` Graph Tokens
-     * @param disputeDeposit The dispute deposit in Graph Tokens
+     * @param newDisputeDeposit The dispute deposit in Graph Tokens
      */
-    function setDisputeDeposit(uint256 disputeDeposit) external;
+    function setDisputeDeposit(uint256 newDisputeDeposit) external;
 
     /**
      * @notice Set the percent reward that the fisherman gets when slashing occurs.
@@ -392,9 +394,9 @@ interface IDisputeManager {
     /**
      * @notice Set the subgraph service address.
      * @dev Update the subgraph service to `_subgraphService`
-     * @param subgraphService The address of the subgraph service contract
+     * @param newSubgraphService The address of the subgraph service contract
      */
-    function setSubgraphService(address subgraphService) external;
+    function setSubgraphService(address newSubgraphService) external;
 
     // -- Dispute --
 
@@ -565,4 +567,72 @@ interface IDisputeManager {
         IAttestation.State memory attestation1,
         IAttestation.State memory attestation2
     ) external pure returns (bool);
+
+    // -- Storage Getters --
+
+    /**
+     * @notice Get the dispute period.
+     * @return Dispute period in seconds
+     */
+    function disputePeriod() external view returns (uint64);
+
+    /**
+     * @notice Get the fisherman reward cut.
+     * @return Fisherman reward cut in percentage (ppm)
+     */
+    function fishermanRewardCut() external view returns (uint32);
+
+    /**
+     * @notice Get the maximum percentage that can be used for slashing indexers.
+     * @return Max percentage slashing for disputes
+     */
+    function maxSlashingCut() external view returns (uint32);
+
+    /**
+     * @notice Get the dispute deposit.
+     * @return Dispute deposit
+     */
+    function disputeDeposit() external view returns (uint256);
+
+    /**
+     * @notice Get the subgraph service address.
+     * @return Subgraph service address
+     */
+    function subgraphService() external view returns (ISubgraphService);
+
+    /**
+     * @notice Get the arbitrator address.
+     * @return Arbitrator address
+     */
+    function arbitrator() external view returns (address);
+
+    /**
+     * @notice Get dispute details.
+     * @param disputeId The dispute ID
+     * @return indexer The indexer that is being disputed
+     * @return fisherman The fisherman that created the dispute
+     * @return deposit The amount of tokens deposited by the fisherman
+     * @return relatedDisputeId The link to a related dispute
+     * @return disputeType The type of dispute
+     * @return status The status of the dispute
+     * @return createdAt The timestamp when the dispute was created
+     * @return cancellableAt The timestamp when the dispute can be cancelled
+     * @return stakeSnapshot The stake snapshot of the indexer at the time of the dispute
+     */
+    function disputes(
+        bytes32 disputeId
+    )
+        external
+        view
+        returns (
+            address indexer,
+            address fisherman,
+            uint256 deposit,
+            bytes32 relatedDisputeId,
+            DisputeType disputeType,
+            DisputeStatus status,
+            uint256 createdAt,
+            uint256 cancellableAt,
+            uint256 stakeSnapshot
+        );
 }

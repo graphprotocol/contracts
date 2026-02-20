@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "forge-std/Test.sol";
-
 import { IHorizonStakingMain } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingMain.sol";
 import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
 
@@ -63,7 +61,7 @@ contract HorizonStakingForceWithdrawDelegatedTest is HorizonStakingTest {
         assertEq(afterStakingBalance, beforeStakingBalance - pool.tokens);
         assertEq(afterDelegatorBalance - pool.tokens, beforeDelegatorBalance);
 
-        DelegationInternal memory delegation = _getStorage_Delegation(
+        DelegationInternal memory delegation = _getStorageDelegation(
             _indexer,
             subgraphDataServiceLegacyAddress,
             _delegator,
@@ -81,9 +79,9 @@ contract HorizonStakingForceWithdrawDelegatedTest is HorizonStakingTest {
     function testForceWithdrawDelegated_Tokens(uint256 tokensLocked) public useDelegator {
         vm.assume(tokensLocked > 0);
 
-        _setStorage_DelegationPool(users.indexer, tokensLocked, 0, 0);
+        _setStorageDelegationPool(users.indexer, tokensLocked, 0, 0);
         _setLegacyDelegation(users.indexer, users.delegator, 0, tokensLocked, 1);
-        token.transfer(address(staking), tokensLocked);
+        require(token.transfer(address(staking), tokensLocked), "transfer failed");
 
         // switch to a third party (not the delegator)
         resetPrank(users.operator);
@@ -94,16 +92,16 @@ contract HorizonStakingForceWithdrawDelegatedTest is HorizonStakingTest {
     function testForceWithdrawDelegated_CalledByDelegator(uint256 tokensLocked) public useDelegator {
         vm.assume(tokensLocked > 0);
 
-        _setStorage_DelegationPool(users.indexer, tokensLocked, 0, 0);
+        _setStorageDelegationPool(users.indexer, tokensLocked, 0, 0);
         _setLegacyDelegation(users.indexer, users.delegator, 0, tokensLocked, 1);
-        token.transfer(address(staking), tokensLocked);
+        require(token.transfer(address(staking), tokensLocked), "transfer failed");
 
         // delegator can also call forceWithdrawDelegated on themselves
         _forceWithdrawDelegated(users.indexer, users.delegator);
     }
 
     function testForceWithdrawDelegated_RevertWhen_NoTokens() public useDelegator {
-        _setStorage_DelegationPool(users.indexer, 0, 0, 0);
+        _setStorageDelegationPool(users.indexer, 0, 0, 0);
         _setLegacyDelegation(users.indexer, users.delegator, 0, 0, 0);
 
         // switch to a third party

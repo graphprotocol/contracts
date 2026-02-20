@@ -1,5 +1,13 @@
 # @graphprotocol/toolshed
 
+## 1.1.2
+
+### Patch Changes
+
+- remove return types from IGraphTokenLockWalletToolshed
+- Updated dependencies
+  - @graphprotocol/interfaces@0.6.5
+
 ## 1.1.1
 
 ### Patch Changes

@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.22;
 
-// TODO: Re-enable and fix issues when publishing a new version
-// solhint-disable gas-indexed-events
-
 import { IDataService } from "./IDataService.sol";
 
 /**
@@ -22,6 +19,7 @@ interface IDataServicePausable is IDataService {
      * @param allowed The allowed status of the pause guardian
      */
     event PauseGuardianSet(address indexed account, bool allowed);
+    // solhint-disable-previous-line gas-indexed-events
 
     /**
      * @notice Emitted when a the caller is not a pause guardian
@@ -55,4 +53,11 @@ interface IDataServicePausable is IDataService {
      * - The contract must be paused
      */
     function unpause() external;
+
+    /**
+     * @notice Gets the allowed status of a pause guardian
+     * @param pauseGuardian The address of the pause guardian
+     * @return The allowed status of the pause guardian
+     */
+    function pauseGuardians(address pauseGuardian) external view returns (bool);
 }

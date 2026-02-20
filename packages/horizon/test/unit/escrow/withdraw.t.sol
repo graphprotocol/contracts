@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "forge-std/Test.sol";
-
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { GraphEscrowTest } from "./GraphEscrow.t.sol";
 
@@ -16,7 +14,7 @@ contract GraphEscrowWithdrawTest is GraphEscrowTest {
         uint256 thawAmount
     ) public useGateway depositAndThawTokens(amount, thawAmount) {
         // advance time
-        skip(withdrawEscrowThawingPeriod + 1);
+        skip(WITHDRAW_ESCROW_THAWING_PERIOD + 1);
 
         _withdrawEscrow(users.verifier, users.indexer);
         vm.stopPrank();
@@ -35,7 +33,7 @@ contract GraphEscrowWithdrawTest is GraphEscrowTest {
         bytes memory expectedError = abi.encodeWithSignature(
             "PaymentsEscrowStillThawing(uint256,uint256)",
             block.timestamp,
-            block.timestamp + withdrawEscrowThawingPeriod
+            block.timestamp + WITHDRAW_ESCROW_THAWING_PERIOD
         );
         vm.expectRevert(expectedError);
         escrow.withdraw(users.verifier, users.indexer);
@@ -66,7 +64,7 @@ contract GraphEscrowWithdrawTest is GraphEscrowTest {
         );
 
         // Advance time to simulate the thawing period
-        skip(withdrawEscrowThawingPeriod + 1);
+        skip(WITHDRAW_ESCROW_THAWING_PERIOD + 1);
 
         // withdraw the remaining thawed balance
         resetPrank(users.gateway);

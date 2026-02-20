@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.27;
+pragma solidity 0.8.33;
 
 // TODO: Re-enable and fix issues when publishing a new version
 // solhint-disable gas-small-strings
+// solhint-disable func-name-mixedcase
+// forge-lint: disable-start(mixed-case-function, asm-keccak256)
 
 import { IAttestation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAttestation.sol";
 
@@ -41,7 +43,6 @@ abstract contract AttestationManager is Initializable, AttestationManagerV1Stora
      * @notice Initialize the AttestationManager contract and parent contracts
      */
     function __AttestationManager_init() internal onlyInitializing {
-        // solhint-disable-previous-line func-name-mixedcase
         __AttestationManager_init_unchained();
     }
 
@@ -49,7 +50,6 @@ abstract contract AttestationManager is Initializable, AttestationManagerV1Stora
      * @notice Initialize the AttestationManager contract
      */
     function __AttestationManager_init_unchained() internal onlyInitializing {
-        // solhint-disable-previous-line func-name-mixedcase
         _domainSeparator = keccak256(
             abi.encode(
                 DOMAIN_TYPE_HASH,
