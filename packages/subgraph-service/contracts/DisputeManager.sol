@@ -15,7 +15,7 @@ import { IIndexingAgreement } from "@graphprotocol/interfaces/contracts/subgraph
 
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
-import { MathUtils } from "@graphprotocol/horizon/contracts/libraries/MathUtils.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { Attestation } from "./libraries/Attestation.sol";
 
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
@@ -218,46 +218,6 @@ contract DisputeManager is
         emit DisputeLinked(dId1, dId2);
 
         return (dId1, dId2);
-    }
-
-    /// @inheritdoc IDisputeManager
-    function createAndAcceptLegacyDispute(
-        address allocationId,
-        address fisherman,
-        uint256 tokensSlash,
-        uint256 tokensRewards
-    ) external override onlyArbitrator returns (bytes32) {
-        // Create a disputeId
-        bytes32 disputeId = keccak256(abi.encodePacked(allocationId, "legacy"));
-
-        // Get the indexer for the legacy allocation
-        address indexer = _graphStaking().getAllocation(allocationId).indexer;
-        require(indexer != address(0), DisputeManagerIndexerNotFound(allocationId));
-
-        // Store dispute
-        disputes[disputeId] = Dispute(
-            indexer,
-            fisherman,
-            0,
-            0,
-            DisputeType.LegacyDispute,
-            IDisputeManager.DisputeStatus.Accepted,
-            block.timestamp,
-            block.timestamp + disputePeriod,
-            0
-        );
-
-        // Slash the indexer
-        ISubgraphService subgraphService_ = _getSubgraphService();
-        subgraphService_.slash(indexer, abi.encode(tokensSlash, tokensRewards));
-
-        // Reward the fisherman
-        _graphToken().pushTokens(fisherman, tokensRewards);
-
-        emit LegacyDisputeCreated(disputeId, indexer, fisherman, allocationId, tokensSlash, tokensRewards);
-        emit DisputeAccepted(disputeId, indexer, fisherman, tokensRewards);
-
-        return disputeId;
     }
 
     /// @inheritdoc IDisputeManager
@@ -672,8 +632,8 @@ contract DisputeManager is
         // - The applied cut is the minimum between the provision's maxVerifierCut and the current fishermanRewardCut. This
         //   protects the indexer from sudden changes to the fishermanRewardCut while ensuring the slashing does not revert due
         //   to excessive rewards being requested.
-        uint256 maxRewardableTokens = MathUtils.min(_tokensSlash, provision.tokens);
-        uint256 effectiveCut = MathUtils.min(provision.maxVerifierCut, fishermanRewardCut);
+        uint256 maxRewardableTokens = Math.min(_tokensSlash, provision.tokens);
+        uint256 effectiveCut = Math.min(provision.maxVerifierCut, fishermanRewardCut);
         uint256 tokensRewards = effectiveCut.mulPPM(maxRewardableTokens);
 
         subgraphService_.slash(_indexer, abi.encode(_tokensSlash, tokensRewards));

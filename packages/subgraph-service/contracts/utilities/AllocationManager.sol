@@ -62,19 +62,6 @@ abstract contract AllocationManager is
     function __AllocationManager_init_unchained() internal onlyInitializing {}
 
     /**
-     * @notice Imports a legacy allocation id into the subgraph service
-     * This is a governor only action that is required to prevent indexers from re-using allocation ids from the
-     * legacy staking contract. It will revert with LegacyAllocationAlreadyMigrated if the allocation has already been migrated.
-     * @param _indexer The address of the indexer
-     * @param _allocationId The id of the allocation
-     * @param _subgraphDeploymentId The id of the subgraph deployment
-     */
-    function _migrateLegacyAllocation(address _indexer, address _allocationId, bytes32 _subgraphDeploymentId) internal {
-        _legacyAllocations.migrate(_indexer, _allocationId, _subgraphDeploymentId);
-        emit LegacyAllocationMigrated(_indexer, _allocationId, _subgraphDeploymentId);
-    }
-
-    /**
      * @notice Create an allocation
      * @dev The `_allocationProof` is a 65-bytes Ethereum signed message of `keccak256(indexerAddress,allocationId)`
      *

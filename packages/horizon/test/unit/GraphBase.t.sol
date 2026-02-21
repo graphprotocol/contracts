@@ -12,7 +12,6 @@ import { GraphPayments } from "contracts/payments/GraphPayments.sol";
 import { GraphTallyCollector } from "contracts/payments/collectors/GraphTallyCollector.sol";
 import { IHorizonStaking } from "@graphprotocol/interfaces/contracts/horizon/IHorizonStaking.sol";
 import { HorizonStaking } from "contracts/staking/HorizonStaking.sol";
-import { HorizonStakingExtension } from "contracts/staking/HorizonStakingExtension.sol";
 import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
 import { MockGRTToken } from "../../contracts/mocks/MockGRTToken.sol";
 import { EpochManagerMock } from "contracts/mocks/EpochManagerMock.sol";
@@ -41,7 +40,6 @@ abstract contract GraphBaseTest is IHorizonStakingTypes, Utils, Constants {
     GraphTallyCollector graphTallyCollector;
 
     HorizonStaking private stakingBase;
-    HorizonStakingExtension private stakingExtension;
 
     address subgraphDataServiceLegacyAddress = makeAddr("subgraphDataServiceLegacyAddress");
     address subgraphDataServiceAddress = makeAddr("subgraphDataServiceAddress");
@@ -69,8 +67,7 @@ abstract contract GraphBaseTest is IHorizonStakingTypes, Utils, Constants {
             operator: createUser("operator"),
             gateway: createUser("gateway"),
             verifier: createUser("verifier"),
-            delegator: createUser("delegator"),
-            legacySlasher: createUser("legacySlasher")
+            delegator: createUser("delegator")
         });
 
         // Deploy protocol contracts
@@ -84,7 +81,6 @@ abstract contract GraphBaseTest is IHorizonStakingTypes, Utils, Constants {
         vm.label({ account: address(payments), newLabel: "GraphPayments" });
         vm.label({ account: address(escrow), newLabel: "PaymentsEscrow" });
         vm.label({ account: address(staking), newLabel: "HorizonStaking" });
-        vm.label({ account: address(stakingExtension), newLabel: "HorizonStakingExtension" });
         vm.label({ account: address(graphTallyCollector), newLabel: "GraphTallyCollector" });
 
         // Ensure caller is back to the original msg.sender
@@ -192,12 +188,7 @@ abstract contract GraphBaseTest is IHorizonStakingTypes, Utils, Constants {
             escrow = PaymentsEscrow(escrowProxyAddress);
         }
 
-        stakingExtension = new HorizonStakingExtension(address(controller), subgraphDataServiceLegacyAddress);
-        stakingBase = new HorizonStaking(
-            address(controller),
-            address(stakingExtension),
-            subgraphDataServiceLegacyAddress
-        );
+        stakingBase = new HorizonStaking(address(controller), subgraphDataServiceLegacyAddress);
 
         graphTallyCollector = new GraphTallyCollector(
             "GraphTallyCollector",

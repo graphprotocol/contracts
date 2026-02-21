@@ -154,7 +154,7 @@ describe('L2Curation', () => {
   let me: SignerWithAddress
   let governor: SignerWithAddress
   let curator: SignerWithAddress
-  let stakingMock: SignerWithAddress
+  let subgraphServiceMock: SignerWithAddress
   let gnsImpersonator: Signer
 
   let fixture: NetworkFixture
@@ -310,8 +310,8 @@ describe('L2Curation', () => {
     const beforeTotalBalance = await grt.balanceOf(curation.address)
 
     // Source of tokens must be the staking for this to work
-    await grt.connect(stakingMock).transfer(curation.address, tokensToCollect)
-    const tx = curation.connect(stakingMock).collect(subgraphDeploymentID, tokensToCollect)
+    await grt.connect(subgraphServiceMock).transfer(curation.address, tokensToCollect)
+    const tx = curation.connect(subgraphServiceMock).collect(subgraphDeploymentID, tokensToCollect)
     await expect(tx).emit(curation, 'Collected').withArgs(subgraphDeploymentID, tokensToCollect)
 
     // After state
@@ -325,7 +325,7 @@ describe('L2Curation', () => {
 
   before(async function () {
     // Use stakingMock so we can call collect
-    ;[me, curator, stakingMock] = await graph.getTestAccounts()
+    ;[me, curator, subgraphServiceMock] = await graph.getTestAccounts()
     ;({ governor } = await graph.getNamedAccounts())
     fixture = new NetworkFixture(graph.provider)
     contracts = await fixture.load(governor, true)
@@ -343,8 +343,11 @@ describe('L2Curation', () => {
     await grt.connect(gnsImpersonator).approve(curation.address, curatorTokens)
 
     // Give some funds to the staking contract and approve the curation contract
-    await grt.connect(governor).mint(stakingMock.address, tokensToCollect)
-    await grt.connect(stakingMock).approve(curation.address, tokensToCollect)
+    await grt.connect(governor).mint(subgraphServiceMock.address, tokensToCollect)
+    await grt.connect(subgraphServiceMock).approve(curation.address, tokensToCollect)
+
+    // Set the subgraph service
+    await curation.connect(governor).setSubgraphService(subgraphServiceMock.address)
   })
 
   beforeEach(async function () {
@@ -514,10 +517,10 @@ describe('L2Curation', () => {
     context('> not curated', function () {
       it('reject collect tokens distributed to the curation pool', async function () {
         // Source of tokens must be the staking for this to work
-        await controller.connect(governor).setContractProxy(utils.id('Staking'), stakingMock.address)
+        await controller.connect(governor).setContractProxy(utils.id('Staking'), subgraphServiceMock.address)
         await curation.connect(governor).syncAllContracts() // call sync because we change the proxy for staking
 
-        const tx = curation.connect(stakingMock).collect(subgraphDeploymentID, tokensToCollect)
+        const tx = curation.connect(subgraphServiceMock).collect(subgraphDeploymentID, tokensToCollect)
         await expect(tx).revertedWith('Subgraph deployment must be curated to collect fees')
       })
     })
@@ -529,11 +532,11 @@ describe('L2Curation', () => {
 
       it('reject collect tokens distributed from invalid address', async function () {
         const tx = curation.connect(me).collect(subgraphDeploymentID, tokensToCollect)
-        await expect(tx).revertedWith('Caller must be the subgraph service or staking contract')
+        await expect(tx).revertedWith('Caller must be the subgraph service')
       })
 
       it('should collect tokens distributed to the curation pool', async function () {
-        await controller.connect(governor).setContractProxy(utils.id('Staking'), stakingMock.address)
+        await controller.connect(governor).setContractProxy(utils.id('Staking'), subgraphServiceMock.address)
         await curation.connect(governor).syncAllContracts() // call sync because we change the proxy for staking
 
         await shouldCollect(toGRT('1'))
@@ -544,7 +547,7 @@ describe('L2Curation', () => {
       })
 
       it('should collect tokens and then unsignal all', async function () {
-        await controller.connect(governor).setContractProxy(utils.id('Staking'), stakingMock.address)
+        await controller.connect(governor).setContractProxy(utils.id('Staking'), subgraphServiceMock.address)
         await curation.connect(governor).syncAllContracts() // call sync because we change the proxy for staking
 
         // Collect increase the pool reserves
@@ -556,7 +559,7 @@ describe('L2Curation', () => {
       })
 
       it('should collect tokens and then unsignal multiple times', async function () {
-        await controller.connect(governor).setContractProxy(utils.id('Staking'), stakingMock.address)
+        await controller.connect(governor).setContractProxy(utils.id('Staking'), subgraphServiceMock.address)
         await curation.connect(governor).syncAllContracts() // call sync because we change the proxy for staking
 
         // Collect increase the pool reserves
