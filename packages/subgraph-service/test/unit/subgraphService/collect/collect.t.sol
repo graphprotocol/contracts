@@ -3,7 +3,7 @@ pragma solidity ^0.8.27;
 
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 
-import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
+import { IndexingAgreementDecoder } from "../../../../contracts/libraries/IndexingAgreementDecoder.sol";
 import { SubgraphServiceTest } from "../SubgraphService.t.sol";
 
 contract SubgraphServiceCollectTest is SubgraphServiceTest {
@@ -14,10 +14,14 @@ contract SubgraphServiceCollectTest is SubgraphServiceTest {
     function test_SubgraphService_Collect_RevertWhen_InvalidPayment(
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
-        IGraphPayments.PaymentTypes invalidPaymentType = IGraphPayments.PaymentTypes.IndexingFee;
+        IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingFee;
         vm.expectRevert(
-            abi.encodeWithSelector(ISubgraphService.SubgraphServiceInvalidPaymentType.selector, invalidPaymentType)
+            abi.encodeWithSelector(
+                IndexingAgreementDecoder.IndexingAgreementDecoderInvalidData.selector,
+                "decodeCollectData",
+                ""
+            )
         );
-        subgraphService.collect(users.indexer, invalidPaymentType, "");
+        subgraphService.collect(users.indexer, paymentType, "");
     }
 }

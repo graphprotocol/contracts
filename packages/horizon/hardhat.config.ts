@@ -18,13 +18,26 @@ const baseConfig = hardhatBaseConfig(require)
 const config: HardhatUserConfig = {
   ...baseConfig,
   solidity: {
-    version: '0.8.27',
-    settings: {
-      optimizer: {
-        enabled: true,
-        runs: 20,
+    compilers: [
+      {
+        version: '0.8.27',
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 20,
+          },
+        },
       },
-    },
+      {
+        version: '0.8.33',
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 20,
+          },
+        },
+      },
+    ],
   },
   etherscan: {
     ...baseConfig.etherscan,
