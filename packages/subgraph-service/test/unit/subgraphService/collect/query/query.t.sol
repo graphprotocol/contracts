@@ -21,7 +21,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
      * HELPERS
      */
 
-    function _getSignerProof(uint256 _proofDeadline, uint256 _signer) private view returns (bytes memory) {
+    function _getSignerProof(uint256 _proofDeadline, uint256 _signer) private returns (bytes memory) {
         (, address msgSender, ) = vm.readCallers();
         bytes32 messageHash = keccak256(
             abi.encodePacked(

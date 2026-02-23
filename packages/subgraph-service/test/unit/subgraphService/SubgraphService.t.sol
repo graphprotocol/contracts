@@ -492,6 +492,45 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         assertEq(afterLegacyAllocation.subgraphDeploymentId, _subgraphDeploymentId);
     }
 
+    /**
+     * @notice Sets a legacy allocation directly in HorizonStaking storage
+     * @dev The __DEPRECATED_allocations mapping is at storage slot 15 in HorizonStaking
+     * Use `forge inspect HorizonStaking storage-layout` to verify
+     * The LegacyAllocation struct has the following layout:
+     * - slot 0: indexer (address)
+     * - slot 1: subgraphDeploymentID (bytes32)
+     * - slot 2: tokens (uint256)
+     * - slot 3: createdAtEpoch (uint256)
+     * - slot 4: closedAtEpoch (uint256)
+     * - slot 5: collectedFees (uint256)
+     * - slot 6: __DEPRECATED_effectiveAllocation (uint256)
+     * - slot 7: accRewardsPerAllocatedToken (uint256)
+     * - slot 8: distributedRebates (uint256)
+     */
+    function _setLegacyAllocationInStaking(
+        address _allocationId,
+        address _indexer,
+        bytes32 _subgraphDeploymentId
+    ) internal {
+        // Storage slot for __DEPRECATED_allocations mapping in HorizonStaking
+        uint256 allocationsSlot = 15;
+        bytes32 allocationBaseSlot = keccak256(abi.encode(_allocationId, allocationsSlot));
+
+        // Set indexer (slot 0)
+        vm.store(address(staking), allocationBaseSlot, bytes32(uint256(uint160(_indexer))));
+        // Set subgraphDeploymentID (slot 1)
+        vm.store(address(staking), bytes32(uint256(allocationBaseSlot) + 1), _subgraphDeploymentId);
+        // Set tokens (slot 2) - non-zero to indicate active allocation
+        vm.store(address(staking), bytes32(uint256(allocationBaseSlot) + 2), bytes32(uint256(1000 ether)));
+        // Set createdAtEpoch (slot 3) - non-zero
+        vm.store(address(staking), bytes32(uint256(allocationBaseSlot) + 3), bytes32(uint256(1)));
+        // Set closedAtEpoch (slot 4) - non-zero to indicate closed
+        vm.store(address(staking), bytes32(uint256(allocationBaseSlot) + 4), bytes32(uint256(10)));
+
+        // Verify the allocation is now visible via isAllocation
+        assertTrue(staking.isAllocation(_allocationId));
+    }
+
     /*
      * HELPERS
      */

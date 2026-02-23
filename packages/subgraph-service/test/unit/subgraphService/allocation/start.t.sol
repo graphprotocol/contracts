@@ -165,8 +165,9 @@ contract SubgraphServiceAllocationStartTest is SubgraphServiceTest {
         _createProvision(users.indexer, tokens, FISHERMAN_REWARD_PERCENTAGE, DISPUTE_PERIOD);
         _register(users.indexer, abi.encode("url", "geoHash", address(0)));
 
-        // simulate legacy allocation migration
-        _migrateLegacyAllocation(users.indexer, allocationId, subgraphDeployment);
+        // Set a legacy allocation directly in HorizonStaking storage
+        // This simulates an allocation that was created before Horizon and exists in the staking contract
+        _setLegacyAllocationInStaking(allocationId, users.indexer, subgraphDeployment);
 
         bytes memory data = _generateData(tokens);
         vm.expectRevert(abi.encodeWithSelector(ILegacyAllocation.LegacyAllocationAlreadyExists.selector, allocationId));
