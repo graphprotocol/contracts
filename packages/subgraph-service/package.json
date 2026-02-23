@@ -1,0 +1,97 @@
+{
+  "name": "@graphprotocol/subgraph-service",
+  "version": "1.1.1",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "Data service contracts for Graph Horizon subgraph indexing",
+  "author": "Edge & Node",
+  "license": "GPL-2.0-or-later",
+  "types": "typechain-types/index.ts",
+  "exports": {
+    "./artifacts/*": "./build/contracts/*",
+    "./addresses*": "./addresses*"
+  },
+  "files": [
+    "build/contracts/**/*",
+    "typechain-types/**/*",
+    "README.md"
+  ],
+  "scripts": {
+    "lint": "pnpm lint:ts; pnpm lint:sol; pnpm lint:forge; pnpm lint:md; pnpm lint:json",
+    "lint:ts": "eslint --fix --cache '**/*.{js,ts,cjs,mjs,jsx,tsx}'; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
+    "lint:sol": "solhint --fix --noPrompt --noPoster 'contracts/**/*.sol'; prettier -w --cache --log-level warn '**/*.sol'",
+    "lint:forge": "forge lint",
+    "lint:md": "markdownlint --fix --ignore-path ../../.gitignore '**/*.md'; prettier -w --cache --log-level warn '**/*.md'",
+    "lint:json": "prettier -w --cache --log-level warn '**/*.json'",
+    "clean": "rm -rf build dist cache cache_forge typechain-types",
+    "build": "pnpm build:dep && pnpm build:self",
+    "build:dep": "pnpm --filter '@graphprotocol/subgraph-service^...' run build:self",
+    "build:self": "hardhat compile --quiet",
+    "test": "pnpm build && pnpm test:self",
+    "test:self": "forge test",
+    "test:deployment": "SECURE_ACCOUNTS_DISABLE_PROVIDER=true hardhat test test/deployment/*.ts",
+    "test:integration": "./scripts/integration",
+    "test:coverage": "pnpm build && pnpm test:coverage:self",
+    "test:coverage:self": "forge coverage",
+    "prepublishOnly": "pnpm run build"
+  },
+  "devDependencies": {
+    "@graphprotocol/contracts": "workspace:^",
+    "@graphprotocol/horizon": "workspace:^",
+    "@graphprotocol/interfaces": "workspace:^",
+    "@graphprotocol/toolshed": "workspace:^",
+    "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
+    "@nomicfoundation/hardhat-ethers": "catalog:",
+    "@nomicfoundation/hardhat-foundry": "^1.1.1",
+    "@nomicfoundation/hardhat-ignition": "^0.15.9",
+    "@nomicfoundation/hardhat-ignition-ethers": "^0.15.9",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@nomicfoundation/hardhat-verify": "^2.0.10",
+    "@nomicfoundation/ignition-core": "^0.15.9",
+    "@openzeppelin/contracts": "^5.0.2",
+    "@openzeppelin/contracts-upgradeable": "^5.0.2",
+    "@openzeppelin/foundry-upgrades": "0.4.0",
+    "@tenderly/hardhat-tenderly": "^1.11.0",
+    "@typechain/ethers-v6": "^0.5.0",
+    "@typechain/hardhat": "^9.0.0",
+    "@types/chai": "^4.2.0",
+    "@types/mocha": ">=9.1.0",
+    "@types/node": ">=16.0.0",
+    "chai": "^4.2.0",
+    "eslint": "catalog:",
+    "ethers": "catalog:",
+    "forge-std": "catalog:",
+    "glob": "^11.0.1",
+    "hardhat": "catalog:",
+    "hardhat-contract-sizer": "^2.10.0",
+    "hardhat-gas-reporter": "^1.0.8",
+    "hardhat-graph-protocol": "workspace:^",
+    "hardhat-secure-accounts": "^1.0.5",
+    "json5": "^2.2.3",
+    "lint-staged": "catalog:",
+    "prettier": "catalog:",
+    "prettier-plugin-solidity": "catalog:",
+    "solhint": "catalog:",
+    "solidity-coverage": "^0.8.0",
+    "solidity-docgen": "^0.6.0-beta.36",
+    "ts-node": ">=8.0.0",
+    "typechain": "^8.3.0",
+    "typescript": "catalog:"
+  },
+  "lint-staged": {
+    "contracts/**/*.sol": [
+      "pnpm lint:sol"
+    ],
+    "**/*.ts": [
+      "pnpm lint:ts"
+    ],
+    "**/*.js": [
+      "pnpm lint:ts"
+    ],
+    "**/*.json": [
+      "pnpm lint:ts"
+    ]
+  }
+}

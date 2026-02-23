@@ -5,8 +5,7 @@ node.log
 
 # Dependency directories
 node_modules/
-forge-std/
-**/lib/forge-std/
+.pnpm-store/
 
 # Yarn
 .yarn/*
@@ -28,9 +27,23 @@ packages/*/.eslintcache
 
 # Build artifacts
 dist/
+dist-v5/
 build/
-types/
 deployments/hardhat/
+*.js.map
+*.d.ts.map
+
+# Generated types (typechain output)
+typechain/
+typechain-src/
+typechain-types/
+types-v5/
+wagmi/
+packages/contracts/types/
+packages/contracts-test/types/
+packages/interfaces/types/
+packages/token-distribution/types/
+packages/issuance/types/
 
 # TypeScript incremental compilation cache
 **/tsconfig.tsbuildinfo
@@ -38,10 +51,14 @@ deployments/hardhat/
 # Ignore solc bin output
 bin/
 
+# PNPM store (project-local)
+.pnpm-store/
+
 # Others
 .env
 .DS_Store
 .vscode
+core
 
 # Coverage and other reports
 coverage/
@@ -51,13 +68,11 @@ lcov.info
 hardhat-dependency-compiler/
 
 # Local test files
-addresses-local.json
 localNetwork.json
 arbitrum-addresses-local.json
-tx-*.log
 addresses-fork.json
 addresses-hardhat.json
-addresses-local-network.json
+addresses-local*.json
 
 # Keys
 .keystore
@@ -66,19 +81,35 @@ addresses-local-network.json
 cache_forge
 forge-artifacts/
 out/
-packages/issuance/lib/forge-std/
 
 # Graph client
 .graphclient
 
+# Tx builder and logger
+tx-*.log
 tx-builder-*.json
 !tx-builder-template.json
 
 # Hardhat Ignition
+**/ignition/deployments/*-localhost/
+**/ignition/deployments/*-hardhat/
+**/ignition/deployments/*-31337/
+**/ignition/deployments/*-1337/
 **/chain-31337/
 **/chain-1377/
 **/horizon-localhost/
 **/horizon-hardhat/
 **/subgraph-service-localhost/
 **/subgraph-service-hardhat/
+**/horizon-localNetwork/
+**/subgraph-service-localNetwork/
 !**/ignition/**/artifacts/
+
+# Claude AI settings
+.claude/
+
+# Tenderly
+.tenderly-artifacts/
+
+# NFS stale file handles
+.nfs*

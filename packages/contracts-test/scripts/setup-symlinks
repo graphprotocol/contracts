@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# Setup symbolic links for contracts test package
+# This script ensures that the necessary symbolic links are created
+# for the test package to access contracts from the parent package
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TEST_DIR="$(dirname "$SCRIPT_DIR")"
+
+# Create symbolic link from contracts to ../contracts/contracts
+CONTRACTS_LINK="$TEST_DIR/contracts"
+CONTRACTS_TARGET="../contracts/contracts"
+
+if [ -L "$CONTRACTS_LINK" ]; then
+    # Check if the link points to the correct target
+    if [ "$(readlink "$CONTRACTS_LINK")" = "$CONTRACTS_TARGET" ]; then
+        echo "Contracts symlink: OK"
+    else
+        rm "$CONTRACTS_LINK"
+        ln -s "$CONTRACTS_TARGET" "$CONTRACTS_LINK"
+        echo "Contracts symlink: Created"
+    fi
+elif [ -e "$CONTRACTS_LINK" ]; then
+    echo "Error: $CONTRACTS_LINK exists but is not a symbolic link"
+    echo "Please remove it manually and run this script again"
+    exit 1
+else
+    ln -s "$CONTRACTS_TARGET" "$CONTRACTS_LINK"
+    echo "Contracts symlink: Created"
+fi

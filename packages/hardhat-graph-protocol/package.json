@@ -1,0 +1,72 @@
+{
+  "name": "hardhat-graph-protocol",
+  "version": "0.2.6",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "A hardhat plugin that extends the runtime environment to inject additional functionality related to the usage of the Graph Protocol.",
+  "keywords": [
+    "ethereum",
+    "smart-contracts",
+    "hardhat",
+    "hardhat-plugin",
+    "graph",
+    "graph-protocol",
+    "horizon"
+  ],
+  "author": "Tomás Migone <tomas@edgeandnode.com>",
+  "license": "MIT",
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/types.ts",
+      "default": "./dist/src/index.js"
+    }
+  },
+  "scripts": {
+    "build": "pnpm build:dep && pnpm build:self",
+    "build:dep": "pnpm --filter '@graphprotocol/hardhat-graph-protocol^...' run build:self",
+    "build:self": "tsc",
+    "build:clean": "pnpm clean && pnpm build",
+    "watch": "tsc --watch",
+    "clean": "rm -rf dist",
+    "lint": "pnpm lint:ts; pnpm lint:md; pnpm lint:json",
+    "lint:ts": "eslint --fix --cache '**/*.{js,ts,cjs,mjs,jsx,tsx}'; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
+    "lint:md": "markdownlint --fix --ignore-path ../../.gitignore '**/*.md'; prettier -w --cache --log-level warn '**/*.md'",
+    "lint:json": "prettier -w --cache --log-level warn '**/*.json'",
+    "test": "pnpm build && pnpm test:self",
+    "test:self": "mocha --exit --recursive 'test/**/*.test.ts'",
+    "prepublishOnly": "pnpm run build"
+  },
+  "files": [
+    "dist/",
+    "src/",
+    "LICENSE",
+    "README.md"
+  ],
+  "dependencies": {
+    "@graphprotocol/toolshed": "workspace:^",
+    "@nomicfoundation/hardhat-ethers": "catalog:",
+    "debug": "^4.3.7",
+    "json5": "^2.2.3"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-verify": "^2.0.12",
+    "@types/chai": "^4.0.0",
+    "@types/debug": "^4.1.12",
+    "@types/mocha": "^10.0.9",
+    "chai": "^4.0.0",
+    "eslint": "catalog:",
+    "ethers": "catalog:",
+    "hardhat": "catalog:",
+    "hardhat-secure-accounts": "^1.0.4",
+    "mocha": "^10.8.2",
+    "ts-node": "^8.0.0",
+    "typescript": "catalog:"
+  },
+  "peerDependencies": {
+    "ethers": "catalog:",
+    "hardhat": "catalog:"
+  }
+}

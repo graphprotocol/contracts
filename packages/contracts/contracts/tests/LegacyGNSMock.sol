@@ -3,8 +3,11 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable use-natspec
+
 import { L1GNS } from "../discovery/L1GNS.sol";
-import { IGNS } from "../discovery/IGNS.sol";
+import { IGNS } from "@graphprotocol/interfaces/contracts/contracts/discovery/IGNS.sol";
 
 /**
  * @title LegacyGNSMock contract

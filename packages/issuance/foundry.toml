@@ -1,0 +1,19 @@
+[profile.default]
+src = 'contracts'
+out = 'forge-artifacts'
+libs = ["node_modules"]
+auto_detect_remappings = false
+remappings = [
+    "@openzeppelin/=node_modules/@openzeppelin/",
+    "@graphprotocol/=node_modules/@graphprotocol/",
+]
+cache_path = 'cache_forge'
+fs_permissions = [{ access = "read", path = "./" }]
+optimizer = true
+optimizer_runs = 100
+via_ir = true
+solc_version = '0.8.33'
+evm_version = 'cancun'
+
+# Exclude test files from coverage reports
+no_match_coverage = "(^test/|/mocks/)"

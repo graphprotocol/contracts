@@ -12,6 +12,7 @@ import 'hardhat-deploy'
 import 'hardhat-abi-exporter'
 import '@typechain/hardhat'
 import 'hardhat-gas-reporter'
+import 'hardhat-ignore-warnings'
 import '@openzeppelin/hardhat-upgrades'
 import 'solidity-coverage'
 // Tasks
@@ -20,6 +21,7 @@ import './ops/delete'
 import './ops/info'
 import './ops/manager'
 import './ops/beneficiary'
+import './ops/update-auth-functions-horizon'
 
 // Networks
 
@@ -55,8 +57,9 @@ const networkConfigs: NetworkConfig[] = [
   },
 ]
 
+const DEFAULT_MNEMONIC = 'test test test test test test test test test test test junk'
 function getAccountMnemonic() {
-  return process.env.MNEMONIC || ''
+  return process.env.MNEMONIC || DEFAULT_MNEMONIC
 }
 
 function getDefaultProviderURL(network: string) {
@@ -153,16 +156,6 @@ const config = {
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
-    customChains: [
-      {
-        network: 'arbitrum-sepolia',
-        chainId: 421614,
-        urls: {
-          apiURL: 'https://api-sepolia.arbiscan.io/api',
-          browserURL: 'https://sepolia.arbiscan.io',
-        },
-      },
-    ],
   },
   typechain: {
     outDir: 'types',
@@ -186,6 +179,12 @@ const config = {
   },
   mocha: {
     timeout: 120000,
+  },
+  warnings: {
+    // Suppress warnings from legacy OpenZeppelin contracts
+    '@openzeppelin/contracts/**/*': {
+      default: 'off',
+    },
   },
 }
 

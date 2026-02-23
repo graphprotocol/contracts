@@ -1,0 +1,42 @@
+#!/bin/bash
+
+set -eo pipefail
+source $(pwd)/scripts/evm
+
+### Cleanup
+function cleanup() {
+  if [ "$RUN_EVM" = true ]; then
+    evm_kill
+  fi
+}
+trap cleanup EXIT
+
+# Gas reporter needs to run in its own evm instance
+if [ "$RUN_EVM" = true  ]; then
+  evm_kill
+  evm_start
+  sleep 5
+fi
+
+### Main
+
+# Init address book
+echo {} > ../contracts/addresses-local.json
+
+# TODO: fix this! For some reason the resolved package does not have a few required files
+echo {} > ../../node_modules/.pnpm/@graphprotocol+contracts@7.2.1/node_modules/@graphprotocol/contracts/addresses-local.json
+cp -r ../contracts/config ../../node_modules/.pnpm/@graphprotocol+contracts@7.2.1/node_modules/@graphprotocol/contracts/config
+
+mkdir -p reports
+
+# Run using the standalone evm instance
+DISABLE_SECURE_ACCOUNTS=true \
+L1_GRAPH_CONFIG=config/graph.hardhat.yml \
+L2_GRAPH_CONFIG=config/graph.arbitrum-hardhat.yml \
+ADDRESS_BOOK=addresses-local.json \
+  npx hardhat test --network hardhat $@
+
+if [ "$REPORT_GAS" = true ]; then
+  cat reports/gas-report.log
+  echo "" # Gas report doesn't have a newline at the end
+fi

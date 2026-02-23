@@ -33,15 +33,17 @@
 
 This repository is a pnpm workspaces monorepo containing the following packages:
 
-| Package                                             | Latest version                                                                                                                                   | Description                                                                                       |
-| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
-| [contracts](./packages/contracts)                   | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fcontracts.svg)](https://badge.fury.io/js/@graphprotocol%2Fcontracts)                   | Contracts enabling the open and permissionless decentralized network known as The Graph protocol. |
-| [horizon](./packages/horizon)                       | -                                                                                                                                                | Contracts for Graph Horizon, the next iteration of The Graph protocol.                            |
-| [token-distribution](./packages/token-distribution) | [![npm version](https://badge.fury.io/js/@graphprotocol%2Ftoken-distribution.svg)](https://badge.fury.io/js/@graphprotocol%2Ftoken-distribution) | Contracts managing token locks for network participants                                           |
-| [sdk](./packages/sdk)                               | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fsdk.svg)](https://badge.fury.io/js/@graphprotocol%2Fsdk)                               | TypeScript based SDK to interact with the protocol contracts                                      |
-| [issuance](./packages/issuance)                     | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fissuance.svg)](https://badge.fury.io/js/@graphprotocol%2Fissuance)                     | Smart contracts for The Graph's token issuance functionality                                      |
-| [data-edge](./packages/data-edge)                   | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fdata-edge.svg)](https://badge.fury.io/js/@graphprotocol%2Fdata-edge)                   | Data edge testing and utilities for The Graph protocol                                            |
-| [common](./packages/common)                         | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fcommon.svg)](https://badge.fury.io/js/@graphprotocol%2Fcommon)                         | Common utilities and configuration for Graph Protocol packages                                    |
+| Package                                                     | Latest version                                                                                                                                   | Description                                                                                       |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| [contracts](./packages/contracts)                           | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fcontracts.svg)](https://badge.fury.io/js/@graphprotocol%2Fcontracts)                   | Contracts enabling the open and permissionless decentralized network known as The Graph protocol. |
+| [data-edge](./packages/data-edge)                           | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fdata-edge.svg)](https://badge.fury.io/js/@graphprotocol%2Fdata-edge)                   | Data edge testing and utilities for The Graph protocol.                                           |
+| [hardhat-graph-protocol](./packages/hardhat-graph-protocol) | [![npm version](https://badge.fury.io/js/hardhat-graph-protocol.svg)](https://badge.fury.io/js/hardhat-graph-protocol)                           | A Hardhat plugin that extends the runtime environment with functionality for The Graph protocol.  |
+| [horizon](./packages/horizon)                               | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fhorizon.svg)](https://badge.fury.io/js/@graphprotocol%2Fhorizon)                       | Contracts for Graph Horizon, the next iteration of The Graph protocol.                            |
+| [interfaces](./packages/interfaces)                         | [![npm version](https://badge.fury.io/js/@graphprotocol%2Finterfaces.svg)](https://badge.fury.io/js/@graphprotocol%2Finterfaces)                 | Contract interfaces for The Graph protocol contracts.                                             |
+| [issuance](./packages/issuance)                             | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fissuance.svg)](https://badge.fury.io/js/@graphprotocol%2Fissuance)                     | Smart contracts for The Graph's token issuance functionality                                      |
+| [subgraph-service](./packages/subgraph-service)             | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fsubgraph-service.svg)](https://badge.fury.io/js/@graphprotocol%2Fsubgraph-service)     | Contracts for the Subgraph data service in Graph Horizon.                                         |
+| [token-distribution](./packages/token-distribution)         | [![npm version](https://badge.fury.io/js/@graphprotocol%2Ftoken-distribution.svg)](https://badge.fury.io/js/@graphprotocol%2Ftoken-distribution) | Contracts managing token locks for network participants.                                          |
+| [toolshed](./packages/toolshed)                             | [![npm version](https://badge.fury.io/js/@graphprotocol%2Ftoolshed.svg)](https://badge.fury.io/js/@graphprotocol%2Ftoolshed)                     | A collection of tools and utilities for the Graph Protocol TypeScript components.                 |
 
 ## Development
 
@@ -66,6 +68,52 @@ $ pnpm install
 
 # Build projects
 $ pnpm build
+
+# Run tests
+$ pnpm test
+```
+
+### Script Patterns
+
+This monorepo follows consistent script patterns across all packages to ensure reliable builds and tests:
+
+#### Build Scripts
+
+- **`pnpm build`** (root) - Builds all packages by calling `build:self` on each
+- **`pnpm build`** (package) - Builds dependencies first, then the package itself
+- **`pnpm build:self`** - Builds only the current package (no dependencies)
+- **`pnpm build:dep`** - Builds workspace dependencies needed by the current package
+
+#### Test Scripts
+
+- **`pnpm test`** (root) - Builds everything once, then runs `test:self` on all packages
+- **`pnpm test`** (package) - Builds dependencies first, then runs tests
+- **`pnpm test:self`** - Runs only the package's tests (no building)
+- **`pnpm test:coverage`** (root) - Builds everything once, then runs `test:coverage:self` on all packages
+- **`pnpm test:coverage`** (package) - Builds dependencies first, then runs coverage
+- **`pnpm test:coverage:self`** - Runs only the package's coverage tests (no building)
+
+#### Key Benefits
+
+- **Efficiency**: Root `pnpm test` builds once, then tests all packages
+- **Reliability**: Individual package tests always ensure dependencies are built
+- **Consistency**: Same patterns work at any level (root or package)
+- **Child Package Support**: Packages with child packages delegate testing appropriately
+
+#### Examples
+
+```bash
+# Build everything from root
+pnpm build
+
+# Test everything from root (builds once, tests all)
+pnpm test
+
+# Test a specific package (builds its dependencies, then tests)
+cd packages/horizon && pnpm test
+
+# Test without building (assumes dependencies already built)
+cd packages/horizon && pnpm test:self
 ```
 
 ### Versioning and publishing packages
@@ -116,6 +164,17 @@ pnpm publish --recursive
 ```
 
 Alternatively, there is a GitHub action that can be manually triggered to publish a package.
+
+## Linting
+
+This monorepo uses multiple linting tools: ESLint, Prettier, Solhint, Forge Lint, Markdownlint, and YAML Lint.
+
+```bash
+pnpm lint          # Run all linters
+pnpm lint:staged   # Lint only staged files
+```
+
+See [docs/Linting.md](docs/Linting.md) for detailed configuration, inline suppression syntax, and troubleshooting.
 
 ## Documentation
 

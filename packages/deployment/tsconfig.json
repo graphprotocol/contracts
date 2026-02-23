@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": ".",
+    "composite": true
+  },
+  "include": ["lib/**/*", "tasks/**/*", "governance/**/*", "deploy/**/*", "rocketh/**/*", "hardhat.config.ts"],
+  "exclude": ["node_modules", "dist", "artifacts", "cache", "test"]
+}

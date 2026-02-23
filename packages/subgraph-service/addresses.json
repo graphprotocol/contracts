@@ -1,0 +1,79 @@
+{
+  "42161": {
+    "SubgraphService": {
+      "address": "0xb2Bb92d0DE618878E438b55D5846cfecD9301105",
+      "proxy": "transparent",
+      "proxyAdmin": "0x49021Ada0806cabce24b73002EB4477fe4934215",
+      "implementation": "0x80D1a23472a4EcFa484c95779D5CE855C24747cD"
+    },
+    "DisputeManager": {
+      "address": "0x2FE023a575449AcB698648eD21276293Fa176f96",
+      "proxy": "transparent",
+      "proxyAdmin": "0x2cf40C92706943dCAE5E0Ba047a29563863C9d75",
+      "implementation": "0x0fa6925f21d0493072ad29f3aF66f4E11655faF1"
+    },
+    "L2Curation": {
+      "address": "0x22d78fb4bc72e191C765807f8891B5e1785C8014",
+      "proxy": "graph",
+      "implementation": "0xc4Ce508c8fda35C597CC78e3604261110fc4c957"
+    },
+    "L2GNS": {
+      "address": "0xec9A7fb6CbC2E41926127929c2dcE6e9c5D33Bec",
+      "proxy": "graph",
+      "implementation": "0x9B81c7C5A21E65b849FD487540B0A82d3b97b2c7"
+    },
+    "SubgraphNFT": {
+      "address": "0x3FbD54f0cc17b7aE649008dEEA12ed7D2622B23f"
+    },
+    "LegacyDisputeManager": {
+      "address": "0x0Ab2B043138352413Bb02e67E626a70320E3BD46"
+    },
+    "LegacyServiceRegistry": {
+      "address": "0x072884c745c0A23144753335776c99BE22588f8A"
+    }
+  },
+  "421614": {
+    "SubgraphService": {
+      "address": "0xc24A3dAC5d06d771f657A48B20cE1a671B78f26b",
+      "proxy": "transparent",
+      "proxyAdmin": "0x15737D9f8635cAcd43e110327c930bd5EC1fe098",
+      "implementation": "0x8a6361e7355d6936ab17aaacde797d01c0e6c4c4",
+      "implementationDeployment": {
+        "txHash": "0x9f3fc372d88a97832eb47bc1f98176532b9a54fa0c110dab8399f9e55ab0aa9d",
+        "argsData": "0x0000000000000000000000009db3ee191681f092607035d9bda6e59fbeaca69500000000000000000000000096e1b86b2739e8a3d59f40f2532cadf9ce8da088000000000000000000000000382863e7b662027117449bd2c49285582bbbd21b000000000000000000000000de761f075200e75485f4358978fb4d1dc8644fd5",
+        "bytecodeHash": "0x9c25d2f93e6a2a34cc19d00224872e288a8392d5d99b2df680b7e978d148d450",
+        "blockNumber": 240040490,
+        "timestamp": "2026-02-05T20:26:15.000Z",
+        "verified": "https://sepolia.arbiscan.io/address/0x8a6361e7355d6936ab17aaacde797d01c0e6c4c4#code"
+      },
+      "proxyDeployment": {
+        "verified": "https://sepolia.arbiscan.io/address/0xc24A3dAC5d06d771f657A48B20cE1a671B78f26b#code"
+      }
+    },
+    "DisputeManager": {
+      "address": "0x96e1b86b2739e8A3d59F40F2532caDF9cE8Da088",
+      "proxy": "transparent",
+      "proxyAdmin": "0x154a73CB6ebB5717a15f203d6E160E6F41ecC527",
+      "implementation": "0x28A0cFDE10e8Ea5C7f3E80981728E3eA1228D338"
+    },
+    "L2Curation": {
+      "address": "0xDe761f075200E75485F4358978FB4d1dC8644FD5",
+      "proxy": "graph",
+      "implementation": "0xbC8F4355f346e47eef8A0DBFF4a58616ACf7DaCA"
+    },
+    "L2GNS": {
+      "address": "0x3133948342F35b8699d8F94aeE064AbB76eDe965",
+      "proxy": "graph",
+      "implementation": "0x00CBF5024d454255577Bf2b0fB6A43328a6828c9"
+    },
+    "SubgraphNFT": {
+      "address": "0xF21Df5BbA7EB9b54D8F60C560aFb9bA63e6aED1A"
+    },
+    "LegacyDisputeManager": {
+      "address": "0x7C9B82717f9433932507dF6EdA93A9678b258698"
+    },
+    "LegacyServiceRegistry": {
+      "address": "0x888541878CbDDEd880Cd58c728f1Af5C47343F86"
+    }
+  }
+}

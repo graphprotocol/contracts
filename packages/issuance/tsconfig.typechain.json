@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "es2022",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "declaration": true,
+    "outDir": "./types",
+    "rootDir": "./typechain-src",
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "strict": false
+  },
+  "include": ["./typechain-src/**/*.ts"]
+}

@@ -1,6 +1,3 @@
-// Import type extensions to make hre.graph available
-import '@graphprotocol/sdk/gre/type-extensions'
-
 import { L2ToL1MessageStatus } from '@arbitrum/sdk'
 import { getL2ToL1MessageStatus } from '@graphprotocol/sdk'
 import { GraphRuntimeEnvironmentOptions, greTask } from '@graphprotocol/sdk/gre'

@@ -2,10 +2,14 @@
 
 pragma solidity ^0.7.6;
 
-import "../libraries/Base58Encoder.sol";
-import "./ISubgraphNFTDescriptor.sol";
+import { Base58Encoder } from "../libraries/Base58Encoder.sol";
+import { ISubgraphNFTDescriptor } from "@graphprotocol/interfaces/contracts/contracts/discovery/ISubgraphNFTDescriptor.sol";
 
-/// @title Describes subgraph NFT tokens via URI
+/**
+ * @title Describes subgraph NFT tokens via URI
+ * @author Edge & Node
+ * @notice Describes subgraph NFT tokens via URI
+ */
 contract SubgraphNFTDescriptor is ISubgraphNFTDescriptor {
     /// @inheritdoc ISubgraphNFTDescriptor
     function tokenURI(

@@ -1,0 +1,66 @@
+import { generatePOI } from '@graphprotocol/toolshed'
+import { indexers } from '@graphprotocol/toolshed/fixtures'
+import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { expect } from 'chai'
+import hre from 'hardhat'
+import { ethers } from 'hardhat'
+
+describe('Permissionless', () => {
+  let snapshotId: string
+
+  const graph = hre.graph()
+  const horizonStaking = graph.horizon.contracts.HorizonStaking
+  const epochManager = graph.horizon.contracts.EpochManager
+  const subgraphServiceAddress = '0x0000000000000000000000000000000000000000'
+
+  beforeEach(async () => {
+    // Take a snapshot before each test
+    snapshotId = await ethers.provider.send('evm_snapshot', [])
+  })
+
+  afterEach(async () => {
+    // Revert to the snapshot after each test
+    await ethers.provider.send('evm_revert', [snapshotId])
+  })
+
+  describe('After max allocation epochs', () => {
+    let indexer: HardhatEthersSigner
+    let anySigner: HardhatEthersSigner
+    let allocationID: string
+    let allocationTokens: bigint
+
+    before(async () => {
+      // Get signers
+      indexer = await ethers.getSigner(indexers[0].address)
+      ;[anySigner] = await graph.accounts.getTestAccounts()
+
+      // ensure anySigner is not operator for the indexer
+      await horizonStaking.connect(indexer).setOperator(subgraphServiceAddress, anySigner.address, false)
+
+      // Get allocation details
+      allocationID = indexers[0].allocations[0].allocationID
+      allocationTokens = indexers[0].allocations[0].tokens
+    })
+
+    it('should allow any user to close an allocation after 28 epochs', async () => {
+      // Get indexer's idle stake before closing allocation
+      const idleStakeBefore = await horizonStaking.getIdleStake(indexer.address)
+
+      // Mine blocks to simulate 28 epochs passing
+      const startingEpoch = await epochManager.currentEpoch()
+      while ((await epochManager.currentEpoch()) - startingEpoch < 28) {
+        await ethers.provider.send('evm_mine', [])
+      }
+
+      // Close allocation
+      const poi = generatePOI('poi')
+      await horizonStaking.connect(anySigner).closeAllocation(allocationID, poi)
+
+      // Get indexer's idle stake after closing allocation
+      const idleStakeAfter = await horizonStaking.getIdleStake(indexer.address)
+
+      // Verify allocation tokens were added to indexer's idle stake but no rewards were collected
+      expect(idleStakeAfter).to.be.equal(idleStakeBefore + allocationTokens)
+    })
+  })
+})

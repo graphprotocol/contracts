@@ -51,5 +51,5 @@ task('data-edge:deploy', 'Deploy a DataEdge contract')
     }
     const deployName = `${taskArgs.deployName}${taskArgs.contract}`
     addresses[chainId][deployName] = contract.address
-    return fs.writeFile('addresses.json', JSON.stringify(addresses, null, 2))
+    return fs.writeFile('addresses.json', JSON.stringify(addresses, null, 2) + '\n')
   })

@@ -1,0 +1,14 @@
+{
+  "version": "1.0",
+  "chainId": "42161",
+  "createdAt": 0,
+  "meta": {
+    "name": "Governance Transaction Batch",
+    "description": "",
+    "txBuilderVersion": "1.11.1",
+    "createdFromSafeAddress": "",
+    "createdFromOwnerAddress": "",
+    "checksum": ""
+  },
+  "transactions": []
+}

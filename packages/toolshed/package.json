@@ -1,0 +1,72 @@
+{
+  "name": "@graphprotocol/toolshed",
+  "version": "1.1.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "A collection of tools and utilities for the Graph Protocol Typescript components",
+  "author": "Tomás Migone <tomas@edgeandnode.com>",
+  "license": "MIT",
+  "main": "./dist/core/index.js",
+  "types": "./dist/core/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/core/index.d.ts",
+      "default": "./dist/core/index.js"
+    },
+    "./deployments": {
+      "types": "./dist/deployments/index.d.ts",
+      "default": "./dist/deployments/index.js"
+    },
+    "./fixtures": {
+      "types": "./dist/fixtures/index.d.ts",
+      "default": "./dist/fixtures/index.js"
+    },
+    "./hardhat": {
+      "types": "./src/hardhat/index.ts",
+      "default": "./src/hardhat/index.ts"
+    },
+    "./utils": {
+      "types": "./dist/utils/index.d.ts",
+      "default": "./dist/utils/index.js"
+    }
+  },
+  "scripts": {
+    "build": "pnpm build:dep && pnpm build:self",
+    "build:dep": "pnpm --filter '@graphprotocol/toolshed^...' run build:self",
+    "build:self": "tsc",
+    "watch": "tsc --watch",
+    "lint": "pnpm lint:ts; pnpm lint:md; pnpm lint:json",
+    "lint:ts": "eslint --fix --cache '**/*.{js,ts,cjs,mjs,jsx,tsx}'; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
+    "lint:md": "markdownlint --fix --ignore-path ../../.gitignore '**/*.md'; prettier -w --cache --log-level warn '**/*.md'",
+    "lint:json": "prettier -w --cache --log-level warn '**/*.json'",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "pnpm run build"
+  },
+  "keywords": [
+    "ethereum",
+    "smart-contracts",
+    "hardhat",
+    "hardhat-plugin",
+    "graph",
+    "graph-protocol",
+    "horizon"
+  ],
+  "dependencies": {
+    "@graphprotocol/address-book": "workspace:^",
+    "@graphprotocol/interfaces": "workspace:^",
+    "@graphprotocol/issuance": "workspace:^",
+    "@nomicfoundation/hardhat-ethers": "catalog:",
+    "debug": "^4.4.0",
+    "ethers": "catalog:",
+    "glob": "^11.0.1",
+    "hardhat": "catalog:",
+    "json5": "^2.2.3"
+  },
+  "devDependencies": {
+    "@types/debug": "^4.1.12",
+    "@types/json5": "^2.2.0",
+    "eslint": "catalog:",
+    "typescript": "catalog:"
+  }
+}

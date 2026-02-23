@@ -1,0 +1,24 @@
+{
+  "username": "graphprotocol",
+  "networks": {
+    "421614": {
+      "project": "horizon-arbitrum-sepolia"
+    },
+    "42161": {
+      "project": "horizon-arbitrum-one"
+    }
+  },
+  "externalArtifacts": {
+    "source": "../contracts/artifacts",
+    "buildInfo": "../contracts/artifacts/build-info"
+  },
+  "verifyList": [
+    "HorizonStaking",
+    "GraphPayments",
+    "PaymentsEscrow",
+    "GraphTallyCollector",
+    "L2Curation",
+    "RewardsManager"
+  ],
+  "tag": "Horizon"
+}

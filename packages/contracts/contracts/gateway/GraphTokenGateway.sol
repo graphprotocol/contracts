@@ -3,13 +3,14 @@
 pragma solidity ^0.7.6;
 
 import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
-import { ITokenGateway } from "../arbitrum/ITokenGateway.sol";
+import { ITokenGateway } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/ITokenGateway.sol";
 import { Pausable } from "../governance/Pausable.sol";
 import { Managed } from "../governance/Managed.sol";
 
 /**
  * @title L1/L2 Graph Token Gateway
- * @dev This includes everything that's shared between the L1 and L2 sides of the bridge.
+ * @author Edge & Node
+ * @notice This includes everything that's shared between the L1 and L2 sides of the bridge.
  */
 abstract contract GraphTokenGateway is GraphUpgradeable, Pausable, Managed, ITokenGateway {
     /// @dev Storage gap added in case we need to add state variables to this contract
@@ -52,7 +53,7 @@ abstract contract GraphTokenGateway is GraphUpgradeable, Pausable, Managed, ITok
     }
 
     /**
-     * @dev Override the default pausing from Managed to allow pausing this
+     * @notice Override the default pausing from Managed to allow pausing this
      * particular contract instead of pausing from the Controller.
      */
     function _notPaused() internal view override {
@@ -60,7 +61,7 @@ abstract contract GraphTokenGateway is GraphUpgradeable, Pausable, Managed, ITok
     }
 
     /**
-     * @dev Runs state validation before unpausing, reverts if
+     * @notice Runs state validation before unpausing, reverts if
      * something is not set properly
      */
     function _checksBeforeUnpause() internal view virtual;
