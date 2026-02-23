@@ -497,6 +497,15 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     }
 
     /*
+     * LEGACY
+     */
+
+    /// @inheritdoc IHorizonStakingMain
+    function isAllocation(address allocationID) external view override returns (bool) {
+        return _getLegacyAllocationState(allocationID) != LegacyAllocationState.Null;
+    }
+
+    /*
      * PRIVATE FUNCTIONS
      */
 
@@ -1168,11 +1177,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         } else {
             return _operatorAuth[_serviceProvider][_verifier][_operator];
         }
-    }
-
-    /// @inheritdoc IHorizonStakingMain
-    function isAllocation(address allocationID) external view override returns (bool) {
-        return _getLegacyAllocationState(allocationID) != LegacyAllocationState.Null;
     }
 
     /**
