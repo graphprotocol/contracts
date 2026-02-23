@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.33;
 
+import { IHorizonStaking } from "@graphprotocol/interfaces/contracts/horizon/IHorizonStaking.sol";
 import { ILegacyAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/ILegacyAllocation.sol";
 
 /**
@@ -15,15 +16,21 @@ library LegacyAllocation {
 
     /**
      * @notice Revert if a legacy allocation exists
-     * @dev We check the migrated allocations mapping.
+     * @dev We check both the migrated allocations mapping and the legacy staking contract.
      * @param self The legacy allocation list mapping
+     * @param graphStaking The Horizon Staking contract
      * @param allocationId The allocation id
      */
     function revertIfExists(
         mapping(address => ILegacyAllocation.State) storage self,
+        IHorizonStaking graphStaking,
         address allocationId
     ) internal view {
         require(!self[allocationId].exists(), ILegacyAllocation.LegacyAllocationAlreadyExists(allocationId));
+        require(
+            !graphStaking.isAllocation(allocationId),
+            ILegacyAllocation.LegacyAllocationAlreadyExists(allocationId)
+        );
     }
 
     /**
