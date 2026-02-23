@@ -1134,6 +1134,9 @@ importers:
       ethers:
         specifier: 'catalog:'
         version: 6.16.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+      forge-std:
+        specifier: 'catalog:'
+        version: https://github.com/foundry-rs/forge-std/tarball/v1.14.0
       glob:
         specifier: 'catalog:'
         version: 11.0.3

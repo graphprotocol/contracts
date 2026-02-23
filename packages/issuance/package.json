@@ -58,6 +58,7 @@
     "@typechain/ethers-v6": "^0.5.0",
     "@types/node": "^20.17.50",
     "dotenv": "catalog:",
+    "forge-std": "catalog:",
     "eslint": "catalog:",
     "ethers": "catalog:",
     "glob": "catalog:",

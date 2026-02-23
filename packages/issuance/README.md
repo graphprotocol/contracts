@@ -11,6 +11,7 @@ The issuance contracts handle token issuance mechanisms for The Graph protocol.
 - **[IssuanceAllocator](contracts/allocate/IssuanceAllocator.md)** - Central distribution hub for token issuance, allocating tokens to different protocol components based on configured rates
 - **[RewardsEligibilityOracle](contracts/eligibility/RewardsEligibilityOracle.md)** - Oracle-based eligibility system for indexer rewards with time-based expiration
 - **DirectAllocation** - Simple target contract implementation for receiving and distributing allocated tokens (deployed as PilotAllocation and other instances)
+- **[IndexingAgreementManager](contracts/allocate/IndexingAgreementManager.md)** - Funds PaymentsEscrow deposits for RCAs using issuance tokens, tracking max-next-claim per agreement per indexer
 
 ## Development
 
