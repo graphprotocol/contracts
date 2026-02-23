@@ -5,7 +5,7 @@ Deployment guide for RewardsEligibilityOracle (REO).
 **Related:**
 
 - [Contract specification](../../../issuance/contracts/eligibility/RewardsEligibilityOracle.md) - architecture, operations, troubleshooting
-- [GovernanceWorkflow.md](./GovernanceWorkflow.md) - Safe TX execution
+- [GovernanceWorkflow.md](../GovernanceWorkflow.md) - Safe TX execution
 
 ## Prerequisites
 

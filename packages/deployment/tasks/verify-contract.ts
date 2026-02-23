@@ -534,7 +534,10 @@ const action: NewTaskActionFunction<TaskArgs> = async (taskArgs, hre) => {
   // Get API key from keystore
   const apiKey = await resolveConfigVar(hre, 'ARBISCAN_API_KEY')
   if (!apiKey) {
-    throw new Error('ARBISCAN_API_KEY not found. Set it in keystore:\n  npx hardhat keystore set ARBISCAN_API_KEY')
+    console.error('\nError: No Arbiscan API key configured.')
+    console.error('Set via keystore: npx hardhat keystore set ARBISCAN_API_KEY')
+    console.error('Or environment: export ARBISCAN_API_KEY=...\n')
+    return
   }
 
   // Determine contracts to verify

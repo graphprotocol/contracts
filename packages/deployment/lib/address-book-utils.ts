@@ -50,6 +50,21 @@ export function getForkNetwork(): string | null {
   return process.env.HARDHAT_FORK || process.env.FORK_NETWORK || null
 }
 
+// ============================================================================
+// Local Network Detection
+// ============================================================================
+
+/**
+ * Check if running against the Graph local network (rem-local-network).
+ *
+ * The local network uses chainId 1337 and deploys contracts from scratch.
+ * Address books use addresses-local-network.json files which are symlinked
+ * to mounted config files in the Docker container (populated by Phase 1).
+ */
+export function isLocalNetworkMode(): boolean {
+  return process.env.HARDHAT_NETWORK === 'localNetwork'
+}
+
 /**
  * Get the fork state directory for a given network.
  * All fork-related state (address books, governance TXs) is stored here.
@@ -206,6 +221,7 @@ export function ensureForkAddressBooks(): {
 /**
  * Get the path to the Horizon address book.
  * In fork mode, returns path to fork-local copy.
+ * In local network mode, returns path to addresses-local-network.json.
  * In normal mode, returns path to package address book.
  */
 export function getHorizonAddressBookPath(): string {
@@ -213,12 +229,16 @@ export function getHorizonAddressBookPath(): string {
     const { horizonPath } = ensureForkAddressBooks()
     return horizonPath
   }
+  if (isLocalNetworkMode()) {
+    return require.resolve('@graphprotocol/horizon/addresses-local-network.json')
+  }
   return require.resolve('@graphprotocol/horizon/addresses.json')
 }
 
 /**
  * Get the path to the SubgraphService address book.
  * In fork mode, returns path to fork-local copy.
+ * In local network mode, returns path to addresses-local-network.json.
  * In normal mode, returns path to package address book.
  */
 export function getSubgraphServiceAddressBookPath(): string {
@@ -226,18 +246,25 @@ export function getSubgraphServiceAddressBookPath(): string {
     const { subgraphServicePath } = ensureForkAddressBooks()
     return subgraphServicePath
   }
+  if (isLocalNetworkMode()) {
+    return require.resolve('@graphprotocol/subgraph-service/addresses-local-network.json')
+  }
   return require.resolve('@graphprotocol/subgraph-service/addresses.json')
 }
 
 /**
  * Get the path to the Issuance address book.
  * In fork mode, returns path to fork-local copy.
+ * In local network mode, returns path to addresses-local-network.json.
  * In normal mode, returns path to package address book.
  */
 export function getIssuanceAddressBookPath(): string {
   if (isForkMode()) {
     const { issuancePath } = ensureForkAddressBooks()
     return issuancePath
+  }
+  if (isLocalNetworkMode()) {
+    return require.resolve('@graphprotocol/issuance/addresses-local-network.json')
   }
   return require.resolve('@graphprotocol/issuance/addresses.json')
 }
