@@ -357,6 +357,89 @@ library IndexingAgreement {
     }
     /* solhint-enable function-max-lines */
 
+    /* solhint-disable function-max-lines */
+    /**
+     * @notice Accept an indexing agreement where the payer is a contract.
+     *
+     * Requirements:
+     * - Same as {accept}, but uses contract callback instead of ECDSA signature
+     * - The payer must implement {IContractApprover}
+     *
+     * Emits {IndexingAgreementAccepted} event
+     *
+     * @param self The indexing agreement storage manager
+     * @param allocations The mapping of allocation IDs to their states
+     * @param allocationId The id of the allocation
+     * @param rca The Recurring Collection Agreement
+     * @return The agreement ID assigned to the accepted indexing agreement
+     */
+    function acceptUnsigned(
+        StorageManager storage self,
+        mapping(address allocationId => IAllocation.State allocation) storage allocations,
+        address allocationId,
+        IRecurringCollector.RecurringCollectionAgreement calldata rca
+    ) external returns (bytes16) {
+        IAllocation.State memory allocation = _requireValidAllocation(allocations, allocationId, rca.serviceProvider);
+
+        require(rca.dataService == address(this), IndexingAgreementWrongDataService(address(this), rca.dataService));
+
+        AcceptIndexingAgreementMetadata memory metadata = IndexingAgreementDecoder.decodeRCAMetadata(rca.metadata);
+
+        bytes16 agreementId = _directory().recurringCollector().generateAgreementId(
+            rca.payer,
+            rca.dataService,
+            rca.serviceProvider,
+            rca.deadline,
+            rca.nonce
+        );
+
+        IIndexingAgreement.State storage agreement = self.agreements[agreementId];
+
+        require(agreement.allocationId == address(0), IndexingAgreementAlreadyAccepted(agreementId));
+
+        require(
+            allocation.subgraphDeploymentId == metadata.subgraphDeploymentId,
+            IndexingAgreementDeploymentIdMismatch(
+                metadata.subgraphDeploymentId,
+                allocationId,
+                allocation.subgraphDeploymentId
+            )
+        );
+
+        // Ensure that an allocation can only have one active indexing agreement
+        require(
+            self.allocationToActiveAgreementId[allocationId] == bytes16(0),
+            AllocationAlreadyHasIndexingAgreement(allocationId)
+        );
+        self.allocationToActiveAgreementId[allocationId] = agreementId;
+
+        agreement.version = metadata.version;
+        agreement.allocationId = allocationId;
+
+        require(
+            metadata.version == IIndexingAgreement.IndexingAgreementVersion.V1,
+            IndexingAgreementInvalidVersion(metadata.version)
+        );
+        _setTermsV1(self, agreementId, metadata.terms, rca.maxOngoingTokensPerSecond);
+
+        emit IndexingAgreementAccepted(
+            rca.serviceProvider,
+            rca.payer,
+            agreementId,
+            allocationId,
+            metadata.subgraphDeploymentId,
+            metadata.version,
+            metadata.terms
+        );
+
+        require(
+            _directory().recurringCollector().acceptUnsigned(rca) == agreementId,
+            "internal: agreement ID mismatch"
+        );
+        return agreementId;
+    }
+    /* solhint-enable function-max-lines */
+
     /**
      * @notice Update an indexing agreement.
      *
@@ -413,6 +496,58 @@ library IndexingAgreement {
         });
 
         _directory().recurringCollector().update(signedRCAU);
+    }
+
+    /**
+     * @notice Update an indexing agreement where the payer is a contract.
+     *
+     * Requirements:
+     * - Agreement must be active
+     * - The indexer must be the service provider of the agreement
+     * - The payer must implement {IContractApprover}
+     *
+     * @dev rcau.metadata is an encoding of {IndexingAgreement.UpdateIndexingAgreementMetadata}
+     *
+     * Emits {IndexingAgreementUpdated} event
+     *
+     * @param self The indexing agreement storage manager
+     * @param indexer The indexer address
+     * @param rcau The Recurring Collection Agreement Update
+     */
+    function updateUnsigned(
+        StorageManager storage self,
+        address indexer,
+        IRecurringCollector.RecurringCollectionAgreementUpdate calldata rcau
+    ) external {
+        IIndexingAgreement.AgreementWrapper memory wrapper = _get(self, rcau.agreementId);
+        require(_isActive(wrapper), IndexingAgreementNotActive(rcau.agreementId));
+        require(
+            wrapper.collectorAgreement.serviceProvider == indexer,
+            IndexingAgreementNotAuthorized(rcau.agreementId, indexer)
+        );
+
+        UpdateIndexingAgreementMetadata memory metadata = IndexingAgreementDecoder.decodeRCAUMetadata(rcau.metadata);
+
+        require(
+            wrapper.agreement.version == IIndexingAgreement.IndexingAgreementVersion.V1,
+            "internal: invalid version"
+        );
+        require(
+            metadata.version == IIndexingAgreement.IndexingAgreementVersion.V1,
+            IndexingAgreementInvalidVersion(metadata.version)
+        );
+        _setTermsV1(self, rcau.agreementId, metadata.terms, wrapper.collectorAgreement.maxOngoingTokensPerSecond);
+
+        emit IndexingAgreementUpdated({
+            indexer: wrapper.collectorAgreement.serviceProvider,
+            payer: wrapper.collectorAgreement.payer,
+            agreementId: rcau.agreementId,
+            allocationId: wrapper.agreement.allocationId,
+            version: metadata.version,
+            versionTerms: metadata.terms
+        });
+
+        _directory().recurringCollector().updateUnsigned(rcau);
     }
 
     /**
@@ -502,7 +637,8 @@ library IndexingAgreement {
         IIndexingAgreement.AgreementWrapper memory wrapper = _get(self, agreementId);
         require(_isActive(wrapper), IndexingAgreementNotActive(agreementId));
         require(
-            _directory().recurringCollector().isAuthorized(wrapper.collectorAgreement.payer, msg.sender),
+            msg.sender == wrapper.collectorAgreement.payer ||
+                _directory().recurringCollector().isAuthorized(wrapper.collectorAgreement.payer, msg.sender),
             IndexingAgreementNonCancelableBy(wrapper.collectorAgreement.payer, msg.sender)
         );
         _cancel(

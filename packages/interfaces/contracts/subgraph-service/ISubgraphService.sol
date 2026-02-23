@@ -3,6 +3,7 @@ pragma solidity ^0.8.22;
 
 import { IDataServiceFees } from "../data-service/IDataServiceFees.sol";
 import { IGraphPayments } from "../horizon/IGraphPayments.sol";
+
 import { IRecurringCollector } from "../horizon/IRecurringCollector.sol";
 
 import { IAllocation } from "./internal/IAllocation.sol";
@@ -277,11 +278,34 @@ interface ISubgraphService is IDataServiceFees {
     ) external returns (bytes16);
 
     /**
+     * @notice Accept an indexing agreement where the payer is a contract.
+     * @dev The payer must implement {IContractApprover} and authorize the RCA hash.
+     * @param allocationId The id of the allocation
+     * @param rca The recurring collection agreement parameters
+     * @return agreementId The ID of the accepted indexing agreement
+     */
+    function acceptUnsignedIndexingAgreement(
+        address allocationId,
+        IRecurringCollector.RecurringCollectionAgreement calldata rca
+    ) external returns (bytes16);
+
+    /**
      * @notice Update an indexing agreement.
      * @param indexer The address of the indexer
      * @param signedRCAU The signed recurring collector agreement update (RCAU) that the indexer accepts
      */
     function updateIndexingAgreement(address indexer, IRecurringCollector.SignedRCAU calldata signedRCAU) external;
+
+    /**
+     * @notice Update an indexing agreement where the payer is a contract.
+     * @dev The payer must implement {IContractApprover} and authorize the RCAU hash.
+     * @param indexer The address of the indexer
+     * @param rcau The recurring collector agreement update to apply
+     */
+    function updateUnsignedIndexingAgreement(
+        address indexer,
+        IRecurringCollector.RecurringCollectionAgreementUpdate calldata rcau
+    ) external;
 
     /**
      * @notice Cancel an indexing agreement by indexer / operator.
