@@ -124,6 +124,7 @@ npx hardhat deploy --skip-prompts --network arbitrumSepolia --tags <deploy-tag>
 
 | Network         | Chain ID | RPC (default)                            |
 | --------------- | -------- | ---------------------------------------- |
+| localNetwork    | 1337     | `http://chain:8545`                      |
 | arbitrumSepolia | 421614   | <https://sepolia-rollup.arbitrum.io/rpc> |
 | arbitrumOne     | 42161    | <https://arb1.arbitrum.io/rpc>           |
 

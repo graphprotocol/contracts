@@ -33,6 +33,14 @@ const hardhatLocalChain: ChainInfo = {
   testnet: true,
 }
 
+const graphLocalNetworkChain: ChainInfo = {
+  id: 1337,
+  name: 'Graph Local Network',
+  nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+  rpcUrls: { default: { http: ['http://chain:8545'] } },
+  testnet: true,
+}
+
 const arbitrumSepoliaChain: ChainInfo = {
   id: 421614,
   name: 'Arbitrum Sepolia',
@@ -58,6 +66,7 @@ export const config: UserConfig<typeof accounts, typeof data> = {
   deployments: 'deployments',
   scripts: ['deploy'],
   chains: {
+    1337: { info: graphLocalNetworkChain },
     31337: { info: hardhatLocalChain },
     421614: { info: arbitrumSepoliaChain },
     42161: { info: arbitrumOneChain },
@@ -68,6 +77,7 @@ export const config: UserConfig<typeof accounts, typeof data> = {
     hardhat: { chain: 31337 },
     localhost: { chain: 31337 },
     fork: { chain: 31337 },
+    localNetwork: { chain: 1337 },
     arbitrumSepolia: { chain: 421614 },
     arbitrumOne: { chain: 42161 },
   },

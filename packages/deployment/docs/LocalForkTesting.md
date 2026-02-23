@@ -136,6 +136,28 @@ npx hardhat deploy:reset-fork --network fork
 
 - **Foundry**: Install via `curl -L https://foundry.paradigm.xyz | bash && foundryup`
 
+## Local Network (rem-local-network)
+
+The `localNetwork` network targets the Graph local network docker-compose stack (chain ID 1337).
+Unlike fork mode, contracts are deployed fresh from scratch.
+
+```bash
+# Deploy issuance contracts to local network
+npx hardhat deploy --tags issuance-eligibility --network localNetwork
+```
+
+**Key differences from fork mode:**
+- Chain ID 1337 (not 31337)
+- No `FORK_NETWORK` env var needed
+- Address books use `addresses-local-network.json` files (symlinked to mounted config)
+- Deployer is also governor (direct execution, no governance batch files)
+- Uses standard test mnemonic (`test test test ... junk`)
+
+**Environment:**
+- RPC: `http://chain:8545` (override with `LOCAL_NETWORK_RPC`)
+- Address books are populated by Phase 1 (hardhat-graph-protocol deploys Horizon + SubgraphService)
+- Phase 2+ deployment scripts use this package to deploy additional contracts (e.g., issuance)
+
 ## See Also
 
 - [GovernanceWorkflow.md](./GovernanceWorkflow.md) - Production deployment flow
