@@ -60,7 +60,8 @@ const config: HardhatUserConfig = {
   etherscan: {
     // Use ARBISCAN_API_KEY for Arbitrum networks
     // For mainnet Ethereum, use ETHERSCAN_API_KEY
-    apiKey: vars.has('ARBISCAN_API_KEY') ? vars.get('ARBISCAN_API_KEY') : '',
+    // Check both keystore (vars) and environment variable
+    apiKey: vars.has('ARBISCAN_API_KEY') ? vars.get('ARBISCAN_API_KEY') : (process.env.ARBISCAN_API_KEY ?? ''),
   },
   sourcify: {
     enabled: false,

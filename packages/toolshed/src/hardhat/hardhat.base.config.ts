@@ -58,8 +58,15 @@ export const projectPathsUserConfig: ProjectPathsUserConfig = {
 
 // Etherscan v2 API uses a single API key for all networks
 // See: https://docs.etherscan.io/etherscan-v2/getting-started/creating-an-account
+// Check keystore first (vars), then environment variables
+// Support both ETHERSCAN_API_KEY and ARBISCAN_API_KEY for compatibility
+const getEtherscanApiKey = (): string => {
+  if (vars.has('ETHERSCAN_API_KEY')) return vars.get('ETHERSCAN_API_KEY')
+  if (vars.has('ARBISCAN_API_KEY')) return vars.get('ARBISCAN_API_KEY')
+  return process.env.ETHERSCAN_API_KEY ?? process.env.ARBISCAN_API_KEY ?? ''
+}
 export const etherscanUserConfig: Partial<EtherscanConfig> = {
-  apiKey: vars.has('ETHERSCAN_API_KEY') ? vars.get('ETHERSCAN_API_KEY') : '',
+  apiKey: getEtherscanApiKey(),
 }
 
 // In general:
