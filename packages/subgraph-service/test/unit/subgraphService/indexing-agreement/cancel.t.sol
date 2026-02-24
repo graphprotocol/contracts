@@ -33,6 +33,8 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
         address rando
     ) public withSafeIndexerOrOperator(rando) {
         Context storage ctx = _newCtx(seed);
+        vm.assume(rando != seed.rca.payer);
+        vm.assume(rando != ctx.payer.signer);
         (IRecurringCollector.SignedRCA memory accepted, bytes16 agreementId) = _withAcceptedIndexingAgreement(
             ctx,
             _withIndexer(ctx)
