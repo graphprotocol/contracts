@@ -497,6 +497,15 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     }
 
     /*
+     * LEGACY
+     */
+
+    /// @inheritdoc IHorizonStakingMain
+    function isAllocation(address allocationID) external view override returns (bool) {
+        return _getLegacyAllocationState(allocationID) != LegacyAllocationState.Null;
+    }
+
+    /*
      * PRIVATE FUNCTIONS
      */
 
@@ -1168,6 +1177,25 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         } else {
             return _operatorAuth[_serviceProvider][_verifier][_operator];
         }
+    }
+
+    /**
+     * @notice Return the current state of a legacy allocation
+     * @param _allocationID Allocation identifier
+     * @return LegacyAllocationState enum with the state of the allocation
+     */
+    function _getLegacyAllocationState(address _allocationID) private view returns (LegacyAllocationState) {
+        LegacyAllocation storage alloc = __DEPRECATED_allocations[_allocationID];
+
+        if (alloc.indexer == address(0)) {
+            return LegacyAllocationState.Null;
+        }
+
+        if (alloc.createdAtEpoch != 0 && alloc.closedAtEpoch == 0) {
+            return LegacyAllocationState.Active;
+        }
+
+        return LegacyAllocationState.Closed;
     }
 
     /**
