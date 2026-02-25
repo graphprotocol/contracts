@@ -1,5 +1,24 @@
 # @graphprotocol/toolshed
 
+## 1.2.0-dips.0
+
+### Minor Changes
+
+- Add RecurringCollector support to toolshed and interfaces for DIPs (Distributed Indexing Payments).
+
+  **@graphprotocol/interfaces**: Re-export `IRecurringCollector` from horizon types.
+
+  **@graphprotocol/toolshed**:
+  - Add `RecurringCollector: IRecurringCollector` to `GraphHorizonContracts` interface
+  - Add `encodeCollectIndexingFeesData()` helper for indexing fee collection encoding
+  - Add `decodeSignedRCA()`, `decodeAcceptIndexingAgreementMetadata()`, `decodeIndexingAgreementTermsV1()` decoders
+
+### Patch Changes
+
+- Updated dependencies
+  - @graphprotocol/interfaces@0.7.0-dips.0
+  - @graphprotocol/issuance@1.0.0
+
 ## 1.1.2
 
 ### Patch Changes

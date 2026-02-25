@@ -1,6 +1,6 @@
 {
   "name": "@graphprotocol/contracts-tests",
-  "version": "1.0.3",
+  "version": "1.0.4-dips.0",
   "private": true,
   "description": "Tests for @graphprotocol/contracts",
   "author": "Edge & Node",

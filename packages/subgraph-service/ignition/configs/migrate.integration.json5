@@ -20,7 +20,8 @@
     "disputeManagerProxyAdminAddress": "",
     "subgraphServiceProxyAddress": "",
     "subgraphServiceProxyAdminAddress": "",
-    "graphTallyCollectorAddress": ""
+    "graphTallyCollectorAddress": "",
+    "recurringCollectorAddress": ""
   },
   "DisputeManager": {
     "disputePeriod": 2419200,
@@ -34,5 +35,6 @@
     "stakeToFeesRatio": 2,
     "maxPOIStaleness": 2419200, // 28 days = 2419200 seconds
     "curationCut": 100000,
+    "indexingFeesCut": 100000,
   }
 }
