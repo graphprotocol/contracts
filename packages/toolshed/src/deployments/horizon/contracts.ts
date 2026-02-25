@@ -36,6 +36,7 @@ export const GraphHorizonContractNameList = [
   'GraphPayments',
   'PaymentsEscrow',
   'GraphTallyCollector',
+  'RecurringCollector',
 ] as const
 
 export interface GraphHorizonContracts extends ContractList<GraphHorizonContractName> {
