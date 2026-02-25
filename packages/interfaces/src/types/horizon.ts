@@ -31,5 +31,6 @@ export {
   IPaymentsEscrowToolshed as PaymentsEscrow,
   IRecurringCollector as RecurringCollector,
   IRewardsManagerToolshed as RewardsManager,
+  IRecurringCollector,
   ISubgraphNFT as SubgraphNFT,
 }
