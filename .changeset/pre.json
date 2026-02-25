@@ -1,0 +1,24 @@
+{
+  "mode": "pre",
+  "tag": "dips",
+  "initialVersions": {
+    "@graphprotocol/address-book": "1.1.0",
+    "@graphprotocol/contracts": "7.3.0",
+    "@graphprotocol/contracts-tests": "1.0.3",
+    "@graphprotocol/contracts-task": "1.0.3",
+    "@graphprotocol/data-edge": "0.3.0",
+    "@graphprotocol/deployment": "0.1.0",
+    "hardhat-graph-protocol": "0.2.6",
+    "@graphprotocol/horizon": "1.1.1",
+    "@graphprotocol/interfaces": "0.6.6",
+    "@graphprotocol/issuance": "1.0.0",
+    "@graphprotocol/issuance-test": "1.0.0",
+    "@graphprotocol/issuance-test-coverage": "1.0.0",
+    "@graphprotocol/subgraph-service": "1.1.1",
+    "@graphprotocol/token-distribution": "2.0.1",
+    "@graphprotocol/toolshed": "1.1.2"
+  },
+  "changesets": [
+    "add-dips-helpers"
+  ]
+}

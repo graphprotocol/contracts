@@ -1,6 +1,6 @@
 {
   "name": "@graphprotocol/issuance-test",
-  "version": "1.0.0",
+  "version": "1.0.1-dips.0",
   "type": "module",
   "private": true,
   "description": "Test utilities for @graphprotocol/issuance",
