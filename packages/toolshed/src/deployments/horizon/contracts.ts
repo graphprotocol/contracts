@@ -5,6 +5,7 @@ import type {
   GraphProxyAdmin,
   GraphTallyCollector,
   HorizonStaking,
+  IRecurringCollector,
   L2Curation,
   L2GNS,
   L2GraphToken,
@@ -57,6 +58,7 @@ export interface GraphHorizonContracts extends ContractList<GraphHorizonContract
   GraphPayments: GraphPayments
   PaymentsEscrow: PaymentsEscrow
   GraphTallyCollector: GraphTallyCollector
+  RecurringCollector: IRecurringCollector
 
   // Aliases
   GraphToken: L2GraphToken
