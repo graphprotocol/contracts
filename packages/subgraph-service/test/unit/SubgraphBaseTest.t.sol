@@ -10,6 +10,7 @@ import { HorizonStakingExtension } from "@graphprotocol/horizon/contracts/stakin
 import { IHorizonStaking } from "@graphprotocol/interfaces/contracts/horizon/IHorizonStaking.sol";
 import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
 import { GraphTallyCollector } from "@graphprotocol/horizon/contracts/payments/collectors/GraphTallyCollector.sol";
+import { RecurringCollector } from "@graphprotocol/horizon/contracts/payments/collectors/RecurringCollector.sol";
 import { PaymentsEscrow } from "@graphprotocol/horizon/contracts/payments/PaymentsEscrow.sol";
 import { UnsafeUpgrades } from "@openzeppelin/foundry-upgrades/src/Upgrades.sol";
 
@@ -39,6 +40,7 @@ abstract contract SubgraphBaseTest is Utils, Constants {
     GraphPayments graphPayments;
     IPaymentsEscrow escrow;
     GraphTallyCollector graphTallyCollector;
+    RecurringCollector recurringCollector;
 
     HorizonStaking private stakingBase;
     HorizonStakingExtension private stakingExtension;
@@ -152,12 +154,20 @@ abstract contract SubgraphBaseTest is Utils, Constants {
             address(controller),
             REVOKE_SIGNER_THAWING_PERIOD
         );
+        recurringCollector = new RecurringCollector(
+            "RecurringCollector",
+            "1",
+            address(controller),
+            REVOKE_SIGNER_THAWING_PERIOD
+        );
+
         address subgraphServiceImplementation = address(
             new SubgraphService(
                 address(controller),
                 address(disputeManager),
                 address(graphTallyCollector),
-                address(curation)
+                address(curation),
+                address(recurringCollector)
             )
         );
         address subgraphServiceProxy = UnsafeUpgrades.deployTransparentProxy(
