@@ -2,7 +2,7 @@
 
 // solhint-disable named-parameters-mapping
 
-pragma solidity 0.7.6;
+pragma solidity ^0.7.6;
 
 import { IRewardsEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibility.sol";
 import { IERC165 } from "@openzeppelin/contracts/introspection/IERC165.sol";
