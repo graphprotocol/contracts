@@ -63,8 +63,9 @@ abstract contract HorizonStakingV1Storage {
     mapping(address serviceProvider => IHorizonStakingTypes.ServiceProviderInternal details) internal _serviceProviders;
 
     /// @dev Allocation details.
-    /// Deprecated, now applied on the subgraph data service
-    mapping(address allocationId => bytes32 __DEPRECATED_allocation) internal __DEPRECATED_allocations;
+    /// Deprecated, now applied on the subgraph data service.
+    /// Kept for storage compatibility and to check for allocation id collisions.
+    mapping(address allocationId => IHorizonStakingTypes.LegacyAllocation allocation) internal __DEPRECATED_allocations;
 
     /// @dev Subgraph allocations, tracks the tokens allocated to a subgraph deployment
     /// Deprecated, now applied on the SubgraphService
