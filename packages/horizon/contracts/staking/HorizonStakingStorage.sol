@@ -5,7 +5,6 @@ pragma solidity 0.8.27 || 0.8.33;
 // TODO: Re-enable and fix issues when publishing a new version
 // forge-lint: disable-start(mixed-case-variable)
 
-import { IHorizonStakingExtension } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingExtension.sol";
 import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
@@ -64,8 +63,9 @@ abstract contract HorizonStakingV1Storage {
     mapping(address serviceProvider => IHorizonStakingTypes.ServiceProviderInternal details) internal _serviceProviders;
 
     /// @dev Allocation details.
-    /// Deprecated, now applied on the subgraph data service
-    mapping(address allocationId => IHorizonStakingExtension.Allocation allocation) internal __DEPRECATED_allocations;
+    /// Deprecated, now applied on the subgraph data service.
+    /// Kept for storage compatibility and to check for allocation id collisions.
+    mapping(address allocationId => IHorizonStakingTypes.LegacyAllocation allocation) internal __DEPRECATED_allocations;
 
     /// @dev Subgraph allocations, tracks the tokens allocated to a subgraph deployment
     /// Deprecated, now applied on the SubgraphService
@@ -92,7 +92,7 @@ abstract contract HorizonStakingV1Storage {
     uint32 internal __DEPRECATED_delegationParametersCooldown;
 
     /// @dev Time in epochs a delegator needs to wait to withdraw delegated stake
-    /// Deprecated, now only enforced during a transition period
+    /// Deprecated, enforced by each data service as needed.
     uint32 internal __DEPRECATED_delegationUnbondingPeriod;
 
     /// @dev Percentage of tokens to tax a delegation deposit

@@ -12,7 +12,6 @@ import { IEpochManager } from "@graphprotocol/interfaces/contracts/contracts/epo
 import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManager.sol";
 import { ITokenGateway } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/ITokenGateway.sol";
 import { IGraphProxyAdmin } from "@graphprotocol/interfaces/contracts/contracts/upgrades/IGraphProxyAdmin.sol";
-import { ICuration } from "@graphprotocol/interfaces/contracts/contracts/curation/ICuration.sol";
 
 import { GraphDirectory } from "./../../../contracts/utilities/GraphDirectory.sol";
 
@@ -22,6 +21,7 @@ contract GraphDirectoryImplementation is GraphDirectory {
     function getContractFromController(bytes memory contractName) external view returns (address) {
         return _graphController().getContractProxy(keccak256(contractName));
     }
+
     function graphToken() external view returns (IGraphToken) {
         return _graphToken();
     }
@@ -56,9 +56,5 @@ contract GraphDirectoryImplementation is GraphDirectory {
 
     function graphProxyAdmin() external view returns (IGraphProxyAdmin) {
         return _graphProxyAdmin();
-    }
-
-    function graphCuration() external view returns (ICuration) {
-        return _graphCuration();
     }
 }

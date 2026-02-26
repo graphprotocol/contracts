@@ -200,4 +200,42 @@ interface IHorizonStakingTypes {
         uint256 tokensThawing;
         uint256 sharesThawing;
     }
+
+    /**
+     * @notice Legacy allocation representation
+     * @dev Kept for storage compatibility and to check for allocation id collisions.
+     * @param indexer The indexer address
+     * @param subgraphDeploymentID The subgraph deployment ID
+     * @param tokens The amount of tokens allocated to the subgraph deployment
+     * @param createdAtEpoch The epoch when the allocation was created
+     * @param closedAtEpoch The epoch when the allocation was closed
+     * @param collectedFees The amount of collected fees for the allocation
+     * @param __DEPRECATED_effectiveAllocation Deprecated field
+     * @param accRewardsPerAllocatedToken Snapshot used for reward calculation
+     * @param distributedRebates The amount of collected rebates that have been rebated
+     */
+    struct LegacyAllocation {
+        address indexer;
+        bytes32 subgraphDeploymentID;
+        uint256 tokens;
+        uint256 createdAtEpoch;
+        uint256 closedAtEpoch;
+        uint256 collectedFees;
+        uint256 __DEPRECATED_effectiveAllocation;
+        uint256 accRewardsPerAllocatedToken;
+        uint256 distributedRebates;
+    }
+
+    /**
+     * @dev Possible states a legacy allocation can be.
+     * States:
+     * - Null = indexer == address(0)
+     * - Active = not Null && tokens > 0
+     * - Closed = Active && closedAtEpoch != 0
+     */
+    enum LegacyAllocationState {
+        Null,
+        Active,
+        Closed
+    }
 }

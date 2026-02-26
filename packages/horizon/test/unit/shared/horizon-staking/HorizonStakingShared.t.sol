@@ -3,16 +3,13 @@ pragma solidity 0.8.27;
 
 import { GraphBaseTest } from "../../GraphBase.t.sol";
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
-import { IHorizonStakingBase } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingBase.sol";
 import { IHorizonStakingMain } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingMain.sol";
-import { IHorizonStakingExtension } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingExtension.sol";
 import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
 import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
 
 import { LinkedList } from "../../../../contracts/libraries/LinkedList.sol";
-import { MathUtils } from "../../../../contracts/libraries/MathUtils.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { PPMMath } from "../../../../contracts/libraries/PPMMath.sol";
-import { ExponentialRebates } from "../../../../contracts/staking/libraries/ExponentialRebates.sol";
 
 abstract contract HorizonStakingSharedTest is GraphBaseTest {
     using LinkedList for ILinkedList.List;
@@ -21,13 +18,6 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     event Transfer(address indexed from, address indexed to, uint tokens);
 
     address internal _allocationId = makeAddr("allocationId");
-    bytes32 internal constant _SUBGRAPH_DEPLOYMENT_ID = keccak256("subgraphDeploymentID");
-    uint256 internal constant MAX_ALLOCATION_EPOCHS = 28;
-
-    uint32 internal alphaNumerator = 100;
-    uint32 internal alphaDenominator = 100;
-    uint32 internal lambdaNumerator = 60;
-    uint32 internal lambdaDenominator = 100;
 
     /*
      * MODIFIERS
@@ -78,17 +68,6 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         _createProvision(users.indexer, dataService, tokens, maxVerifierCut, thawingPeriod);
     }
 
-    modifier useAllocation(uint256 tokens) {
-        vm.assume(tokens <= MAX_STAKING_TOKENS);
-        _createAllocation(users.indexer, _allocationId, _SUBGRAPH_DEPLOYMENT_ID, tokens);
-        _;
-    }
-
-    modifier useRebateParameters() {
-        _setStorageRebateParameters(alphaNumerator, alphaDenominator, lambdaNumerator, lambdaDenominator);
-        _;
-    }
-
     /*
      * HELPERS: these are shortcuts to perform common actions that often involve multiple contract calls
      */
@@ -101,34 +80,6 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     ) internal {
         _stakeTo(serviceProvider, tokens);
         _provision(serviceProvider, verifier, tokens, maxVerifierCut, thawingPeriod);
-    }
-
-    // This allows setting up contract state with legacy allocations
-    function _createAllocation(
-        address serviceProvider,
-        address allocationId,
-        bytes32 subgraphDeploymentId,
-        uint256 tokens
-    ) internal {
-        _setStorageMaxAllocationEpochs(MAX_ALLOCATION_EPOCHS);
-
-        IHorizonStakingExtension.Allocation memory _allocation = IHorizonStakingExtension.Allocation({
-            indexer: serviceProvider,
-            subgraphDeploymentID: subgraphDeploymentId,
-            tokens: tokens,
-            createdAtEpoch: block.timestamp,
-            closedAtEpoch: 0,
-            collectedFees: 0,
-            __DEPRECATED_effectiveAllocation: 0,
-            accRewardsPerAllocatedToken: 0,
-            distributedRebates: 0
-        });
-        _setStorageAllocation(_allocation, allocationId, tokens);
-
-        // delegation pool initialized
-        _setStorageDelegationPool(serviceProvider, 0, uint32(PPMMath.MAX_PPM), uint32(PPMMath.MAX_PPM));
-
-        require(token.transfer(address(staking), tokens), "Transfer failed");
     }
 
     /*
@@ -150,7 +101,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         // stakeTo
         token.approve(address(staking), tokens);
         vm.expectEmit();
-        emit IHorizonStakingBase.HorizonStakeDeposited(serviceProvider, tokens);
+        emit IHorizonStakingMain.HorizonStakeDeposited(serviceProvider, tokens);
         staking.stakeTo(serviceProvider, tokens);
 
         // after
@@ -183,7 +134,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         // stakeTo
         token.approve(address(staking), tokens);
         vm.expectEmit();
-        emit IHorizonStakingBase.HorizonStakeDeposited(serviceProvider, tokens);
+        emit IHorizonStakingMain.HorizonStakeDeposited(serviceProvider, tokens);
         vm.expectEmit();
         emit IHorizonStakingMain.ProvisionIncreased(serviceProvider, verifier, tokens);
         staking.stakeToProvision(serviceProvider, verifier, tokens);
@@ -230,48 +181,15 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     function _unstake(uint256 _tokens) internal {
         (, address msgSender, ) = vm.readCallers();
 
-        uint256 deprecatedThawingPeriod = staking.__DEPRECATED_getThawingPeriod();
-
         // before
         uint256 beforeSenderBalance = token.balanceOf(msgSender);
         uint256 beforeStakingBalance = token.balanceOf(address(staking));
         ServiceProviderInternal memory beforeServiceProvider = _getStorageServiceProviderInternal(msgSender);
 
-        bool withdrawCalled = beforeServiceProvider.__DEPRECATED_tokensLocked != 0 &&
-            block.number >= beforeServiceProvider.__DEPRECATED_tokensLockedUntil;
-
-        if (deprecatedThawingPeriod != 0 && beforeServiceProvider.__DEPRECATED_tokensLocked > 0) {
-            deprecatedThawingPeriod = MathUtils.weightedAverageRoundingUp(
-                MathUtils.diffOrZero(
-                    withdrawCalled ? 0 : beforeServiceProvider.__DEPRECATED_tokensLockedUntil,
-                    block.number
-                ),
-                withdrawCalled ? 0 : beforeServiceProvider.__DEPRECATED_tokensLocked,
-                deprecatedThawingPeriod,
-                _tokens
-            );
-        }
-
         // unstake
-        if (deprecatedThawingPeriod == 0) {
-            vm.expectEmit(address(staking));
-            emit IHorizonStakingMain.HorizonStakeWithdrawn(msgSender, _tokens);
-        } else {
-            if (withdrawCalled) {
-                vm.expectEmit(address(staking));
-                emit IHorizonStakingMain.HorizonStakeWithdrawn(
-                    msgSender,
-                    beforeServiceProvider.__DEPRECATED_tokensLocked
-                );
-            }
+        vm.expectEmit(address(staking));
+        emit IHorizonStakingMain.HorizonStakeWithdrawn(msgSender, _tokens);
 
-            vm.expectEmit(address(staking));
-            emit IHorizonStakingMain.HorizonStakeLocked(
-                msgSender,
-                withdrawCalled ? _tokens : beforeServiceProvider.__DEPRECATED_tokensLocked + _tokens,
-                block.number + deprecatedThawingPeriod
-            );
-        }
         staking.unstake(_tokens);
 
         // after
@@ -280,41 +198,16 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         ServiceProviderInternal memory afterServiceProvider = _getStorageServiceProviderInternal(msgSender);
 
         // assert
-        if (deprecatedThawingPeriod == 0) {
-            assertEq(afterSenderBalance, _tokens + beforeSenderBalance);
-            assertEq(afterStakingBalance, beforeStakingBalance - _tokens);
-            assertEq(afterServiceProvider.tokensStaked, beforeServiceProvider.tokensStaked - _tokens);
-            assertEq(afterServiceProvider.tokensProvisioned, beforeServiceProvider.tokensProvisioned);
-            assertEq(
-                afterServiceProvider.__DEPRECATED_tokensAllocated,
-                beforeServiceProvider.__DEPRECATED_tokensAllocated
-            );
-            assertEq(afterServiceProvider.__DEPRECATED_tokensLocked, beforeServiceProvider.__DEPRECATED_tokensLocked);
-            assertEq(
-                afterServiceProvider.__DEPRECATED_tokensLockedUntil,
-                beforeServiceProvider.__DEPRECATED_tokensLockedUntil
-            );
-        } else {
-            assertEq(
-                afterServiceProvider.tokensStaked,
-                withdrawCalled
-                    ? beforeServiceProvider.tokensStaked - beforeServiceProvider.__DEPRECATED_tokensLocked
-                    : beforeServiceProvider.tokensStaked
-            );
-            assertEq(
-                afterServiceProvider.__DEPRECATED_tokensLocked,
-                _tokens + (withdrawCalled ? 0 : beforeServiceProvider.__DEPRECATED_tokensLocked)
-            );
-            assertEq(afterServiceProvider.__DEPRECATED_tokensLockedUntil, block.number + deprecatedThawingPeriod);
-            assertEq(afterServiceProvider.tokensProvisioned, beforeServiceProvider.tokensProvisioned);
-            assertEq(
-                afterServiceProvider.__DEPRECATED_tokensAllocated,
-                beforeServiceProvider.__DEPRECATED_tokensAllocated
-            );
-            uint256 tokensTransferred = (withdrawCalled ? beforeServiceProvider.__DEPRECATED_tokensLocked : 0);
-            assertEq(afterSenderBalance, beforeSenderBalance + tokensTransferred);
-            assertEq(afterStakingBalance, beforeStakingBalance - tokensTransferred);
-        }
+        assertEq(afterSenderBalance, _tokens + beforeSenderBalance);
+        assertEq(afterStakingBalance, beforeStakingBalance - _tokens);
+        assertEq(afterServiceProvider.tokensStaked, beforeServiceProvider.tokensStaked - _tokens);
+        assertEq(afterServiceProvider.tokensProvisioned, beforeServiceProvider.tokensProvisioned);
+        assertEq(afterServiceProvider.__DEPRECATED_tokensAllocated, beforeServiceProvider.__DEPRECATED_tokensAllocated);
+        assertEq(afterServiceProvider.__DEPRECATED_tokensLocked, beforeServiceProvider.__DEPRECATED_tokensLocked);
+        assertEq(
+            afterServiceProvider.__DEPRECATED_tokensLockedUntil,
+            beforeServiceProvider.__DEPRECATED_tokensLockedUntil
+        );
     }
 
     function _withdraw() internal {
@@ -1453,19 +1346,6 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(afterEnabled, true);
     }
 
-    function _clearThawingPeriod() internal {
-        // clearThawingPeriod
-        vm.expectEmit(address(staking));
-        emit IHorizonStakingMain.ThawingPeriodCleared();
-        staking.clearThawingPeriod();
-
-        // after
-        uint64 afterThawingPeriod = staking.__DEPRECATED_getThawingPeriod();
-
-        // assert
-        assertEq(afterThawingPeriod, 0);
-    }
-
     function _setMaxThawingPeriod(uint64 maxThawingPeriod) internal {
         // setMaxThawingPeriod
         vm.expectEmit(address(staking));
@@ -1509,8 +1389,8 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
 
         // Calculate expected tokens after slashing
         CalcValuesSlash memory calcValues;
-        calcValues.tokensToSlash = MathUtils.min(tokens, before.provision.tokens + before.pool.tokens);
-        calcValues.providerTokensSlashed = MathUtils.min(before.provision.tokens, calcValues.tokensToSlash);
+        calcValues.tokensToSlash = Math.min(tokens, before.provision.tokens + before.pool.tokens);
+        calcValues.providerTokensSlashed = Math.min(before.provision.tokens, calcValues.tokensToSlash);
         calcValues.delegationTokensSlashed = calcValues.tokensToSlash - calcValues.providerTokensSlashed;
 
         if (calcValues.tokensToSlash > 0) {
@@ -1612,314 +1492,6 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         }
     }
 
-    // use struct to avoid 'stack too deep' error
-    struct CalcValuesCloseAllocation {
-        uint256 rewards;
-        uint256 delegatorRewards;
-        uint256 indexerRewards;
-    }
-    struct BeforeValuesCloseAllocation {
-        IHorizonStakingExtension.Allocation allocation;
-        DelegationPoolInternalTest pool;
-        ServiceProviderInternal serviceProvider;
-        uint256 subgraphAllocations;
-        uint256 stakingBalance;
-        uint256 indexerBalance;
-        uint256 beneficiaryBalance;
-    }
-
-    // Current rewards manager is mocked and assumed to mint fixed rewards
-    function _closeAllocation(address allocationId, bytes32 poi) internal {
-        (, address msgSender, ) = vm.readCallers();
-
-        // before
-        BeforeValuesCloseAllocation memory beforeValues;
-        beforeValues.allocation = staking.getAllocation(allocationId);
-        beforeValues.pool = _getStorageDelegationPoolInternal(
-            beforeValues.allocation.indexer,
-            subgraphDataServiceLegacyAddress,
-            true
-        );
-        beforeValues.serviceProvider = _getStorageServiceProviderInternal(beforeValues.allocation.indexer);
-        beforeValues.subgraphAllocations = _getStorageSubgraphAllocations(beforeValues.allocation.subgraphDeploymentID);
-        beforeValues.stakingBalance = token.balanceOf(address(staking));
-        beforeValues.indexerBalance = token.balanceOf(beforeValues.allocation.indexer);
-        beforeValues.beneficiaryBalance = token.balanceOf(
-            _getStorageRewardsDestination(beforeValues.allocation.indexer)
-        );
-
-        bool isAuth = staking.isAuthorized(
-            beforeValues.allocation.indexer,
-            subgraphDataServiceLegacyAddress,
-            msgSender
-        );
-        address rewardsDestination = _getStorageRewardsDestination(beforeValues.allocation.indexer);
-
-        CalcValuesCloseAllocation memory calcValues = CalcValuesCloseAllocation({
-            rewards: ALLOCATIONS_REWARD_CUT,
-            delegatorRewards: ALLOCATIONS_REWARD_CUT -
-                uint256(beforeValues.pool.__DEPRECATED_indexingRewardCut).mulPPM(ALLOCATIONS_REWARD_CUT),
-            indexerRewards: 0
-        });
-        calcValues.indexerRewards =
-            ALLOCATIONS_REWARD_CUT - (beforeValues.pool.tokens > 0 ? calcValues.delegatorRewards : 0);
-
-        // closeAllocation
-        vm.expectEmit(address(staking));
-        emit IHorizonStakingExtension.AllocationClosed(
-            beforeValues.allocation.indexer,
-            beforeValues.allocation.subgraphDeploymentID,
-            epochManager.currentEpoch(),
-            beforeValues.allocation.tokens,
-            allocationId,
-            msgSender,
-            poi,
-            !isAuth
-        );
-        staking.closeAllocation(allocationId, poi);
-
-        // after
-        IHorizonStakingExtension.Allocation memory afterAllocation = staking.getAllocation(allocationId);
-        DelegationPoolInternalTest memory afterPool = _getStorageDelegationPoolInternal(
-            beforeValues.allocation.indexer,
-            subgraphDataServiceLegacyAddress,
-            true
-        );
-        ServiceProviderInternal memory afterServiceProvider = _getStorageServiceProviderInternal(
-            beforeValues.allocation.indexer
-        );
-        uint256 afterSubgraphAllocations = _getStorageSubgraphAllocations(beforeValues.allocation.subgraphDeploymentID);
-        uint256 afterStakingBalance = token.balanceOf(address(staking));
-        uint256 afterIndexerBalance = token.balanceOf(beforeValues.allocation.indexer);
-        uint256 afterBeneficiaryBalance = token.balanceOf(rewardsDestination);
-
-        if (beforeValues.allocation.tokens > 0) {
-            if (isAuth && poi != 0) {
-                if (rewardsDestination != address(0)) {
-                    assertEq(
-                        beforeValues.stakingBalance + calcValues.rewards - calcValues.indexerRewards,
-                        afterStakingBalance
-                    );
-                    assertEq(beforeValues.indexerBalance, afterIndexerBalance);
-                    assertEq(beforeValues.beneficiaryBalance + calcValues.indexerRewards, afterBeneficiaryBalance);
-                } else {
-                    assertEq(beforeValues.stakingBalance + calcValues.rewards, afterStakingBalance);
-                    assertEq(beforeValues.indexerBalance, afterIndexerBalance);
-                    assertEq(beforeValues.beneficiaryBalance, afterBeneficiaryBalance);
-                }
-            } else {
-                assertEq(beforeValues.stakingBalance, afterStakingBalance);
-                assertEq(beforeValues.indexerBalance, afterIndexerBalance);
-                assertEq(beforeValues.beneficiaryBalance, afterBeneficiaryBalance);
-            }
-        } else {
-            assertEq(beforeValues.stakingBalance, afterStakingBalance);
-            assertEq(beforeValues.indexerBalance, afterIndexerBalance);
-            assertEq(beforeValues.beneficiaryBalance, afterBeneficiaryBalance);
-        }
-
-        assertEq(afterAllocation.indexer, beforeValues.allocation.indexer);
-        assertEq(afterAllocation.subgraphDeploymentID, beforeValues.allocation.subgraphDeploymentID);
-        assertEq(afterAllocation.tokens, beforeValues.allocation.tokens);
-        assertEq(afterAllocation.createdAtEpoch, beforeValues.allocation.createdAtEpoch);
-        assertEq(afterAllocation.closedAtEpoch, epochManager.currentEpoch());
-        assertEq(afterAllocation.collectedFees, beforeValues.allocation.collectedFees);
-        assertEq(
-            afterAllocation.__DEPRECATED_effectiveAllocation,
-            beforeValues.allocation.__DEPRECATED_effectiveAllocation
-        );
-        assertEq(afterAllocation.accRewardsPerAllocatedToken, beforeValues.allocation.accRewardsPerAllocatedToken);
-        assertEq(afterAllocation.distributedRebates, beforeValues.allocation.distributedRebates);
-
-        if (beforeValues.allocation.tokens > 0 && isAuth && poi != 0 && rewardsDestination == address(0)) {
-            assertEq(
-                afterServiceProvider.tokensStaked,
-                beforeValues.serviceProvider.tokensStaked + calcValues.indexerRewards
-            );
-        } else {
-            assertEq(afterServiceProvider.tokensStaked, beforeValues.serviceProvider.tokensStaked);
-        }
-        assertEq(afterServiceProvider.tokensProvisioned, beforeValues.serviceProvider.tokensProvisioned);
-        assertEq(
-            afterServiceProvider.__DEPRECATED_tokensAllocated + beforeValues.allocation.tokens,
-            beforeValues.serviceProvider.__DEPRECATED_tokensAllocated
-        );
-        assertEq(
-            afterServiceProvider.__DEPRECATED_tokensLocked,
-            beforeValues.serviceProvider.__DEPRECATED_tokensLocked
-        );
-        assertEq(
-            afterServiceProvider.__DEPRECATED_tokensLockedUntil,
-            beforeValues.serviceProvider.__DEPRECATED_tokensLockedUntil
-        );
-
-        assertEq(afterSubgraphAllocations + beforeValues.allocation.tokens, beforeValues.subgraphAllocations);
-
-        if (beforeValues.allocation.tokens > 0 && isAuth && poi != 0 && beforeValues.pool.tokens > 0) {
-            assertEq(afterPool.tokens, beforeValues.pool.tokens + calcValues.delegatorRewards);
-        } else {
-            assertEq(afterPool.tokens, beforeValues.pool.tokens);
-        }
-    }
-
-    // use struct to avoid 'stack too deep' error
-    struct BeforeValuesCollect {
-        IHorizonStakingExtension.Allocation allocation;
-        DelegationPoolInternalTest pool;
-        ServiceProviderInternal serviceProvider;
-        uint256 stakingBalance;
-        uint256 senderBalance;
-        uint256 curationBalance;
-        uint256 beneficiaryBalance;
-    }
-    struct CalcValuesCollect {
-        uint256 protocolTaxTokens;
-        uint256 queryFees;
-        uint256 curationCutTokens;
-        uint256 newRebates;
-        uint256 payment;
-        uint256 delegationFeeCut;
-    }
-    struct AfterValuesCollect {
-        IHorizonStakingExtension.Allocation allocation;
-        DelegationPoolInternalTest pool;
-        ServiceProviderInternal serviceProvider;
-        uint256 stakingBalance;
-        uint256 senderBalance;
-        uint256 curationBalance;
-        uint256 beneficiaryBalance;
-    }
-
-    function _collect(uint256 tokens, address allocationId) internal {
-        (, address msgSender, ) = vm.readCallers();
-
-        // before
-        BeforeValuesCollect memory beforeValues;
-        beforeValues.allocation = staking.getAllocation(allocationId);
-        beforeValues.pool = _getStorageDelegationPoolInternal(
-            beforeValues.allocation.indexer,
-            subgraphDataServiceLegacyAddress,
-            true
-        );
-        beforeValues.serviceProvider = _getStorageServiceProviderInternal(beforeValues.allocation.indexer);
-
-        (uint32 curationPercentage, uint32 protocolPercentage) = _getStorageProtocolTaxAndCuration();
-        address rewardsDestination = _getStorageRewardsDestination(beforeValues.allocation.indexer);
-
-        beforeValues.stakingBalance = token.balanceOf(address(staking));
-        beforeValues.senderBalance = token.balanceOf(msgSender);
-        beforeValues.curationBalance = token.balanceOf(address(curation));
-        beforeValues.beneficiaryBalance = token.balanceOf(rewardsDestination);
-
-        // calc some stuff
-        CalcValuesCollect memory calcValues;
-        calcValues.protocolTaxTokens = tokens.mulPPMRoundUp(protocolPercentage);
-        calcValues.queryFees = tokens - calcValues.protocolTaxTokens;
-        calcValues.curationCutTokens = 0;
-        if (curation.isCurated(beforeValues.allocation.subgraphDeploymentID)) {
-            calcValues.curationCutTokens = calcValues.queryFees.mulPPMRoundUp(curationPercentage);
-            calcValues.queryFees -= calcValues.curationCutTokens;
-        }
-        calcValues.newRebates = ExponentialRebates.exponentialRebates(
-            calcValues.queryFees + beforeValues.allocation.collectedFees,
-            beforeValues.allocation.tokens,
-            alphaNumerator,
-            alphaDenominator,
-            lambdaNumerator,
-            lambdaDenominator
-        );
-        calcValues.payment = calcValues.newRebates > calcValues.queryFees
-            ? calcValues.queryFees
-            : calcValues.newRebates;
-        calcValues.delegationFeeCut = 0;
-        if (beforeValues.pool.tokens > 0) {
-            calcValues.delegationFeeCut =
-                calcValues.payment - calcValues.payment.mulPPM(beforeValues.pool.__DEPRECATED_queryFeeCut);
-            calcValues.payment -= calcValues.delegationFeeCut;
-        }
-
-        // staking.collect()
-        if (tokens > 0) {
-            vm.expectEmit(address(staking));
-            emit IHorizonStakingExtension.RebateCollected(
-                msgSender,
-                beforeValues.allocation.indexer,
-                beforeValues.allocation.subgraphDeploymentID,
-                allocationId,
-                epochManager.currentEpoch(),
-                tokens,
-                calcValues.protocolTaxTokens,
-                calcValues.curationCutTokens,
-                calcValues.queryFees,
-                calcValues.payment,
-                calcValues.delegationFeeCut
-            );
-        }
-        staking.collect(tokens, allocationId);
-
-        // after
-        AfterValuesCollect memory afterValues;
-        afterValues.allocation = staking.getAllocation(allocationId);
-        afterValues.pool = _getStorageDelegationPoolInternal(
-            beforeValues.allocation.indexer,
-            subgraphDataServiceLegacyAddress,
-            true
-        );
-        afterValues.serviceProvider = _getStorageServiceProviderInternal(beforeValues.allocation.indexer);
-        afterValues.stakingBalance = token.balanceOf(address(staking));
-        afterValues.senderBalance = token.balanceOf(msgSender);
-        afterValues.curationBalance = token.balanceOf(address(curation));
-        afterValues.beneficiaryBalance = token.balanceOf(rewardsDestination);
-
-        // assert
-        assertEq(afterValues.senderBalance + tokens, beforeValues.senderBalance);
-        assertEq(afterValues.curationBalance, beforeValues.curationBalance + calcValues.curationCutTokens);
-        if (rewardsDestination != address(0)) {
-            assertEq(afterValues.beneficiaryBalance, beforeValues.beneficiaryBalance + calcValues.payment);
-            assertEq(afterValues.stakingBalance, beforeValues.stakingBalance + calcValues.delegationFeeCut);
-        } else {
-            assertEq(afterValues.beneficiaryBalance, beforeValues.beneficiaryBalance);
-            assertEq(
-                afterValues.stakingBalance,
-                beforeValues.stakingBalance + calcValues.delegationFeeCut + calcValues.payment
-            );
-        }
-
-        assertEq(
-            afterValues.allocation.collectedFees,
-            beforeValues.allocation.collectedFees + tokens - calcValues.protocolTaxTokens - calcValues.curationCutTokens
-        );
-        assertEq(afterValues.allocation.indexer, beforeValues.allocation.indexer);
-        assertEq(afterValues.allocation.subgraphDeploymentID, beforeValues.allocation.subgraphDeploymentID);
-        assertEq(afterValues.allocation.tokens, beforeValues.allocation.tokens);
-        assertEq(afterValues.allocation.createdAtEpoch, beforeValues.allocation.createdAtEpoch);
-        assertEq(afterValues.allocation.closedAtEpoch, beforeValues.allocation.closedAtEpoch);
-        assertEq(
-            afterValues.allocation.accRewardsPerAllocatedToken,
-            beforeValues.allocation.accRewardsPerAllocatedToken
-        );
-        assertEq(
-            afterValues.allocation.distributedRebates,
-            beforeValues.allocation.distributedRebates + calcValues.newRebates
-        );
-
-        assertEq(afterValues.pool.tokens, beforeValues.pool.tokens + calcValues.delegationFeeCut);
-        assertEq(afterValues.pool.shares, beforeValues.pool.shares);
-        assertEq(afterValues.pool.tokensThawing, beforeValues.pool.tokensThawing);
-        assertEq(afterValues.pool.sharesThawing, beforeValues.pool.sharesThawing);
-        assertEq(afterValues.pool.thawingNonce, beforeValues.pool.thawingNonce);
-
-        assertEq(afterValues.serviceProvider.tokensProvisioned, beforeValues.serviceProvider.tokensProvisioned);
-        if (rewardsDestination != address(0)) {
-            assertEq(afterValues.serviceProvider.tokensStaked, beforeValues.serviceProvider.tokensStaked);
-        } else {
-            assertEq(
-                afterValues.serviceProvider.tokensStaked,
-                beforeValues.serviceProvider.tokensStaked + calcValues.payment
-            );
-        }
-    }
-
     /*
      * STORAGE HELPERS
      */
@@ -1962,22 +1534,6 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             );
         }
         return vm.load(address(staking), bytes32(slot)) == bytes32(uint256(1));
-    }
-
-    function _setStorageDeprecatedThawingPeriod(uint32 _thawingPeriod) internal {
-        uint256 slot = 13;
-
-        // Read the current value of the slot
-        uint256 currentSlotValue = uint256(vm.load(address(staking), bytes32(slot)));
-
-        // Create a mask to clear the bits for __DEPRECATED_thawingPeriod (bits 0-31)
-        uint256 mask = ~(uint256(0xFFFFFFFF)); // Mask to clear the first 32 bits
-
-        // Clear the bits for __DEPRECATED_thawingPeriod and set the new value
-        uint256 newSlotValue = (currentSlotValue & mask) | uint256(_thawingPeriod);
-
-        // Store the updated value back into the slot
-        vm.store(address(staking), bytes32(slot), bytes32(newSlotValue));
     }
 
     function _setStorageServiceProvider(
@@ -2091,62 +1647,9 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         return delegation;
     }
 
-    function _setStorageAllocation(
-        IHorizonStakingExtension.Allocation memory allocation,
-        address allocationId,
-        uint256 tokens
-    ) internal {
-        // __DEPRECATED_allocations
-        uint256 allocationsSlot = 15;
-        bytes32 allocationBaseSlot = keccak256(abi.encode(allocationId, allocationsSlot));
-        vm.store(address(staking), allocationBaseSlot, bytes32(uint256(uint160(allocation.indexer))));
-        vm.store(address(staking), bytes32(uint256(allocationBaseSlot) + 1), allocation.subgraphDeploymentID);
-        vm.store(address(staking), bytes32(uint256(allocationBaseSlot) + 2), bytes32(tokens));
-        vm.store(address(staking), bytes32(uint256(allocationBaseSlot) + 3), bytes32(allocation.createdAtEpoch));
-        vm.store(address(staking), bytes32(uint256(allocationBaseSlot) + 4), bytes32(allocation.closedAtEpoch));
-        vm.store(address(staking), bytes32(uint256(allocationBaseSlot) + 5), bytes32(allocation.collectedFees));
-        vm.store(
-            address(staking),
-            bytes32(uint256(allocationBaseSlot) + 6),
-            bytes32(allocation.__DEPRECATED_effectiveAllocation)
-        );
-        vm.store(
-            address(staking),
-            bytes32(uint256(allocationBaseSlot) + 7),
-            bytes32(allocation.accRewardsPerAllocatedToken)
-        );
-        vm.store(address(staking), bytes32(uint256(allocationBaseSlot) + 8), bytes32(allocation.distributedRebates));
-
-        // _serviceProviders
-        uint256 serviceProviderSlot = 14;
-        bytes32 serviceProviderBaseSlot = keccak256(abi.encode(allocation.indexer, serviceProviderSlot));
-        uint256 currentTokensStaked = uint256(vm.load(address(staking), serviceProviderBaseSlot));
-        uint256 currentTokensProvisioned = uint256(
-            vm.load(address(staking), bytes32(uint256(serviceProviderBaseSlot) + 1))
-        );
-        vm.store(
-            address(staking),
-            bytes32(uint256(serviceProviderBaseSlot) + 0),
-            bytes32(currentTokensStaked + tokens)
-        );
-        vm.store(
-            address(staking),
-            bytes32(uint256(serviceProviderBaseSlot) + 1),
-            bytes32(currentTokensProvisioned + tokens)
-        );
-
-        // __DEPRECATED_subgraphAllocations
+    function _getStorageSubgraphAllocations(bytes32 subgraphDeploymentID) internal view returns (uint256) {
         uint256 subgraphsAllocationsSlot = 16;
-        bytes32 subgraphAllocationsBaseSlot = keccak256(
-            abi.encode(allocation.subgraphDeploymentID, subgraphsAllocationsSlot)
-        );
-        uint256 currentAllocatedTokens = uint256(vm.load(address(staking), subgraphAllocationsBaseSlot));
-        vm.store(address(staking), subgraphAllocationsBaseSlot, bytes32(currentAllocatedTokens + tokens));
-    }
-
-    function _getStorageSubgraphAllocations(bytes32 subgraphDeploymentId) internal view returns (uint256) {
-        uint256 subgraphsAllocationsSlot = 16;
-        bytes32 subgraphAllocationsBaseSlot = keccak256(abi.encode(subgraphDeploymentId, subgraphsAllocationsSlot));
+        bytes32 subgraphAllocationsBaseSlot = keccak256(abi.encode(subgraphDeploymentID, subgraphsAllocationsSlot));
         return uint256(vm.load(address(staking), subgraphAllocationsBaseSlot));
     }
 
@@ -2162,40 +1665,6 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         return address(uint160(uint256(vm.load(address(staking), rewardsDestinationSlotBaseSlot))));
     }
 
-    function _setStorageMaxAllocationEpochs(uint256 maxAllocationEpochs) internal {
-        uint256 slot = 13;
-
-        // Read the current value of the storage slot
-        uint256 currentSlotValue = uint256(vm.load(address(staking), bytes32(slot)));
-
-        // Mask to clear the specific bits for __DEPRECATED_maxAllocationEpochs (bits 128-159)
-        uint256 mask = ~(uint256(0xFFFFFFFF) << 128);
-
-        // Clear the bits and set the new maxAllocationEpochs value
-        uint256 newSlotValue = (currentSlotValue & mask) | (uint256(maxAllocationEpochs) << 128);
-
-        // Store the updated value back into the slot
-        vm.store(address(staking), bytes32(slot), bytes32(newSlotValue));
-
-        uint256 readMaxAllocationEpochs = _getStorageMaxAllocationEpochs();
-        assertEq(readMaxAllocationEpochs, maxAllocationEpochs);
-    }
-
-    function _getStorageMaxAllocationEpochs() internal view returns (uint256) {
-        uint256 slot = 13;
-
-        // Read the current value of the storage slot
-        uint256 currentSlotValue = uint256(vm.load(address(staking), bytes32(slot)));
-
-        // Mask to isolate bits 128-159
-        uint256 mask = uint256(0xFFFFFFFF) << 128;
-
-        // Extract the maxAllocationEpochs by masking and shifting
-        uint256 maxAllocationEpochs = (currentSlotValue & mask) >> 128;
-
-        return maxAllocationEpochs;
-    }
-
     function _setStorageDelegationPool(
         address serviceProvider,
         uint256 tokens,
@@ -2209,148 +1678,6 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         bytes32 tokensSlot = bytes32(uint256(baseSlot) + 2);
         vm.store(address(staking), baseSlot, feeCutValues);
         vm.store(address(staking), tokensSlot, bytes32(tokens));
-    }
-
-    function _setStorageRebateParameters(
-        uint32 alphaNumerator_,
-        uint32 alphaDenominator_,
-        uint32 lambdaNumerator_,
-        uint32 lambdaDenominator_
-    ) internal {
-        // Store alpha numerator and denominator in slot 13
-        uint256 alphaSlot = 13;
-
-        uint256 newAlphaSlotValue;
-        {
-            uint256 alphaNumeratorOffset = 160; // Offset for __DEPRECATED_alphaNumerator (20th byte)
-            uint256 alphaDenominatorOffset = 192; // Offset for __DEPRECATED_alphaDenominator (24th byte)
-
-            // Read current value of the slot
-            uint256 currentAlphaSlotValue = uint256(vm.load(address(staking), bytes32(alphaSlot)));
-
-            // Create a mask to clear the bits for alphaNumerator and alphaDenominator
-            uint256 alphaMask = ~(uint256(0xFFFFFFFF) << alphaNumeratorOffset) &
-                ~(uint256(0xFFFFFFFF) << alphaDenominatorOffset);
-
-            // Clear and set new values
-            newAlphaSlotValue =
-                (currentAlphaSlotValue & alphaMask) |
-                (uint256(alphaNumerator_) << alphaNumeratorOffset) |
-                (uint256(alphaDenominator_) << alphaDenominatorOffset);
-        }
-
-        // Store the updated value back into the slot
-        vm.store(address(staking), bytes32(alphaSlot), bytes32(newAlphaSlotValue));
-
-        // Store lambda numerator and denominator in slot 25
-        uint256 lambdaSlot = 25;
-
-        uint256 newLambdaSlotValue;
-        {
-            uint256 lambdaNumeratorOffset = 160; // Offset for lambdaNumerator (20th byte)
-            uint256 lambdaDenominatorOffset = 192; // Offset for lambdaDenominator (24th byte)
-
-            // Read current value of the slot
-            uint256 currentLambdaSlotValue = uint256(vm.load(address(staking), bytes32(lambdaSlot)));
-
-            // Create a mask to clear the bits for lambdaNumerator and lambdaDenominator
-            uint256 lambdaMask = ~(uint256(0xFFFFFFFF) << lambdaNumeratorOffset) &
-                ~(uint256(0xFFFFFFFF) << lambdaDenominatorOffset);
-
-            // Clear and set new values
-            newLambdaSlotValue =
-                (currentLambdaSlotValue & lambdaMask) |
-                (uint256(lambdaNumerator_) << lambdaNumeratorOffset) |
-                (uint256(lambdaDenominator_) << lambdaDenominatorOffset);
-        }
-
-        // Store the updated value back into the slot
-        vm.store(address(staking), bytes32(lambdaSlot), bytes32(newLambdaSlotValue));
-
-        // Verify the storage
-        (
-            uint32 readAlphaNumerator,
-            uint32 readAlphaDenominator,
-            uint32 readLambdaNumerator,
-            uint32 readLambdaDenominator
-        ) = _getStorageRebateParameters();
-        assertEq(readAlphaNumerator, alphaNumerator_);
-        assertEq(readAlphaDenominator, alphaDenominator_);
-        assertEq(readLambdaNumerator, lambdaNumerator_);
-        assertEq(readLambdaDenominator, lambdaDenominator_);
-    }
-
-    function _getStorageRebateParameters() internal view returns (uint32, uint32, uint32, uint32) {
-        // Read alpha numerator and denominator
-        uint256 alphaSlot = 13;
-        uint256 alphaValues = uint256(vm.load(address(staking), bytes32(alphaSlot)));
-        // forge-lint: disable-next-line(unsafe-typecast)
-        uint32 alphaNumerator_ = uint32(alphaValues >> 160);
-        // forge-lint: disable-next-line(unsafe-typecast)
-        uint32 alphaDenominator_ = uint32(alphaValues >> 192);
-
-        // Read lambda numerator and denominator
-        uint256 lambdaSlot = 25;
-        uint256 lambdaValues = uint256(vm.load(address(staking), bytes32(lambdaSlot)));
-        // forge-lint: disable-next-line(unsafe-typecast)
-        uint32 lambdaNumerator_ = uint32(lambdaValues >> 160);
-        // forge-lint: disable-next-line(unsafe-typecast)
-        uint32 lambdaDenominator_ = uint32(lambdaValues >> 192);
-
-        return (alphaNumerator_, alphaDenominator_, lambdaNumerator_, lambdaDenominator_);
-    }
-
-    // function _setStorageProtocolTaxAndCuration(uint32 curationPercentage, uint32 taxPercentage) private {
-    //     bytes32 slot = bytes32(uint256(13));
-    //     uint256 curationOffset = 4;
-    //     uint256 protocolTaxOffset = 8;
-    //     bytes32 originalValue = vm.load(address(staking), slot);
-
-    //     bytes32 newProtocolTaxValue = bytes32(
-    //         ((uint256(originalValue) &
-    //             ~((0xFFFFFFFF << (8 * curationOffset)) | (0xFFFFFFFF << (8 * protocolTaxOffset)))) |
-    //             (uint256(curationPercentage) << (8 * curationOffset))) |
-    //             (uint256(taxPercentage) << (8 * protocolTaxOffset))
-    //     );
-    //     vm.store(address(staking), slot, newProtocolTaxValue);
-
-    //     (uint32 readCurationPercentage, uint32 readTaxPercentage) = _getStorageProtocolTaxAndCuration();
-    //     assertEq(readCurationPercentage, curationPercentage);
-    // }
-
-    function _setStorageProtocolTaxAndCuration(uint32 curationPercentage, uint32 taxPercentage) internal {
-        bytes32 slot = bytes32(uint256(13));
-
-        // Offsets for the percentages
-        uint256 curationOffset = 32; // __DEPRECATED_curationPercentage (2nd uint32, bits 32-63)
-        uint256 protocolTaxOffset = 64; // __DEPRECATED_protocolPercentage (3rd uint32, bits 64-95)
-
-        // Read the current slot value
-        uint256 originalValue = uint256(vm.load(address(staking), slot));
-
-        // Create masks to clear the specific bits for the two percentages
-        uint256 mask = ~(uint256(0xFFFFFFFF) << curationOffset) & ~(uint256(0xFFFFFFFF) << protocolTaxOffset); // Mask for curationPercentage // Mask for protocolTax
-
-        // Clear the existing bits and set the new values
-        uint256 newSlotValue = (originalValue & mask) |
-            (uint256(curationPercentage) << curationOffset) |
-            (uint256(taxPercentage) << protocolTaxOffset);
-
-        // Store the updated slot value
-        vm.store(address(staking), slot, bytes32(newSlotValue));
-
-        // Verify the values were set correctly
-        (uint32 readCurationPercentage, uint32 readTaxPercentage) = _getStorageProtocolTaxAndCuration();
-        assertEq(readCurationPercentage, curationPercentage);
-        assertEq(readTaxPercentage, taxPercentage);
-    }
-
-    function _getStorageProtocolTaxAndCuration() internal view returns (uint32, uint32) {
-        bytes32 slot = bytes32(uint256(13));
-        bytes32 value = vm.load(address(staking), slot);
-        uint32 curationPercentage = uint32(uint256(value) >> 32);
-        uint32 taxPercentage = uint32(uint256(value) >> 64);
-        return (curationPercentage, taxPercentage);
     }
 
     /*

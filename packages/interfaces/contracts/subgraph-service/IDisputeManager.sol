@@ -3,6 +3,7 @@
 pragma solidity ^0.8.22;
 
 import { IAttestation } from "./internal/IAttestation.sol";
+import { IIndexingAgreement } from "./internal/IIndexingAgreement.sol";
 import { ISubgraphService } from "./ISubgraphService.sol";
 
 /**
@@ -18,7 +19,8 @@ interface IDisputeManager {
         Null,
         IndexingDispute,
         QueryDispute,
-        LegacyDispute
+        __DEPRECATED_LegacyDispute,
+        IndexingFeeDispute
     }
 
     /// @notice Status of a dispute
@@ -120,6 +122,32 @@ interface IDisputeManager {
     );
 
     /**
+     * @notice Emitted when an indexing fee dispute is created for `agreementId` and `indexer`
+     * by `fisherman`.
+     * @dev The event emits the amount of `tokens` deposited by the fisherman.
+     * @param disputeId The dispute id
+     * @param indexer The indexer address
+     * @param fisherman The fisherman address
+     * @param tokens The amount of tokens deposited by the fisherman
+     * @param payer The address of the payer of the indexing fee
+     * @param agreementId The agreement id
+     * @param poi The POI disputed
+     * @param entities The entities disputed
+     * @param stakeSnapshot The stake snapshot of the indexer at the time of the dispute
+     */
+    event IndexingFeeDisputeCreated(
+        bytes32 indexed disputeId,
+        address indexed indexer,
+        address indexed fisherman,
+        uint256 tokens,
+        address payer,
+        bytes16 agreementId,
+        bytes32 poi,
+        uint256 entities,
+        uint256 stakeSnapshot
+    );
+
+    /**
      * @notice Emitted when an indexing dispute is created for `allocationId` and `indexer`
      * by `fisherman`.
      * The event emits the amount of `tokens` deposited by the fisherman.
@@ -143,25 +171,6 @@ interface IDisputeManager {
         uint256 blockNumber,
         uint256 stakeSnapshot,
         uint256 cancellableAt
-    );
-
-    /**
-     * @notice Emitted when a legacy dispute is created for `allocationId` and `fisherman`.
-     * The event emits the amount of `tokensSlash` to slash and `tokensRewards` to reward the fisherman.
-     * @param disputeId The dispute id
-     * @param indexer The indexer address
-     * @param fisherman The fisherman address to be credited with the rewards
-     * @param allocationId The allocation id
-     * @param tokensSlash The amount of tokens to slash
-     * @param tokensRewards The amount of tokens to reward the fisherman
-     */
-    event LegacyDisputeCreated(
-        bytes32 indexed disputeId,
-        address indexed indexer,
-        address indexed fisherman,
-        address allocationId,
-        uint256 tokensSlash,
-        uint256 tokensRewards
     );
 
     /**
@@ -359,6 +368,18 @@ interface IDisputeManager {
     error DisputeManagerSubgraphServiceNotSet();
 
     /**
+     * @notice Thrown when the Indexing Agreement is not disputable
+     * @param agreementId The indexing agreement id
+     */
+    error DisputeManagerIndexingAgreementNotDisputable(bytes16 agreementId);
+
+    /**
+     * @notice Thrown when the Indexing Agreement is not disputable
+     * @param version The indexing agreement version
+     */
+    error DisputeManagerIndexingAgreementInvalidVersion(IIndexingAgreement.IndexingAgreementVersion version);
+
+    /**
      * @notice Initialize this contract.
      * @param owner The owner of the contract
      * @param arbitrator_ Arbitrator role
@@ -472,36 +493,26 @@ interface IDisputeManager {
     function createIndexingDispute(address allocationId, bytes32 poi, uint256 blockNumber) external returns (bytes32);
 
     /**
-     * @notice Creates and auto-accepts a legacy dispute.
-     * This disputes can be created to settle outstanding slashing amounts with an indexer that has been
-     * "legacy slashed" during or shortly after the transition period. See {HorizonStakingExtension.legacySlash}
-     * for more details.
-     *
-     * Note that this type of dispute:
-     * - can only be created by the arbitrator
-     * - does not require a bond
-     * - is automatically accepted when created
-     *
-     * Additionally, note that this type of disputes allow the arbitrator to directly set the slash and rewards
-     * amounts, bypassing the usual mechanisms that impose restrictions on those. This is done to give arbitrators
-     * maximum flexibility to ensure outstanding slashing amounts are settled fairly. This function needs to be removed
-     * after the transition period.
+     * @notice Create an indexing fee (version 1) dispute for the arbitrator to resolve.
+     * The disputes are created in reference to a version 1 indexing agreement and specifically
+     * a POI and entities provided when collecting that agreement.
+     * This function is called by a fisherman and it will pull `disputeDeposit` GRT tokens.
      *
      * Requirements:
-     * - Indexer must have been legacy slashed during or shortly after the transition period
-     * - Indexer must have provisioned funds to the Subgraph Service
+     * - fisherman must have previously approved this contract to pull `disputeDeposit` amount
+     *   of tokens from their balance.
      *
-     * @param allocationId The allocation to dispute
-     * @param fisherman The fisherman address to be credited with the rewards
-     * @param tokensSlash The amount of tokens to slash
-     * @param tokensRewards The amount of tokens to reward the fisherman
+     * @param agreementId The indexing agreement to dispute
+     * @param poi The Proof of Indexing (POI) being disputed
+     * @param entities The number of entities disputed
+     * @param blockNumber The block number at which the indexing fee was collected
      * @return The dispute id
      */
-    function createAndAcceptLegacyDispute(
-        address allocationId,
-        address fisherman,
-        uint256 tokensSlash,
-        uint256 tokensRewards
+    function createIndexingFeeDisputeV1(
+        bytes16 agreementId,
+        bytes32 poi,
+        uint256 entities,
+        uint256 blockNumber
     ) external returns (bytes32);
 
     // -- Arbitrator --

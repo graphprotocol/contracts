@@ -3,7 +3,7 @@ import 'hardhat-ignore-warnings'
 
 const config = {
   solidity: {
-    compilers: [{ version: '0.8.27' }, { version: '0.7.6' }],
+    compilers: [{ version: '0.8.27' }, { version: '0.8.33' }, { version: '0.7.6' }],
   },
   typechain: {
     outDir: 'types',
