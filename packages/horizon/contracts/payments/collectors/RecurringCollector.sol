@@ -9,6 +9,7 @@ import { Authorizable } from "../../utilities/Authorizable.sol";
 import { GraphDirectory } from "../../utilities/GraphDirectory.sol";
 // solhint-disable-next-line no-unused-import
 import { IPaymentsCollector } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsCollector.sol"; // for @inheritdoc
+import { IContractApprover } from "@graphprotocol/interfaces/contracts/horizon/IContractApprover.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { PPMMath } from "../../libraries/PPMMath.sol";
@@ -72,7 +73,6 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         }
     }
 
-    /* solhint-disable function-max-lines */
     /**
      * @inheritdoc IRecurringCollector
      * @notice Accept a Recurring Collection Agreement.
@@ -80,19 +80,6 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
      * @dev Caller must be the data service the RCA was issued to.
      */
     function accept(SignedRCA calldata signedRCA) external returns (bytes16) {
-        bytes16 agreementId = _generateAgreementId(
-            signedRCA.rca.payer,
-            signedRCA.rca.dataService,
-            signedRCA.rca.serviceProvider,
-            signedRCA.rca.deadline,
-            signedRCA.rca.nonce
-        );
-
-        require(agreementId != bytes16(0), RecurringCollectorAgreementIdZero());
-        require(
-            msg.sender == signedRCA.rca.dataService,
-            RecurringCollectorUnauthorizedCaller(msg.sender, signedRCA.rca.dataService)
-        );
         /* solhint-disable gas-strict-inequalities */
         require(
             signedRCA.rca.deadline >= block.timestamp,
@@ -103,18 +90,54 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         // check that the voucher is signed by the payer (or proxy)
         _requireAuthorizedRCASigner(signedRCA);
 
+        return _validateAndStoreAgreement(signedRCA.rca);
+    }
+
+    /**
+     * @inheritdoc IRecurringCollector
+     * @notice Accept an RCA where the payer is a contract that authorizes via callback.
+     * See {IRecurringCollector.acceptUnsigned}.
+     * @dev Caller must be the data service the RCA was issued to.
+     */
+    function acceptUnsigned(RecurringCollectionAgreement calldata rca) external returns (bytes16) {
+        // Verify payer is actually a contract
+        require(0 < rca.payer.code.length, RecurringCollectorApproverNotContract(rca.payer));
+
+        // Verify the contract confirms this specific agreement
+        bytes32 agreementHash = _hashRCA(rca);
         require(
-            signedRCA.rca.dataService != address(0) &&
-                signedRCA.rca.payer != address(0) &&
-                signedRCA.rca.serviceProvider != address(0),
+            IContractApprover(rca.payer).isAuthorizedAgreement(agreementHash) ==
+                IContractApprover.isAuthorizedAgreement.selector,
+            RecurringCollectorInvalidSigner()
+        );
+
+        return _validateAndStoreAgreement(rca);
+    }
+
+    /**
+     * @notice Validates RCA fields and stores the agreement. Shared by accept() and acceptUnsigned().
+     * @param _rca The Recurring Collection Agreement to validate and store
+     * @return agreementId The deterministically generated agreement ID
+     */
+    /* solhint-disable function-max-lines */
+    function _validateAndStoreAgreement(RecurringCollectionAgreement memory _rca) private returns (bytes16) {
+        bytes16 agreementId = _generateAgreementId(
+            _rca.payer,
+            _rca.dataService,
+            _rca.serviceProvider,
+            _rca.deadline,
+            _rca.nonce
+        );
+
+        require(agreementId != bytes16(0), RecurringCollectorAgreementIdZero());
+        require(msg.sender == _rca.dataService, RecurringCollectorUnauthorizedCaller(msg.sender, _rca.dataService));
+
+        require(
+            _rca.dataService != address(0) && _rca.payer != address(0) && _rca.serviceProvider != address(0),
             RecurringCollectorAgreementAddressNotSet()
         );
 
-        _requireValidCollectionWindowParams(
-            signedRCA.rca.endsAt,
-            signedRCA.rca.minSecondsPerCollection,
-            signedRCA.rca.maxSecondsPerCollection
-        );
+        _requireValidCollectionWindowParams(_rca.endsAt, _rca.minSecondsPerCollection, _rca.maxSecondsPerCollection);
 
         AgreementData storage agreement = _getAgreementStorage(agreementId);
         // check that the agreement is not already accepted
@@ -126,14 +149,14 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         // accept the agreement
         agreement.acceptedAt = uint64(block.timestamp);
         agreement.state = AgreementState.Accepted;
-        agreement.dataService = signedRCA.rca.dataService;
-        agreement.payer = signedRCA.rca.payer;
-        agreement.serviceProvider = signedRCA.rca.serviceProvider;
-        agreement.endsAt = signedRCA.rca.endsAt;
-        agreement.maxInitialTokens = signedRCA.rca.maxInitialTokens;
-        agreement.maxOngoingTokensPerSecond = signedRCA.rca.maxOngoingTokensPerSecond;
-        agreement.minSecondsPerCollection = signedRCA.rca.minSecondsPerCollection;
-        agreement.maxSecondsPerCollection = signedRCA.rca.maxSecondsPerCollection;
+        agreement.dataService = _rca.dataService;
+        agreement.payer = _rca.payer;
+        agreement.serviceProvider = _rca.serviceProvider;
+        agreement.endsAt = _rca.endsAt;
+        agreement.maxInitialTokens = _rca.maxInitialTokens;
+        agreement.maxOngoingTokensPerSecond = _rca.maxOngoingTokensPerSecond;
+        agreement.minSecondsPerCollection = _rca.minSecondsPerCollection;
+        agreement.maxSecondsPerCollection = _rca.maxSecondsPerCollection;
         agreement.updateNonce = 0;
 
         emit AgreementAccepted(
@@ -250,6 +273,65 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
             agreement.maxSecondsPerCollection
         );
     }
+
+    /**
+     * @inheritdoc IRecurringCollector
+     * @notice Update a Recurring Collection Agreement where the payer is a contract.
+     * See {IRecurringCollector.updateUnsigned}.
+     * @dev Caller must be the data service for the agreement.
+     * @dev Note: Updated pricing terms apply immediately and will affect the next collection
+     * for the entire period since lastCollectionAt.
+     */
+    function updateUnsigned(RecurringCollectionAgreementUpdate calldata rcau) external {
+        AgreementData storage agreement = _getAgreementStorage(rcau.agreementId);
+        require(
+            agreement.state == AgreementState.Accepted,
+            RecurringCollectorAgreementIncorrectState(rcau.agreementId, agreement.state)
+        );
+        require(
+            agreement.dataService == msg.sender,
+            RecurringCollectorDataServiceNotAuthorized(rcau.agreementId, msg.sender)
+        );
+
+        // Contract callback instead of ECDSA signature
+        require(0 < agreement.payer.code.length, RecurringCollectorApproverNotContract(agreement.payer));
+        bytes32 updateHash = _hashRCAU(rcau);
+        require(
+            IContractApprover(agreement.payer).isAuthorizedAgreement(updateHash) ==
+                IContractApprover.isAuthorizedAgreement.selector,
+            RecurringCollectorInvalidSigner()
+        );
+
+        // validate nonce to prevent replay attacks
+        uint32 expectedNonce = agreement.updateNonce + 1;
+        require(
+            rcau.nonce == expectedNonce,
+            RecurringCollectorInvalidUpdateNonce(rcau.agreementId, expectedNonce, rcau.nonce)
+        );
+
+        _requireValidCollectionWindowParams(rcau.endsAt, rcau.minSecondsPerCollection, rcau.maxSecondsPerCollection);
+
+        // update the agreement
+        agreement.endsAt = rcau.endsAt;
+        agreement.maxInitialTokens = rcau.maxInitialTokens;
+        agreement.maxOngoingTokensPerSecond = rcau.maxOngoingTokensPerSecond;
+        agreement.minSecondsPerCollection = rcau.minSecondsPerCollection;
+        agreement.maxSecondsPerCollection = rcau.maxSecondsPerCollection;
+        agreement.updateNonce = rcau.nonce;
+
+        emit AgreementUpdated(
+            agreement.dataService,
+            agreement.payer,
+            agreement.serviceProvider,
+            rcau.agreementId,
+            uint64(block.timestamp),
+            agreement.endsAt,
+            agreement.maxInitialTokens,
+            agreement.maxOngoingTokensPerSecond,
+            agreement.minSecondsPerCollection,
+            agreement.maxSecondsPerCollection
+        );
+    }
     /* solhint-enable function-max-lines */
 
     /// @inheritdoc IRecurringCollector
@@ -282,6 +364,11 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         AgreementData calldata agreement
     ) external view returns (bool isCollectable, uint256 collectionSeconds, AgreementNotCollectableReason reason) {
         return _getCollectionInfo(agreement);
+    }
+
+    /// @inheritdoc IRecurringCollector
+    function getMaxNextClaim(bytes16 agreementId) external view returns (uint256) {
+        return _getMaxNextClaim(agreements[agreementId]);
     }
 
     /// @inheritdoc IRecurringCollector
@@ -643,6 +730,45 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
      */
     function _agreementCollectionStartAt(AgreementData memory _agreement) private pure returns (uint256) {
         return _agreement.lastCollectionAt > 0 ? _agreement.lastCollectionAt : _agreement.acceptedAt;
+    }
+
+    /**
+     * @notice Compute the maximum tokens collectable in the next collection (worst case).
+     * @dev For active agreements uses endsAt as the collection end (worst case),
+     * not block.timestamp (current). Returns 0 for non-collectable states.
+     * @param _a The agreement data
+     * @return The maximum tokens that could be collected
+     */
+    function _getMaxNextClaim(AgreementData memory _a) private pure returns (uint256) {
+        // CanceledByServiceProvider = immediately non-collectable
+        if (_a.state == AgreementState.CanceledByServiceProvider) return 0;
+        // Only Accepted and CanceledByPayer are collectable
+        if (_a.state != AgreementState.Accepted && _a.state != AgreementState.CanceledByPayer) return 0;
+
+        // Collection starts from last collection (or acceptance if never collected)
+        uint256 collectionStart = 0 < _a.lastCollectionAt ? _a.lastCollectionAt : _a.acceptedAt;
+
+        // Determine the latest possible collection end
+        uint256 collectionEnd;
+        if (_a.state == AgreementState.CanceledByPayer) {
+            // Payer cancel freezes the window at min(canceledAt, endsAt)
+            collectionEnd = _a.canceledAt < _a.endsAt ? _a.canceledAt : _a.endsAt;
+        } else {
+            // Active: collection window capped at endsAt
+            collectionEnd = _a.endsAt;
+        }
+
+        // No collection possible if window is empty
+        // solhint-disable-next-line gas-strict-inequalities
+        if (collectionEnd <= collectionStart) return 0;
+
+        // Max seconds is capped by maxSecondsPerCollection (enforced by _requireValidCollect)
+        uint256 windowSeconds = collectionEnd - collectionStart;
+        uint256 maxSeconds = windowSeconds < _a.maxSecondsPerCollection ? windowSeconds : _a.maxSecondsPerCollection;
+
+        uint256 maxClaim = _a.maxOngoingTokensPerSecond * maxSeconds;
+        if (_a.lastCollectionAt == 0) maxClaim += _a.maxInitialTokens;
+        return maxClaim;
     }
 
     /**

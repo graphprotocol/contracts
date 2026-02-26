@@ -3,9 +3,11 @@ src = 'contracts'
 out = 'forge-artifacts'
 libs = ["node_modules"]
 auto_detect_remappings = false
+test = 'test'
 remappings = [
     "@openzeppelin/=node_modules/@openzeppelin/",
     "@graphprotocol/=node_modules/@graphprotocol/",
+    "forge-std/=node_modules/forge-std/src/",
 ]
 cache_path = 'cache_forge'
 fs_permissions = [{ access = "read", path = "./" }]

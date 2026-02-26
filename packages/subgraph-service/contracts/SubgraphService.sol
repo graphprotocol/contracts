@@ -436,6 +436,35 @@ contract SubgraphService is
 
     /**
      * @inheritdoc ISubgraphService
+     * @notice Accept an indexing agreement where the payer is a contract.
+     *
+     * See {IndexingAgreement.acceptUnsigned}.
+     *
+     * Requirements:
+     * - The contract must not be paused
+     * - The indexer must be registered and have a valid provision
+     * - The payer must implement {IContractApprover}
+     *
+     * @param allocationId The id of the allocation
+     * @param rca The Recurring Collection Agreement
+     * @return agreementId The ID of the accepted indexing agreement
+     */
+    function acceptUnsignedIndexingAgreement(
+        address allocationId,
+        IRecurringCollector.RecurringCollectionAgreement calldata rca
+    )
+        external
+        whenNotPaused
+        onlyAuthorizedForProvision(rca.serviceProvider)
+        onlyValidProvision(rca.serviceProvider)
+        onlyRegisteredIndexer(rca.serviceProvider)
+        returns (bytes16)
+    {
+        return IndexingAgreement._getStorageManager().acceptUnsigned(_allocations, allocationId, rca);
+    }
+
+    /**
+     * @inheritdoc ISubgraphService
      * @notice Update an indexing agreement.
      *
      * See {IndexingAgreement.update}.
@@ -458,6 +487,33 @@ contract SubgraphService is
         onlyRegisteredIndexer(indexer)
     {
         IndexingAgreement._getStorageManager().update(indexer, signedRCAU);
+    }
+
+    /**
+     * @inheritdoc ISubgraphService
+     * @notice Update an indexing agreement where the payer is a contract.
+     *
+     * See {IndexingAgreement.updateUnsigned}.
+     *
+     * Requirements:
+     * - The contract must not be paused
+     * - The indexer must be valid
+     * - The payer must implement {IContractApprover}
+     *
+     * @param indexer The indexer address
+     * @param rcau The Recurring Collection Agreement Update
+     */
+    function updateUnsignedIndexingAgreement(
+        address indexer,
+        IRecurringCollector.RecurringCollectionAgreementUpdate calldata rcau
+    )
+        external
+        whenNotPaused
+        onlyAuthorizedForProvision(indexer)
+        onlyValidProvision(indexer)
+        onlyRegisteredIndexer(indexer)
+    {
+        IndexingAgreement._getStorageManager().updateUnsigned(indexer, rcau);
     }
 
     /**

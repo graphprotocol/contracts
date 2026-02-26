@@ -398,11 +398,27 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     error RecurringCollectorExcessiveSlippage(uint256 requested, uint256 actual, uint256 maxSlippage);
 
     /**
+     * @notice Thrown when the contract approver is not a contract
+     * @param approver The address that is not a contract
+     */
+    error RecurringCollectorApproverNotContract(address approver);
+
+    /**
      * @notice Accept an indexing agreement.
      * @param signedRCA The signed Recurring Collection Agreement which is to be accepted.
      * @return agreementId The deterministically generated agreement ID
      */
     function accept(SignedRCA calldata signedRCA) external returns (bytes16 agreementId);
+
+    /**
+     * @notice Accept an RCA where the payer is a contract that authorizes via callback.
+     * @dev Caller must be the data service the RCA was issued to.
+     * The payer must be a contract implementing {IContractApprover.isAuthorizedAgreement}
+     * and must return the magic value for the RCA's EIP712 hash.
+     * @param rca The Recurring Collection Agreement to accept
+     * @return agreementId The deterministically generated agreement ID
+     */
+    function acceptUnsigned(RecurringCollectionAgreement calldata rca) external returns (bytes16 agreementId);
 
     /**
      * @notice Cancel an indexing agreement.
@@ -416,6 +432,16 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @param signedRCAU The signed Recurring Collection Agreement Update which is to be applied.
      */
     function update(SignedRCAU calldata signedRCAU) external;
+
+    /**
+     * @notice Update an agreement where the payer is a contract that authorizes via callback.
+     * @dev Caller must be the data service for the agreement.
+     * The payer (stored in the agreement) must be a contract implementing
+     * {IContractApprover.isAuthorizedAgreement} and must return the magic value
+     * for the RCAU's EIP712 hash.
+     * @param rcau The Recurring Collection Agreement Update to apply
+     */
+    function updateUnsigned(RecurringCollectionAgreementUpdate calldata rcau) external;
 
     /**
      * @notice Computes the hash of a RecurringCollectionAgreement (RCA).
@@ -451,6 +477,16 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @return The AgreementData struct containing the agreement's data.
      */
     function getAgreement(bytes16 agreementId) external view returns (AgreementData memory);
+
+    /**
+     * @notice Get the maximum tokens collectable in the next collection for an agreement.
+     * @dev Computes the worst-case (maximum possible) claim amount based on current on-chain
+     * agreement state. For active agreements, uses `endsAt` as the upper bound (not block.timestamp).
+     * Returns 0 for NotAccepted, CanceledByServiceProvider, or fully expired agreements.
+     * @param agreementId The ID of the agreement
+     * @return The maximum tokens that could be collected in the next collection
+     */
+    function getMaxNextClaim(bytes16 agreementId) external view returns (uint256);
 
     /**
      * @notice Get collection info for an agreement
