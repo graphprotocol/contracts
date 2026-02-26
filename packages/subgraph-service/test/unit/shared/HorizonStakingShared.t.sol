@@ -36,6 +36,12 @@ abstract contract HorizonStakingSharedTest is SubgraphBaseTest {
         staking.addToProvision(_indexer, address(subgraphService), _tokens);
     }
 
+    function _removeFromProvision(address _indexer, uint256 _tokens) internal {
+        staking.thaw(_indexer, address(subgraphService), _tokens);
+        skip(staking.getProvision(_indexer, address(subgraphService)).thawingPeriod + 1);
+        staking.deprovision(_indexer, address(subgraphService), 0);
+    }
+
     function _delegate(address _indexer, address _verifier, uint256 _tokens, uint256 _minSharesOut) internal {
         staking.delegate(_indexer, _verifier, _tokens, _minSharesOut);
     }
