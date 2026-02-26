@@ -562,9 +562,7 @@ library IndexingAgreement {
 
         CollectIndexingFeeDataV1 memory data = IndexingAgreementDecoder.decodeCollectIndexingFeeDataV1(params.data);
 
-        uint256 expectedTokens = (data.entities == 0 && data.poi == bytes32(0))
-            ? 0
-            : _tokensToCollect(self, params.agreementId, data.entities, collectionSeconds);
+        uint256 expectedTokens = _tokensToCollect(self, params.agreementId, data.entities, collectionSeconds);
 
         // `tokensCollected` <= `expectedTokens` because the recurring collector will further narrow
         // down the tokens allowed, based on the RCA terms.

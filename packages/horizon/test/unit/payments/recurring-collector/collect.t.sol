@@ -448,5 +448,48 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         uint256 collected = _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
         assertEq(collected, maxAllowed);
     }
+    function test_Collect_Revert_WhenZeroTokensBypassesTemporalValidation(FuzzyTestCollect calldata fuzzy) public {
+        (IRecurringCollector.SignedRCA memory accepted, , bytes16 agreementId) = _sensibleAuthorizeAndAccept(
+            fuzzy.fuzzyTestAccept
+        );
+
+        // First valid collection to establish lastCollectionAt
+        skip(accepted.rca.minSecondsPerCollection);
+        bytes memory firstData = _generateCollectData(
+            _generateCollectParams(
+                accepted.rca,
+                agreementId,
+                fuzzy.collectParams.collectionId,
+                1,
+                fuzzy.collectParams.dataServiceCut
+            )
+        );
+        vm.prank(accepted.rca.dataService);
+        _recurringCollector.collect(_paymentType(fuzzy.unboundedPaymentType), firstData);
+
+        // Attempt zero-token collection immediately (before minSecondsPerCollection).
+        // This MUST revert with CollectionTooSoon — zero tokens should NOT bypass
+        // the temporal validation that guards minSecondsPerCollection.
+        skip(1);
+        IRecurringCollector.CollectParams memory zeroParams = _generateCollectParams(
+            accepted.rca,
+            agreementId,
+            fuzzy.collectParams.collectionId,
+            0, // zero tokens
+            fuzzy.collectParams.dataServiceCut
+        );
+        bytes memory zeroData = _generateCollectData(zeroParams);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IRecurringCollector.RecurringCollectorCollectionTooSoon.selector,
+                agreementId,
+                uint32(1), // only 1 second elapsed
+                accepted.rca.minSecondsPerCollection
+            )
+        );
+        vm.prank(accepted.rca.dataService);
+        _recurringCollector.collect(_paymentType(fuzzy.unboundedPaymentType), zeroData);
+    }
     /* solhint-enable graph/func-name-mixedcase */
 }
