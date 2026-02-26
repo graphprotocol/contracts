@@ -12,3 +12,7 @@ evm_version = 'cancun'
 
 # Exclude test files from coverage reports
 no_match_coverage = "(^test/|/mocks/)"
+
+# Lint configuration
+[lint]
+exclude_lints = ["mixed-case-function", "mixed-case-variable"]
