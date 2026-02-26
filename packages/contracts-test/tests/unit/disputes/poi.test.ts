@@ -1,4 +1,4 @@
-import { DisputeManager } from '@graphprotocol/contracts'
+import { DisputeManager, IRewardsManager } from '@graphprotocol/contracts'
 import { EpochManager } from '@graphprotocol/contracts'
 import { GraphToken } from '@graphprotocol/contracts'
 import { IStaking } from '@graphprotocol/contracts'
@@ -30,6 +30,7 @@ describe('DisputeManager:POI', () => {
   let epochManager: EpochManager
   let grt: GraphToken
   let staking: IStaking
+  let rewardsManager: IRewardsManager
 
   // Derive some channel keys for each indexer used to sign attestations
   const indexerChannelKey = deriveChannelKey()
@@ -92,10 +93,15 @@ describe('DisputeManager:POI', () => {
     epochManager = contracts.EpochManager as EpochManager
     grt = contracts.GraphToken as GraphToken
     staking = contracts.Staking as IStaking
+    rewardsManager = contracts.RewardsManager as IRewardsManager
 
     // Give some funds to the fisherman
     await grt.connect(governor).mint(fisherman.address, fishermanTokens)
     await grt.connect(fisherman).approve(disputeManager.address, fishermanTokens)
+
+    // HACK: we set the staking contract as the subgraph service to make tests pass.
+    // This is due to the test suite being outdated.
+    await rewardsManager.connect(governor).setSubgraphService(staking.address)
   })
 
   beforeEach(async function () {

@@ -235,7 +235,6 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
         return ctx;
     }
 
-    // forge-lint: disable-next-item(mixed-case-function)
     function _generateAcceptableSignedRCA(
         Context storage _ctx,
         address _indexerAddress
@@ -265,7 +264,6 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
         return _recurringCollectorHelper.sensibleRCA(rca);
     }
 
-    // forge-lint: disable-next-item(mixed-case-function)
     function _generateAcceptableSignedRCAU(
         Context storage _ctx,
         IRecurringCollector.RecurringCollectionAgreement memory _rca

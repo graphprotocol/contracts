@@ -165,8 +165,8 @@ contract SubgraphServiceAllocationStartTest is SubgraphServiceTest {
         _createProvision(users.indexer, tokens, FISHERMAN_REWARD_PERCENTAGE, DISPUTE_PERIOD);
         _register(users.indexer, abi.encode("url", "geoHash", address(0)));
 
-        // create dummy allo in staking contract
-        _setStorageAllocationHardcoded(users.indexer, allocationId, tokens);
+        // simulate legacy allocation migration
+        _migrateLegacyAllocation(users.indexer, allocationId, subgraphDeployment);
 
         bytes memory data = _generateData(tokens);
         vm.expectRevert(abi.encodeWithSelector(ILegacyAllocation.LegacyAllocationAlreadyExists.selector, allocationId));

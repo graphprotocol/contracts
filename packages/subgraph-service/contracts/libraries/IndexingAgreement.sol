@@ -15,7 +15,9 @@ import { IndexingAgreementDecoder } from "./IndexingAgreementDecoder.sol";
 /**
  * @title IndexingAgreement library
  * @author Edge & Node
- * @notice Manages indexing agreement lifecycle — acceptance, updates, cancellation, and fee collection.
+ * @notice Manages indexing agreement lifecycle: acceptance, updates, cancellation and fee collection.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 library IndexingAgreement {
     using IndexingAgreement for StorageManager;
@@ -99,7 +101,7 @@ library IndexingAgreement {
      * @custom:storage-location erc7201:graphprotocol.subgraph-service.storage.StorageManager.IndexingAgreement
      */
     struct StorageManager {
-        mapping(bytes16 => IIndexingAgreement.State) agreements;
+        mapping(bytes16 agreementId => IIndexingAgreement.State) agreements;
         mapping(bytes16 agreementId => IndexingAgreementTermsV1 data) termsV1;
         mapping(address allocationId => bytes16 agreementId) allocationToActiveAgreementId;
     }

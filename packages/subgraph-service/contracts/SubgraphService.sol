@@ -353,15 +353,6 @@ contract SubgraphService is
     }
 
     /// @inheritdoc ISubgraphService
-    function migrateLegacyAllocation(
-        address indexer,
-        address allocationId,
-        bytes32 subgraphDeploymentId
-    ) external override onlyOwner {
-        _migrateLegacyAllocation(indexer, allocationId, subgraphDeploymentId);
-    }
-
-    /// @inheritdoc ISubgraphService
     function setPauseGuardian(address pauseGuardian, bool allowed) external override onlyOwner {
         _setPauseGuardian(pauseGuardian, allowed);
     }
@@ -386,7 +377,6 @@ contract SubgraphService is
         _setStakeToFeesRatio(stakeToFeesRatio_);
     }
 
-    // forge-lint: disable-next-item(mixed-case-function)
     /// @inheritdoc ISubgraphService
     function setMaxPOIStaleness(uint256 maxPoiStaleness_) external override onlyOwner {
         _setMaxPoiStaleness(maxPoiStaleness_);
