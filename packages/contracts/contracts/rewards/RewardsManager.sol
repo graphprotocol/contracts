@@ -22,12 +22,22 @@ import { RewardsCondition } from "@graphprotocol/interfaces/contracts/contracts/
 /**
  * @title Rewards Manager Contract
  * @author Edge & Node
- * @notice Manages indexing rewards distribution using a two-level accumulation model:
- * signal → subgraph → allocation. See docs/RewardAccountingSafety.md for details.
+ * @notice Manages rewards distribution for indexers and delegators in the Graph Protocol
+ * @dev Tracks how inflationary GRT rewards should be handed out. Relies on the Curation contract
+ * and the Staking contract. Signaled GRT in Curation determine what percentage of the tokens go
+ * towards each subgraph. Then each Subgraph can have multiple Indexers Staked on it. Thus, the
+ * total rewards for the Subgraph are split up for each Indexer based on much they have Staked on
+ * that Subgraph.
  *
- * @dev Issuance source: `issuanceAllocator` if set, otherwise `issuancePerBlock` storage.
- * Getter functions (getAccRewardsPerSignal, getRewards, etc.) may overestimate until
- * takeRewards is called due to pending state updates.
+ * Note:
+ * The contract provides getter functions to query the state of accrued rewards:
+ * - getAccRewardsPerSignal
+ * - getAccRewardsForSubgraph
+ * - getAccRewardsPerAllocatedToken
+ * - getRewards
+ * These functions may overestimate the actual rewards due to changes in the total supply
+ * until the actual takeRewards function is called.
+ * custom:security-contact Please email security+contracts@ thegraph.com (remove space) if you find any bugs. We might have an active bug bounty program.
  */
 contract RewardsManager is
     GraphUpgradeable,
@@ -446,19 +456,13 @@ contract RewardsManager is
     /**
      * @notice Get total allocated tokens for a subgraph across all issuers
      * @param _subgraphDeploymentID Subgraph deployment
-     * @return Total tokens allocated to this subgraph
+     * @return subgraphAllocatedTokens Total tokens allocated to this subgraph
      */
-    function _getSubgraphAllocatedTokens(bytes32 _subgraphDeploymentID) private view returns (uint256) {
-        uint256 subgraphAllocatedTokens = 0;
-        address[2] memory rewardsIssuers = [address(staking()), address(subgraphService)];
-        for (uint256 i = 0; i < rewardsIssuers.length; ++i) {
-            if (rewardsIssuers[i] != address(0)) {
-                subgraphAllocatedTokens += IRewardsIssuer(rewardsIssuers[i]).getSubgraphAllocatedTokens(
-                    _subgraphDeploymentID
-                );
-            }
-        }
-        return subgraphAllocatedTokens;
+    function _getSubgraphAllocatedTokens(
+        bytes32 _subgraphDeploymentID
+    ) private view returns (uint256 subgraphAllocatedTokens) {
+        if (address(subgraphService) != address(0))
+            subgraphAllocatedTokens += subgraphService.getSubgraphAllocatedTokens(_subgraphDeploymentID);
     }
 
     // -- Updates --
@@ -578,7 +582,7 @@ contract RewardsManager is
 
     /**
      * @inheritdoc IRewardsManager
-     * @dev Hook called from the Staking contract on allocate() and close()
+     * @dev Hook called from the IRewardsIssuer contract on allocate() and close()
      *
      * ## Claimability Behavior
      *
@@ -626,10 +630,7 @@ contract RewardsManager is
      * takeRewards().
      */
     function getRewards(address _rewardsIssuer, address _allocationID) external view override returns (uint256) {
-        require(
-            _rewardsIssuer == address(staking()) || _rewardsIssuer == address(subgraphService),
-            "Not a rewards issuer"
-        );
+        require(_rewardsIssuer == address(subgraphService), "Not a rewards issuer");
 
         (
             bool isActive,
@@ -783,7 +784,7 @@ contract RewardsManager is
     /**
      * @inheritdoc IRewardsManager
      * @dev This function can only be called by an authorized rewards issuer which are
-     * the staking contract (for legacy allocations), and the subgraph service (for new allocations).
+     * - the subgraph service (for allocations).
      * Mints 0 tokens if the allocation is not active.
      * @dev First successful reclaim wins - short-circuits on reclaim:
      * - If subgraph denied with reclaim address → reclaim to SUBGRAPH_DENIED address (eligibility NOT checked)
@@ -793,10 +794,7 @@ contract RewardsManager is
      */
     function takeRewards(address _allocationID) external override returns (uint256) {
         address rewardsIssuer = msg.sender;
-        require(
-            rewardsIssuer == address(staking()) || rewardsIssuer == address(subgraphService),
-            "Caller must be a rewards issuer"
-        );
+        require(rewardsIssuer == address(subgraphService), "Caller must be a rewards issuer");
 
         (uint256 rewards, address indexer, bytes32 subgraphDeploymentID) = _calcAllocationRewards(
             rewardsIssuer,

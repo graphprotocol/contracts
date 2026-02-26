@@ -278,7 +278,7 @@ interface IRewardsManager {
 
     /**
      * @notice Pull rewards from the contract for a particular allocation
-     * @dev This function can only be called by the Staking contract.
+     * @dev This function can only be called by the Subgraph Service contract.
      * This function will mint the necessary tokens to reward based on the inflation calculation.
      * @param allocationID Allocation
      * @return Assigned rewards amount

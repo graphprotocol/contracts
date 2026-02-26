@@ -1,4 +1,4 @@
-import { EpochManager } from '@graphprotocol/contracts'
+import { EpochManager, IRewardsManager } from '@graphprotocol/contracts'
 import { GraphToken } from '@graphprotocol/contracts'
 import { IStaking } from '@graphprotocol/contracts'
 import { deriveChannelKey, GraphNetworkContracts, helpers, randomHexBytes, toBN, toGRT } from '@graphprotocol/sdk'
@@ -29,6 +29,7 @@ describe('Staking::Delegation', () => {
   let epochManager: EpochManager
   let grt: GraphToken
   let staking: IStaking
+  let rewardsManager: IRewardsManager
 
   // Test values
   const poi = randomHexBytes()
@@ -159,6 +160,7 @@ describe('Staking::Delegation', () => {
     epochManager = contracts.EpochManager as EpochManager
     grt = contracts.GraphToken as GraphToken
     staking = contracts.Staking as IStaking
+    rewardsManager = contracts.RewardsManager as IRewardsManager
 
     // Distribute test funds
     for (const wallet of [delegator, delegator2]) {
@@ -173,6 +175,10 @@ describe('Staking::Delegation', () => {
     }
     await grt.connect(governor).mint(assetHolder.address, tokensToCollect)
     await grt.connect(assetHolder).approve(staking.address, tokensToCollect)
+
+    // HACK: we set the staking contract as the subgraph service to make tests pass.
+    // This is due to the test suite being outdated.
+    await rewardsManager.connect(governor).setSubgraphService(staking.address)
   })
 
   beforeEach(async function () {

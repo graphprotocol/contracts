@@ -216,6 +216,7 @@ library StakeClaims {
         address _serviceProvider,
         uint256 _nonce
     ) internal pure returns (bytes32) {
+        // forge-lint: disable-next-line(asm-keccak256)
         return keccak256(abi.encodePacked(_dataService, _serviceProvider, _nonce));
     }
 }
