@@ -18,7 +18,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-pragma solidity 0.8.27 || 0.8.33;
+pragma solidity 0.8.27 || 0.8.34;
 
 // TODO: Re-enable and fix issues when publishing a new version
 // solhint-disable function-max-lines, gas-strict-inequalities

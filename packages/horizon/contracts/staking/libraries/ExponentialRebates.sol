@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity 0.8.27 || 0.8.33;
+pragma solidity 0.8.27 || 0.8.34;
 
 // TODO: Re-enable and fix issues when publishing a new version
 // forge-lint: disable-start(unsafe-typecast)

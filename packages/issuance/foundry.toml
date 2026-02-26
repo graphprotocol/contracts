@@ -12,7 +12,7 @@ fs_permissions = [{ access = "read", path = "./" }]
 optimizer = true
 optimizer_runs = 100
 via_ir = true
-solc_version = '0.8.33'
+solc_version = '0.8.34'
 evm_version = 'cancun'
 
 # Exclude test files from coverage reports
