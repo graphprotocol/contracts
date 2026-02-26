@@ -978,4 +978,13 @@ interface IHorizonStakingMain {
      * @return The amount of tokens withdrawn
      */
     function forceWithdrawDelegated(address serviceProvider, address delegator) external returns (uint256);
+
+    /**
+     * @notice Return if allocationID is used.
+     * @dev This function is used to check for allocation id collisions with legacy allocations
+     * that were created before the Horizon upgrade.
+     * @param allocationID Address used as signer by the indexer for an allocation
+     * @return True if allocationID already used
+     */
+    function isAllocation(address allocationID) external view returns (bool);
 }
