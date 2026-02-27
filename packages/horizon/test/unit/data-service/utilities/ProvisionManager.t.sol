@@ -27,14 +27,14 @@ contract ProvisionManagerTest is Test {
         vm.expectRevert(
             abi.encodeWithSelector(ProvisionManager.ProvisionManagerProvisionNotFound.selector, serviceProvider)
         );
-        _provisionManager.onlyValidProvision_(serviceProvider);
+        _provisionManager.requireValidProvision_(serviceProvider);
 
         IHorizonStakingTypes.Provision memory provision;
         provision.createdAt = 1;
 
         _horizonStakingMock.setProvision(serviceProvider, address(_provisionManager), provision);
 
-        _provisionManager.onlyValidProvision_(serviceProvider);
+        _provisionManager.requireValidProvision_(serviceProvider);
     }
 
     function test_OnlyAuthorizedForProvision(address serviceProvider, address sender) public {
@@ -42,11 +42,11 @@ contract ProvisionManagerTest is Test {
             abi.encodeWithSelector(ProvisionManager.ProvisionManagerNotAuthorized.selector, serviceProvider, sender)
         );
         vm.prank(sender);
-        _provisionManager.onlyAuthorizedForProvision_(serviceProvider);
+        _provisionManager.requireAuthorizedForProvision_(serviceProvider);
 
         _horizonStakingMock.setIsAuthorized(serviceProvider, address(_provisionManager), sender, true);
         vm.prank(sender);
-        _provisionManager.onlyAuthorizedForProvision_(serviceProvider);
+        _provisionManager.requireAuthorizedForProvision_(serviceProvider);
     }
 
     /* solhint-enable graph/func-name-mixedcase */

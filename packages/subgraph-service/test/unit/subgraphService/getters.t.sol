@@ -23,6 +23,11 @@ contract SubgraphServiceGettersTest is SubgraphServiceTest {
         assertEq(result, address(curation));
     }
 
+    function test_GetRecurringCollector() public view {
+        address result = address(subgraphService.recurringCollector());
+        assertEq(result, address(recurringCollector));
+    }
+
     function test_GetAllocationData(uint256 tokens) public useIndexer useAllocation(tokens) {
         (
             bool isOpen,
@@ -77,7 +82,6 @@ contract SubgraphServiceGettersTest is SubgraphServiceTest {
         (uint32 min, uint32 max) = subgraphService.getVerifierCutRange();
         uint32 expectedFishermanRewardCut = disputeManager.getFishermanRewardCut();
         assertEq(min, expectedFishermanRewardCut);
-        // forge-lint: disable-next-line(unsafe-typecast)
         assertEq(max, uint32(MAX_PPM));
     }
 }

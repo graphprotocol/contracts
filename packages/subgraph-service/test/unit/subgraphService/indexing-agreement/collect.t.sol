@@ -29,10 +29,10 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
     ) public {
         Context storage ctx = _newCtx(seed);
         IndexerState memory indexerState = _withIndexer(ctx);
-        (IRecurringCollector.SignedRCA memory accepted, bytes16 acceptedAgreementId) = _withAcceptedIndexingAgreement(
-            ctx,
-            indexerState
-        );
+        (
+            IRecurringCollector.RecurringCollectionAgreement memory acceptedRca,
+            bytes16 acceptedAgreementId
+        ) = _withAcceptedIndexingAgreement(ctx, indexerState);
 
         assertEq(subgraphService.feesProvisionTracker(indexerState.addr), 0, "Should be 0 before collect");
 
@@ -56,7 +56,7 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
             abi.encodeWithSelector(IPaymentsCollector.collect.selector, IGraphPayments.PaymentTypes.IndexingFee, data),
             abi.encode(tokensCollected)
         );
-        _expectCollectCallAndEmit(data, indexerState, accepted, acceptedAgreementId, tokensCollected, entities, poi);
+        _expectCollectCallAndEmit(data, indexerState, acceptedRca, acceptedAgreementId, tokensCollected, entities, poi);
 
         skip(1); // To make agreement collectable
 
@@ -313,7 +313,7 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
     function _expectCollectCallAndEmit(
         bytes memory _data,
         IndexerState memory _indexerState,
-        IRecurringCollector.SignedRCA memory _accepted,
+        IRecurringCollector.RecurringCollectionAgreement memory _acceptedRca,
         bytes16 _acceptedAgreementId,
         uint256 _tokensCollected,
         uint256 _entities,
@@ -326,7 +326,7 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
         vm.expectEmit(address(subgraphService));
         emit IndexingAgreement.IndexingFeesCollectedV1(
             _indexerState.addr,
-            _accepted.rca.payer,
+            _acceptedRca.payer,
             _acceptedAgreementId,
             _indexerState.allocationId,
             _indexerState.subgraphDeploymentId,

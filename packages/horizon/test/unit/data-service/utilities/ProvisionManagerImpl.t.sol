@@ -7,9 +7,11 @@ import { GraphDirectory } from "../../../../contracts/utilities/GraphDirectory.s
 contract ProvisionManagerImpl is GraphDirectory, ProvisionManager {
     constructor(address controller) GraphDirectory(controller) {}
 
-    function onlyValidProvision_(address serviceProvider) public view onlyValidProvision(serviceProvider) {}
+    function requireValidProvision_(address serviceProvider) public view {
+        _requireValidProvision(serviceProvider);
+    }
 
-    function onlyAuthorizedForProvision_(
-        address serviceProvider
-    ) public view onlyAuthorizedForProvision(serviceProvider) {}
+    function requireAuthorizedForProvision_(address serviceProvider) public view {
+        _requireAuthorizedForProvision(serviceProvider);
+    }
 }

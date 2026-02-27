@@ -111,29 +111,15 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      */
     error ProvisionManagerProvisionNotFound(address serviceProvider);
 
-    // forge-lint: disable-next-item(unwrapped-modifier-logic)
     /**
      * @notice Checks if the caller is authorized to manage the provision of a service provider.
-     * @param serviceProvider The address of the service provider.
+     * @param _serviceProvider The address of the service provider.
      */
-    modifier onlyAuthorizedForProvision(address serviceProvider) {
+    function _requireAuthorizedForProvision(address _serviceProvider) internal view {
         require(
-            _graphStaking().isAuthorized(serviceProvider, address(this), msg.sender),
-            ProvisionManagerNotAuthorized(serviceProvider, msg.sender)
+            _graphStaking().isAuthorized(_serviceProvider, address(this), msg.sender),
+            ProvisionManagerNotAuthorized(_serviceProvider, msg.sender)
         );
-        _;
-    }
-
-    // Warning: Virtual modifiers are deprecated and scheduled for removal.
-    // forge-lint: disable-next-item(unwrapped-modifier-logic)
-    /**
-     * @notice Checks if a provision of a service provider is valid according
-     * to the parameter ranges established.
-     * @param serviceProvider The address of the service provider.
-     */
-    modifier onlyValidProvision(address serviceProvider) virtual {
-        _requireValidProvision(serviceProvider);
-        _;
     }
 
     // forge-lint: disable-next-item(mixed-case-function)

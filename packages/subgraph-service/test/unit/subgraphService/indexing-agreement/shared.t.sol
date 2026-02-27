@@ -170,7 +170,7 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
     function _withAcceptedIndexingAgreement(
         Context storage _ctx,
         IndexerState memory _indexerState
-    ) internal returns (IRecurringCollector.SignedRCA memory, bytes16 agreementId) {
+    ) internal returns (IRecurringCollector.RecurringCollectionAgreement memory, bytes16 agreementId) {
         IRecurringCollector.RecurringCollectionAgreement memory rca = _ctx.ctxInternal.seed.rca;
 
         IndexingAgreement.AcceptIndexingAgreementMetadata memory metadata = _newAcceptIndexingAgreementMetadataV1(
@@ -182,11 +182,10 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
 
         rca = _recurringCollectorHelper.sensibleRCA(rca);
 
-        // forge-lint: disable-next-line(mixed-case-variable)
-        IRecurringCollector.SignedRCA memory signedRCA = _recurringCollectorHelper.generateSignedRCA(
-            rca,
-            _ctx.payer.signerPrivateKey
-        );
+        (
+            IRecurringCollector.RecurringCollectionAgreement memory signedRca,
+            bytes memory signature
+        ) = _recurringCollectorHelper.generateSignedRCA(rca, _ctx.payer.signerPrivateKey);
         _recurringCollectorHelper.authorizeSignerWithChecks(rca.payer, _ctx.payer.signerPrivateKey);
 
         // Generate deterministic agreement ID for event expectation
@@ -209,11 +208,15 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
             metadata.terms
         );
         _subgraphServiceSafePrank(_indexerState.addr);
-        bytes16 actualAgreementId = subgraphService.acceptIndexingAgreement(_indexerState.allocationId, signedRCA);
+        bytes16 actualAgreementId = subgraphService.acceptIndexingAgreement(
+            _indexerState.allocationId,
+            signedRca,
+            signature
+        );
 
         // Verify the agreement ID matches expectation
         assertEq(actualAgreementId, agreementId);
-        return (signedRCA, agreementId);
+        return (signedRca, agreementId);
     }
 
     function _newCtx(Seed memory _seed) internal returns (Context storage) {
@@ -238,7 +241,7 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
     function _generateAcceptableSignedRCA(
         Context storage _ctx,
         address _indexerAddress
-    ) internal returns (IRecurringCollector.SignedRCA memory) {
+    ) internal returns (IRecurringCollector.RecurringCollectionAgreement memory, bytes memory) {
         IRecurringCollector.RecurringCollectionAgreement memory rca = _generateAcceptableRecurringCollectionAgreement(
             _ctx,
             _indexerAddress
@@ -267,7 +270,7 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
     function _generateAcceptableSignedRCAU(
         Context storage _ctx,
         IRecurringCollector.RecurringCollectionAgreement memory _rca
-    ) internal view returns (IRecurringCollector.SignedRCAU memory) {
+    ) internal view returns (IRecurringCollector.RecurringCollectionAgreementUpdate memory, bytes memory) {
         IRecurringCollector.RecurringCollectionAgreementUpdate
             memory rcau = _generateAcceptableRecurringCollectionAgreementUpdate(_ctx, _rca);
         // Set correct nonce for first update (should be 1)
