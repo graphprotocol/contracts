@@ -274,43 +274,38 @@ library IndexingAgreement {
      * - Agreement must not have been accepted before
      * - Allocation must not have an agreement already
      *
-     * @dev signedRCA.rca.metadata is an encoding of {IndexingAgreement.AcceptIndexingAgreementMetadata}
+     * @dev rca.metadata is an encoding of {IndexingAgreement.AcceptIndexingAgreementMetadata}.
+     * If `authData` is non-empty it is treated as an ECDSA signature; if empty the payer
+     * must be a contract implementing {IContractApprover}.
      *
      * Emits {IndexingAgreementAccepted} event
      *
      * @param self The indexing agreement storage manager
      * @param allocations The mapping of allocation IDs to their states
      * @param allocationId The id of the allocation
-     * @param signedRCA The signed Recurring Collection Agreement
+     * @param rca The Recurring Collection Agreement
+     * @param authData ECDSA signature bytes, or empty for contract-approved agreements
      * @return The agreement ID assigned to the accepted indexing agreement
      */
     function accept(
         StorageManager storage self,
         mapping(address allocationId => IAllocation.State allocation) storage allocations,
         address allocationId,
-        IRecurringCollector.SignedRCA calldata signedRCA
+        IRecurringCollector.RecurringCollectionAgreement calldata rca,
+        bytes calldata authData
     ) external returns (bytes16) {
-        IAllocation.State memory allocation = _requireValidAllocation(
-            allocations,
-            allocationId,
-            signedRCA.rca.serviceProvider
-        );
+        IAllocation.State memory allocation = _requireValidAllocation(allocations, allocationId, rca.serviceProvider);
 
-        require(
-            signedRCA.rca.dataService == address(this),
-            IndexingAgreementWrongDataService(address(this), signedRCA.rca.dataService)
-        );
+        require(rca.dataService == address(this), IndexingAgreementWrongDataService(address(this), rca.dataService));
 
-        AcceptIndexingAgreementMetadata memory metadata = IndexingAgreementDecoder.decodeRCAMetadata(
-            signedRCA.rca.metadata
-        );
+        AcceptIndexingAgreementMetadata memory metadata = IndexingAgreementDecoder.decodeRCAMetadata(rca.metadata);
 
         bytes16 agreementId = _directory().recurringCollector().generateAgreementId(
-            signedRCA.rca.payer,
-            signedRCA.rca.dataService,
-            signedRCA.rca.serviceProvider,
-            signedRCA.rca.deadline,
-            signedRCA.rca.nonce
+            rca.payer,
+            rca.dataService,
+            rca.serviceProvider,
+            rca.deadline,
+            rca.nonce
         );
 
         IIndexingAgreement.State storage agreement = self.agreements[agreementId];
@@ -340,11 +335,11 @@ library IndexingAgreement {
             metadata.version == IIndexingAgreement.IndexingAgreementVersion.V1,
             IndexingAgreementInvalidVersion(metadata.version)
         );
-        _setTermsV1(self, agreementId, metadata.terms, signedRCA.rca.maxOngoingTokensPerSecond);
+        _setTermsV1(self, agreementId, metadata.terms, rca.maxOngoingTokensPerSecond);
 
         emit IndexingAgreementAccepted(
-            signedRCA.rca.serviceProvider,
-            signedRCA.rca.payer,
+            rca.serviceProvider,
+            rca.payer,
             agreementId,
             allocationId,
             metadata.subgraphDeploymentId,
@@ -352,7 +347,10 @@ library IndexingAgreement {
             metadata.terms
         );
 
-        require(_directory().recurringCollector().accept(signedRCA) == agreementId, "internal: agreement ID mismatch");
+        require(
+            _directory().recurringCollector().accept(rca, authData) == agreementId,
+            "internal: agreement ID mismatch"
+        );
         return agreementId;
     }
     /* solhint-enable function-max-lines */
@@ -364,29 +362,31 @@ library IndexingAgreement {
      * - Agreement must be active
      * - The indexer must be the service provider of the agreement
      *
-     * @dev signedRCA.rcau.metadata is an encoding of {IndexingAgreement.UpdateIndexingAgreementMetadata}
+     * @dev rcau.metadata is an encoding of {IndexingAgreement.UpdateIndexingAgreementMetadata}.
+     * If `authData` is non-empty it is treated as an ECDSA signature; if empty the payer
+     * must be a contract implementing {IContractApprover}.
      *
      * Emits {IndexingAgreementUpdated} event
      *
      * @param self The indexing agreement storage manager
      * @param indexer The indexer address
-     * @param signedRCAU The signed Recurring Collection Agreement Update
+     * @param rcau The Recurring Collection Agreement Update
+     * @param authData ECDSA signature bytes, or empty for contract-approved updates
      */
     function update(
         StorageManager storage self,
         address indexer,
-        IRecurringCollector.SignedRCAU calldata signedRCAU
+        IRecurringCollector.RecurringCollectionAgreementUpdate calldata rcau,
+        bytes calldata authData
     ) external {
-        IIndexingAgreement.AgreementWrapper memory wrapper = _get(self, signedRCAU.rcau.agreementId);
-        require(_isActive(wrapper), IndexingAgreementNotActive(signedRCAU.rcau.agreementId));
+        IIndexingAgreement.AgreementWrapper memory wrapper = _get(self, rcau.agreementId);
+        require(_isActive(wrapper), IndexingAgreementNotActive(rcau.agreementId));
         require(
             wrapper.collectorAgreement.serviceProvider == indexer,
-            IndexingAgreementNotAuthorized(signedRCAU.rcau.agreementId, indexer)
+            IndexingAgreementNotAuthorized(rcau.agreementId, indexer)
         );
 
-        UpdateIndexingAgreementMetadata memory metadata = IndexingAgreementDecoder.decodeRCAUMetadata(
-            signedRCAU.rcau.metadata
-        );
+        UpdateIndexingAgreementMetadata memory metadata = IndexingAgreementDecoder.decodeRCAUMetadata(rcau.metadata);
 
         require(
             wrapper.agreement.version == IIndexingAgreement.IndexingAgreementVersion.V1,
@@ -396,23 +396,18 @@ library IndexingAgreement {
             metadata.version == IIndexingAgreement.IndexingAgreementVersion.V1,
             IndexingAgreementInvalidVersion(metadata.version)
         );
-        _setTermsV1(
-            self,
-            signedRCAU.rcau.agreementId,
-            metadata.terms,
-            wrapper.collectorAgreement.maxOngoingTokensPerSecond
-        );
+        _setTermsV1(self, rcau.agreementId, metadata.terms, wrapper.collectorAgreement.maxOngoingTokensPerSecond);
 
         emit IndexingAgreementUpdated({
             indexer: wrapper.collectorAgreement.serviceProvider,
             payer: wrapper.collectorAgreement.payer,
-            agreementId: signedRCAU.rcau.agreementId,
+            agreementId: rcau.agreementId,
             allocationId: wrapper.agreement.allocationId,
             version: metadata.version,
             versionTerms: metadata.terms
         });
 
-        _directory().recurringCollector().update(signedRCAU);
+        _directory().recurringCollector().update(rcau, authData);
     }
 
     /**
@@ -502,7 +497,8 @@ library IndexingAgreement {
         IIndexingAgreement.AgreementWrapper memory wrapper = _get(self, agreementId);
         require(_isActive(wrapper), IndexingAgreementNotActive(agreementId));
         require(
-            _directory().recurringCollector().isAuthorized(wrapper.collectorAgreement.payer, msg.sender),
+            msg.sender == wrapper.collectorAgreement.payer ||
+                _directory().recurringCollector().isAuthorized(wrapper.collectorAgreement.payer, msg.sender),
             IndexingAgreementNonCancelableBy(wrapper.collectorAgreement.payer, msg.sender)
         );
         _cancel(

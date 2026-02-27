@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.22;
 
+import { IDataServiceAgreements } from "../data-service/IDataServiceAgreements.sol";
 import { IDataServiceFees } from "../data-service/IDataServiceFees.sol";
 import { IGraphPayments } from "../horizon/IGraphPayments.sol";
+
 import { IRecurringCollector } from "../horizon/IRecurringCollector.sol";
 
 import { IAllocation } from "./internal/IAllocation.sol";
@@ -20,7 +22,7 @@ import { ILegacyAllocation } from "./internal/ILegacyAllocation.sol";
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */
-interface ISubgraphService is IDataServiceFees {
+interface ISubgraphService is IDataServiceAgreements, IDataServiceFees {
     /**
      * @notice Indexer details
      * @param url The URL where the indexer can be reached at for queries
@@ -267,21 +269,32 @@ interface ISubgraphService is IDataServiceFees {
 
     /**
      * @notice Accept an indexing agreement.
+     * @dev If `signature` is non-empty it is treated as an ECDSA signature; if empty the payer
+     * must be a contract implementing {IContractApprover}.
      * @param allocationId The id of the allocation
-     * @param signedRCA The signed recurring collector agreement (RCA) that the indexer accepts
+     * @param rca The recurring collection agreement parameters
+     * @param signature ECDSA signature bytes, or empty for contract-approved agreements
      * @return agreementId The ID of the accepted indexing agreement
      */
     function acceptIndexingAgreement(
         address allocationId,
-        IRecurringCollector.SignedRCA calldata signedRCA
+        IRecurringCollector.RecurringCollectionAgreement calldata rca,
+        bytes calldata signature
     ) external returns (bytes16);
 
     /**
      * @notice Update an indexing agreement.
+     * @dev If `signature` is non-empty it is treated as an ECDSA signature; if empty the payer
+     * must be a contract implementing {IContractApprover}.
      * @param indexer The address of the indexer
-     * @param signedRCAU The signed recurring collector agreement update (RCAU) that the indexer accepts
+     * @param rcau The recurring collector agreement update to apply
+     * @param signature ECDSA signature bytes, or empty for contract-approved updates
      */
-    function updateIndexingAgreement(address indexer, IRecurringCollector.SignedRCAU calldata signedRCAU) external;
+    function updateIndexingAgreement(
+        address indexer,
+        IRecurringCollector.RecurringCollectionAgreementUpdate calldata rcau,
+        bytes calldata signature
+    ) external;
 
     /**
      * @notice Cancel an indexing agreement by indexer / operator.
@@ -289,12 +302,6 @@ interface ISubgraphService is IDataServiceFees {
      * @param agreementId The id of the indexing agreement
      */
     function cancelIndexingAgreement(address indexer, bytes16 agreementId) external;
-
-    /**
-     * @notice Cancel an indexing agreement by payer / signer.
-     * @param agreementId The id of the indexing agreement
-     */
-    function cancelIndexingAgreementByPayer(bytes16 agreementId) external;
 
     /**
      * @notice Get the indexing agreement for a given agreement ID.

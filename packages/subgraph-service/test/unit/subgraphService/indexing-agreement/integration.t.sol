@@ -3,6 +3,7 @@ pragma solidity ^0.8.27;
 
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
 import { IIndexingAgreement } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IIndexingAgreement.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 
@@ -172,10 +173,11 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
         subgraphService.setPaymentsDestination(_indexerState.addr);
 
         // Accept the Indexing Agreement
-        bytes16 agreementId = subgraphService.acceptIndexingAgreement(
-            _indexerState.allocationId,
-            _recurringCollectorHelper.generateSignedRCA(_rca, _ctx.payer.signerPrivateKey)
-        );
+        (
+            IRecurringCollector.RecurringCollectionAgreement memory signedRca,
+            bytes memory signature
+        ) = _recurringCollectorHelper.generateSignedRCA(_rca, _ctx.payer.signerPrivateKey);
+        bytes16 agreementId = subgraphService.acceptIndexingAgreement(_indexerState.allocationId, signedRca, signature);
 
         // Skip ahead to collection point
         skip(_expectedTokens.expectedTotalTokensCollected / terms.tokensPerSecond);
@@ -265,10 +267,15 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
 
     function _getState(address _payer, address _indexer) private view returns (TestState memory) {
         CollectPaymentData memory collect = _collectPaymentData(_indexer);
+        IPaymentsEscrow.EscrowAccount memory account = escrow.getEscrowAccount(
+            _payer,
+            address(recurringCollector),
+            _indexer
+        );
 
         return
             TestState({
-                escrowBalance: escrow.getBalance(_payer, address(recurringCollector), _indexer),
+                escrowBalance: account.balance - account.tokensThawing,
                 indexerBalance: collect.indexerBalance,
                 indexerTokensLocked: collect.lockedTokens
             });

@@ -15,6 +15,9 @@ interface IIssuanceTarget {
      */
     event IssuanceAllocatorSet(address indexed oldIssuanceAllocator, address indexed newIssuanceAllocator);
 
+    /// @notice Emitted before the issuance allocation changes
+    event BeforeIssuanceAllocationChange();
+
     /**
      * @notice Called by the issuance allocator before the target's issuance allocation changes
      * @dev The target should ensure that all issuance related calculations are up-to-date
