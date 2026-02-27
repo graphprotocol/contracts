@@ -140,6 +140,14 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
         // Reduce amount from account balance
         account.balance -= tokens;
 
+        // Cap tokensThawing to the new balance to keep state consistent
+        if (account.tokensThawing > account.balance) {
+            account.tokensThawing = account.balance;
+            if (account.tokensThawing == 0) {
+                account.thawEndTimestamp = 0;
+            }
+        }
+
         uint256 escrowBalanceBefore = _graphToken().balanceOf(address(this));
 
         _graphToken().approve(address(_graphPayments()), tokens);

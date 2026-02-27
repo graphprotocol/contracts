@@ -69,6 +69,25 @@ contract DisputeManagerDisputeTest is DisputeManagerTest {
         disputeManager.cancelDispute(disputeId);
     }
 
+    function test_Dispute_Accept_RevertIf_DisputeNotPending(uint256 tokens) public useIndexer useAllocation(tokens) {
+        // Create and reject a dispute so it is no longer pending
+        resetPrank(users.fisherman);
+        // forge-lint: disable-next-line(unsafe-typecast)
+        bytes32 disputeId = _createIndexingDispute(allocationId, bytes32("POI1"), block.number);
+
+        resetPrank(users.arbitrator);
+        disputeManager.rejectDispute(disputeId);
+
+        // Attempt to accept the already-rejected dispute
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IDisputeManager.DisputeManagerDisputeNotPending.selector,
+                IDisputeManager.DisputeStatus.Rejected
+            )
+        );
+        disputeManager.acceptDispute(disputeId, 1);
+    }
+
     function test_Dispute_Reject_RevertIf_DisputeNotPending(uint256 tokens) public useIndexer useAllocation(tokens) {
         // Create and accept a dispute so it is no longer pending
         resetPrank(users.fisherman);
@@ -86,6 +105,45 @@ contract DisputeManagerDisputeTest is DisputeManagerTest {
             )
         );
         disputeManager.rejectDispute(disputeId);
+    }
+
+    function test_Dispute_Draw_RevertIf_DisputeNotPending(uint256 tokens) public useIndexer useAllocation(tokens) {
+        // Create and accept a dispute so it is no longer pending
+        resetPrank(users.fisherman);
+        // forge-lint: disable-next-line(unsafe-typecast)
+        bytes32 disputeId = _createIndexingDispute(allocationId, bytes32("POI1"), block.number);
+
+        resetPrank(users.arbitrator);
+        _acceptDispute(disputeId, 1);
+
+        // Attempt to draw the already-accepted dispute
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IDisputeManager.DisputeManagerDisputeNotPending.selector,
+                IDisputeManager.DisputeStatus.Accepted
+            )
+        );
+        disputeManager.drawDispute(disputeId);
+    }
+
+    function test_Dispute_Cancel_RevertIf_DisputeNotPending(uint256 tokens) public useIndexer useAllocation(tokens) {
+        // Create and accept a dispute so it is no longer pending
+        resetPrank(users.fisherman);
+        // forge-lint: disable-next-line(unsafe-typecast)
+        bytes32 disputeId = _createIndexingDispute(allocationId, bytes32("POI1"), block.number);
+
+        resetPrank(users.arbitrator);
+        _acceptDispute(disputeId, 1);
+
+        // Attempt to cancel the already-accepted dispute
+        resetPrank(users.fisherman);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IDisputeManager.DisputeManagerDisputeNotPending.selector,
+                IDisputeManager.DisputeStatus.Accepted
+            )
+        );
+        disputeManager.cancelDispute(disputeId);
     }
 
     function test_Dispute_AreConflictingAttestations(uint256 tokens) public useIndexer useAllocation(tokens) {

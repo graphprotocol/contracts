@@ -39,13 +39,23 @@ contract GraphEscrowWithdrawTest is GraphEscrowTest {
         escrow.withdraw(users.verifier, users.indexer);
     }
 
+    function testWithdraw_SucceedsOneSecondAfterThawEnd(
+        uint256 amount,
+        uint256 thawAmount
+    ) public useGateway depositAndThawTokens(amount, thawAmount) {
+        // Advance time to exactly one second past thaw end
+        skip(WITHDRAW_ESCROW_THAWING_PERIOD + 1);
+
+        _withdrawEscrow(users.verifier, users.indexer);
+    }
+
     function testWithdraw_BalanceAfterCollect(
         uint256 amountDeposited,
         uint256 amountThawed,
         uint256 amountCollected
     ) public useGateway depositAndThawTokens(amountDeposited, amountThawed) {
         vm.assume(amountCollected > 0);
-        vm.assume(amountCollected <= amountDeposited);
+        vm.assume(amountCollected < amountDeposited);
 
         // burn some tokens to prevent overflow
         resetPrank(users.indexer);

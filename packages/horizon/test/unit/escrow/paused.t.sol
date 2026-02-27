@@ -42,6 +42,14 @@ contract GraphEscrowPausedTest is GraphEscrowTest {
         escrow.thaw(users.verifier, users.indexer, tokens);
     }
 
+    function testPaused_RevertWhen_CancelThaw(
+        uint256 tokens,
+        uint256 thawAmount
+    ) public useGateway depositAndThawTokens(tokens, thawAmount) usePaused(true) {
+        vm.expectRevert(abi.encodeWithSelector(IPaymentsEscrow.PaymentsEscrowIsPaused.selector));
+        escrow.cancelThaw(users.verifier, users.indexer);
+    }
+
     function testPaused_RevertWhen_WithdrawTokens(
         uint256 tokens,
         uint256 thawAmount
