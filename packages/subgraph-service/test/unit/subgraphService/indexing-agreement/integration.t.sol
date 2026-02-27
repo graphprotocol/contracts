@@ -172,10 +172,11 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
         subgraphService.setPaymentsDestination(_indexerState.addr);
 
         // Accept the Indexing Agreement
-        bytes16 agreementId = subgraphService.acceptIndexingAgreement(
-            _indexerState.allocationId,
-            _recurringCollectorHelper.generateSignedRCA(_rca, _ctx.payer.signerPrivateKey)
-        );
+        (
+            IRecurringCollector.RecurringCollectionAgreement memory signedRca,
+            bytes memory signature
+        ) = _recurringCollectorHelper.generateSignedRCA(_rca, _ctx.payer.signerPrivateKey);
+        bytes16 agreementId = subgraphService.acceptIndexingAgreement(_indexerState.allocationId, signedRca, signature);
 
         // Skip ahead to collection point
         skip(_expectedTokens.expectedTotalTokensCollected / terms.tokensPerSecond);
@@ -265,10 +266,15 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
 
     function _getState(address _payer, address _indexer) private view returns (TestState memory) {
         CollectPaymentData memory collect = _collectPaymentData(_indexer);
+        (uint256 escrowBal, uint256 escrowThawing, ) = escrow.escrowAccounts(
+            _payer,
+            address(recurringCollector),
+            _indexer
+        );
 
         return
             TestState({
-                escrowBalance: escrow.getBalance(_payer, address(recurringCollector), _indexer),
+                escrowBalance: escrowBal - escrowThawing,
                 indexerBalance: collect.indexerBalance,
                 indexerTokensLocked: collect.lockedTokens
             });

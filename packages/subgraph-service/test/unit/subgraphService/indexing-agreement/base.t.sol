@@ -32,12 +32,12 @@ contract SubgraphServiceIndexingAgreementBaseTest is SubgraphServiceIndexingAgre
         // Accept an indexing agreement
         Context storage ctx = _newCtx(seed);
         IndexerState memory indexerState = _withIndexer(ctx);
-        (IRecurringCollector.SignedRCA memory accepted, bytes16 agreementId) = _withAcceptedIndexingAgreement(
-            ctx,
-            indexerState
-        );
+        (
+            IRecurringCollector.RecurringCollectionAgreement memory acceptedRca,
+            bytes16 agreementId
+        ) = _withAcceptedIndexingAgreement(ctx, indexerState);
         IIndexingAgreement.AgreementWrapper memory agreement = subgraphService.getIndexingAgreement(agreementId);
-        _assertEqualAgreement(accepted.rca, agreement);
+        _assertEqualAgreement(acceptedRca, agreement);
     }
 
     function test_SubgraphService_Revert_WhenUnsafeAddress_WhenProxyAdmin(address indexer, bytes16 agreementId) public {
