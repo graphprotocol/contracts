@@ -137,14 +137,14 @@ contract DisputeManagerIndexingFeeCreateDisputeTest is SubgraphServiceIndexingAg
         disputeManager.createIndexingFeeDisputeV1(acceptedAgreementId, bytes32("POI"), 100, block.number);
     }
 
-    function test_IndexingFee_Create_Dispute_EmitsEvent(
-        Seed memory seed,
-        uint256 unboundedTokensCollected
-    ) public {
+    function test_IndexingFee_Create_Dispute_EmitsEvent(Seed memory seed, uint256 unboundedTokensCollected) public {
         (bytes16 agreementId, IndexerState memory indexerState) = _setupCollectedAgreement(
             seed,
             unboundedTokensCollected
         );
+
+        // Read the payer from the (mocked) agreement data
+        IRecurringCollector.AgreementData memory agreementData = recurringCollector.getAgreement(agreementId);
 
         resetPrank(users.fisherman);
         uint256 deposit = disputeManager.disputeDeposit();
@@ -165,7 +165,7 @@ contract DisputeManagerIndexingFeeCreateDisputeTest is SubgraphServiceIndexingAg
             indexerState.addr,
             users.fisherman,
             deposit,
-            address(0), // payer from mock agreement (zero-initialized)
+            agreementData.payer,
             agreementId,
             poi,
             entities,

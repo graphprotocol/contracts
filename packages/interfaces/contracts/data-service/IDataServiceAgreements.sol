@@ -8,7 +8,7 @@ import { IDataService } from "./IDataService.sol";
  * @author Edge & Node
  * @notice Extension for the {IDataService} contract to support payer-initiated
  * cancellation of indexing agreements. Any data service that participates in
- * agreement lifecycle management via {ServiceAgreementManager} should implement
+ * agreement lifecycle management via {RecurringAgreementManager} should implement
  * this interface.
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.

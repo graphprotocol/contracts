@@ -351,7 +351,7 @@ async function main() {
   }
 
   for (const [i, signer] of signers.entries()) {
-    const escrowAccount = await PaymentsEscrow.getEscrowAccount(
+    const escrowAccount = await PaymentsEscrow.escrowAccounts(
       gateway.address,
       GraphTallyCollector.target,
       signer.address,

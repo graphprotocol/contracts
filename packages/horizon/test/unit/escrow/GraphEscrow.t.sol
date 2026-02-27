@@ -48,7 +48,7 @@ contract GraphEscrowTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
 
     function _thawEscrow(address collector, address receiver, uint256 amount) internal {
         (, address msgSender, ) = vm.readCallers();
-        IPaymentsEscrow.EscrowAccount memory accountBefore = escrow.getEscrowAccount(msgSender, collector, receiver);
+        IPaymentsEscrow.EscrowAccount memory accountBefore = escrow.escrowAccounts(msgSender, collector, receiver);
 
         // Timer resets when increasing, preserves when decreasing, starts when new
         uint256 expectedThawEndTimestamp = (accountBefore.thawEndTimestamp == 0 || amount > accountBefore.tokensThawing)
@@ -56,25 +56,31 @@ contract GraphEscrowTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
             : accountBefore.thawEndTimestamp;
 
         vm.expectEmit(address(escrow));
-        emit IPaymentsEscrow.Thawing(msgSender, collector, receiver, amount, expectedThawEndTimestamp);
+        emit IPaymentsEscrow.Thaw(msgSender, collector, receiver, amount, expectedThawEndTimestamp);
         escrow.thaw(collector, receiver, amount);
 
-        IPaymentsEscrow.EscrowAccount memory account = escrow.getEscrowAccount(msgSender, collector, receiver);
+        IPaymentsEscrow.EscrowAccount memory account = escrow.escrowAccounts(msgSender, collector, receiver);
         assertEq(account.tokensThawing, amount);
         assertEq(account.thawEndTimestamp, expectedThawEndTimestamp);
     }
 
     function _cancelThawEscrow(address collector, address receiver) internal {
         (, address msgSender, ) = vm.readCallers();
-        IPaymentsEscrow.EscrowAccount memory accountBefore = escrow.getEscrowAccount(msgSender, collector, receiver);
+        IPaymentsEscrow.EscrowAccount memory accountBefore = escrow.escrowAccounts(msgSender, collector, receiver);
 
         if (accountBefore.tokensThawing != 0) {
             vm.expectEmit(address(escrow));
-            emit IPaymentsEscrow.Thawing(msgSender, collector, receiver, 0, 0);
+            emit IPaymentsEscrow.CancelThaw(
+                msgSender,
+                collector,
+                receiver,
+                accountBefore.tokensThawing,
+                accountBefore.thawEndTimestamp
+            );
         }
         escrow.cancelThaw(collector, receiver);
 
-        IPaymentsEscrow.EscrowAccount memory accountAfter = escrow.getEscrowAccount(msgSender, collector, receiver);
+        IPaymentsEscrow.EscrowAccount memory accountAfter = escrow.escrowAccounts(msgSender, collector, receiver);
         assertEq(accountAfter.tokensThawing, 0);
         assertEq(accountAfter.thawEndTimestamp, 0);
     }
@@ -82,7 +88,7 @@ contract GraphEscrowTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
     function _withdrawEscrow(address collector, address receiver) internal {
         (, address msgSender, ) = vm.readCallers();
 
-        IPaymentsEscrow.EscrowAccount memory accountBefore = escrow.getEscrowAccount(msgSender, collector, receiver);
+        IPaymentsEscrow.EscrowAccount memory accountBefore = escrow.escrowAccounts(msgSender, collector, receiver);
         uint256 tokenBalanceBeforeSender = token.balanceOf(msgSender);
         uint256 tokenBalanceBeforeEscrow = token.balanceOf(address(escrow));
 
@@ -92,7 +98,7 @@ contract GraphEscrowTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
         uint256 tokens = escrow.withdraw(collector, receiver);
         assertEq(tokens, expectedWithdraw);
 
-        IPaymentsEscrow.EscrowAccount memory accountAfter = escrow.getEscrowAccount(msgSender, collector, receiver);
+        IPaymentsEscrow.EscrowAccount memory accountAfter = escrow.escrowAccounts(msgSender, collector, receiver);
 
         assertEq(accountAfter.balance, accountBefore.balance - expectedWithdraw);
         assertEq(accountAfter.tokensThawing, 0);
@@ -145,7 +151,7 @@ contract GraphEscrowTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
             receiverExpectedPayment: 0
         });
 
-        previousBalances.payerEscrowBalance = escrow.getEscrowAccount(_payer, _collector, _receiver).balance;
+        previousBalances.payerEscrowBalance = escrow.escrowAccounts(_payer, _collector, _receiver).balance;
 
         vm.expectEmit(address(escrow));
         emit IPaymentsEscrow.EscrowCollected(
@@ -188,7 +194,7 @@ contract GraphEscrowTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
             dataServiceBalance: token.balanceOf(_dataService),
             payerEscrowBalance: 0
         });
-        afterBalances.payerEscrowBalance = escrow.getEscrowAccount(_payer, _collector, _receiver).balance;
+        afterBalances.payerEscrowBalance = escrow.escrowAccounts(_payer, _collector, _receiver).balance;
 
         // Check receiver balance after payment
         assertEq(

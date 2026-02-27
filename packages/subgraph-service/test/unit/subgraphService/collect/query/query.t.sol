@@ -237,7 +237,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         _authorizeSigner();
 
         uint256 beforeGatewayBalance = escrow
-            .getEscrowAccount(users.gateway, address(graphTallyCollector), users.indexer)
+            .escrowAccounts(users.gateway, address(graphTallyCollector), users.indexer)
             .balance;
         uint256 beforeTokensCollected = graphTallyCollector.tokensCollected(
             address(subgraphService),
@@ -255,7 +255,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         _collect(users.indexer, IGraphPayments.PaymentTypes.QueryFee, data);
 
         uint256 intermediateGatewayBalance = escrow
-            .getEscrowAccount(users.gateway, address(graphTallyCollector), users.indexer)
+            .escrowAccounts(users.gateway, address(graphTallyCollector), users.indexer)
             .balance;
         assertEq(intermediateGatewayBalance, beforeGatewayBalance - tokensToCollect);
         uint256 intermediateTokensCollected = graphTallyCollector.tokensCollected(
@@ -277,7 +277,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
 
         // Check the indexer received the correct amount of tokens
         uint256 afterGatewayBalance = escrow
-            .getEscrowAccount(users.gateway, address(graphTallyCollector), users.indexer)
+            .escrowAccounts(users.gateway, address(graphTallyCollector), users.indexer)
             .balance;
         assertEq(afterGatewayBalance, beforeGatewayBalance - tokensPayment);
         uint256 afterTokensCollected = graphTallyCollector.tokensCollected(

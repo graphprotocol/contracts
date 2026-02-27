@@ -11,8 +11,13 @@ contract GraphEscrowGettersTest is GraphEscrowTest {
      * TESTS
      */
 
-    function testGetEscrowAccount(uint256 amount) public useGateway useDeposit(amount) {
-        IPaymentsEscrow.EscrowAccount memory account = escrow.getEscrowAccount(
+    function testGetBalance(uint256 amount) public useGateway useDeposit(amount) {
+        uint256 balance = escrow.getBalance(users.gateway, users.verifier, users.indexer);
+        assertEq(balance, amount);
+    }
+
+    function testEscrowAccounts(uint256 amount) public useGateway useDeposit(amount) {
+        IPaymentsEscrow.EscrowAccount memory account = escrow.escrowAccounts(
             users.gateway,
             users.verifier,
             users.indexer
@@ -21,7 +26,7 @@ contract GraphEscrowGettersTest is GraphEscrowTest {
         assertEq(account.tokensThawing, 0);
     }
 
-    function testGetEscrowAccount_WhenThawing(
+    function testGetBalance_WhenThawing(
         uint256 amountDeposit,
         uint256 amountThawing
     ) public useGateway useDeposit(amountDeposit) {
@@ -31,7 +36,7 @@ contract GraphEscrowGettersTest is GraphEscrowTest {
         // thaw some funds
         _thawEscrow(users.verifier, users.indexer, amountThawing);
 
-        IPaymentsEscrow.EscrowAccount memory account = escrow.getEscrowAccount(
+        IPaymentsEscrow.EscrowAccount memory account = escrow.escrowAccounts(
             users.gateway,
             users.verifier,
             users.indexer
@@ -39,7 +44,7 @@ contract GraphEscrowGettersTest is GraphEscrowTest {
         assertEq(account.balance - account.tokensThawing, amountDeposit - amountThawing);
     }
 
-    function testGetEscrowAccount_WhenCollectedOverThawing(
+    function testEscrowAccounts_WhenCollectedOverThawing(
         uint256 amountDeposit,
         uint256 amountThawing,
         uint256 amountCollected
@@ -80,7 +85,7 @@ contract GraphEscrowGettersTest is GraphEscrowTest {
         );
 
         // tokensThawing > balance after collection, so effective available is 0
-        IPaymentsEscrow.EscrowAccount memory account = escrow.getEscrowAccount(
+        IPaymentsEscrow.EscrowAccount memory account = escrow.escrowAccounts(
             users.gateway,
             users.verifier,
             users.indexer

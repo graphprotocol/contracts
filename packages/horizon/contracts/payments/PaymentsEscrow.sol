@@ -159,12 +159,18 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
     }
 
     /// @inheritdoc IPaymentsEscrow
-    function getEscrowAccount(
+    function escrowAccounts(
         address payer,
         address collector,
         address receiver
     ) external view override returns (EscrowAccount memory) {
         return _escrowAccounts[payer][collector][receiver];
+    }
+
+    /// @inheritdoc IPaymentsEscrow
+    function getBalance(address payer, address collector, address receiver) external view override returns (uint256) {
+        EscrowAccount storage account = _escrowAccounts[payer][collector][receiver];
+        return account.balance > account.tokensThawing ? account.balance - account.tokensThawing : 0;
     }
 
     /**
@@ -206,20 +212,24 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
         if (tokensThawing == currentThawing) return tokensThawing;
 
         uint256 thawEndTimestamp;
+        uint256 previousThawEnd = account.thawEndTimestamp;
         if (tokensThawing < currentThawing) {
             // Decreasing (or canceling): preserve timer, clear if fully canceled
             account.tokensThawing = tokensThawing;
             if (tokensThawing == 0) account.thawEndTimestamp = 0;
-            else thawEndTimestamp = account.thawEndTimestamp;
+            else thawEndTimestamp = previousThawEnd;
         } else {
             thawEndTimestamp = block.timestamp + WITHDRAW_ESCROW_THAWING_PERIOD;
-            uint256 currentThawEnd = account.thawEndTimestamp;
             // Increasing: reset timer (skip if evenIfTimerReset=false and timer would change)
-            if (!evenIfTimerReset && currentThawEnd != 0 && currentThawEnd != thawEndTimestamp) return currentThawing;
+            if (!evenIfTimerReset && previousThawEnd != 0 && previousThawEnd != thawEndTimestamp) return currentThawing;
             account.tokensThawing = tokensThawing;
             account.thawEndTimestamp = thawEndTimestamp;
         }
 
-        emit Thawing(msg.sender, collector, receiver, tokensThawing, thawEndTimestamp);
+        if (tokensThawing == 0) {
+            emit CancelThaw(msg.sender, collector, receiver, currentThawing, previousThawEnd);
+        } else {
+            emit Thaw(msg.sender, collector, receiver, tokensThawing, thawEndTimestamp);
+        }
     }
 }

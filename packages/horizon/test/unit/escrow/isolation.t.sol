@@ -19,16 +19,8 @@ contract GraphEscrowIsolationTest is GraphEscrowTest {
         _depositTokens(collector1, users.indexer, amount);
         _depositTokens(collector2, users.indexer, amount * 2);
 
-        IPaymentsEscrow.EscrowAccount memory account1 = escrow.getEscrowAccount(
-            users.gateway,
-            collector1,
-            users.indexer
-        );
-        IPaymentsEscrow.EscrowAccount memory account2 = escrow.getEscrowAccount(
-            users.gateway,
-            collector2,
-            users.indexer
-        );
+        IPaymentsEscrow.EscrowAccount memory account1 = escrow.escrowAccounts(users.gateway, collector1, users.indexer);
+        IPaymentsEscrow.EscrowAccount memory account2 = escrow.escrowAccounts(users.gateway, collector2, users.indexer);
 
         assertEq(account1.balance, amount);
         assertEq(account2.balance, amount * 2);
@@ -43,16 +35,8 @@ contract GraphEscrowIsolationTest is GraphEscrowTest {
         _depositTokens(users.verifier, receiver1, amount);
         _depositTokens(users.verifier, receiver2, amount * 2);
 
-        IPaymentsEscrow.EscrowAccount memory account1 = escrow.getEscrowAccount(
-            users.gateway,
-            users.verifier,
-            receiver1
-        );
-        IPaymentsEscrow.EscrowAccount memory account2 = escrow.getEscrowAccount(
-            users.gateway,
-            users.verifier,
-            receiver2
-        );
+        IPaymentsEscrow.EscrowAccount memory account1 = escrow.escrowAccounts(users.gateway, users.verifier, receiver1);
+        IPaymentsEscrow.EscrowAccount memory account2 = escrow.escrowAccounts(users.gateway, users.verifier, receiver2);
 
         assertEq(account1.balance, amount);
         assertEq(account2.balance, amount * 2);
@@ -68,7 +52,7 @@ contract GraphEscrowIsolationTest is GraphEscrowTest {
         escrow.thaw(users.verifier, users.indexer, amount / 2);
 
         // Second tuple should be unaffected
-        IPaymentsEscrow.EscrowAccount memory account2 = escrow.getEscrowAccount(
+        IPaymentsEscrow.EscrowAccount memory account2 = escrow.escrowAccounts(
             users.gateway,
             users.verifier,
             users.delegator
@@ -77,7 +61,7 @@ contract GraphEscrowIsolationTest is GraphEscrowTest {
         assertEq(account2.thawEndTimestamp, 0);
 
         // First tuple should have thawing
-        IPaymentsEscrow.EscrowAccount memory account1 = escrow.getEscrowAccount(
+        IPaymentsEscrow.EscrowAccount memory account1 = escrow.escrowAccounts(
             users.gateway,
             users.verifier,
             users.indexer
@@ -86,7 +70,7 @@ contract GraphEscrowIsolationTest is GraphEscrowTest {
     }
 
     function testIsolation_GetEscrowAccount_NeverUsedAccount() public view {
-        IPaymentsEscrow.EscrowAccount memory account = escrow.getEscrowAccount(
+        IPaymentsEscrow.EscrowAccount memory account = escrow.escrowAccounts(
             address(0xdead),
             address(0xbeef),
             address(0xface)

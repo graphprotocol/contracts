@@ -40,19 +40,34 @@ interface IPaymentsEscrow {
     event Deposit(address indexed payer, address indexed collector, address indexed receiver, uint256 tokens);
 
     /**
-     * @notice Emitted when the thawing state changes for a payer-collector-receiver tuple.
-     * Covers starting, increasing, reducing, and canceling a thaw.
+     * @notice Emitted when a payer cancels an escrow thawing
      * @param payer The address of the payer
      * @param collector The address of the collector
      * @param receiver The address of the receiver
-     * @param tokensThawing The amount of tokens thawing after the change
-     * @param thawEndTimestamp The thaw end timestamp after the change (zero if no longer thawing)
+     * @param tokensThawing The amount of tokens that were being thawed
+     * @param thawEndTimestamp The timestamp at which the thawing period was ending
      */
-    event Thawing(
+    event CancelThaw(
         address indexed payer,
         address indexed collector,
         address indexed receiver,
         uint256 tokensThawing,
+        uint256 thawEndTimestamp
+    );
+
+    /**
+     * @notice Emitted when a payer thaws funds from the escrow for a payer-collector-receiver tuple
+     * @param payer The address of the payer
+     * @param collector The address of the collector
+     * @param receiver The address of the receiver
+     * @param tokens The amount of tokens being thawed
+     * @param thawEndTimestamp The timestamp at which the thawing period ends
+     */
+    event Thaw(
+        address indexed payer,
+        address indexed collector,
+        address indexed receiver,
+        uint256 tokens,
         uint256 thawEndTimestamp
     );
 
@@ -96,6 +111,23 @@ interface IPaymentsEscrow {
      * @param minBalance The minimum required balance
      */
     error PaymentsEscrowInsufficientBalance(uint256 balance, uint256 minBalance);
+
+    /**
+     * @notice Thrown when a thawing is expected to be in progress but it is not
+     */
+    error PaymentsEscrowNotThawing();
+
+    /**
+     * @notice Thrown when a thawing is still in progress
+     * @param currentTimestamp The current timestamp
+     * @param thawEndTimestamp The timestamp at which the thawing period ends
+     */
+    error PaymentsEscrowStillThawing(uint256 currentTimestamp, uint256 thawEndTimestamp);
+
+    /**
+     * @notice Thrown when operating a zero token amount is not allowed.
+     */
+    error PaymentsEscrowInvalidZeroTokens();
 
     /**
      * @notice Thrown when setting the thawing period to a value greater than the maximum
@@ -161,7 +193,8 @@ interface IPaymentsEscrow {
      * @param receiver The address of the receiver
      * @param tokens The desired amount of tokens to thaw
      * @return tokensThawing The resulting amount of tokens thawing after the operation
-     * @dev Emits a {Thawing} event if the thawing state changes.
+     * @dev Emits a {Thaw} event when the thaw amount increases.
+     * Emits a {CancelThaw} event when thawing is fully canceled.
      */
     function thaw(address collector, address receiver, uint256 tokens) external returns (uint256 tokensThawing);
 
@@ -175,7 +208,6 @@ interface IPaymentsEscrow {
      * @param tokens The desired amount of tokens to thaw
      * @param evenIfTimerReset If true, always proceed. If false, skip increases that would reset the timer.
      * @return tokensThawing The resulting amount of tokens thawing after the operation
-     * @dev Emits a {Thawing} event if the thawing state changes.
      */
     function thaw(
         address collector,
@@ -190,7 +222,7 @@ interface IPaymentsEscrow {
      * @param collector The address of the collector
      * @param receiver The address of the receiver
      * @return tokensThawing The resulting amount of tokens thawing (always 0)
-     * @dev Emits a {Thawing} event if any tokens were thawing.
+     * @dev Emits a {CancelThaw} event if any tokens were thawing.
      */
     function cancelThaw(address collector, address receiver) external returns (uint256 tokensThawing);
 
@@ -231,13 +263,23 @@ interface IPaymentsEscrow {
     ) external;
 
     /**
-     * @notice Get the full escrow account for a payer-collector-receiver tuple
+     * @notice Get the balance of a payer-collector-receiver tuple
+     * This function will return 0 if the current balance is less than the amount of funds being thawed.
+     * @param payer The address of the payer
+     * @param collector The address of the collector
+     * @param receiver The address of the receiver
+     * @return The balance of the payer-collector-receiver tuple
+     */
+    function getBalance(address payer, address collector, address receiver) external view returns (uint256);
+
+    /**
+     * @notice Escrow account details for a payer-collector-receiver tuple
      * @param payer The address of the payer
      * @param collector The address of the collector
      * @param receiver The address of the receiver
      * @return The escrow account details
      */
-    function getEscrowAccount(
+    function escrowAccounts(
         address payer,
         address collector,
         address receiver

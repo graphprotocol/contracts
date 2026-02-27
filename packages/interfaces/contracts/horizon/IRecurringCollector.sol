@@ -370,6 +370,13 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     error RecurringCollectorExcessiveSlippage(uint256 requested, uint256 actual, uint256 maxSlippage);
 
     /**
+     * @notice Thrown when a contract payer's eligibility oracle denies the service provider
+     * @param agreementId The agreement ID
+     * @param serviceProvider The service provider that is not eligible
+     */
+    error RecurringCollectorCollectionNotEligible(bytes16 agreementId, address serviceProvider);
+
+    /**
      * @notice Thrown when the contract approver is not a contract
      * @param approver The address that is not a contract
      */

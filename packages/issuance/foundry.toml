@@ -3,6 +3,7 @@ src = 'contracts'
 out = 'forge-artifacts'
 libs = ["node_modules"]
 auto_detect_remappings = false
+test = 'test'
 remappings = [
     "@openzeppelin/=node_modules/@openzeppelin/",
     "@graphprotocol/=node_modules/@graphprotocol/",

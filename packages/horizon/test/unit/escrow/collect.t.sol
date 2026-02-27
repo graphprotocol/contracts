@@ -154,7 +154,7 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
         );
 
         // Balance should be zero
-        IPaymentsEscrow.EscrowAccount memory account = escrow.getEscrowAccount(
+        IPaymentsEscrow.EscrowAccount memory account = escrow.escrowAccounts(
             users.gateway,
             users.verifier,
             users.indexer
@@ -188,7 +188,7 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
         );
 
         // tokensThawing and thawEndTimestamp should be reset
-        IPaymentsEscrow.EscrowAccount memory account = escrow.getEscrowAccount(
+        IPaymentsEscrow.EscrowAccount memory account = escrow.escrowAccounts(
             users.gateway,
             users.verifier,
             users.indexer
@@ -224,7 +224,7 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
             users.indexer
         );
 
-        IPaymentsEscrow.EscrowAccount memory account = escrow.getEscrowAccount(
+        IPaymentsEscrow.EscrowAccount memory account = escrow.escrowAccounts(
             users.gateway,
             users.verifier,
             users.indexer

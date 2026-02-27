@@ -34,7 +34,7 @@ contract GraphEscrowWithdrawTest is GraphEscrowTest {
         assertEq(tokens, 0);
 
         // Account unchanged
-        IPaymentsEscrow.EscrowAccount memory account = escrow.getEscrowAccount(
+        IPaymentsEscrow.EscrowAccount memory account = escrow.escrowAccounts(
             users.gateway,
             users.verifier,
             users.indexer
@@ -53,7 +53,7 @@ contract GraphEscrowWithdrawTest is GraphEscrowTest {
         assertEq(tokens, 0, "Should not withdraw when timestamp equals thawEnd");
 
         // Account unchanged
-        IPaymentsEscrow.EscrowAccount memory account = escrow.getEscrowAccount(
+        IPaymentsEscrow.EscrowAccount memory account = escrow.escrowAccounts(
             users.gateway,
             users.verifier,
             users.indexer
@@ -101,7 +101,7 @@ contract GraphEscrowWithdrawTest is GraphEscrowTest {
         // After collect, tokensThawing is capped at remaining balance.
         // Withdraw succeeds if tokens remain, otherwise is a no-op.
         resetPrank(users.gateway);
-        IPaymentsEscrow.EscrowAccount memory account = escrow.getEscrowAccount(
+        IPaymentsEscrow.EscrowAccount memory account = escrow.escrowAccounts(
             users.gateway,
             users.verifier,
             users.indexer

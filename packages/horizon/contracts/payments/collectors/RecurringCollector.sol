@@ -9,9 +9,11 @@ import { Authorizable } from "../../utilities/Authorizable.sol";
 import { GraphDirectory } from "../../utilities/GraphDirectory.sol";
 // solhint-disable-next-line no-unused-import
 import { IPaymentsCollector } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsCollector.sol"; // for @inheritdoc
+import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import { IContractApprover } from "@graphprotocol/interfaces/contracts/horizon/IContractApprover.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { IRewardsEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibility.sol";
 import { PPMMath } from "../../libraries/PPMMath.sol";
 
 /**
@@ -352,7 +354,23 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         }
         agreement.lastCollectionAt = uint64(block.timestamp);
 
-        if (tokensToCollect > 0) {
+        // Hard eligibility gate for contract payers that opt in via ERC165
+        if (0 < tokensToCollect && 0 < agreement.payer.code.length) {
+            try IERC165(agreement.payer).supportsInterface(type(IRewardsEligibility).interfaceId) returns (
+                bool supported
+            ) {
+                if (supported) {
+                    require(
+                        IRewardsEligibility(agreement.payer).isEligible(agreement.serviceProvider),
+                        RecurringCollectorCollectionNotEligible(_params.agreementId, agreement.serviceProvider)
+                    );
+                }
+            } catch {}
+            // Let contract payers top up escrow if short
+            try IContractApprover(agreement.payer).beforeCollection(_params.agreementId, tokensToCollect) {} catch {}
+        }
+
+        if (0 < tokensToCollect) {
             _graphPaymentsEscrow().collect(
                 _paymentType,
                 agreement.payer,
@@ -382,6 +400,11 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
             tokensToCollect,
             _params.dataServiceCut
         );
+
+        // Notify contract payers so they can reconcile escrow in the same transaction
+        if (0 < agreement.payer.code.length) {
+            try IContractApprover(agreement.payer).afterCollection(_params.agreementId, tokensToCollect) {} catch {}
+        }
 
         return tokensToCollect;
     }

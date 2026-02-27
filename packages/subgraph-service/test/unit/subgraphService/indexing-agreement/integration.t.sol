@@ -267,7 +267,7 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
 
     function _getState(address _payer, address _indexer) private view returns (TestState memory) {
         CollectPaymentData memory collect = _collectPaymentData(_indexer);
-        IPaymentsEscrow.EscrowAccount memory account = escrow.getEscrowAccount(
+        IPaymentsEscrow.EscrowAccount memory account = escrow.escrowAccounts(
             _payer,
             address(recurringCollector),
             _indexer

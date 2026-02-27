@@ -38,9 +38,6 @@ contract DirectAllocation is BaseUpgradeable, IIssuanceTarget, ISendTokens {
     event TokensSent(address indexed to, uint256 indexed amount);
     // Do not need to index amount, ignoring gas-indexed-events warning.
 
-    /// @notice Emitted before the issuance allocation changes
-    event BeforeIssuanceAllocationChange();
-
     // -- Constructor --
 
     /**
@@ -89,9 +86,7 @@ contract DirectAllocation is BaseUpgradeable, IIssuanceTarget, ISendTokens {
      * before an allocation change. We simply receive tokens from the IssuanceAllocator.
      * @inheritdoc IIssuanceTarget
      */
-    function beforeIssuanceAllocationChange() external virtual override {
-        emit BeforeIssuanceAllocationChange();
-    }
+    function beforeIssuanceAllocationChange() external virtual override {}
 
     /**
      * @dev No-op for DirectAllocation; issuanceAllocator is not stored.

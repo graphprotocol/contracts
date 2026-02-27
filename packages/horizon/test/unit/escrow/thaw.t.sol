@@ -22,7 +22,7 @@ contract GraphEscrowThawTest is GraphEscrowTest {
         vm.assume(amount > 0);
         _thawEscrow(users.verifier, users.indexer, amount);
 
-        IPaymentsEscrow.EscrowAccount memory account = escrow.getEscrowAccount(
+        IPaymentsEscrow.EscrowAccount memory account = escrow.escrowAccounts(
             users.gateway,
             users.verifier,
             users.indexer
@@ -46,14 +46,10 @@ contract GraphEscrowThawTest is GraphEscrowTest {
         vm.warp(block.timestamp + 1 hours);
 
         vm.expectEmit(address(escrow));
-        emit IPaymentsEscrow.Thawing(msgSender, users.verifier, users.indexer, secondAmountToThaw, expectedThawEnd);
+        emit IPaymentsEscrow.Thaw(msgSender, users.verifier, users.indexer, secondAmountToThaw, expectedThawEnd);
         escrow.thaw(users.verifier, users.indexer, secondAmountToThaw);
 
-        IPaymentsEscrow.EscrowAccount memory account = escrow.getEscrowAccount(
-            msgSender,
-            users.verifier,
-            users.indexer
-        );
+        IPaymentsEscrow.EscrowAccount memory account = escrow.escrowAccounts(msgSender, users.verifier, users.indexer);
         assertEq(account.tokensThawing, secondAmountToThaw);
         assertEq(account.thawEndTimestamp, expectedThawEnd, "Timer should be preserved, not reset");
     }
@@ -74,14 +70,10 @@ contract GraphEscrowThawTest is GraphEscrowTest {
 
         uint256 expectedThawEnd = block.timestamp + WITHDRAW_ESCROW_THAWING_PERIOD;
         vm.expectEmit(address(escrow));
-        emit IPaymentsEscrow.Thawing(msgSender, users.verifier, users.indexer, secondAmountToThaw, expectedThawEnd);
+        emit IPaymentsEscrow.Thaw(msgSender, users.verifier, users.indexer, secondAmountToThaw, expectedThawEnd);
         escrow.thaw(users.verifier, users.indexer, secondAmountToThaw);
 
-        IPaymentsEscrow.EscrowAccount memory account = escrow.getEscrowAccount(
-            msgSender,
-            users.verifier,
-            users.indexer
-        );
+        IPaymentsEscrow.EscrowAccount memory account = escrow.escrowAccounts(msgSender, users.verifier, users.indexer);
         assertEq(account.tokensThawing, secondAmountToThaw);
         assertEq(account.thawEndTimestamp, expectedThawEnd, "Timer should reset on increase");
     }
@@ -90,19 +82,21 @@ contract GraphEscrowThawTest is GraphEscrowTest {
         escrow.thaw(users.verifier, users.indexer, amount);
 
         (, address msgSender, ) = vm.readCallers();
-        IPaymentsEscrow.EscrowAccount memory account = escrow.getEscrowAccount(
-            msgSender,
-            users.verifier,
-            users.indexer
-        );
+        IPaymentsEscrow.EscrowAccount memory account = escrow.escrowAccounts(msgSender, users.verifier, users.indexer);
         assertEq(account.tokensThawing, amount);
 
-        // thaw(0) cancels all thawing — event should reflect cleared state
+        // thaw(0) cancels all thawing — event should reflect previous state
         vm.expectEmit(address(escrow));
-        emit IPaymentsEscrow.Thawing(msgSender, users.verifier, users.indexer, 0, 0);
+        emit IPaymentsEscrow.CancelThaw(
+            msgSender,
+            users.verifier,
+            users.indexer,
+            account.tokensThawing,
+            account.thawEndTimestamp
+        );
         escrow.thaw(users.verifier, users.indexer, 0);
 
-        account = escrow.getEscrowAccount(msgSender, users.verifier, users.indexer);
+        account = escrow.escrowAccounts(msgSender, users.verifier, users.indexer);
         assertEq(account.tokensThawing, 0);
         assertEq(account.thawEndTimestamp, 0);
     }
@@ -114,11 +108,7 @@ contract GraphEscrowThawTest is GraphEscrowTest {
         assertEq(tokensThawing, amount, "Should cap at balance");
 
         (, address msgSender, ) = vm.readCallers();
-        IPaymentsEscrow.EscrowAccount memory account = escrow.getEscrowAccount(
-            msgSender,
-            users.verifier,
-            users.indexer
-        );
+        IPaymentsEscrow.EscrowAccount memory account = escrow.escrowAccounts(msgSender, users.verifier, users.indexer);
         assertEq(account.tokensThawing, amount);
     }
 
@@ -137,7 +127,7 @@ contract GraphEscrowThawTest is GraphEscrowTest {
         escrow.thaw(users.verifier, users.indexer, amount);
 
         (, address msgSender, ) = vm.readCallers();
-        IPaymentsEscrow.EscrowAccount memory accountBefore = escrow.getEscrowAccount(
+        IPaymentsEscrow.EscrowAccount memory accountBefore = escrow.escrowAccounts(
             msgSender,
             users.verifier,
             users.indexer
@@ -147,7 +137,7 @@ contract GraphEscrowThawTest is GraphEscrowTest {
         uint256 tokensThawing = escrow.thaw(users.verifier, users.indexer, amount);
         assertEq(tokensThawing, amount);
 
-        IPaymentsEscrow.EscrowAccount memory accountAfter = escrow.getEscrowAccount(
+        IPaymentsEscrow.EscrowAccount memory accountAfter = escrow.escrowAccounts(
             msgSender,
             users.verifier,
             users.indexer
@@ -166,7 +156,7 @@ contract GraphEscrowThawTest is GraphEscrowTest {
         uint256 expectedThawEnd = block.timestamp + WITHDRAW_ESCROW_THAWING_PERIOD;
 
         vm.expectEmit(address(escrow));
-        emit IPaymentsEscrow.Thawing(msgSender, users.verifier, users.indexer, amount, expectedThawEnd);
+        emit IPaymentsEscrow.Thaw(msgSender, users.verifier, users.indexer, amount, expectedThawEnd);
         uint256 tokensThawing = escrow.thaw(users.verifier, users.indexer, amount, false);
         assertEq(tokensThawing, amount);
     }
@@ -187,15 +177,11 @@ contract GraphEscrowThawTest is GraphEscrowTest {
         // Decrease with evenIfTimerReset=false should proceed and preserve timer
         (, address msgSender, ) = vm.readCallers();
         vm.expectEmit(address(escrow));
-        emit IPaymentsEscrow.Thawing(msgSender, users.verifier, users.indexer, secondAmountToThaw, expectedThawEnd);
+        emit IPaymentsEscrow.Thaw(msgSender, users.verifier, users.indexer, secondAmountToThaw, expectedThawEnd);
         uint256 tokensThawing = escrow.thaw(users.verifier, users.indexer, secondAmountToThaw, false);
         assertEq(tokensThawing, secondAmountToThaw);
 
-        IPaymentsEscrow.EscrowAccount memory account = escrow.getEscrowAccount(
-            msgSender,
-            users.verifier,
-            users.indexer
-        );
+        IPaymentsEscrow.EscrowAccount memory account = escrow.escrowAccounts(msgSender, users.verifier, users.indexer);
         assertEq(account.thawEndTimestamp, expectedThawEnd, "Timer should be preserved on decrease");
     }
 
@@ -219,11 +205,7 @@ contract GraphEscrowThawTest is GraphEscrowTest {
 
         // State should be unchanged
         (, address msgSender, ) = vm.readCallers();
-        IPaymentsEscrow.EscrowAccount memory account = escrow.getEscrowAccount(
-            msgSender,
-            users.verifier,
-            users.indexer
-        );
+        IPaymentsEscrow.EscrowAccount memory account = escrow.escrowAccounts(msgSender, users.verifier, users.indexer);
         assertEq(account.tokensThawing, firstAmountToThaw);
         assertEq(account.thawEndTimestamp, originalThawEnd, "Timer should remain unchanged");
     }
@@ -242,7 +224,7 @@ contract GraphEscrowThawTest is GraphEscrowTest {
         (, address msgSender, ) = vm.readCallers();
         uint256 expectedThawEnd = block.timestamp + WITHDRAW_ESCROW_THAWING_PERIOD;
         vm.expectEmit(address(escrow));
-        emit IPaymentsEscrow.Thawing(msgSender, users.verifier, users.indexer, secondAmountToThaw, expectedThawEnd);
+        emit IPaymentsEscrow.Thaw(msgSender, users.verifier, users.indexer, secondAmountToThaw, expectedThawEnd);
         uint256 tokensThawing = escrow.thaw(users.verifier, users.indexer, secondAmountToThaw, false);
         assertEq(tokensThawing, secondAmountToThaw, "Should proceed when timer unchanged");
     }
@@ -253,16 +235,19 @@ contract GraphEscrowThawTest is GraphEscrowTest {
 
         // Cancel (thaw 0) with evenIfTimerReset=false should still work (decrease path)
         (, address msgSender, ) = vm.readCallers();
+        IPaymentsEscrow.EscrowAccount memory account = escrow.escrowAccounts(msgSender, users.verifier, users.indexer);
         vm.expectEmit(address(escrow));
-        emit IPaymentsEscrow.Thawing(msgSender, users.verifier, users.indexer, 0, 0);
+        emit IPaymentsEscrow.CancelThaw(
+            msgSender,
+            users.verifier,
+            users.indexer,
+            account.tokensThawing,
+            account.thawEndTimestamp
+        );
         uint256 tokensThawing = escrow.thaw(users.verifier, users.indexer, 0, false);
         assertEq(tokensThawing, 0);
 
-        IPaymentsEscrow.EscrowAccount memory account = escrow.getEscrowAccount(
-            msgSender,
-            users.verifier,
-            users.indexer
-        );
+        account = escrow.escrowAccounts(msgSender, users.verifier, users.indexer);
         assertEq(account.tokensThawing, 0);
         assertEq(account.thawEndTimestamp, 0);
     }

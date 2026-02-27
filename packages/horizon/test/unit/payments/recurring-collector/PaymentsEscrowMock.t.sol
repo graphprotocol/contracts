@@ -29,7 +29,11 @@ contract PaymentsEscrowMock is IPaymentsEscrow {
         return 0;
     }
 
-    function getEscrowAccount(address, address, address) external pure returns (EscrowAccount memory) {
+    function getBalance(address, address, address) external pure returns (uint256) {
+        return 0;
+    }
+
+    function escrowAccounts(address, address, address) external pure returns (EscrowAccount memory) {
         return EscrowAccount(0, 0, 0);
     }
 
