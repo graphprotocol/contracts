@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
+import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
+
 import { GraphEscrowTest } from "./GraphEscrow.t.sol";
 
 contract GraphEscrowIsolationTest is GraphEscrowTest {
@@ -17,11 +19,19 @@ contract GraphEscrowIsolationTest is GraphEscrowTest {
         _depositTokens(collector1, users.indexer, amount);
         _depositTokens(collector2, users.indexer, amount * 2);
 
-        (uint256 balance1, , ) = escrow.escrowAccounts(users.gateway, collector1, users.indexer);
-        (uint256 balance2, , ) = escrow.escrowAccounts(users.gateway, collector2, users.indexer);
+        IPaymentsEscrow.EscrowAccount memory account1 = escrow.getEscrowAccount(
+            users.gateway,
+            collector1,
+            users.indexer
+        );
+        IPaymentsEscrow.EscrowAccount memory account2 = escrow.getEscrowAccount(
+            users.gateway,
+            collector2,
+            users.indexer
+        );
 
-        assertEq(balance1, amount);
-        assertEq(balance2, amount * 2);
+        assertEq(account1.balance, amount);
+        assertEq(account2.balance, amount * 2);
     }
 
     function testIsolation_DifferentReceiversSamePayerCollector(uint256 amount) public useGateway {
@@ -33,11 +43,19 @@ contract GraphEscrowIsolationTest is GraphEscrowTest {
         _depositTokens(users.verifier, receiver1, amount);
         _depositTokens(users.verifier, receiver2, amount * 2);
 
-        (uint256 balance1, , ) = escrow.escrowAccounts(users.gateway, users.verifier, receiver1);
-        (uint256 balance2, , ) = escrow.escrowAccounts(users.gateway, users.verifier, receiver2);
+        IPaymentsEscrow.EscrowAccount memory account1 = escrow.getEscrowAccount(
+            users.gateway,
+            users.verifier,
+            receiver1
+        );
+        IPaymentsEscrow.EscrowAccount memory account2 = escrow.getEscrowAccount(
+            users.gateway,
+            users.verifier,
+            receiver2
+        );
 
-        assertEq(balance1, amount);
-        assertEq(balance2, amount * 2);
+        assertEq(account1.balance, amount);
+        assertEq(account2.balance, amount * 2);
     }
 
     function testIsolation_ThawOneTupleDoesNotAffectAnother(uint256 amount) public useGateway {
@@ -50,27 +68,31 @@ contract GraphEscrowIsolationTest is GraphEscrowTest {
         escrow.thaw(users.verifier, users.indexer, amount / 2);
 
         // Second tuple should be unaffected
-        (, uint256 tokensThawing2, uint256 thawEndTimestamp2) = escrow.escrowAccounts(
+        IPaymentsEscrow.EscrowAccount memory account2 = escrow.getEscrowAccount(
             users.gateway,
             users.verifier,
             users.delegator
         );
-        assertEq(tokensThawing2, 0);
-        assertEq(thawEndTimestamp2, 0);
+        assertEq(account2.tokensThawing, 0);
+        assertEq(account2.thawEndTimestamp, 0);
 
         // First tuple should have thawing
-        (, uint256 tokensThawing1, ) = escrow.escrowAccounts(users.gateway, users.verifier, users.indexer);
-        assertEq(tokensThawing1, amount / 2);
+        IPaymentsEscrow.EscrowAccount memory account1 = escrow.getEscrowAccount(
+            users.gateway,
+            users.verifier,
+            users.indexer
+        );
+        assertEq(account1.tokensThawing, amount / 2);
     }
 
-    function testIsolation_EscrowAccounts_NeverUsedAccount() public view {
-        (uint256 balance, uint256 tokensThawing, uint256 thawEndTimestamp) = escrow.escrowAccounts(
+    function testIsolation_GetEscrowAccount_NeverUsedAccount() public view {
+        IPaymentsEscrow.EscrowAccount memory account = escrow.getEscrowAccount(
             address(0xdead),
             address(0xbeef),
             address(0xface)
         );
-        assertEq(balance, 0);
-        assertEq(tokensThawing, 0);
-        assertEq(thawEndTimestamp, 0);
+        assertEq(account.balance, 0);
+        assertEq(account.tokensThawing, 0);
+        assertEq(account.thawEndTimestamp, 0);
     }
 }
