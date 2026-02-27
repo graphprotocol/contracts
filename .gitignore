@@ -105,6 +105,9 @@ tx-builder-*.json
 **/subgraph-service-localNetwork/
 !**/ignition/**/artifacts/
 
+# Temporary test working directories
+**/testing-coverage/
+
 # Claude AI settings
 .claude/
 
