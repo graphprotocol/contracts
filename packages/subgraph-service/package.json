@@ -33,7 +33,7 @@
     "test:deployment": "SECURE_ACCOUNTS_DISABLE_PROVIDER=true hardhat test test/deployment/*.ts",
     "test:integration": "./scripts/integration",
     "test:coverage": "pnpm build && pnpm test:coverage:self",
-    "test:coverage:self": "forge coverage",
+    "test:coverage:self": "mkdir -p coverage && forge coverage --report lcov --report-file coverage/lcov.info",
     "prepublishOnly": "pnpm run build"
   },
   "devDependencies": {

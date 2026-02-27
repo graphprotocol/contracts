@@ -29,6 +29,7 @@
     "typechain": "typechain --target ethers-v6 --out-dir typechain-src 'artifacts/contracts/**/!(*.dbg).json' && tsc -p tsconfig.typechain.json && rm -rf typechain-src && echo '{\"type\":\"commonjs\"}' > types/package.json",
     "test": "forge test",
     "test:coverage": "forge coverage",
+    "test:coverage:self": "mkdir -p coverage && forge coverage --report lcov --report-file coverage/lcov.info",
     "lint": "pnpm lint:ts; pnpm lint:sol; pnpm lint:forge; pnpm lint:md; pnpm lint:json",
     "lint:ts": "eslint '**/*.{js,ts,cjs,mjs,jsx,tsx}' --fix --cache; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
     "lint:sol": "solhint --fix --noPrompt --noPoster 'contracts/**/*.sol'; prettier -w --cache --log-level warn 'contracts/**/*.sol'",
