@@ -6,6 +6,7 @@ auto_detect_remappings = false
 remappings = [
     "@openzeppelin/=node_modules/@openzeppelin/",
     "@graphprotocol/=node_modules/@graphprotocol/",
+    "forge-std/=node_modules/forge-std/src/",
 ]
 cache_path = 'cache_forge'
 fs_permissions = [{ access = "read", path = "./" }]
@@ -17,3 +18,7 @@ evm_version = 'cancun'
 
 # Exclude test files from coverage reports
 no_match_coverage = "(^test/|/mocks/)"
+
+[lint]
+exclude_lints = ["mixed-case-function", "mixed-case-variable"]
+ignore = ["node_modules/**", "test/node_modules/**"]
