@@ -230,8 +230,8 @@ interface IHorizonStakingTypes {
      * @dev Possible states a legacy allocation can be.
      * States:
      * - Null = indexer == address(0)
-     * - Active = not Null && tokens > 0
-     * - Closed = Active && closedAtEpoch != 0
+     * - Active = not Null && createdAtEpoch != 0 && closedAtEpoch == 0
+     * - Closed = not Null && not Active (i.e. createdAtEpoch == 0 or closedAtEpoch != 0)
      */
     enum LegacyAllocationState {
         Null,
