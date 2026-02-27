@@ -1,7 +1,7 @@
 import { task } from 'hardhat/config'
 import { ArgumentType } from 'hardhat/types/arguments'
 import type { NewTaskActionFunction } from 'hardhat/types/tasks'
-import { createPublicClient, custom, type PublicClient } from 'viem'
+import { createPublicClient, custom, http, type PublicClient } from 'viem'
 
 import {
   IISSUANCE_TARGET_INTERFACE_ID,
@@ -48,24 +48,70 @@ const action: NewTaskActionFunction<TaskArgs> = async (taskArgs, hre) => {
   const networkName = conn.networkName
   const packageFilter = taskArgs.package.toLowerCase()
 
-  // Get viem public client for on-chain checks
-  let client: PublicClient | undefined
-  let actualChainId: number | undefined
-  try {
-    if (conn.provider) {
-      client = createPublicClient({
-        transport: custom(conn.provider),
-      }) as PublicClient
-      actualChainId = await client.getChainId()
-    }
-  } catch {
-    // Provider not available
+  // Get configured chain ID from network config (always available)
+  const configuredChainId = conn.networkConfig?.chainId as number | undefined
+
+  // Default RPC URLs for read-only access (no accounts needed)
+  const DEFAULT_RPC_URLS: Record<string, string> = {
+    arbitrumOne: 'https://arb1.arbitrum.io/rpc',
+    arbitrumSepolia: 'https://sepolia-rollup.arbitrum.io/rpc',
   }
 
-  // Determine target chain ID: use actual chain ID when not in fork mode
+  // Get RPC URL: prefer env var, then default
+  const envRpcUrl =
+    networkName === 'arbitrumSepolia'
+      ? process.env.ARBITRUM_SEPOLIA_RPC
+      : networkName === 'arbitrumOne'
+        ? process.env.ARBITRUM_ONE_RPC
+        : undefined
+  const rpcUrl = envRpcUrl || DEFAULT_RPC_URLS[networkName]
+
+  // Get viem public client for on-chain checks
+  // Use direct HTTP transport to RPC URL (bypasses Hardhat's account resolution)
+  let client: PublicClient | undefined
+  let actualChainId: number | undefined
+  let providerError: string | undefined
+
+  if (rpcUrl) {
+    // Create read-only client directly to RPC (no accounts needed)
+    try {
+      client = createPublicClient({
+        transport: http(rpcUrl),
+      }) as PublicClient
+      actualChainId = await client.getChainId()
+    } catch (e) {
+      client = undefined
+      const errMsg = e instanceof Error ? e.message : String(e)
+      providerError = errMsg.split('\n')[0]
+    }
+  } else {
+    // No RPC URL available - try Hardhat's provider (may fail if accounts not configured)
+    try {
+      if (conn.provider) {
+        client = createPublicClient({
+          transport: custom(conn.provider),
+        }) as PublicClient
+        actualChainId = await client.getChainId()
+      }
+    } catch (e) {
+      // Provider failed - disable on-chain checks
+      client = undefined
+
+      // Extract error message (may be nested in viem error or cause chain)
+      let errMsg = e instanceof Error ? e.message : String(e)
+      const cause = e instanceof Error ? (e as Error & { cause?: Error }).cause : undefined
+      if (cause?.message) {
+        errMsg = cause.message
+      }
+
+      providerError = errMsg.split('\n')[0]
+    }
+  }
+
+  // Determine target chain ID: use fork target, then configured, then actual, then fallback
   const forkChainId = graph.getForkTargetChainId()
   const isForkMode = forkChainId !== null
-  const targetChainId = forkChainId ?? actualChainId ?? 31337
+  const targetChainId = forkChainId ?? configuredChainId ?? actualChainId ?? 31337
 
   // Show status header with chain info
   if (isForkMode) {
@@ -75,7 +121,13 @@ const action: NewTaskActionFunction<TaskArgs> = async (taskArgs, hre) => {
     console.log(`⚠️  Warning: Connected chain (${actualChainId}) differs from target (${targetChainId})`)
     console.log(`   Address book lookups use chainId ${targetChainId}\n`)
   } else {
-    console.log(`\n🔍 Status: ${networkName} (chainId: ${actualChainId ?? targetChainId})\n`)
+    console.log(`\n🔍 Status: ${networkName} (chainId: ${targetChainId})\n`)
+  }
+
+  // Show provider warning if we couldn't connect (but continue with address book lookups)
+  if (providerError) {
+    console.log(`⚠️  Provider unavailable: ${providerError}`)
+    console.log(`   On-chain checks disabled. Set the missing variable or use --network hardhat for local testing.\n`)
   }
 
   // Get address books

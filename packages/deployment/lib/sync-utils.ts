@@ -463,14 +463,74 @@ async function syncContract(
       // Get updated entry for formatProxyStatusLine
       const updatedEntry = spec.proxy.addressBook.getEntry(spec.name)
 
+      // Heal/verify bytecode hash BEFORE checking codeChanged
+      // This ensures syncNotes are populated before formatProxyStatusLine
+      const pendingImpl = updatedEntry.pendingImplementation
+      const implAddress = pendingImpl?.address ?? updatedEntry.implementation
+      const implDeployment = pendingImpl
+        ? pendingImpl.deployment
+        : spec.proxy.addressBook.getDeploymentMetadata(spec.name)
+
+      // Load artifact once and reuse across healing, codeChanged check, and hash comparison
+      const localArtifact = spec.proxy.artifact ? loadArtifactFromSource(spec.proxy.artifact) : undefined
+      const localHash = localArtifact?.deployedBytecode
+        ? computeBytecodeHash(localArtifact.deployedBytecode)
+        : undefined
+
+      if (implAddress && spec.proxy.artifact) {
+        const storedHash = implDeployment?.bytecodeHash
+
+        if (localHash) {
+          // If no stored hash or hash mismatch, fetch on-chain bytecode to verify
+          if (!storedHash || storedHash !== localHash) {
+            try {
+              const onChainBytecode = await client.getCode({ address: implAddress as `0x${string}` })
+              if (onChainBytecode && onChainBytecode !== '0x') {
+                const onChainHash = computeBytecodeHash(onChainBytecode)
+
+                if (localHash === onChainHash) {
+                  // Local matches on-chain - heal address book
+                  if (!storedHash) {
+                    syncNotes.push('hash verified')
+                  } else {
+                    syncNotes.push('hash healed')
+                  }
+
+                  // Update address book with verified hash
+                  const healedMetadata = {
+                    txHash: implDeployment?.txHash ?? '',
+                    argsData: implDeployment?.argsData ?? '0x',
+                    bytecodeHash: onChainHash,
+                    ...(implDeployment?.blockNumber && { blockNumber: implDeployment.blockNumber }),
+                    ...(implDeployment?.timestamp && { timestamp: implDeployment.timestamp }),
+                  }
+                  if (pendingImpl) {
+                    spec.proxy.addressBook.setPendingDeploymentMetadata(spec.name, healedMetadata)
+                  } else {
+                    spec.proxy.addressBook.setImplementationDeploymentMetadata(spec.name, healedMetadata)
+                  }
+                } else if (storedHash === onChainHash) {
+                  // Stored hash matches on-chain, but local is different
+                  syncNotes.push('local code changed')
+                } else {
+                  // All three differ - complex case
+                  syncNotes.push('impl state unclear')
+                }
+              }
+            } catch {
+              // Couldn't verify on-chain
+              syncNotes.push('impl unverified')
+            }
+          }
+        }
+      }
+
       // Check if local bytecode differs from deployed (via bytecodeHash)
-      // If artifact exists but no bytecodeHash stored, assume code changed (untracked state)
+      // This uses the potentially-healed hash from above
       let codeChanged = false
       if (spec.proxy.artifact) {
         const deploymentMetadata = spec.proxy.addressBook.getDeploymentMetadata(spec.name)
-        const localArtifact = loadArtifactFromSource(spec.proxy.artifact)
-        if (deploymentMetadata?.bytecodeHash && localArtifact?.deployedBytecode) {
-          const localHash = computeBytecodeHash(localArtifact.deployedBytecode)
+        if (deploymentMetadata?.bytecodeHash && localHash) {
           codeChanged = localHash !== deploymentMetadata.bytecodeHash
         } else if (localArtifact?.deployedBytecode) {
           // No stored bytecodeHash but artifact exists - untracked/legacy state
@@ -507,32 +567,25 @@ async function syncContract(
 
       if (!existing) {
         // No existing record - create from artifact
+        // IMPORTANT: For proxy contracts, we only load the ABI, not bytecode
+        // The artifact is for the implementation, not the proxy itself
         let abi: readonly unknown[] = []
-        let bytecode: `0x${string}` = '0x'
-        let deployedBytecode: `0x${string}` | undefined
         if (spec.artifact) {
           const artifact = loadArtifactFromSource(spec.artifact)
           if (artifact?.abi) {
             abi = artifact.abi
           }
-          if (artifact?.bytecode) {
-            bytecode = artifact.bytecode as `0x${string}`
-          }
-          if (artifact?.deployedBytecode) {
-            deployedBytecode = artifact.deployedBytecode as `0x${string}`
-          }
         }
         await env.save(spec.name, {
           address: spec.address as `0x${string}`,
           abi: abi as typeof abi & readonly unknown[],
-          bytecode,
-          deployedBytecode,
+          bytecode: '0x' as `0x${string}`, // Don't store impl bytecode for proxy record
+          deployedBytecode: undefined,
           argsData: '0x' as `0x${string}`,
           metadata: '',
         } as unknown as Parameters<typeof env.save>[1])
       } else if (addressChanged) {
-        // Address changed - update address but preserve existing bytecode
-        // This handles the case where address book points to new address
+        // Address changed - update address and clear bytecode (proxy address changed)
         let abi: readonly unknown[] = existing.abi as readonly unknown[]
         // Update ABI from artifact if available (ABI doesn't affect change detection)
         if (spec.artifact) {
@@ -544,10 +597,10 @@ async function syncContract(
         await env.save(spec.name, {
           address: spec.address as `0x${string}`,
           abi: abi as typeof abi & readonly unknown[],
-          bytecode: existing.bytecode as `0x${string}`,
-          deployedBytecode: existing.deployedBytecode as `0x${string}`,
-          argsData: existing.argsData as `0x${string}`,
-          metadata: existing.metadata ?? '',
+          bytecode: '0x' as `0x${string}`, // Clear bytecode - proxy changed
+          deployedBytecode: undefined,
+          argsData: '0x' as `0x${string}`,
+          metadata: '',
         } as unknown as Parameters<typeof env.save>[1])
       }
       // else: existing record with same address - do nothing, preserve rocketh's state
@@ -625,29 +678,29 @@ async function syncContract(
         } as unknown as Parameters<typeof env.save>[1])
       }
 
-      // Save implementation deployment record
-      // Pick pending or current - both have same structure (address + deployment metadata)
-      const pendingImpl = updatedEntry.pendingImplementation
-      const implAddress = pendingImpl?.address ?? updatedEntry.implementation
-      const implDeployment = pendingImpl
-        ? pendingImpl.deployment
-        : spec.proxy.addressBook.getDeploymentMetadata(spec.name)
-
+      // Save implementation deployment record (if hash was verified/healed above)
       if (implAddress) {
         const storedHash = implDeployment?.bytecodeHash
-
-        // Only sync if stored hash matches local artifact
         let hashMatches = false
-        if (storedHash && spec.proxy.artifact) {
-          const localArtifact = loadArtifactFromSource(spec.proxy.artifact)
-          if (localArtifact?.deployedBytecode) {
-            const localHash = computeBytecodeHash(localArtifact.deployedBytecode)
-            if (storedHash === localHash) {
-              hashMatches = true
-            } else {
-              syncNotes.push('impl outdated')
-            }
-          }
+
+        // Check if hash now matches after potential healing
+        if (storedHash && localHash) {
+          hashMatches = storedHash === localHash
+        }
+
+        // Clean up stale rocketh record if hash doesn't match
+        // Overwrite with empty bytecode to force deploy to create fresh
+        const existingImpl = env.getOrNull(`${spec.name}_Implementation`)
+        if (!hashMatches && existingImpl) {
+          // Overwrite stale record with empty bytecode - forces fresh deployment
+          await env.save(`${spec.name}_Implementation`, {
+            address: existingImpl.address,
+            abi: existingImpl.abi,
+            bytecode: '0x' as `0x${string}`,
+            deployedBytecode: undefined,
+            argsData: '0x' as `0x${string}`,
+            metadata: '',
+          } as unknown as Parameters<typeof env.save>[1])
         }
 
         if (hashMatches) {
@@ -873,6 +926,17 @@ export async function getContractStatusLine(
     // Address-only entries don't require code
     if (meta?.addressOnly) {
       return { line: `✓   ${contractName} @ ${formatAddress(entry.address)}`, exists: true }
+    }
+
+    // If no client available, show address book status without on-chain verification
+    if (!client) {
+      if (meta?.proxyType && entry.implementation) {
+        return {
+          line: `?   ${contractName} @ ${formatAddress(entry.address)} → ${formatAddress(entry.implementation)} (no on-chain check)`,
+          exists: true,
+        }
+      }
+      return { line: `?   ${contractName} @ ${formatAddress(entry.address)} (no on-chain check)`, exists: true }
     }
 
     // Check if code exists on-chain
