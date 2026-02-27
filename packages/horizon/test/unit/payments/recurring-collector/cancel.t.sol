@@ -13,11 +13,14 @@ contract RecurringCollectorCancelTest is RecurringCollectorSharedTest {
     /* solhint-disable graph/func-name-mixedcase */
 
     function test_Cancel(FuzzyTestAccept calldata fuzzyTestAccept, uint8 unboundedCanceler) public {
-        (IRecurringCollector.SignedRCA memory accepted, , bytes16 agreementId) = _sensibleAuthorizeAndAccept(
-            fuzzyTestAccept
-        );
+        (
+            IRecurringCollector.RecurringCollectionAgreement memory acceptedRca,
+            ,
+            ,
+            bytes16 agreementId
+        ) = _sensibleAuthorizeAndAccept(fuzzyTestAccept);
 
-        _cancel(accepted.rca, agreementId, _fuzzyCancelAgreementBy(unboundedCanceler));
+        _cancel(acceptedRca, agreementId, _fuzzyCancelAgreementBy(unboundedCanceler));
     }
 
     function test_Cancel_Revert_WhenNotAccepted(
@@ -50,7 +53,7 @@ contract RecurringCollectorCancelTest is RecurringCollectorSharedTest {
     ) public {
         vm.assume(fuzzyTestAccept.rca.dataService != notDataService);
 
-        (, , bytes16 agreementId) = _sensibleAuthorizeAndAccept(fuzzyTestAccept);
+        (, , , bytes16 agreementId) = _sensibleAuthorizeAndAccept(fuzzyTestAccept);
 
         bytes memory expectedErr = abi.encodeWithSelector(
             IRecurringCollector.RecurringCollectorDataServiceNotAuthorized.selector,

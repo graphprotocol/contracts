@@ -18,38 +18,30 @@ contract RecurringCollectorHelper is AuthorizableHelper, Bounder {
     function generateSignedRCA(
         IRecurringCollector.RecurringCollectionAgreement memory rca,
         uint256 signerPrivateKey
-    ) public view returns (IRecurringCollector.SignedRCA memory) {
+    ) public view returns (IRecurringCollector.RecurringCollectionAgreement memory, bytes memory) {
         bytes32 messageHash = collector.hashRCA(rca);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, messageHash);
         bytes memory signature = abi.encodePacked(r, s, v);
-        IRecurringCollector.SignedRCA memory signedRCA = IRecurringCollector.SignedRCA({
-            rca: rca,
-            signature: signature
-        });
 
-        return signedRCA;
+        return (rca, signature);
     }
 
     function generateSignedRCAU(
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau,
         uint256 signerPrivateKey
-    ) public view returns (IRecurringCollector.SignedRCAU memory) {
+    ) public view returns (IRecurringCollector.RecurringCollectionAgreementUpdate memory, bytes memory) {
         bytes32 messageHash = collector.hashRCAU(rcau);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, messageHash);
         bytes memory signature = abi.encodePacked(r, s, v);
-        IRecurringCollector.SignedRCAU memory signedRCAU = IRecurringCollector.SignedRCAU({
-            rcau: rcau,
-            signature: signature
-        });
 
-        return signedRCAU;
+        return (rcau, signature);
     }
 
     function generateSignedRCAUForAgreement(
         bytes16 agreementId,
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau,
         uint256 signerPrivateKey
-    ) public view returns (IRecurringCollector.SignedRCAU memory) {
+    ) public view returns (IRecurringCollector.RecurringCollectionAgreementUpdate memory, bytes memory) {
         // Automatically set the correct nonce based on current agreement state
         IRecurringCollector.AgreementData memory agreement = collector.getAgreement(agreementId);
         rcau.nonce = agreement.updateNonce + 1;
@@ -60,7 +52,7 @@ contract RecurringCollectorHelper is AuthorizableHelper, Bounder {
     function generateSignedRCAUWithCorrectNonce(
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau,
         uint256 signerPrivateKey
-    ) public view returns (IRecurringCollector.SignedRCAU memory) {
+    ) public view returns (IRecurringCollector.RecurringCollectionAgreementUpdate memory, bytes memory) {
         // This is kept for backwards compatibility but should not be used with new interface
         // since we can't determine agreementId without it being passed separately
         return generateSignedRCAU(rcau, signerPrivateKey);
@@ -69,7 +61,7 @@ contract RecurringCollectorHelper is AuthorizableHelper, Bounder {
     function generateSignedRCAWithCalculatedId(
         IRecurringCollector.RecurringCollectionAgreement memory rca,
         uint256 signerPrivateKey
-    ) public view returns (IRecurringCollector.SignedRCA memory, bytes16) {
+    ) public view returns (IRecurringCollector.RecurringCollectionAgreement memory, bytes memory, bytes16) {
         // Ensure we have sensible values
         rca = sensibleRCA(rca);
 
@@ -82,8 +74,11 @@ contract RecurringCollectorHelper is AuthorizableHelper, Bounder {
             rca.nonce
         );
 
-        IRecurringCollector.SignedRCA memory signedRCA = generateSignedRCA(rca, signerPrivateKey);
-        return (signedRCA, agreementId);
+        (IRecurringCollector.RecurringCollectionAgreement memory signedRca, bytes memory signature) = generateSignedRCA(
+            rca,
+            signerPrivateKey
+        );
+        return (signedRca, signature, agreementId);
     }
 
     function withElapsedAcceptDeadline(

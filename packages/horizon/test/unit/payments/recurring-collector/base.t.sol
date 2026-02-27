@@ -14,13 +14,13 @@ contract RecurringCollectorBaseTest is RecurringCollectorSharedTest {
 
     function test_RecoverRCASigner(FuzzyTestAccept memory fuzzyTestAccept) public view {
         uint256 signerKey = boundKey(fuzzyTestAccept.unboundedSignerKey);
-        IRecurringCollector.SignedRCA memory signedRCA = _recurringCollectorHelper.generateSignedRCA(
-            fuzzyTestAccept.rca,
-            signerKey
-        );
+        (
+            IRecurringCollector.RecurringCollectionAgreement memory rca,
+            bytes memory signature
+        ) = _recurringCollectorHelper.generateSignedRCA(fuzzyTestAccept.rca, signerKey);
 
         assertEq(
-            _recurringCollector.recoverRCASigner(signedRCA),
+            _recurringCollector.recoverRCASigner(rca, signature),
             vm.addr(signerKey),
             "Recovered RCA signer does not match"
         );
@@ -28,13 +28,13 @@ contract RecurringCollectorBaseTest is RecurringCollectorSharedTest {
 
     function test_RecoverRCAUSigner(FuzzyTestUpdate memory fuzzyTestUpdate) public view {
         uint256 signerKey = boundKey(fuzzyTestUpdate.fuzzyTestAccept.unboundedSignerKey);
-        IRecurringCollector.SignedRCAU memory signedRCAU = _recurringCollectorHelper.generateSignedRCAU(
-            fuzzyTestUpdate.rcau,
-            signerKey
-        );
+        (
+            IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau,
+            bytes memory signature
+        ) = _recurringCollectorHelper.generateSignedRCAU(fuzzyTestUpdate.rcau, signerKey);
 
         assertEq(
-            _recurringCollector.recoverRCAUSigner(signedRCAU),
+            _recurringCollector.recoverRCAUSigner(rcau, signature),
             vm.addr(signerKey),
             "Recovered RCAU signer does not match"
         );

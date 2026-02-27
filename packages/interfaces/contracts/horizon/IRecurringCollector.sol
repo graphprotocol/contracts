@@ -38,16 +38,6 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     }
 
     /**
-     * @notice A representation of a signed Recurring Collection Agreement (RCA)
-     * @param rca The Recurring Collection Agreement to be signed
-     * @param signature The signature of the RCA - 65 bytes: r (32 Bytes) || s (32 Bytes) || v (1 Byte)
-     */
-    struct SignedRCA {
-        RecurringCollectionAgreement rca;
-        bytes signature;
-    }
-
-    /**
      * @notice The Recurring Collection Agreement (RCA)
      * @param deadline The deadline for accepting the RCA
      * @param endsAt The timestamp when the agreement ends
@@ -77,16 +67,6 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         uint32 maxSecondsPerCollection;
         uint256 nonce;
         bytes metadata;
-    }
-
-    /**
-     * @notice A representation of a signed Recurring Collection Agreement Update (RCAU)
-     * @param rcau The Recurring Collection Agreement Update to be signed
-     * @param signature The signature of the RCAU - 65 bytes: r (32 Bytes) || s (32 Bytes) || v (1 Byte)
-     */
-    struct SignedRCAU {
-        RecurringCollectionAgreementUpdate rcau;
-        bytes signature;
     }
 
     /**
@@ -390,11 +370,25 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     error RecurringCollectorExcessiveSlippage(uint256 requested, uint256 actual, uint256 maxSlippage);
 
     /**
-     * @notice Accept an indexing agreement.
-     * @param signedRCA The signed Recurring Collection Agreement which is to be accepted.
+     * @notice Thrown when the contract approver is not a contract
+     * @param approver The address that is not a contract
+     */
+    error RecurringCollectorApproverNotContract(address approver);
+
+    /**
+     * @notice Accept a Recurring Collection Agreement.
+     * @dev Caller must be the data service the RCA was issued to.
+     * If `signature` is non-empty: checks `rca.deadline >= block.timestamp` and verifies the ECDSA signature.
+     * If `signature` is empty: the payer must be a contract implementing {IContractApprover.approveAgreement}
+     * and must return the magic value for the RCA's EIP712 hash.
+     * @param rca The Recurring Collection Agreement to accept
+     * @param signature ECDSA signature bytes, or empty for contract-approved agreements
      * @return agreementId The deterministically generated agreement ID
      */
-    function accept(SignedRCA calldata signedRCA) external returns (bytes16 agreementId);
+    function accept(
+        RecurringCollectionAgreement calldata rca,
+        bytes calldata signature
+    ) external returns (bytes16 agreementId);
 
     /**
      * @notice Cancel an indexing agreement.
@@ -404,10 +398,15 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     function cancel(bytes16 agreementId, CancelAgreementBy by) external;
 
     /**
-     * @notice Update an indexing agreement.
-     * @param signedRCAU The signed Recurring Collection Agreement Update which is to be applied.
+     * @notice Update a Recurring Collection Agreement.
+     * @dev Caller must be the data service for the agreement.
+     * If `signature` is non-empty: checks `rcau.deadline >= block.timestamp` and verifies the ECDSA signature.
+     * If `signature` is empty: the payer (stored in the agreement) must be a contract implementing
+     * {IContractApprover.approveAgreement} and must return the magic value for the RCAU's EIP712 hash.
+     * @param rcau The Recurring Collection Agreement Update to apply
+     * @param signature ECDSA signature bytes, or empty for contract-approved updates
      */
-    function update(SignedRCAU calldata signedRCAU) external;
+    function update(RecurringCollectionAgreementUpdate calldata rcau, bytes calldata signature) external;
 
     /**
      * @notice Computes the hash of a RecurringCollectionAgreement (RCA).
@@ -425,17 +424,25 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
 
     /**
      * @notice Recovers the signer address of a signed RecurringCollectionAgreement (RCA).
-     * @param signedRCA The SignedRCA containing the RCA and its signature.
+     * @param rca The RCA whose hash was signed.
+     * @param signature The ECDSA signature bytes.
      * @return The address of the signer.
      */
-    function recoverRCASigner(SignedRCA calldata signedRCA) external view returns (address);
+    function recoverRCASigner(
+        RecurringCollectionAgreement calldata rca,
+        bytes calldata signature
+    ) external view returns (address);
 
     /**
      * @notice Recovers the signer address of a signed RecurringCollectionAgreementUpdate (RCAU).
-     * @param signedRCAU The SignedRCAU containing the RCAU and its signature.
+     * @param rcau The RCAU whose hash was signed.
+     * @param signature The ECDSA signature bytes.
      * @return The address of the signer.
      */
-    function recoverRCAUSigner(SignedRCAU calldata signedRCAU) external view returns (address);
+    function recoverRCAUSigner(
+        RecurringCollectionAgreementUpdate calldata rcau,
+        bytes calldata signature
+    ) external view returns (address);
 
     /**
      * @notice Gets an agreement.
@@ -443,6 +450,16 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @return The AgreementData struct containing the agreement's data.
      */
     function getAgreement(bytes16 agreementId) external view returns (AgreementData memory);
+
+    /**
+     * @notice Get the maximum tokens collectable in the next collection for an agreement.
+     * @dev Computes the worst-case (maximum possible) claim amount based on current on-chain
+     * agreement state. For active agreements, uses `endsAt` as the upper bound (not block.timestamp).
+     * Returns 0 for NotAccepted, CanceledByServiceProvider, or fully expired agreements.
+     * @param agreementId The ID of the agreement
+     * @return The maximum tokens that could be collected in the next collection
+     */
+    function getMaxNextClaim(bytes16 agreementId) external view returns (uint256);
 
     /**
      * @notice Get collection info for an agreement
