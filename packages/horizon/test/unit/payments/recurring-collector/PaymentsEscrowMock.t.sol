@@ -13,14 +13,24 @@ contract PaymentsEscrowMock is IPaymentsEscrow {
 
     function depositTo(address, address, address, uint256) external {}
 
-    function thaw(address, address, uint256) external {}
-
-    function cancelThaw(address, address) external {}
-
-    function withdraw(address, address) external {}
-
-    function getBalance(address, address, address) external pure returns (uint256) {
+    function thaw(address, address, uint256) external returns (uint256) {
         return 0;
+    }
+
+    function thaw(address, address, uint256, bool /* evenIfTimerReset */) external returns (uint256) {
+        return 0;
+    }
+
+    function cancelThaw(address, address) external returns (uint256) {
+        return 0;
+    }
+
+    function withdraw(address, address) external returns (uint256) {
+        return 0;
+    }
+
+    function getEscrowAccount(address, address, address) external pure returns (EscrowAccount memory) {
+        return EscrowAccount(0, 0, 0);
     }
 
     function MAX_WAIT_PERIOD() external pure returns (uint256) {
