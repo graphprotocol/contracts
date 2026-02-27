@@ -9,7 +9,7 @@ contract GraphEscrowDepositTest is GraphEscrowTest {
      */
 
     function testDeposit_Tokens(uint256 amount) public useGateway useDeposit(amount) {
-        (uint256 indexerEscrowBalance, , ) = escrow.escrowAccounts(users.gateway, users.verifier, users.indexer);
+        uint256 indexerEscrowBalance = escrow.getEscrowAccount(users.gateway, users.verifier, users.indexer).balance;
         assertEq(indexerEscrowBalance, amount);
     }
 
@@ -29,7 +29,7 @@ contract GraphEscrowDepositTest is GraphEscrowTest {
         _depositTokens(users.verifier, users.indexer, amount1);
         _depositTokens(users.verifier, users.indexer, amount2);
 
-        (uint256 balance, , ) = escrow.escrowAccounts(users.gateway, users.verifier, users.indexer);
+        uint256 balance = escrow.getEscrowAccount(users.gateway, users.verifier, users.indexer).balance;
         assertEq(balance, amount1 + amount2);
     }
 }

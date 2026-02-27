@@ -5,10 +5,4 @@ pragma solidity ^0.8.22;
 
 import { IPaymentsEscrow } from "../horizon/IPaymentsEscrow.sol";
 
-interface IPaymentsEscrowToolshed is IPaymentsEscrow {
-    function escrowAccounts(
-        address payer,
-        address collector,
-        address receiver
-    ) external view returns (EscrowAccount memory);
-}
+interface IPaymentsEscrowToolshed is IPaymentsEscrow {}
