@@ -459,16 +459,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
                 )
             );
         }
-        require(
-            // solhint-disable-next-line gas-strict-inequalities
-            _collectionSeconds <= _agreement.maxSecondsPerCollection,
-            RecurringCollectorCollectionTooLate(
-                _agreementId,
-                uint64(_collectionSeconds),
-                _agreement.maxSecondsPerCollection
-            )
-        );
-
+        // _collectionSeconds is already capped at maxSecondsPerCollection by _getCollectionInfo
         uint256 maxTokens = _agreement.maxOngoingTokensPerSecond * _collectionSeconds;
         maxTokens += _agreement.lastCollectionAt == 0 ? _agreement.maxInitialTokens : 0;
 
@@ -631,7 +622,12 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
             return (false, 0, AgreementNotCollectableReason.ZeroCollectionSeconds);
         }
 
-        return (true, collectionEnd - collectionStart, AgreementNotCollectableReason.None);
+        uint256 elapsed = collectionEnd - collectionStart;
+        return (
+            true,
+            Math.min(elapsed, uint256(_agreement.maxSecondsPerCollection)),
+            AgreementNotCollectableReason.None
+        );
     }
 
     /**
