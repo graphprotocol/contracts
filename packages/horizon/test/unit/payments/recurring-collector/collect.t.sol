@@ -168,7 +168,7 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         _recurringCollector.collect(_paymentType(fuzzy.unboundedPaymentType), data);
     }
 
-    function test_Collect_Revert_WhenCollectingTooLate(
+    function test_Collect_OK_WhenCollectingPastMaxSeconds(
         FuzzyTestCollect calldata fuzzy,
         uint256 unboundedFirstCollectionSeconds,
         uint256 unboundedSecondCollectionSeconds
@@ -177,8 +177,7 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
             fuzzy.fuzzyTestAccept
         );
 
-        // skip to collectable time
-
+        // First valid collection to establish lastCollectionAt
         skip(
             boundSkip(
                 unboundedFirstCollectionSeconds,
@@ -186,7 +185,7 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
                 accepted.rca.maxSecondsPerCollection
             )
         );
-        bytes memory data = _generateCollectData(
+        bytes memory firstData = _generateCollectData(
             _generateCollectParams(
                 accepted.rca,
                 agreementId,
@@ -195,10 +194,10 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
                 fuzzy.collectParams.dataServiceCut
             )
         );
-        vm.prank(accepted.rca.dataService);
-        _recurringCollector.collect(_paymentType(fuzzy.unboundedPaymentType), data);
+        vm.prank(acceptedRca.dataService);
+        _recurringCollector.collect(_paymentType(fuzzy.unboundedPaymentType), firstData);
 
-        // skip beyond collectable time but still within the agreement endsAt
+        // Skip PAST maxSecondsPerCollection (but still within agreement endsAt)
         uint256 collectionSeconds = boundSkip(
             unboundedSecondCollectionSeconds,
             accepted.rca.maxSecondsPerCollection + 1,
@@ -206,24 +205,30 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         );
         skip(collectionSeconds);
 
-        data = _generateCollectData(
-            _generateCollectParams(
-                accepted.rca,
-                agreementId,
-                fuzzy.collectParams.collectionId,
-                bound(fuzzy.collectParams.tokens, 1, type(uint256).max),
-                fuzzy.collectParams.dataServiceCut
-            )
-        );
-        bytes memory expectedErr = abi.encodeWithSelector(
-            IRecurringCollector.RecurringCollectorCollectionTooLate.selector,
+        // Request more tokens than the cap allows
+        uint256 cappedMaxTokens = acceptedRca.maxOngoingTokensPerSecond * acceptedRca.maxSecondsPerCollection;
+        uint256 requestedTokens = cappedMaxTokens + 1;
+
+        IRecurringCollector.CollectParams memory collectParams = _generateCollectParams(
+            acceptedRca,
             agreementId,
-            collectionSeconds,
-            accepted.rca.maxSecondsPerCollection
+            fuzzy.collectParams.collectionId,
+            requestedTokens,
+            fuzzy.collectParams.dataServiceCut
         );
-        vm.expectRevert(expectedErr);
-        vm.prank(accepted.rca.dataService);
-        _recurringCollector.collect(_paymentType(fuzzy.unboundedPaymentType), data);
+        bytes memory data = _generateCollectData(collectParams);
+
+        // Collection should SUCCEED with tokens capped at maxSecondsPerCollection worth
+        _expectCollectCallAndEmit(
+            acceptedRca,
+            agreementId,
+            _paymentType(fuzzy.unboundedPaymentType),
+            collectParams,
+            cappedMaxTokens
+        );
+        vm.prank(acceptedRca.dataService);
+        uint256 collected = _recurringCollector.collect(_paymentType(fuzzy.unboundedPaymentType), data);
+        assertEq(collected, cappedMaxTokens, "Tokens should be capped at maxSecondsPerCollection worth");
     }
 
     function test_Collect_OK_WhenCollectingTooMuch(
