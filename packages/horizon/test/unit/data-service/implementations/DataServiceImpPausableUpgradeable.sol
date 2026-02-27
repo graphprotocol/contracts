@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.27;
+pragma solidity ^0.8.27;
 
 import { DataService } from "../../../../contracts/data-service/DataService.sol";
 import { DataServicePausableUpgradeable } from "../../../../contracts/data-service/extensions/DataServicePausableUpgradeable.sol";
@@ -30,6 +30,10 @@ contract DataServiceImpPausableUpgradeable is DataServicePausableUpgradeable {
     ) external returns (uint256) {}
 
     function slash(address serviceProvider, bytes calldata data) external {}
+
+    function setPauseGuardian(address _pauseGuardian, bool _allowed) external {
+        _setPauseGuardian(_pauseGuardian, _allowed);
+    }
 
     function controller() external view returns (address) {
         return address(_graphController());

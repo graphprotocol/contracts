@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
+pragma solidity ^0.8.27;
 
 struct Users {
     address governor;
@@ -9,5 +9,4 @@ struct Users {
     address gateway;
     address verifier;
     address delegator;
-    address legacySlasher;
 }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
+pragma solidity ^0.8.27;
 
 import { IHorizonStakingMain } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingMain.sol";
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
@@ -97,37 +97,6 @@ contract HorizonStakingServiceProviderTest is HorizonStakingTest {
         uint256 providerTokensAvailable = staking.getProviderTokensAvailable(users.indexer, subgraphDataServiceAddress);
         // Should not include delegated tokens
         assertEq(providerTokensAvailable, amount);
-    }
-
-    function testServiceProvider_HasStake(
-        uint256 amount
-    ) public useIndexer useProvision(amount, MAX_PPM, MAX_THAWING_PERIOD) {
-        assertTrue(staking.hasStake(users.indexer));
-
-        _thaw(users.indexer, subgraphDataServiceAddress, amount);
-        skip(MAX_THAWING_PERIOD + 1);
-        _deprovision(users.indexer, subgraphDataServiceAddress, 0);
-        staking.unstake(amount);
-
-        assertFalse(staking.hasStake(users.indexer));
-    }
-
-    function testServiceProvider_GetIndexerStakedTokens(
-        uint256 amount
-    ) public useIndexer useProvision(amount, MAX_PPM, MAX_THAWING_PERIOD) {
-        assertEq(staking.getIndexerStakedTokens(users.indexer), amount);
-
-        _thaw(users.indexer, subgraphDataServiceAddress, amount);
-        // Does not discount thawing tokens
-        assertEq(staking.getIndexerStakedTokens(users.indexer), amount);
-
-        skip(MAX_THAWING_PERIOD + 1);
-        _deprovision(users.indexer, subgraphDataServiceAddress, 0);
-        // Does not discount thawing tokens
-        assertEq(staking.getIndexerStakedTokens(users.indexer), amount);
-
-        staking.unstake(amount);
-        assertEq(staking.getIndexerStakedTokens(users.indexer), 0);
     }
 
     function testServiceProvider_RevertIf_InvalidDelegationFeeCut(

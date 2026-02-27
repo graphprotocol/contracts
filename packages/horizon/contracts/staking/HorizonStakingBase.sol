@@ -3,14 +3,14 @@
 // TODO: Re-enable and fix issues when publishing a new version
 // solhint-disable gas-strict-inequalities
 
-pragma solidity 0.8.27 || 0.8.33;
+pragma solidity ^0.8.27;
 
 import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
 import { IHorizonStakingBase } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingBase.sol";
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
 
-import { MathUtils } from "../libraries/MathUtils.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { LinkedList } from "../libraries/LinkedList.sol";
 
 import { Multicall } from "@openzeppelin/contracts/utils/Multicall.sol";
@@ -23,9 +23,7 @@ import { HorizonStakingV1Storage } from "./HorizonStakingStorage.sol";
  * @author Edge & Node
  * @notice This contract is the base staking contract implementing storage getters for both internal
  * and external use.
- * @dev Implementation of the {IHorizonStakingBase} interface.
- * @dev It's meant to be inherited by the {HorizonStaking} and {HorizonStakingExtension}
- * contracts so some internal functions are also included here.
+ * @dev Implementation of the {IHorizonStakingBase} interface, meant to be inherited by {HorizonStaking}.
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */
@@ -52,6 +50,11 @@ abstract contract HorizonStakingBase is
      */
     constructor(address controller, address subgraphDataServiceAddress) Managed(controller) {
         SUBGRAPH_DATA_SERVICE_ADDRESS = subgraphDataServiceAddress;
+    }
+
+    /// @inheritdoc IHorizonStakingBase
+    function getSubgraphService() external view override returns (address) {
+        return SUBGRAPH_DATA_SERVICE_ADDRESS;
     }
 
     /// @inheritdoc IHorizonStakingBase
@@ -127,7 +130,7 @@ abstract contract HorizonStakingBase is
         uint256 tokensAvailableDelegated = _getDelegatedTokensAvailable(serviceProvider, verifier);
 
         uint256 tokensDelegatedMax = tokensAvailableProvider * (uint256(delegationRatio));
-        uint256 tokensDelegatedCapacity = MathUtils.min(tokensAvailableDelegated, tokensDelegatedMax);
+        uint256 tokensDelegatedCapacity = Math.min(tokensAvailableDelegated, tokensDelegatedMax);
 
         return tokensAvailableProvider + tokensDelegatedCapacity;
     }
@@ -179,14 +182,26 @@ abstract contract HorizonStakingBase is
         }
 
         uint256 thawedTokens = 0;
-        Provision storage prov = _provisions[serviceProvider][verifier];
-        uint256 tokensThawing = prov.tokensThawing;
-        uint256 sharesThawing = prov.sharesThawing;
+        uint256 tokensThawing;
+        uint256 sharesThawing;
+        uint256 thawingNonce;
+
+        if (requestType == ThawRequestType.Provision) {
+            Provision storage prov = _provisions[serviceProvider][verifier];
+            tokensThawing = prov.tokensThawing;
+            sharesThawing = prov.sharesThawing;
+            thawingNonce = prov.thawingNonce;
+        } else {
+            DelegationPoolInternal storage pool = _getDelegationPool(serviceProvider, verifier);
+            tokensThawing = pool.tokensThawing;
+            sharesThawing = pool.sharesThawing;
+            thawingNonce = pool.thawingNonce;
+        }
 
         bytes32 thawRequestId = thawRequestList.head;
         while (thawRequestId != bytes32(0)) {
             ThawRequest storage thawRequest = _getThawRequest(requestType, thawRequestId);
-            if (thawRequest.thawingNonce == prov.thawingNonce) {
+            if (thawRequest.thawingNonce == thawingNonce) {
                 if (thawRequest.thawingUntil <= block.timestamp) {
                     // sharesThawing cannot be zero if there is a valid thaw request so the next division is safe
                     uint256 tokens = (thawRequest.shares * tokensThawing) / sharesThawing;
@@ -219,30 +234,17 @@ abstract contract HorizonStakingBase is
     }
 
     /**
-     * @notice Deposit tokens into the service provider stake.
-     * @dev TRANSITION PERIOD: After transition period move to IHorizonStakingMain. Temporarily it
-     * needs to be here since it's used by both {HorizonStaking} and {HorizonStakingExtension}.
-     *
-     * Emits a {HorizonStakeDeposited} event.
-     * @param _serviceProvider The address of the service provider.
-     * @param _tokens The amount of tokens to deposit.
-     */
-    function _stake(address _serviceProvider, uint256 _tokens) internal {
-        _serviceProviders[_serviceProvider].tokensStaked = _serviceProviders[_serviceProvider].tokensStaked + _tokens;
-        emit HorizonStakeDeposited(_serviceProvider, _tokens);
-    }
-
-    /**
      * @notice Gets the service provider's idle stake which is the stake that is not being
      * used for any provision. Note that this only includes service provider's self stake.
-     * @dev Note that the calculation considers tokens that were locked in the legacy staking contract.
-     * @dev TRANSITION PERIOD: update the calculation after the transition period.
+     * @dev Note that the calculation:
+     * - assumes tokens that were allocated to a subgraph deployment pre-horizon were all unallocated.
+     * - considers tokens that were locked in the legacy staking contract and never withdrawn.
+     *
      * @param _serviceProvider The address of the service provider.
      * @return The amount of tokens that are idle.
      */
     function _getIdleStake(address _serviceProvider) internal view returns (uint256) {
         uint256 tokensUsed = _serviceProviders[_serviceProvider].tokensProvisioned +
-            _serviceProviders[_serviceProvider].__DEPRECATED_tokensAllocated +
             _serviceProviders[_serviceProvider].__DEPRECATED_tokensLocked;
         uint256 tokensStaked = _serviceProviders[_serviceProvider].tokensStaked;
         return tokensStaked > tokensUsed ? tokensStaked - tokensUsed : 0;

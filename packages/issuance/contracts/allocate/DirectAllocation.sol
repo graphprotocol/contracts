@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity 0.8.33;
+pragma solidity ^0.8.27;
 
 import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceTarget.sol";
 import { ISendTokens } from "@graphprotocol/interfaces/contracts/issuance/allocate/ISendTokens.sol";
@@ -37,9 +37,6 @@ contract DirectAllocation is BaseUpgradeable, IIssuanceTarget, ISendTokens {
     /// @param amount The amount of tokens sent
     event TokensSent(address indexed to, uint256 indexed amount);
     // Do not need to index amount, ignoring gas-indexed-events warning.
-
-    /// @notice Emitted before the issuance allocation changes
-    event BeforeIssuanceAllocationChange();
 
     // -- Constructor --
 
@@ -90,7 +87,7 @@ contract DirectAllocation is BaseUpgradeable, IIssuanceTarget, ISendTokens {
      * @inheritdoc IIssuanceTarget
      */
     function beforeIssuanceAllocationChange() external virtual override {
-        emit BeforeIssuanceAllocationChange();
+        emit IIssuanceTarget.BeforeIssuanceAllocationChange();
     }
 
     /**

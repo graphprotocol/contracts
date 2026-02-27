@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.27 || 0.8.33;
+pragma solidity ^0.8.27;
 
-// TODO: Re-enable and fix issues when publishing a new version
 // solhint-disable gas-strict-inequalities
 
 import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
@@ -36,7 +35,7 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
 
     /// @notice Escrow account details for payer-collector-receiver tuples
     mapping(address payer => mapping(address collector => mapping(address receiver => IPaymentsEscrow.EscrowAccount escrowAccount)))
-        public escrowAccounts;
+        private _escrowAccounts;
 
     // forge-lint: disable-next-item(unwrapped-modifier-logic)
     /**
@@ -79,43 +78,41 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
     }
 
     /// @inheritdoc IPaymentsEscrow
-    function thaw(address collector, address receiver, uint256 tokens) external override notPaused {
-        require(tokens > 0, PaymentsEscrowInvalidZeroTokens());
-
-        EscrowAccount storage account = escrowAccounts[msg.sender][collector][receiver];
-        require(account.balance >= tokens, PaymentsEscrowInsufficientBalance(account.balance, tokens));
-
-        account.tokensThawing = tokens;
-        account.thawEndTimestamp = block.timestamp + WITHDRAW_ESCROW_THAWING_PERIOD;
-
-        emit Thaw(msg.sender, collector, receiver, tokens, account.thawEndTimestamp);
+    function thaw(
+        address collector,
+        address receiver,
+        uint256 tokens
+    ) external override notPaused returns (uint256 tokensThawing) {
+        return _thaw(collector, receiver, tokens, true);
     }
 
     /// @inheritdoc IPaymentsEscrow
-    function cancelThaw(address collector, address receiver) external override notPaused {
-        EscrowAccount storage account = escrowAccounts[msg.sender][collector][receiver];
-        require(account.tokensThawing != 0, PaymentsEscrowNotThawing());
-
-        uint256 tokensThawing = account.tokensThawing;
-        uint256 thawEndTimestamp = account.thawEndTimestamp;
-        account.tokensThawing = 0;
-        account.thawEndTimestamp = 0;
-
-        emit CancelThaw(msg.sender, collector, receiver, tokensThawing, thawEndTimestamp);
+    function thaw(
+        address collector,
+        address receiver,
+        uint256 tokens,
+        bool evenIfTimerReset
+    ) external override notPaused returns (uint256 tokensThawing) {
+        return _thaw(collector, receiver, tokens, evenIfTimerReset);
     }
 
     /// @inheritdoc IPaymentsEscrow
-    function withdraw(address collector, address receiver) external override notPaused {
-        EscrowAccount storage account = escrowAccounts[msg.sender][collector][receiver];
-        require(account.thawEndTimestamp != 0, PaymentsEscrowNotThawing());
-        require(
-            account.thawEndTimestamp < block.timestamp,
-            PaymentsEscrowStillThawing(block.timestamp, account.thawEndTimestamp)
-        );
+    function cancelThaw(
+        address collector,
+        address receiver
+    ) external override notPaused returns (uint256 tokensThawing) {
+        return _thaw(collector, receiver, 0, true);
+    }
 
-        // Amount is the minimum between the amount being thawed and the actual balance
-        uint256 tokens = account.tokensThawing > account.balance ? account.balance : account.tokensThawing;
+    /// @inheritdoc IPaymentsEscrow
+    function withdraw(address collector, address receiver) external override notPaused returns (uint256 tokens) {
+        EscrowAccount storage account = _escrowAccounts[msg.sender][collector][receiver];
+        uint256 thawEnd = account.thawEndTimestamp;
 
+        // No-op if not thawing or thaw period has not elapsed
+        if (thawEnd == 0 || block.timestamp <= thawEnd) return 0;
+
+        tokens = account.tokensThawing;
         account.balance -= tokens;
         account.tokensThawing = 0;
         account.thawEndTimestamp = 0;
@@ -134,18 +131,16 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
         address receiverDestination
     ) external override notPaused {
         // Check if there are enough funds in the escrow account
-        EscrowAccount storage account = escrowAccounts[payer][msg.sender][receiver];
+        EscrowAccount storage account = _escrowAccounts[payer][msg.sender][receiver];
         require(account.balance >= tokens, PaymentsEscrowInsufficientBalance(account.balance, tokens));
 
         // Reduce amount from account balance
         account.balance -= tokens;
 
-        // Cap tokensThawing to the new balance to keep state consistent
-        if (account.tokensThawing > account.balance) {
+        // Cap tokensThawing so the invariant tokensThawing <= balance is preserved
+        if (account.balance < account.tokensThawing) {
             account.tokensThawing = account.balance;
-            if (account.tokensThawing == 0) {
-                account.thawEndTimestamp = 0;
-            }
+            if (account.tokensThawing == 0) account.thawEndTimestamp = 0;
         }
 
         uint256 escrowBalanceBefore = _graphToken().balanceOf(address(this));
@@ -164,9 +159,12 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
     }
 
     /// @inheritdoc IPaymentsEscrow
-    function getBalance(address payer, address collector, address receiver) external view override returns (uint256) {
-        EscrowAccount storage account = escrowAccounts[payer][collector][receiver];
-        return account.balance > account.tokensThawing ? account.balance - account.tokensThawing : 0;
+    function getEscrowAccount(
+        address payer,
+        address collector,
+        address receiver
+    ) external view override returns (EscrowAccount memory) {
+        return _escrowAccounts[payer][collector][receiver];
     }
 
     /**
@@ -178,8 +176,50 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
      * @param _tokens The amount of tokens to deposit
      */
     function _deposit(address _payer, address _collector, address _receiver, uint256 _tokens) private {
-        escrowAccounts[_payer][_collector][_receiver].balance += _tokens;
+        _escrowAccounts[_payer][_collector][_receiver].balance += _tokens;
         _graphToken().pullTokens(msg.sender, _tokens);
         emit Deposit(_payer, _collector, _receiver, _tokens);
+    }
+
+    /**
+     * @notice Shared implementation for thaw and cancelThaw.
+     * Sets tokensThawing to `min(tokensToThaw, balance)`. Resets the timer when the
+     * thaw amount increases. When `evenIfTimerReset` is false and the operation would
+     * increase the thaw amount (resetting the timer), the call is a no-op.
+     * @param collector The address of the collector
+     * @param receiver The address of the receiver
+     * @param tokensToThaw The desired amount of tokens to thaw
+     * @param evenIfTimerReset If true, always proceed. If false, skip increases that would reset the timer.
+     * @return tokensThawing The resulting amount of tokens thawing
+     */
+    function _thaw(
+        address collector,
+        address receiver,
+        uint256 tokensToThaw,
+        bool evenIfTimerReset
+    ) private returns (uint256 tokensThawing) {
+        EscrowAccount storage account = _escrowAccounts[msg.sender][collector][receiver];
+        uint256 currentThawing = account.tokensThawing;
+
+        tokensThawing = tokensToThaw < account.balance ? tokensToThaw : account.balance;
+
+        if (tokensThawing == currentThawing) return tokensThawing;
+
+        uint256 thawEndTimestamp;
+        if (tokensThawing < currentThawing) {
+            // Decreasing (or canceling): preserve timer, clear if fully canceled
+            account.tokensThawing = tokensThawing;
+            if (tokensThawing == 0) account.thawEndTimestamp = 0;
+            else thawEndTimestamp = account.thawEndTimestamp;
+        } else {
+            thawEndTimestamp = block.timestamp + WITHDRAW_ESCROW_THAWING_PERIOD;
+            uint256 currentThawEnd = account.thawEndTimestamp;
+            // Increasing: reset timer (skip if evenIfTimerReset=false and timer would change)
+            if (!evenIfTimerReset && currentThawEnd != 0 && currentThawEnd != thawEndTimestamp) return currentThawing;
+            account.tokensThawing = tokensThawing;
+            account.thawEndTimestamp = thawEndTimestamp;
+        }
+
+        emit Thawing(msg.sender, collector, receiver, tokensThawing, thawEndTimestamp);
     }
 }

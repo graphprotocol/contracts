@@ -3,6 +3,7 @@ src = 'contracts'
 out = 'forge-artifacts'
 libs = ["node_modules"]
 auto_detect_remappings = false
+test = 'test'
 remappings = [
     "@openzeppelin/=node_modules/@openzeppelin/",
     "@graphprotocol/=node_modules/@graphprotocol/",
@@ -13,7 +14,7 @@ fs_permissions = [{ access = "read", path = "./" }]
 optimizer = true
 optimizer_runs = 100
 via_ir = true
-solc_version = '0.8.33'
+solc_version = '0.8.34'
 evm_version = 'cancun'
 
 # Exclude test files from coverage reports

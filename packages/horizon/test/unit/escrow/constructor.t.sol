@@ -21,7 +21,6 @@ contract GraphEscrowConstructorTest is Test {
         controller.setContractProxy(keccak256("RewardsManager"), makeAddr("RewardsManager"));
         controller.setContractProxy(keccak256("GraphTokenGateway"), makeAddr("GraphTokenGateway"));
         controller.setContractProxy(keccak256("GraphProxyAdmin"), makeAddr("GraphProxyAdmin"));
-        controller.setContractProxy(keccak256("Curation"), makeAddr("Curation"));
     }
 
     function testConstructor_MaxWaitPeriodBoundary() public {

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
+pragma solidity ^0.8.27;
 
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
@@ -154,8 +154,12 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
         );
 
         // Balance should be zero
-        (uint256 balance, , ) = escrow.escrowAccounts(users.gateway, users.verifier, users.indexer);
-        assertEq(balance, 0);
+        IPaymentsEscrow.EscrowAccount memory account = escrow.getEscrowAccount(
+            users.gateway,
+            users.verifier,
+            users.indexer
+        );
+        assertEq(account.balance, 0);
     }
 
     function testCollect_CapsTokensThawingToZero_ResetsThawEndTimestamp(uint256 tokens) public useIndexer {
@@ -184,14 +188,14 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
         );
 
         // tokensThawing and thawEndTimestamp should be reset
-        (uint256 balance, uint256 tokensThawingResult, uint256 thawEndTimestamp) = escrow.escrowAccounts(
+        IPaymentsEscrow.EscrowAccount memory account = escrow.getEscrowAccount(
             users.gateway,
             users.verifier,
             users.indexer
         );
-        assertEq(balance, 0);
-        assertEq(tokensThawingResult, 0, "tokensThawing should be capped to 0");
-        assertEq(thawEndTimestamp, 0, "thawEndTimestamp should reset when tokensThawing is 0");
+        assertEq(account.balance, 0);
+        assertEq(account.tokensThawing, 0, "tokensThawing should be capped to 0");
+        assertEq(account.thawEndTimestamp, 0, "thawEndTimestamp should reset when tokensThawing is 0");
     }
 
     function testCollect_CapsTokensThawingBelowBalance(uint256 depositAmount, uint256 collectAmount) public useIndexer {
@@ -220,14 +224,14 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
             users.indexer
         );
 
-        (uint256 balance, uint256 tokensThawingResult, ) = escrow.escrowAccounts(
+        IPaymentsEscrow.EscrowAccount memory account = escrow.getEscrowAccount(
             users.gateway,
             users.verifier,
             users.indexer
         );
         uint256 remainingBalance = depositAmount - collectAmount;
-        assertEq(balance, remainingBalance);
-        assertEq(tokensThawingResult, remainingBalance, "tokensThawing should cap at remaining balance");
+        assertEq(account.balance, remainingBalance);
+        assertEq(account.tokensThawing, remainingBalance, "tokensThawing should cap at remaining balance");
     }
 
     function testCollect_RevertWhen_InconsistentCollection(uint256 tokens) public useGateway {

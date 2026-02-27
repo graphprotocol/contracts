@@ -236,7 +236,9 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         _deposit(tokensPayment);
         _authorizeSigner();
 
-        uint256 beforeGatewayBalance = escrow.getBalance(users.gateway, address(graphTallyCollector), users.indexer);
+        uint256 beforeGatewayBalance = escrow
+            .getEscrowAccount(users.gateway, address(graphTallyCollector), users.indexer)
+            .balance;
         uint256 beforeTokensCollected = graphTallyCollector.tokensCollected(
             address(subgraphService),
             bytes32(uint256(uint160(allocationId))),
@@ -252,11 +254,9 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         bytes memory data = _getQueryFeeEncodedData(users.indexer, uint128(tokensPayment), tokensToCollect);
         _collect(users.indexer, IGraphPayments.PaymentTypes.QueryFee, data);
 
-        uint256 intermediateGatewayBalance = escrow.getBalance(
-            users.gateway,
-            address(graphTallyCollector),
-            users.indexer
-        );
+        uint256 intermediateGatewayBalance = escrow
+            .getEscrowAccount(users.gateway, address(graphTallyCollector), users.indexer)
+            .balance;
         assertEq(intermediateGatewayBalance, beforeGatewayBalance - tokensToCollect);
         uint256 intermediateTokensCollected = graphTallyCollector.tokensCollected(
             address(subgraphService),
@@ -276,7 +276,9 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         _collect(users.indexer, IGraphPayments.PaymentTypes.QueryFee, data2);
 
         // Check the indexer received the correct amount of tokens
-        uint256 afterGatewayBalance = escrow.getBalance(users.gateway, address(graphTallyCollector), users.indexer);
+        uint256 afterGatewayBalance = escrow
+            .getEscrowAccount(users.gateway, address(graphTallyCollector), users.indexer)
+            .balance;
         assertEq(afterGatewayBalance, beforeGatewayBalance - tokensPayment);
         uint256 afterTokensCollected = graphTallyCollector.tokensCollected(
             address(subgraphService),

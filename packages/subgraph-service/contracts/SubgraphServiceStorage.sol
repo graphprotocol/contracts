@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.33;
+pragma solidity ^0.8.27;
 
 import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
 
@@ -22,4 +22,7 @@ abstract contract SubgraphServiceV1Storage is ISubgraphService {
 
     /// @notice Destination of indexer payments
     mapping(address indexer => address destination) public override paymentsDestination;
+
+    /// @notice The cut data service takes from indexing fee payments. In PPM.
+    uint256 public indexingFeesCut;
 }

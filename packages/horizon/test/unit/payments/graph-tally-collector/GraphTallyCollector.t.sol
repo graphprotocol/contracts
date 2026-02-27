@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
+pragma solidity ^0.8.27;
 
 import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import { IGraphTallyCollector } from "@graphprotocol/interfaces/contracts/horizon/IGraphTallyCollector.sol";
@@ -42,7 +42,7 @@ contract GraphTallyTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
      * HELPERS
      */
 
-    function _getSignerProof(uint256 _proofDeadline, uint256 _signer) internal view returns (bytes memory) {
+    function _getSignerProof(uint256 _proofDeadline, uint256 _signer) internal returns (bytes memory) {
         (, address msgSender, ) = vm.readCallers();
         bytes32 messageHash = keccak256(
             abi.encodePacked(

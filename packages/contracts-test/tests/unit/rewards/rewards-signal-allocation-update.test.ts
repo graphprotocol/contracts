@@ -58,6 +58,9 @@ describe('Rewards: Signal and Allocation Update Accounting', () => {
     curation = contracts.Curation as Curation
     staking = contracts.Staking as IStaking
     rewardsManager = contracts.RewardsManager as RewardsManager
+
+    // Set the staking contract as the subgraph service so it can call takeRewards
+    await rewardsManager.connect(governor).setSubgraphService(staking.address)
   })
 
   beforeEach(async function () {

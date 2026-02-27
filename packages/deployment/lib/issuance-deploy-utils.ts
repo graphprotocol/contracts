@@ -358,7 +358,7 @@ async function deployProxyWithOwnImpl(
   // Deploy OZ v5 TransparentUpgradeableProxy
   // Constructor: (address _logic, address initialOwner, bytes memory _data)
   // The proxy creates its own ProxyAdmin owned by initialOwner (governor)
-  // Use issuance-compiled proxy artifact (0.8.33) for consistent verification
+  // Use issuance-compiled proxy artifact (0.8.34) for consistent verification
   const proxyArtifact = loadTransparentProxyArtifact()
   const proxyResult = await deployFn(
     `${contract.name}_Proxy`,
@@ -447,7 +447,7 @@ async function deployProxyWithSharedImpl(
 
   // Deploy OZ v5 TransparentUpgradeableProxy
   // Constructor: (address _logic, address initialOwner, bytes memory _data)
-  // Use issuance-compiled proxy artifact (0.8.33) for consistent verification
+  // Use issuance-compiled proxy artifact (0.8.34) for consistent verification
   const proxyArtifact = loadTransparentProxyArtifact()
   const proxyResult = await deployFn(
     `${contract.name}_Proxy`,

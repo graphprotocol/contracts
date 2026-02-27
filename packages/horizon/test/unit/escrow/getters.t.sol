@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
+pragma solidity ^0.8.27;
 
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
 
 import { GraphEscrowTest } from "./GraphEscrow.t.sol";
 
@@ -10,12 +11,17 @@ contract GraphEscrowGettersTest is GraphEscrowTest {
      * TESTS
      */
 
-    function testGetBalance(uint256 amount) public useGateway useDeposit(amount) {
-        uint256 balance = escrow.getBalance(users.gateway, users.verifier, users.indexer);
-        assertEq(balance, amount);
+    function testGetEscrowAccount(uint256 amount) public useGateway useDeposit(amount) {
+        IPaymentsEscrow.EscrowAccount memory account = escrow.getEscrowAccount(
+            users.gateway,
+            users.verifier,
+            users.indexer
+        );
+        assertEq(account.balance, amount);
+        assertEq(account.tokensThawing, 0);
     }
 
-    function testGetBalance_WhenThawing(
+    function testGetEscrowAccount_WhenThawing(
         uint256 amountDeposit,
         uint256 amountThawing
     ) public useGateway useDeposit(amountDeposit) {
@@ -25,11 +31,15 @@ contract GraphEscrowGettersTest is GraphEscrowTest {
         // thaw some funds
         _thawEscrow(users.verifier, users.indexer, amountThawing);
 
-        uint256 balance = escrow.getBalance(users.gateway, users.verifier, users.indexer);
-        assertEq(balance, amountDeposit - amountThawing);
+        IPaymentsEscrow.EscrowAccount memory account = escrow.getEscrowAccount(
+            users.gateway,
+            users.verifier,
+            users.indexer
+        );
+        assertEq(account.balance - account.tokensThawing, amountDeposit - amountThawing);
     }
 
-    function testGetBalance_WhenCollectedOverThawing(
+    function testGetEscrowAccount_WhenCollectedOverThawing(
         uint256 amountDeposit,
         uint256 amountThawing,
         uint256 amountCollected
@@ -69,8 +79,13 @@ contract GraphEscrowGettersTest is GraphEscrowTest {
             users.indexer
         );
 
-        // balance should always be 0 since thawing funds > available funds
-        uint256 balance = escrow.getBalance(users.gateway, users.verifier, users.indexer);
-        assertEq(balance, 0);
+        // tokensThawing > balance after collection, so effective available is 0
+        IPaymentsEscrow.EscrowAccount memory account = escrow.getEscrowAccount(
+            users.gateway,
+            users.verifier,
+            users.indexer
+        );
+        assertEq(account.balance, amountDeposit - amountCollected);
+        assertTrue(account.tokensThawing >= account.balance);
     }
 }
