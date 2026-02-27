@@ -1,6 +1,7 @@
 packages:
   - packages/*
   - packages/*/*
+  - '!packages/*/types'
 
 catalog:
   '@changesets/cli': ^2.29.7
