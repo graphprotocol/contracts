@@ -24,7 +24,7 @@
     "build": "pnpm build:dep && pnpm build:self",
     "build:dep": "pnpm --filter '@graphprotocol/issuance^...' run build:self",
     "build:self": "pnpm compile && pnpm typechain",
-    "clean": "rm -rf artifacts/ forge-artifacts/ cache_forge/ coverage/ cache/ types/ typechain-src/ .eslintcache",
+    "clean": "rm -rf artifacts/ forge-artifacts/ cache_forge/ coverage/ cache/ types/ typechain-src/ .eslintcache test/node_modules/",
     "compile": "hardhat compile --quiet",
     "typechain": "typechain --target ethers-v6 --out-dir typechain-src 'artifacts/contracts/**/!(*.dbg).json' && tsc -p tsconfig.typechain.json && rm -rf typechain-src && echo '{\"type\":\"commonjs\"}' > types/package.json",
     "test": "forge test",
