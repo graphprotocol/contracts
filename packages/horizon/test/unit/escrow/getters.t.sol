@@ -15,6 +15,16 @@ contract GraphEscrowGettersTest is GraphEscrowTest {
         assertEq(balance, amount);
     }
 
+    function testEscrowAccounts(uint256 amount) public useGateway useDeposit(amount) {
+        (uint256 balance, uint256 tokensThawing, ) = escrow.escrowAccounts(
+            users.gateway,
+            users.verifier,
+            users.indexer
+        );
+        assertEq(balance, amount);
+        assertEq(tokensThawing, 0);
+    }
+
     function testGetBalance_WhenThawing(
         uint256 amountDeposit,
         uint256 amountThawing
