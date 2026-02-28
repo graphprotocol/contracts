@@ -2,6 +2,7 @@
 pragma solidity ^0.8.27;
 
 import { IContractApprover } from "@graphprotocol/interfaces/contracts/horizon/IContractApprover.sol";
+import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
 import { IRecurringAgreementManager } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreementManager.sol";
 import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceTarget.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
@@ -111,10 +112,11 @@ contract RecurringAgreementManagerApproverTest is RecurringAgreementManagerShare
         _offerAgreement(rca);
 
         // Fully funded (offerAgreement mints enough tokens)
-        assertEq(agreementManager.getDeficit(address(recurringCollector), indexer), 0);
+        IPaymentsEscrow.EscrowAccount memory account = agreementManager.getEscrowAccount(_collector(), indexer);
+        assertEq(account.balance - account.tokensThawing, agreementManager.sumMaxNextClaim(_collector(), indexer));
     }
 
-    function test_GetDeficit_ReturnsDeficitWhenUnderfunded() public {
+    function test_GetEscrowAccount_MatchesUnderlying() public {
         IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCA(
             100 ether,
             1 ether,
@@ -123,19 +125,25 @@ contract RecurringAgreementManagerApproverTest is RecurringAgreementManagerShare
             uint64(block.timestamp + 365 days)
         );
 
-        uint256 maxClaim = 1 ether * 3600 + 100 ether;
         uint256 available = 500 ether;
 
         token.mint(address(agreementManager), available);
         vm.prank(operator);
-        agreementManager.offerAgreement(rca, address(recurringCollector));
+        agreementManager.offerAgreement(rca, _collector());
 
-        // With 1 agreement, Full degrades to OnDemand (no deposit). Deficit is the full required.
-        assertEq(agreementManager.getDeficit(address(recurringCollector), indexer), maxClaim);
+        IPaymentsEscrow.EscrowAccount memory expected = paymentsEscrow.escrowAccounts(
+            address(agreementManager),
+            address(recurringCollector),
+            indexer
+        );
+        IPaymentsEscrow.EscrowAccount memory actual = agreementManager.getEscrowAccount(_collector(), indexer);
+        assertEq(actual.balance, expected.balance);
+        assertEq(actual.tokensThawing, expected.tokensThawing);
+        assertEq(actual.thawEndTimestamp, expected.thawEndTimestamp);
     }
 
     function test_GetRequiredEscrow_ZeroForUnknownIndexer() public {
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), makeAddr("unknown")), 0);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), makeAddr("unknown")), 0);
     }
 
     function test_GetAgreementMaxNextClaim_ZeroForUnknown() public view {

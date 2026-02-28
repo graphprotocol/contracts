@@ -5,6 +5,7 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/I
 import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 import { BaseUpgradeable } from "../../../contracts/common/BaseUpgradeable.sol";
+import { IGraphToken } from "../../../contracts/common/IGraphToken.sol";
 import { RewardsEligibilityOracle } from "../../../contracts/eligibility/RewardsEligibilityOracle.sol";
 import { RewardsEligibilityOracleSharedTest } from "./shared.t.sol";
 
@@ -16,11 +17,11 @@ contract RewardsEligibilityOracleConstructionTest is RewardsEligibilityOracleSha
 
     function test_Revert_ZeroGraphTokenAddress() public {
         vm.expectRevert(BaseUpgradeable.GraphTokenCannotBeZeroAddress.selector);
-        new RewardsEligibilityOracle(address(0));
+        new RewardsEligibilityOracle(IGraphToken(address(0)));
     }
 
     function test_Revert_ZeroGovernorAddress() public {
-        RewardsEligibilityOracle impl = new RewardsEligibilityOracle(address(token));
+        RewardsEligibilityOracle impl = new RewardsEligibilityOracle(IGraphToken(address(token)));
         bytes memory initData = abi.encodeCall(RewardsEligibilityOracle.initialize, (address(0)));
 
         vm.expectRevert(BaseUpgradeable.GovernorCannotBeZeroAddress.selector);

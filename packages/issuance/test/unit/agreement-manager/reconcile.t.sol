@@ -38,7 +38,7 @@ contract RecurringAgreementManagerReconcileTest is RecurringAgreementManagerShar
 
         uint256 newMaxClaim = agreementManager.getAgreementMaxNextClaim(agreementId);
         assertEq(newMaxClaim, 3600 ether);
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), 3600 ether);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), 3600 ether);
     }
 
     function test_ReconcileAgreement_CanceledByServiceProvider() public {
@@ -58,7 +58,7 @@ contract RecurringAgreementManagerReconcileTest is RecurringAgreementManagerShar
         agreementManager.reconcileAgreement(agreementId);
 
         assertEq(agreementManager.getAgreementMaxNextClaim(agreementId), 0);
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), 0);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), 0);
     }
 
     function test_ReconcileAgreement_CanceledByPayer_WindowOpen() public {
@@ -175,9 +175,10 @@ contract RecurringAgreementManagerReconcileTest is RecurringAgreementManagerShar
         }
     }
 
-    function test_ReconcileAgreement_Revert_WhenNotOffered() public {
+    function test_ReconcileAgreement_Noop_WhenNotOffered() public {
         bytes16 fakeId = bytes16(keccak256("fake"));
-        vm.expectRevert(abi.encodeWithSelector(IRecurringAgreementManager.AgreementNotOffered.selector, fakeId));
+
+        // Silently returns when agreement not found (idempotent)
         agreementManager.reconcileAgreement(fakeId);
     }
 
@@ -228,10 +229,7 @@ contract RecurringAgreementManagerReconcileTest is RecurringAgreementManagerShar
         _offerAgreementUpdate(rcau);
 
         uint256 pendingMaxClaim = 2 ether * 7200 + 200 ether;
-        assertEq(
-            agreementManager.getRequiredEscrow(address(recurringCollector), indexer),
-            originalMaxClaim + pendingMaxClaim
-        );
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), originalMaxClaim + pendingMaxClaim);
 
         // Simulate: agreement accepted and update applied on-chain (updateNonce = 1)
         recurringCollector.setAgreement(
@@ -260,7 +258,7 @@ contract RecurringAgreementManagerReconcileTest is RecurringAgreementManagerShar
         uint256 newMaxClaim = 2 ether * 7200 + 200 ether;
         assertEq(agreementManager.getAgreementMaxNextClaim(agreementId), newMaxClaim);
         // Required = only new maxClaim (pending cleared)
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), newMaxClaim);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), newMaxClaim);
     }
 
     function test_ReconcileAgreement_KeepsPendingUpdate_WhenNotYetApplied() public {
@@ -296,10 +294,7 @@ contract RecurringAgreementManagerReconcileTest is RecurringAgreementManagerShar
         // maxNextClaim recalculated from original terms (same value since never collected)
         assertEq(agreementManager.getAgreementMaxNextClaim(agreementId), originalMaxClaim);
         // Pending still present
-        assertEq(
-            agreementManager.getRequiredEscrow(address(recurringCollector), indexer),
-            originalMaxClaim + pendingMaxClaim
-        );
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), originalMaxClaim + pendingMaxClaim);
     }
 
     /* solhint-enable graph/func-name-mixedcase */

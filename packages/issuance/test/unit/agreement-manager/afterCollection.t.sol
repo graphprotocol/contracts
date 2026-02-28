@@ -103,7 +103,7 @@ contract RecurringAgreementManagerCollectionCallbackTest is RecurringAgreementMa
         );
 
         bytes16 agreementId = _offerAgreement(rca);
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), 3700 ether);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), 3700 ether);
 
         // Simulate: agreement accepted and first collection happened
         uint64 acceptedAt = uint64(block.timestamp);
@@ -119,7 +119,7 @@ contract RecurringAgreementManagerCollectionCallbackTest is RecurringAgreementMa
         // After first collection, maxInitialTokens no longer applies
         // New max = 1e18 * 3600 = 3600e18
         assertEq(agreementManager.getAgreementMaxNextClaim(agreementId), 3600 ether);
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), 3600 ether);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), 3600 ether);
     }
 
     function test_AfterCollection_Revert_WhenCallerNotRecurringCollector() public {
@@ -159,7 +159,7 @@ contract RecurringAgreementManagerCollectionCallbackTest is RecurringAgreementMa
         agreementManager.afterCollection(agreementId, 0);
 
         assertEq(agreementManager.getAgreementMaxNextClaim(agreementId), 0);
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), 0);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), 0);
     }
 
     /* solhint-enable graph/func-name-mixedcase */

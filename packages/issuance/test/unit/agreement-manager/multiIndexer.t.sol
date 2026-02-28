@@ -40,7 +40,7 @@ contract RecurringAgreementManagerMultiIndexerTest is RecurringAgreementManagerS
         return rca;
     }
 
-    // -- Isolation: offer/requiredEscrow --
+    // -- Isolation: offer/sumMaxNextClaim --
 
     function test_MultiIndexer_OfferIsolation() public {
         IRecurringCollector.RecurringCollectionAgreement memory rca1 = _makeRCAForIndexer(
@@ -73,10 +73,10 @@ contract RecurringAgreementManagerMultiIndexerTest is RecurringAgreementManagerS
         uint256 maxClaim2 = 2 ether * 7200 + 200 ether;
         uint256 maxClaim3 = 0.5 ether * 1800 + 50 ether;
 
-        // Each indexer has independent requiredEscrow
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), maxClaim1);
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer2), maxClaim2);
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer3), maxClaim3);
+        // Each indexer has independent sumMaxNextClaim
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), maxClaim1);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer2), maxClaim2);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer3), maxClaim3);
 
         // Each has exactly 1 agreement
         assertEq(agreementManager.getProviderAgreementCount(indexer), 1);
@@ -126,11 +126,11 @@ contract RecurringAgreementManagerMultiIndexerTest is RecurringAgreementManagerS
         agreementManager.revokeOffer(id1);
 
         // Indexer1 cleared
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), 0);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), 0);
         assertEq(agreementManager.getProviderAgreementCount(indexer), 0);
 
         // Indexer2 unaffected
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer2), maxClaim2);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer2), maxClaim2);
         assertEq(agreementManager.getProviderAgreementCount(indexer2), 1);
     }
 
@@ -162,10 +162,10 @@ contract RecurringAgreementManagerMultiIndexerTest is RecurringAgreementManagerS
         agreementManager.removeAgreement(id1);
 
         // Indexer1 cleared
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), 0);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), 0);
 
         // Indexer2 unaffected
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer2), maxClaim2);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer2), maxClaim2);
     }
 
     // -- Isolation: reconcile one indexer doesn't affect others --
@@ -198,10 +198,10 @@ contract RecurringAgreementManagerMultiIndexerTest is RecurringAgreementManagerS
         agreementManager.reconcileAgreement(id1);
 
         // Indexer1 required escrow drops to 0 (CanceledBySP -> maxNextClaim=0)
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), 0);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), 0);
 
         // Indexer2 completely unaffected (still pre-offered estimate)
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer2), maxClaim2);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer2), maxClaim2);
         assertEq(agreementManager.getAgreementMaxNextClaim(id2), maxClaim2);
     }
 
@@ -240,19 +240,19 @@ contract RecurringAgreementManagerMultiIndexerTest is RecurringAgreementManagerS
         uint256 maxClaim2 = 2 ether * 7200 + 200 ether;
 
         assertEq(agreementManager.getProviderAgreementCount(indexer), 2);
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), maxClaim1a + maxClaim1b);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), maxClaim1a + maxClaim1b);
         assertEq(agreementManager.getProviderAgreementCount(indexer2), 1);
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer2), maxClaim2);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer2), maxClaim2);
 
         // Remove one of indexer's agreements
         _setAgreementCanceledBySP(id1a, rca1a);
         agreementManager.removeAgreement(id1a);
 
         assertEq(agreementManager.getProviderAgreementCount(indexer), 1);
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), maxClaim1b);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), maxClaim1b);
 
         // Indexer2 still unaffected
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer2), maxClaim2);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer2), maxClaim2);
     }
 
     // -- Cancel one indexer, reconcile another --
@@ -326,7 +326,7 @@ contract RecurringAgreementManagerMultiIndexerTest is RecurringAgreementManagerS
         agreementManager.removeAgreement(id1);
 
         // Update escrow for indexer1 — should thaw excess
-        agreementManager.updateEscrow(address(recurringCollector), indexer);
+        agreementManager.updateEscrow(_collector(), indexer);
 
         // Indexer1 escrow thawing (excess = maxClaim1, required = 0)
         IPaymentsEscrow.EscrowAccount memory acct1 = paymentsEscrow.escrowAccounts(
@@ -343,7 +343,7 @@ contract RecurringAgreementManagerMultiIndexerTest is RecurringAgreementManagerS
         );
 
         // updateEscrow on indexer2 is a no-op (balance == required, no excess)
-        agreementManager.updateEscrow(address(recurringCollector), indexer2);
+        agreementManager.updateEscrow(_collector(), indexer2);
     }
 
     // -- Full lifecycle across multiple indexers --
@@ -371,8 +371,8 @@ contract RecurringAgreementManagerMultiIndexerTest is RecurringAgreementManagerS
         bytes16 id1 = _offerAgreement(rca1);
         bytes16 id2 = _offerAgreement(rca2);
 
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), maxClaim1);
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer2), maxClaim2);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), maxClaim1);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer2), maxClaim2);
 
         // 2. Accept both
         _setAgreementAccepted(id1, rca1, uint64(block.timestamp));
@@ -385,22 +385,22 @@ contract RecurringAgreementManagerMultiIndexerTest is RecurringAgreementManagerS
 
         // 4. Reconcile indexer1 — required should decrease (no more initial tokens)
         agreementManager.reconcileAgreement(id1);
-        assertTrue(agreementManager.getRequiredEscrow(address(recurringCollector), indexer) < maxClaim1);
+        assertTrue(agreementManager.sumMaxNextClaim(_collector(), indexer) < maxClaim1);
 
         // Indexer2 unaffected
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer2), maxClaim2);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer2), maxClaim2);
 
         // 5. Cancel indexer2 by SP
         _setAgreementCanceledBySP(id2, rca2);
         agreementManager.reconcileAgreement(id2);
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer2), 0);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer2), 0);
 
         // 6. Remove indexer2's agreement
         agreementManager.removeAgreement(id2);
         assertEq(agreementManager.getProviderAgreementCount(indexer2), 0);
 
         // 7. Update escrow for indexer2 (thaw excess)
-        agreementManager.updateEscrow(address(recurringCollector), indexer2);
+        agreementManager.updateEscrow(_collector(), indexer2);
         IPaymentsEscrow.EscrowAccount memory acct2 = paymentsEscrow.escrowAccounts(
             address(agreementManager),
             address(recurringCollector),
@@ -410,7 +410,7 @@ contract RecurringAgreementManagerMultiIndexerTest is RecurringAgreementManagerS
 
         // 8. Indexer1 still active
         assertEq(agreementManager.getProviderAgreementCount(indexer), 1);
-        assertTrue(0 < agreementManager.getRequiredEscrow(address(recurringCollector), indexer));
+        assertTrue(0 < agreementManager.sumMaxNextClaim(_collector(), indexer));
     }
 
     // -- getAgreementInfo across indexers --

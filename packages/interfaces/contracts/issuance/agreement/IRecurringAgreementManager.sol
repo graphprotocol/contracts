@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.22;
 
+import { IDataServiceAgreements } from "../../data-service/IDataServiceAgreements.sol";
+import { IPaymentsEscrow } from "../../horizon/IPaymentsEscrow.sol";
 import { IRecurringCollector } from "../../horizon/IRecurringCollector.sol";
+import { IRewardsEligibility } from "../eligibility/IRewardsEligibility.sol";
 
 /**
  * @title Interface for the {RecurringAgreementManager} contract
  * @author Edge & Node
- * @notice Manages escrow funding for RCAs (Recurring Collection Agreements) using
+ * @notice Manages escrow for RCAs (Recurring Collection Agreements) using
  * issuance-allocated tokens. Tracks the maximum possible next claim for each managed
- * RCA per provider and ensures PaymentsEscrow is always funded to cover those maximums.
+ * RCA per provider and ensures PaymentsEscrow is always deposited to cover those maximums.
  *
  * One escrow per (RecurringAgreementManager, collector, provider) covering all RCAs for
  * that (collector, provider) pair managed by this contract.
@@ -20,15 +23,15 @@ interface IRecurringAgreementManager {
     // -- Enums --
 
     /**
-     * @notice Escrow funding level — controls how aggressively escrow is pre-funded.
+     * @notice Escrow level — controls how aggressively escrow is pre-deposited.
      * Ordered low-to-high. The configured level is the maximum aspiration; the system
-     * automatically degrades when funds are insufficient. `beforeCollection` (JIT top-up)
+     * automatically degrades when balance is insufficient. `beforeCollection` (JIT top-up)
      * is always active regardless of setting.
      *
      * @dev JustInTime=0 (thaw everything, pure JIT), OnDemand=1 (no deposits, hold at
-     * required level), Full=2 (fund sum of all maxNextClaim — current default).
+     * sumMaxNextClaim level), Full=2 (deposit sum of all maxNextClaim — current default).
      */
-    enum FundingBasis {
+    enum EscrowBasis {
         JustInTime,
         OnDemand,
         Full
@@ -41,7 +44,7 @@ interface IRecurringAgreementManager {
      * @dev An agreement is considered tracked when `provider != address(0)`.
      * @param provider The service provider for this agreement
      * @param deadline The RCA deadline for acceptance (used to detect expired offers)
-     * @param dataService The data service address for this agreement
+     * @param dataService The data service contract for this agreement
      * @param pendingUpdateNonce The RCAU nonce for the pending update (0 means no pending)
      * @param maxNextClaim The current maximum tokens claimable in the next collection
      * @param pendingUpdateMaxNextClaim Max next claim for an offered-but-not-yet-applied update
@@ -52,13 +55,13 @@ interface IRecurringAgreementManager {
     struct AgreementInfo {
         address provider;
         uint64 deadline;
-        address dataService;
+        IDataServiceAgreements dataService;
         uint32 pendingUpdateNonce;
         uint256 maxNextClaim;
         uint256 pendingUpdateMaxNextClaim;
         bytes32 agreementHash;
         bytes32 pendingUpdateHash;
-        address collector;
+        IRecurringCollector collector;
     }
 
     // -- Events --
@@ -75,7 +78,7 @@ interface IRecurringAgreementManager {
     /**
      * @notice Emitted when an agreement offer is revoked before acceptance
      * @param agreementId The agreement ID
-     * @param provider The provider whose required escrow was reduced
+     * @param provider The provider whose sumMaxNextClaim was reduced
      */
     event OfferRevoked(bytes16 indexed agreementId, address indexed provider);
 
@@ -89,7 +92,7 @@ interface IRecurringAgreementManager {
     /**
      * @notice Emitted when an agreement is removed from escrow management
      * @param agreementId The agreement ID being removed
-     * @param provider The provider whose required escrow was reduced
+     * @param provider The provider whose sumMaxNextClaim was reduced
      */
     event AgreementRemoved(bytes16 indexed agreementId, address indexed provider);
 
@@ -110,8 +113,8 @@ interface IRecurringAgreementManager {
     event AgreementUpdateOffered(bytes16 indexed agreementId, uint256 pendingMaxNextClaim, uint32 updateNonce);
 
     /**
-     * @notice Emitted when escrow is funded for a provider
-     * @param provider The provider whose escrow was funded
+     * @notice Emitted when escrow is deposited for a provider
+     * @param provider The provider whose escrow was deposited into
      * @param collector The collector address for the escrow account
      * @param deposited The amount deposited
      */
@@ -126,30 +129,30 @@ interface IRecurringAgreementManager {
     event EscrowWithdrawn(address indexed provider, address indexed collector, uint256 tokens);
 
     /**
-     * @notice Emitted when the funding basis is changed
-     * @param oldBasis The previous funding basis
-     * @param newBasis The new funding basis
+     * @notice Emitted when the escrow basis is changed
+     * @param oldBasis The previous escrow basis
+     * @param newBasis The new escrow basis
      */
-    event FundingBasisChanged(FundingBasis oldBasis, FundingBasis newBasis);
+    event EscrowBasisChanged(EscrowBasis oldBasis, EscrowBasis newBasis);
 
     /**
-     * @notice Emitted when JIT mode is enforced due to insufficient funds during collection
-     * @param configuredBasis The governance-configured funding basis (not modified)
+     * @notice Emitted when JIT mode is enforced due to insufficient balance during collection
+     * @param configuredBasis The governance-configured escrow basis (not modified)
      */
-    event EnforcedJit(FundingBasis configuredBasis);
+    event EnforcedJit(EscrowBasis configuredBasis);
 
     /**
-     * @notice Emitted when enforced JIT recovers after RAM accumulates sufficient funds
-     * @param configuredBasis The governance-configured funding basis now effective again
+     * @notice Emitted when enforced JIT recovers after RAM accumulates sufficient balance
+     * @param configuredBasis The governance-configured escrow basis now effective again
      */
-    event EnforcedJitRecovered(FundingBasis configuredBasis);
+    event EnforcedJitRecovered(EscrowBasis configuredBasis);
 
     /**
      * @notice Emitted when the payment eligibility oracle is changed
-     * @param oldOracle The previous oracle address (address(0) means none)
-     * @param newOracle The new oracle address (address(0) means disabled)
+     * @param oldOracle The previous oracle (IRewardsEligibility(address(0)) means none)
+     * @param newOracle The new oracle (IRewardsEligibility(address(0)) means disabled)
      */
-    event PaymentEligibilityOracleSet(address indexed oldOracle, address indexed newOracle);
+    event PaymentEligibilityOracleSet(IRewardsEligibility indexed oldOracle, IRewardsEligibility indexed newOracle);
 
     // solhint-enable gas-indexed-events
 
@@ -202,14 +205,20 @@ interface IRecurringAgreementManager {
     /// @notice Thrown when the RCA service provider is the zero address
     error ServiceProviderZeroAddress();
 
-    /// @notice Thrown when the RCA data service is the zero address
-    error DataServiceZeroAddress();
+    /**
+     * @notice Thrown when the data service address does not have DATA_SERVICE_ROLE
+     * @param dataService The unauthorized data service address
+     */
+    error UnauthorizedDataService(address dataService);
 
     /// @notice Thrown when a collection callback is called by an address other than the agreement's collector
     error OnlyAgreementCollector();
 
-    /// @notice Thrown when the collector address is the zero address
-    error CollectorZeroAddress();
+    /**
+     * @notice Thrown when the collector address does not have COLLECTOR_ROLE
+     * @param collector The unauthorized collector address
+     */
+    error UnauthorizedCollector(address collector);
 
     // -- Core Functions --
 
@@ -217,21 +226,21 @@ interface IRecurringAgreementManager {
      * @notice Offer an RCA for escrow management. Must be called before
      * the data service accepts the agreement (with empty authData).
      * @dev Calculates max next claim from RCA parameters, stores the authorized hash
-     * for the {IContractApprover} callback, and funds the escrow.
+     * for the {IContractApprover} callback, and deposits into escrow.
      * @param rca The Recurring Collection Agreement parameters
      * @param collector The RecurringCollector contract to use for this agreement
      * @return agreementId The deterministic agreement ID
      */
     function offerAgreement(
         IRecurringCollector.RecurringCollectionAgreement calldata rca,
-        address collector
+        IRecurringCollector collector
     ) external returns (bytes16 agreementId);
 
     /**
      * @notice Offer a pending agreement update for escrow management. Must be called
      * before the data service applies the update (with empty authData).
      * @dev Stores the authorized RCAU hash for the {IContractApprover} callback and
-     * adds the pending update's max next claim to the required escrow. Treats the
+     * adds the pending update's max next claim to sumMaxNextClaim. Treats the
      * pending update as a separate escrow entry alongside the current agreement.
      * If a previous pending update exists, it is replaced.
      * @param rcau The Recurring Collection Agreement Update parameters
@@ -254,8 +263,8 @@ interface IRecurringAgreementManager {
      * @notice Cancel an accepted agreement by routing through the data service.
      * @dev Requires OPERATOR_ROLE. Reads agreement state from RecurringCollector:
      * - NotAccepted: reverts (use {revokeOffer} instead)
-     * - Accepted: cancels via the data service, then reconciles and funds escrow
-     * - Already canceled: idempotent — reconciles and funds escrow without re-canceling
+     * - Accepted: cancels via the data service, then reconciles and updates escrow
+     * - Already canceled: idempotent — reconciles and updates escrow without re-canceling
      * After cancellation, call {removeAgreement} once the collection window closes.
      * @param agreementId The agreement ID to cancel
      */
@@ -282,55 +291,57 @@ interface IRecurringAgreementManager {
     function reconcileAgreement(bytes16 agreementId) external;
 
     /**
-     * @notice Update escrow state for a provider: withdraw completed thaws, fund any deficit,
+     * @notice Update escrow state for a provider: withdraw completed thaws, deposit any deficit,
      * and thaw excess balance.
      * @dev Permissionless. Three-phase operation:
      * - Phase 1: If a previous thaw has completed, withdraws tokens back to this contract
-     * - Phase 2a (deficit): If balance < required, cancels any thaw and deposits to cover
-     * - Phase 2b (excess): If balance > required, starts a thaw for the excess (only when
+     * - Phase 2a (deficit): If balance < min, cancels any thaw and deposits to cover
+     * - Phase 2b (excess): If balance > max, starts a thaw for the excess (only when
      *   no thaw is already in progress) or partially cancels an existing thaw if too much
      *   is being thawed
      * Works regardless of whether the provider has active agreements.
      * @param collector The collector contract address
      * @param provider The provider to update escrow for
      */
-    function updateEscrow(address collector, address provider) external;
+    function updateEscrow(IRecurringCollector collector, address provider) external;
 
     /**
-     * @notice Set the escrow funding basis (maximum aspiration level).
+     * @notice Set the escrow basis (maximum aspiration level).
      * @dev Requires GOVERNOR_ROLE. The system automatically degrades below the configured
-     * level when funds are insufficient. Changing the basis does not immediately rebalance
+     * level when balance is insufficient. Changing the basis does not immediately rebalance
      * escrow — call {updateEscrow} or {reconcile} per provider to apply.
-     * @param basis The new funding basis
+     * @param basis The new escrow basis
      */
-    function setFundingBasis(FundingBasis basis) external;
+    function setEscrowBasis(EscrowBasis basis) external;
 
     /**
      * @notice Set the payment eligibility oracle.
      * @dev Requires GOVERNOR_ROLE. When set, {isEligible} delegates to this oracle.
-     * When set to address(0), all providers are considered eligible (passthrough).
-     * @param oracle The address of the eligibility oracle (or address(0) to disable)
+     * When set to IRewardsEligibility(address(0)), all providers are considered eligible (passthrough).
+     * @param oracle The eligibility oracle (or IRewardsEligibility(address(0)) to disable)
      */
-    function setPaymentEligibilityOracle(address oracle) external;
+    function setPaymentEligibilityOracle(IRewardsEligibility oracle) external;
 
     // -- View Functions --
 
     /**
-     * @notice Get the total required escrow for a (collector, provider) pair
-     * @param collector The collector contract address
+     * @notice Get the sum of maxNextClaim for all managed agreements for a (collector, provider) pair
+     * @param collector The collector contract
      * @param provider The provider address
-     * @return The sum of max next claims for all managed agreements for this (collector, provider)
+     * @return The sum of max next claims
      */
-    function getRequiredEscrow(address collector, address provider) external view returns (uint256);
+    function sumMaxNextClaim(IRecurringCollector collector, address provider) external view returns (uint256);
 
     /**
-     * @notice Get the current escrow deficit for a (collector, provider) pair
-     * @dev Returns 0 if escrow is fully funded or over-funded.
-     * @param collector The collector contract address
+     * @notice Get the escrow account for a (collector, provider) pair
+     * @param collector The collector contract
      * @param provider The provider address
-     * @return The deficit amount (required - current balance), or 0 if no deficit
+     * @return The escrow account data
      */
-    function getDeficit(address collector, address provider) external view returns (uint256);
+    function getEscrowAccount(
+        IRecurringCollector collector,
+        address provider
+    ) external view returns (IPaymentsEscrow.EscrowAccount memory);
 
     /**
      * @notice Get the max next claim for a specific agreement
@@ -356,34 +367,48 @@ interface IRecurringAgreementManager {
     /**
      * @notice Get all managed agreement IDs for a provider
      * @dev Returns the full set of tracked agreement IDs. May be expensive for providers
-     * with many agreements — prefer {getProviderAgreementCount} for on-chain use.
+     * with many agreements — prefer the paginated overload or {getProviderAgreementCount}
+     * for on-chain use.
      * @param provider The provider address
      * @return The array of agreement IDs
      */
     function getProviderAgreements(address provider) external view returns (bytes16[] memory);
 
     /**
-     * @notice Get the current funding basis setting
-     * @return The configured funding basis
+     * @notice Get a paginated slice of managed agreement IDs for a provider
+     * @param provider The provider address
+     * @param offset The index to start from
+     * @param count Maximum number of IDs to return (clamped to available)
+     * @return The array of agreement IDs
      */
-    function getFundingBasis() external view returns (FundingBasis);
+    function getProviderAgreements(
+        address provider,
+        uint256 offset,
+        uint256 count
+    ) external view returns (bytes16[] memory);
 
     /**
-     * @notice Get the total required escrow across all providers
+     * @notice Get the current escrow basis setting
+     * @return The configured escrow basis
+     */
+    function getEscrowBasis() external view returns (EscrowBasis);
+
+    /**
+     * @notice Get the sum of maxNextClaim across all (collector, provider) pairs
      * @dev Populated lazily through normal operations. May be stale if agreements were
      * offered before this feature was deployed — run reconciliation to populate.
-     * @return The sum of requiredEscrow across all providers
+     * @return The global sum of max next claims
      */
-    function getTotalRequired() external view returns (uint256);
+    function sumMaxNextClaimAll() external view returns (uint256);
 
     /**
-     * @notice Get the total unfunded escrow across all providers
-     * @dev Maintained incrementally: sum of max(0, requiredEscrow[p] - funded[p])
+     * @notice Get the total undeposited escrow across all providers
+     * @dev Maintained incrementally: sum of max(0, sumMaxNextClaim[p] - deposited[p])
      * for each provider p. Correctly accounts for per-provider deficits without
-     * allowing over-funded providers to mask under-funded ones.
+     * allowing over-deposited providers to mask under-deposited ones.
      * @return The total unfunded amount
      */
-    function getTotalUnfunded() external view returns (uint256);
+    function getTotalEscrowDeficit() external view returns (uint256);
 
     /**
      * @notice Get the total number of tracked agreements across all providers
@@ -395,8 +420,8 @@ interface IRecurringAgreementManager {
     /**
      * @notice Check whether JIT mode is currently enforced
      * @dev When enforced, the system operates in JIT-only mode regardless of the configured
-     * funding basis. The configured basis is preserved and takes effect again when
-     * enforced JIT recovers (totalUnfunded <= available) or governance calls {setFundingBasis}.
+     * escrow basis. The configured basis is preserved and takes effect again when
+     * enforced JIT recovers (totalEscrowDeficit <= available) or governance calls {setEscrowBasis}.
      * @return True if JIT mode is enforced
      */
     function isEnforcedJit() external view returns (bool);

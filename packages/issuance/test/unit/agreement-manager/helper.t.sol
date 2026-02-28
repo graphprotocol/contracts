@@ -64,14 +64,14 @@ contract RecurringAgreementHelperTest is RecurringAgreementManagerSharedTest {
         // Agreement 2: collected, remaining window large, capped at maxSecondsPerCollection = 7200
         // maxClaim = 2e18 * 7200 = 14400e18 (no initial since collected)
         assertEq(agreementManager.getAgreementMaxNextClaim(id2), 14400 ether);
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), 14400 ether);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), 14400 ether);
     }
 
     function test_Reconcile_EmptyProvider() public {
         // reconcile for a provider with no agreements — should be a no-op
         address unknown = makeAddr("unknown");
         agreementHelper.reconcile(unknown);
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), unknown), 0);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), unknown), 0);
     }
 
     function test_Reconcile_IdempotentWhenUnchanged() public {
@@ -89,14 +89,14 @@ contract RecurringAgreementHelperTest is RecurringAgreementManagerSharedTest {
 
         // First reconcile
         agreementHelper.reconcile(indexer);
-        uint256 escrowAfterFirst = agreementManager.getRequiredEscrow(address(recurringCollector), indexer);
+        uint256 escrowAfterFirst = agreementManager.sumMaxNextClaim(_collector(), indexer);
         uint256 maxClaimAfterFirst = agreementManager.getAgreementMaxNextClaim(agreementId);
 
         // Second reconcile should produce identical results (idempotent)
         vm.recordLogs();
         agreementHelper.reconcile(indexer);
 
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), escrowAfterFirst);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), escrowAfterFirst);
         assertEq(agreementManager.getAgreementMaxNextClaim(agreementId), maxClaimAfterFirst);
 
         // No reconcile event on the second call since nothing changed
@@ -159,7 +159,7 @@ contract RecurringAgreementHelperTest is RecurringAgreementManagerSharedTest {
         assertEq(agreementManager.getAgreementMaxNextClaim(id2), 14400 ether); // 2e18 * 7200
         // id3 unchanged: 3e18 * 1800 = 5400e18 (pre-offer estimate)
         assertEq(agreementManager.getAgreementMaxNextClaim(id3), 5400 ether);
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), 14400 ether + 5400 ether);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), 14400 ether + 5400 ether);
     }
 
     // -- reconcileBatch tests --
@@ -188,7 +188,7 @@ contract RecurringAgreementHelperTest is RecurringAgreementManagerSharedTest {
 
         uint256 maxClaim1 = 1 ether * 3600 + 100 ether;
         uint256 maxClaim2 = 2 ether * 7200 + 200 ether;
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), maxClaim1 + maxClaim2);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), maxClaim1 + maxClaim2);
 
         // Accept both and simulate CanceledBySP on agreement 1
         _setAgreementCanceledBySP(id1, rca1);
@@ -205,7 +205,7 @@ contract RecurringAgreementHelperTest is RecurringAgreementManagerSharedTest {
         // Agreement 2 accepted, never collected -> maxNextClaim = initial + ongoing
         assertEq(agreementManager.getAgreementMaxNextClaim(id2), maxClaim2);
         // Required should be just agreement 2 now
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), maxClaim2);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), maxClaim2);
     }
 
     function test_ReconcileBatch_SkipsNonExistent() public {
@@ -268,8 +268,8 @@ contract RecurringAgreementHelperTest is RecurringAgreementManagerSharedTest {
 
         uint256 maxClaim1 = 1 ether * 3600 + 100 ether;
         uint256 maxClaim2 = 2 ether * 7200 + 200 ether;
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), maxClaim1);
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer2), maxClaim2);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), maxClaim1);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer2), maxClaim2);
 
         // Cancel both by SP
         _setAgreementCanceledBySP(id1, rca1);
@@ -280,8 +280,8 @@ contract RecurringAgreementHelperTest is RecurringAgreementManagerSharedTest {
         ids[1] = id2;
         agreementHelper.reconcileBatch(ids);
 
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), 0);
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer2), 0);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), 0);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer2), 0);
     }
 
     function test_ReconcileBatch_Permissionless() public {
@@ -327,10 +327,7 @@ contract RecurringAgreementHelperTest is RecurringAgreementManagerSharedTest {
 
         uint256 originalMaxClaim = 1 ether * 3600 + 100 ether;
         uint256 pendingMaxClaim = 2 ether * 7200 + 200 ether;
-        assertEq(
-            agreementManager.getRequiredEscrow(address(recurringCollector), indexer),
-            originalMaxClaim + pendingMaxClaim
-        );
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), originalMaxClaim + pendingMaxClaim);
 
         // Simulate: accepted with the update already applied (updateNonce >= pending)
         recurringCollector.setAgreement(
@@ -358,7 +355,7 @@ contract RecurringAgreementHelperTest is RecurringAgreementManagerSharedTest {
 
         // Pending should be cleared; required escrow should be based on new terms
         uint256 newMaxClaim = 2 ether * 7200 + 200 ether;
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), newMaxClaim);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), newMaxClaim);
     }
 
     /* solhint-enable graph/func-name-mixedcase */

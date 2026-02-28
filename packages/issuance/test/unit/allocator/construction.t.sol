@@ -5,6 +5,7 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/I
 import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 import { BaseUpgradeable } from "../../../contracts/common/BaseUpgradeable.sol";
+import { IGraphToken } from "../../../contracts/common/IGraphToken.sol";
 import { IssuanceAllocator } from "../../../contracts/allocate/IssuanceAllocator.sol";
 import { IssuanceAllocatorSharedTest } from "./shared.t.sol";
 
@@ -14,11 +15,11 @@ contract IssuanceAllocatorConstructionTest is IssuanceAllocatorSharedTest {
 
     function test_Revert_ZeroGraphTokenAddress() public {
         vm.expectRevert(BaseUpgradeable.GraphTokenCannotBeZeroAddress.selector);
-        new IssuanceAllocator(address(0));
+        new IssuanceAllocator(IGraphToken(address(0)));
     }
 
     function test_Revert_ZeroGovernorAddress() public {
-        IssuanceAllocator impl = new IssuanceAllocator(address(token));
+        IssuanceAllocator impl = new IssuanceAllocator(IGraphToken(address(token)));
         bytes memory initData = abi.encodeCall(IssuanceAllocator.initialize, (address(0)));
         vm.expectRevert(BaseUpgradeable.GovernorCannotBeZeroAddress.selector);
         new TransparentUpgradeableProxy(address(impl), address(this), initData);

@@ -34,7 +34,7 @@ contract RecurringAgreementManagerFuzzTest is RecurringAgreementManagerSharedTes
         uint256 expectedMaxClaim = uint256(maxOngoingTokensPerSecond) * uint256(maxSecondsPerCollection) +
             uint256(maxInitialTokens);
         assertEq(agreementManager.getAgreementMaxNextClaim(agreementId), expectedMaxClaim);
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), expectedMaxClaim);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), expectedMaxClaim);
     }
 
     function testFuzz_Offer_EscrowFundedUpToAvailable(
@@ -58,7 +58,7 @@ contract RecurringAgreementManagerFuzzTest is RecurringAgreementManagerSharedTes
         // Fund with a specific amount instead of the default 1M ether
         token.mint(address(agreementManager), availableTokens);
         vm.prank(operator);
-        bytes16 agreementId = agreementManager.offerAgreement(rca, address(recurringCollector));
+        bytes16 agreementId = agreementManager.offerAgreement(rca, _collector());
 
         uint256 maxNextClaim = agreementManager.getAgreementMaxNextClaim(agreementId);
         uint256 escrowBalance = paymentsEscrow
@@ -66,8 +66,8 @@ contract RecurringAgreementManagerFuzzTest is RecurringAgreementManagerSharedTes
             .balance;
 
         // In Full mode (default):
-        // If totalUnfunded <= available: Full deposits required.
-        // If totalUnfunded > available: degrades to OnDemand (deposit target = 0).
+        // If totalEscrowDeficit <= available: Full deposits required.
+        // If totalEscrowDeficit > available: degrades to OnDemand (deposit target = 0).
         // JIT beforeCollection is the safety net for underfunded escrow.
         if (maxNextClaim <= availableTokens) {
             assertEq(escrowBalance, maxNextClaim);
@@ -106,10 +106,10 @@ contract RecurringAgreementManagerFuzzTest is RecurringAgreementManagerSharedTes
         rca2.nonce = 2;
 
         _offerAgreement(rca1);
-        uint256 required1 = agreementManager.getRequiredEscrow(address(recurringCollector), indexer);
+        uint256 required1 = agreementManager.sumMaxNextClaim(_collector(), indexer);
 
         _offerAgreement(rca2);
-        uint256 required2 = agreementManager.getRequiredEscrow(address(recurringCollector), indexer);
+        uint256 required2 = agreementManager.sumMaxNextClaim(_collector(), indexer);
 
         uint256 maxClaim1 = uint256(maxOngoing1) * uint256(maxSec1) + uint256(maxInitial1);
         uint256 maxClaim2 = uint256(maxOngoing2) * uint256(maxSec2) + uint256(maxInitial2);
@@ -132,13 +132,13 @@ contract RecurringAgreementManagerFuzzTest is RecurringAgreementManagerSharedTes
         );
 
         bytes16 agreementId = _offerAgreement(rca);
-        uint256 requiredBefore = agreementManager.getRequiredEscrow(address(recurringCollector), indexer);
+        uint256 requiredBefore = agreementManager.sumMaxNextClaim(_collector(), indexer);
         assertTrue(0 < requiredBefore || (maxInitial == 0 && maxOngoing == 0));
 
         vm.prank(operator);
         agreementManager.revokeOffer(agreementId);
 
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), 0);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), 0);
         assertEq(agreementManager.getProviderAgreementCount(indexer), 0);
     }
 
@@ -158,7 +158,7 @@ contract RecurringAgreementManagerFuzzTest is RecurringAgreementManagerSharedTes
 
         agreementManager.removeAgreement(agreementId);
 
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), 0);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), 0);
         assertEq(agreementManager.getProviderAgreementCount(indexer), 0);
         assertEq(agreementManager.getAgreementMaxNextClaim(agreementId), 0);
     }
@@ -184,7 +184,7 @@ contract RecurringAgreementManagerFuzzTest is RecurringAgreementManagerSharedTes
         );
 
         bytes16 agreementId = _offerAgreement(rca);
-        uint256 preAcceptRequired = agreementManager.getRequiredEscrow(address(recurringCollector), indexer);
+        uint256 preAcceptRequired = agreementManager.sumMaxNextClaim(_collector(), indexer);
 
         // Simulate acceptance and a collection at block.timestamp + timeElapsed
         uint64 acceptedAt = uint64(block.timestamp);
@@ -196,7 +196,7 @@ contract RecurringAgreementManagerFuzzTest is RecurringAgreementManagerSharedTes
 
         agreementManager.reconcileAgreement(agreementId);
 
-        uint256 postReconcileRequired = agreementManager.getRequiredEscrow(address(recurringCollector), indexer);
+        uint256 postReconcileRequired = agreementManager.sumMaxNextClaim(_collector(), indexer);
 
         // After collection, the maxNextClaim should reflect remaining window (no initial tokens)
         // and should be <= the pre-acceptance estimate
@@ -226,7 +226,7 @@ contract RecurringAgreementManagerFuzzTest is RecurringAgreementManagerSharedTes
         bytes16 agreementId = _offerAgreement(rca);
 
         uint256 originalMaxClaim = uint256(maxOngoing) * uint256(maxSec) + uint256(maxInitial);
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), originalMaxClaim);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), originalMaxClaim);
 
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _makeRCAU(
             agreementId,
@@ -242,10 +242,7 @@ contract RecurringAgreementManagerFuzzTest is RecurringAgreementManagerSharedTes
         uint256 pendingMaxClaim = uint256(updateMaxOngoing) * uint256(updateMaxSec) + uint256(updateMaxInitial);
 
         // Both original and pending are funded simultaneously
-        assertEq(
-            agreementManager.getRequiredEscrow(address(recurringCollector), indexer),
-            originalMaxClaim + pendingMaxClaim
-        );
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), originalMaxClaim + pendingMaxClaim);
     }
 
     // -- removeAgreement deadline --
@@ -281,9 +278,9 @@ contract RecurringAgreementManagerFuzzTest is RecurringAgreementManagerSharedTes
         assertEq(agreementManager.getProviderAgreementCount(indexer), 0);
     }
 
-    // -- getDeficit --
+    // -- getEscrowAccount --
 
-    function testFuzz_GetDeficit_MatchesShortfall(uint128 maxOngoing, uint32 maxSec, uint128 available) public {
+    function testFuzz_GetEscrowAccount_MatchesUnderlying(uint128 maxOngoing, uint32 maxSec, uint128 available) public {
         vm.assume(0 < maxSec);
         vm.assume(0 < maxOngoing);
 
@@ -297,22 +294,18 @@ contract RecurringAgreementManagerFuzzTest is RecurringAgreementManagerSharedTes
 
         token.mint(address(agreementManager), available);
         vm.prank(operator);
-        agreementManager.offerAgreement(rca, address(recurringCollector));
+        agreementManager.offerAgreement(rca, _collector());
 
-        uint256 required = agreementManager.getRequiredEscrow(address(recurringCollector), indexer);
-        IPaymentsEscrow.EscrowAccount memory account = paymentsEscrow.escrowAccounts(
+        IPaymentsEscrow.EscrowAccount memory expected = paymentsEscrow.escrowAccounts(
             address(agreementManager),
             address(recurringCollector),
             indexer
         );
-        uint256 balance = account.balance - account.tokensThawing;
-        uint256 deficit = agreementManager.getDeficit(address(recurringCollector), indexer);
+        IPaymentsEscrow.EscrowAccount memory actual = agreementManager.getEscrowAccount(_collector(), indexer);
 
-        if (balance < required) {
-            assertEq(deficit, required - balance);
-        } else {
-            assertEq(deficit, 0);
-        }
+        assertEq(actual.balance, expected.balance);
+        assertEq(actual.tokensThawing, expected.tokensThawing);
+        assertEq(actual.thawEndTimestamp, expected.thawEndTimestamp);
     }
 
     /* solhint-enable graph/func-name-mixedcase */

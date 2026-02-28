@@ -74,7 +74,7 @@ contract MockPaymentsEscrow is IPaymentsEscrow {
 
     function withdraw(address collector, address receiver) external returns (uint256 tokens) {
         Account storage account = accounts[msg.sender][collector][receiver];
-        if (account.thawEndTimestamp == 0 || block.timestamp <= account.thawEndTimestamp) {
+        if (account.thawEndTimestamp == 0 || block.timestamp < account.thawEndTimestamp) {
             return 0;
         }
         tokens = account.tokensThawing;
@@ -101,6 +101,21 @@ contract MockPaymentsEscrow is IPaymentsEscrow {
     function getBalance(address payer, address collector, address receiver) external view returns (uint256) {
         Account storage account = accounts[payer][collector][receiver];
         return account.balance > account.tokensThawing ? account.balance - account.tokensThawing : 0;
+    }
+
+    /// @notice Test helper: set arbitrary account state for data-driven tests
+    function setAccount(
+        address payer,
+        address collector,
+        address receiver,
+        uint256 balance_,
+        uint256 tokensThawing_,
+        uint256 thawEndTimestamp_
+    ) external {
+        Account storage account = accounts[payer][collector][receiver];
+        account.balance = balance_;
+        account.tokensThawing = tokensThawing_;
+        account.thawEndTimestamp = thawEndTimestamp_;
     }
 
     // -- Stubs (not used by RecurringAgreementManager) --

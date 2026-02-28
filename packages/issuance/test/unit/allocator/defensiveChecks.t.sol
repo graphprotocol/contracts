@@ -6,6 +6,7 @@ import { Test } from "forge-std/Test.sol";
 import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 import { IssuanceAllocator } from "../../../contracts/allocate/IssuanceAllocator.sol";
+import { IGraphToken } from "../../../contracts/common/IGraphToken.sol";
 import { IssuanceAllocatorTestHarness } from "../../../contracts/test/allocate/IssuanceAllocatorTestHarness.sol";
 import { MockGraphToken } from "../mocks/MockGraphToken.sol";
 
@@ -17,7 +18,7 @@ contract IssuanceAllocatorDefensiveChecksTest is Test {
 
     function setUp() public {
         MockGraphToken token = new MockGraphToken();
-        IssuanceAllocatorTestHarness impl = new IssuanceAllocatorTestHarness(address(token));
+        IssuanceAllocatorTestHarness impl = new IssuanceAllocatorTestHarness(IGraphToken(address(token)));
         bytes memory initData = abi.encodeCall(IssuanceAllocator.initialize, (address(this)));
         TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(impl), address(this), initData);
         harness = IssuanceAllocatorTestHarness(address(proxy));

@@ -39,10 +39,7 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
         uint256 originalMaxClaim = 1 ether * 3600 + 100 ether;
 
         // Required escrow should include both
-        assertEq(
-            agreementManager.getRequiredEscrow(address(recurringCollector), indexer),
-            originalMaxClaim + expectedPendingMaxClaim
-        );
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), originalMaxClaim + expectedPendingMaxClaim);
         // Original maxNextClaim unchanged
         assertEq(agreementManager.getAgreementMaxNextClaim(agreementId), originalMaxClaim);
     }
@@ -86,12 +83,12 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
 
         uint256 originalMaxClaim = 1 ether * 3600 + 100 ether;
         uint256 pendingMaxClaim = 2 ether * 7200 + 200 ether;
-        uint256 totalRequired = originalMaxClaim + pendingMaxClaim;
+        uint256 sumMaxNextClaim = originalMaxClaim + pendingMaxClaim;
 
         // Fund and offer agreement
-        token.mint(address(agreementManager), totalRequired);
+        token.mint(address(agreementManager), sumMaxNextClaim);
         vm.prank(operator);
-        bytes16 agreementId = agreementManager.offerAgreement(rca, address(recurringCollector));
+        bytes16 agreementId = agreementManager.offerAgreement(rca, _collector());
 
         // Offer update (should fund the deficit)
         token.mint(address(agreementManager), pendingMaxClaim);
@@ -110,7 +107,7 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
         // Verify escrow was funded for both
         assertEq(
             paymentsEscrow.escrowAccounts(address(agreementManager), address(recurringCollector), indexer).balance,
-            totalRequired
+            sumMaxNextClaim
         );
     }
 
@@ -139,10 +136,7 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
         _offerAgreementUpdate(rcau1);
 
         uint256 pendingMaxClaim1 = 2 ether * 7200 + 200 ether;
-        assertEq(
-            agreementManager.getRequiredEscrow(address(recurringCollector), indexer),
-            originalMaxClaim + pendingMaxClaim1
-        );
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), originalMaxClaim + pendingMaxClaim1);
 
         // Second pending update (replaces first)
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau2 = _makeRCAU(
@@ -158,10 +152,7 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
 
         uint256 pendingMaxClaim2 = 0.5 ether * 1800 + 50 ether;
         // Old pending removed, new pending added
-        assertEq(
-            agreementManager.getRequiredEscrow(address(recurringCollector), indexer),
-            originalMaxClaim + pendingMaxClaim2
-        );
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), originalMaxClaim + pendingMaxClaim2);
     }
 
     function test_OfferUpdate_EmitsEvent() public {

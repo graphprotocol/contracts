@@ -23,13 +23,13 @@ contract RecurringAgreementManagerRevokeOfferTest is RecurringAgreementManagerSh
         assertEq(agreementManager.getProviderAgreementCount(indexer), 1);
 
         uint256 maxClaim = 1 ether * 3600 + 100 ether;
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), maxClaim);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), maxClaim);
 
         vm.prank(operator);
         agreementManager.revokeOffer(agreementId);
 
         assertEq(agreementManager.getProviderAgreementCount(indexer), 0);
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), 0);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), 0);
         assertEq(agreementManager.getAgreementMaxNextClaim(agreementId), 0);
     }
 
@@ -78,16 +78,13 @@ contract RecurringAgreementManagerRevokeOfferTest is RecurringAgreementManagerSh
 
         uint256 originalMaxClaim = 1 ether * 3600 + 100 ether;
         uint256 pendingMaxClaim = 2 ether * 7200 + 200 ether;
-        assertEq(
-            agreementManager.getRequiredEscrow(address(recurringCollector), indexer),
-            originalMaxClaim + pendingMaxClaim
-        );
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), originalMaxClaim + pendingMaxClaim);
 
         vm.prank(operator);
         agreementManager.revokeOffer(agreementId);
 
         // Both original and pending should be cleared
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), 0);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), 0);
     }
 
     function test_RevokeOffer_EmitsEvent() public {

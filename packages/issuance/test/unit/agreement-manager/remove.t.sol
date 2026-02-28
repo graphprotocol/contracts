@@ -29,7 +29,7 @@ contract RecurringAgreementManagerRemoveTest is RecurringAgreementManagerSharedT
         agreementManager.removeAgreement(agreementId);
 
         assertEq(agreementManager.getProviderAgreementCount(indexer), 0);
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), 0);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), 0);
         assertEq(agreementManager.getAgreementMaxNextClaim(agreementId), 0);
     }
 
@@ -52,7 +52,7 @@ contract RecurringAgreementManagerRemoveTest is RecurringAgreementManagerSharedT
         agreementManager.removeAgreement(agreementId);
 
         assertEq(agreementManager.getProviderAgreementCount(indexer), 0);
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), 0);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), 0);
     }
 
     function test_Remove_CanceledByPayer_WindowExpired() public {
@@ -100,23 +100,24 @@ contract RecurringAgreementManagerRemoveTest is RecurringAgreementManagerSharedT
 
         uint256 maxClaim1 = 1 ether * 3600 + 100 ether; // 3700e18
         uint256 maxClaim2 = 2 ether * 7200 + 200 ether; // 14600e18
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), maxClaim1 + maxClaim2);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), maxClaim1 + maxClaim2);
 
         // Cancel agreement 1 by SP and remove it
         _setAgreementCanceledBySP(id1, rca1);
         agreementManager.removeAgreement(id1);
 
         // Only agreement 2's original maxClaim remains
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), maxClaim2);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), maxClaim2);
         assertEq(agreementManager.getProviderAgreementCount(indexer), 1);
 
         // Agreement 2 still tracked
         assertEq(agreementManager.getAgreementMaxNextClaim(id2), maxClaim2);
     }
 
-    function test_Remove_Revert_WhenNotOffered() public {
+    function test_Remove_Noop_WhenNotOffered() public {
         bytes16 fakeId = bytes16(keccak256("fake"));
-        vm.expectRevert(abi.encodeWithSelector(IRecurringAgreementManager.AgreementNotOffered.selector, fakeId));
+
+        // Silently returns when agreement not found (idempotent)
         agreementManager.removeAgreement(fakeId);
     }
 
@@ -157,7 +158,7 @@ contract RecurringAgreementManagerRemoveTest is RecurringAgreementManagerSharedT
         agreementManager.removeAgreement(agreementId);
 
         assertEq(agreementManager.getProviderAgreementCount(indexer), 0);
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), 0);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), 0);
     }
 
     function test_Remove_Revert_WhenStillClaimable_NotAccepted() public {
@@ -252,18 +253,15 @@ contract RecurringAgreementManagerRemoveTest is RecurringAgreementManagerSharedT
 
         uint256 originalMaxClaim = 1 ether * 3600 + 100 ether;
         uint256 pendingMaxClaim = 2 ether * 7200 + 200 ether;
-        assertEq(
-            agreementManager.getRequiredEscrow(address(recurringCollector), indexer),
-            originalMaxClaim + pendingMaxClaim
-        );
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), originalMaxClaim + pendingMaxClaim);
 
         // SP cancels - immediately removable
         _setAgreementCanceledBySP(agreementId, rca);
 
         agreementManager.removeAgreement(agreementId);
 
-        // Both original and pending should be cleared from requiredEscrow
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), 0);
+        // Both original and pending should be cleared from sumMaxNextClaim
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), 0);
         assertEq(agreementManager.getProviderAgreementCount(indexer), 0);
     }
 

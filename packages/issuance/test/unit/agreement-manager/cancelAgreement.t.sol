@@ -45,7 +45,7 @@ contract RecurringAgreementManagerCancelAgreementTest is RecurringAgreementManag
 
         bytes16 agreementId = _offerAgreement(rca);
 
-        uint256 originalRequired = agreementManager.getRequiredEscrow(address(recurringCollector), indexer);
+        uint256 originalRequired = agreementManager.sumMaxNextClaim(_collector(), indexer);
         uint256 maxClaim = 1 ether * 3600 + 100 ether;
         assertEq(originalRequired, maxClaim);
 
@@ -56,7 +56,7 @@ contract RecurringAgreementManagerCancelAgreementTest is RecurringAgreementManag
         agreementManager.cancelAgreement(agreementId);
 
         // After cancelAgreement (which now reconciles), required escrow should decrease
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), 0);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), 0);
     }
 
     function test_CancelAgreement_Idempotent_CanceledByPayer() public {
@@ -101,7 +101,7 @@ contract RecurringAgreementManagerCancelAgreementTest is RecurringAgreementManag
         assertEq(mockSubgraphService.cancelCallCount(agreementId), 0);
 
         // Required escrow should drop to 0 (CanceledBySP has maxNextClaim=0)
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), 0);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), 0);
     }
 
     function test_CancelAgreement_Revert_WhenNotAccepted() public {
@@ -120,10 +120,10 @@ contract RecurringAgreementManagerCancelAgreementTest is RecurringAgreementManag
         agreementManager.cancelAgreement(agreementId);
     }
 
-    function test_CancelAgreement_Revert_WhenNotOffered() public {
+    function test_CancelAgreement_Noop_WhenNotOffered() public {
         bytes16 fakeId = bytes16(keccak256("fake"));
 
-        vm.expectRevert(abi.encodeWithSelector(IRecurringAgreementManager.AgreementNotOffered.selector, fakeId));
+        // Silently returns when agreement not found (idempotent)
         vm.prank(operator);
         agreementManager.cancelAgreement(fakeId);
     }

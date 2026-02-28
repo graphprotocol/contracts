@@ -18,7 +18,7 @@ solc_version = '0.8.34'
 evm_version = 'cancun'
 
 # Exclude test files from coverage reports
-no_match_coverage = "(^test/|/mocks/)"
+no_match_coverage = "(^test/|^contracts/test/|/mocks/)"
 
 [lint]
 exclude_lints = ["mixed-case-function", "mixed-case-variable"]

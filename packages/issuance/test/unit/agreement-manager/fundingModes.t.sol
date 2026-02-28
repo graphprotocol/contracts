@@ -40,30 +40,27 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         return rca;
     }
 
-    // ==================== setFundingBasis ====================
+    // ==================== setEscrowBasis ====================
 
-    function test_SetFundingBasis_DefaultIsFull() public view {
-        assertEq(uint256(agreementManager.getFundingBasis()), uint256(IRecurringAgreementManager.FundingBasis.Full));
+    function test_SetEscrowBasis_DefaultIsFull() public view {
+        assertEq(uint256(agreementManager.getEscrowBasis()), uint256(IRecurringAgreementManager.EscrowBasis.Full));
     }
 
-    function test_SetFundingBasis_GovernorCanSet() public {
+    function test_SetEscrowBasis_GovernorCanSet() public {
         vm.prank(governor);
         vm.expectEmit(address(agreementManager));
-        emit IRecurringAgreementManager.FundingBasisChanged(
-            IRecurringAgreementManager.FundingBasis.Full,
-            IRecurringAgreementManager.FundingBasis.OnDemand
+        emit IRecurringAgreementManager.EscrowBasisChanged(
+            IRecurringAgreementManager.EscrowBasis.Full,
+            IRecurringAgreementManager.EscrowBasis.OnDemand
         );
-        agreementManager.setFundingBasis(IRecurringAgreementManager.FundingBasis.OnDemand);
-        assertEq(
-            uint256(agreementManager.getFundingBasis()),
-            uint256(IRecurringAgreementManager.FundingBasis.OnDemand)
-        );
+        agreementManager.setEscrowBasis(IRecurringAgreementManager.EscrowBasis.OnDemand);
+        assertEq(uint256(agreementManager.getEscrowBasis()), uint256(IRecurringAgreementManager.EscrowBasis.OnDemand));
     }
 
-    function test_SetFundingBasis_Revert_WhenNotGovernor() public {
+    function test_SetEscrowBasis_Revert_WhenNotGovernor() public {
         vm.prank(operator);
         vm.expectRevert();
-        agreementManager.setFundingBasis(IRecurringAgreementManager.FundingBasis.OnDemand);
+        agreementManager.setEscrowBasis(IRecurringAgreementManager.EscrowBasis.OnDemand);
     }
 
     // ==================== Global Tracking ====================
@@ -86,16 +83,16 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
 
         _offerAgreement(rca1);
         uint256 maxClaim1 = 1 ether * 3600 + 100 ether;
-        assertEq(agreementManager.getTotalRequired(), maxClaim1);
+        assertEq(agreementManager.sumMaxNextClaimAll(), maxClaim1);
         assertEq(agreementManager.getTotalAgreementCount(), 1);
 
         _offerAgreement(rca2);
         uint256 maxClaim2 = 2 ether * 7200 + 200 ether;
-        assertEq(agreementManager.getTotalRequired(), maxClaim1 + maxClaim2);
+        assertEq(agreementManager.sumMaxNextClaimAll(), maxClaim1 + maxClaim2);
         assertEq(agreementManager.getTotalAgreementCount(), 2);
     }
 
-    function test_GlobalTracking_TotalUnfunded() public {
+    function test_GlobalTracking_TotalUndeposited() public {
         IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
             indexer,
             100 ether,
@@ -106,14 +103,14 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
 
         _offerAgreement(rca);
 
-        // In Full mode, escrow is fully funded — totalUnfunded should be 0
-        assertEq(agreementManager.getTotalUnfunded(), 0, "Fully funded: totalUnfunded = 0");
+        // In Full mode, escrow is fully deposited — totalEscrowDeficit should be 0
+        assertEq(agreementManager.getTotalEscrowDeficit(), 0, "Fully escrowed: totalEscrowDeficit = 0");
     }
 
-    function test_GlobalTracking_TotalUnfunded_WhenPartiallyFunded() public {
-        // Offer in JIT mode (no deposits) — totalUnfunded = totalRequired
+    function test_GlobalTracking_TotalUndeposited_WhenPartiallyFunded() public {
+        // Offer in JIT mode (no deposits) — totalEscrowDeficit = sumMaxNextClaim
         vm.prank(governor);
-        agreementManager.setFundingBasis(IRecurringAgreementManager.FundingBasis.JustInTime);
+        agreementManager.setEscrowBasis(IRecurringAgreementManager.EscrowBasis.JustInTime);
 
         IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
             indexer,
@@ -126,7 +123,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         _offerAgreement(rca);
         uint256 maxClaim = 1 ether * 3600 + 100 ether;
 
-        assertEq(agreementManager.getTotalUnfunded(), maxClaim, "JIT: totalUnfunded = totalRequired");
+        assertEq(agreementManager.getTotalEscrowDeficit(), maxClaim, "JIT: totalEscrowDeficit = sumMaxNextClaim");
     }
 
     function test_GlobalTracking_RevokeDecrementsCountAndRequired() public {
@@ -140,13 +137,13 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
 
         bytes16 agreementId = _offerAgreement(rca);
         uint256 maxClaim = 1 ether * 3600 + 100 ether;
-        assertEq(agreementManager.getTotalRequired(), maxClaim);
+        assertEq(agreementManager.sumMaxNextClaimAll(), maxClaim);
         assertEq(agreementManager.getTotalAgreementCount(), 1);
 
         vm.prank(operator);
         agreementManager.revokeOffer(agreementId);
 
-        assertEq(agreementManager.getTotalRequired(), 0);
+        assertEq(agreementManager.sumMaxNextClaimAll(), 0);
         assertEq(agreementManager.getTotalAgreementCount(), 0);
     }
 
@@ -165,7 +162,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         _setAgreementCanceledBySP(agreementId, rca);
         agreementManager.removeAgreement(agreementId);
 
-        assertEq(agreementManager.getTotalRequired(), 0);
+        assertEq(agreementManager.sumMaxNextClaimAll(), 0);
         assertEq(agreementManager.getTotalAgreementCount(), 0);
     }
 
@@ -180,18 +177,18 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
 
         bytes16 agreementId = _offerAgreement(rca);
         uint256 maxClaim = 1 ether * 3600 + 100 ether;
-        assertEq(agreementManager.getTotalRequired(), maxClaim);
+        assertEq(agreementManager.sumMaxNextClaimAll(), maxClaim);
 
         // SP cancels — reconcile sets maxNextClaim to 0
         _setAgreementCanceledBySP(agreementId, rca);
         agreementManager.reconcileAgreement(agreementId);
 
-        assertEq(agreementManager.getTotalRequired(), 0);
+        assertEq(agreementManager.sumMaxNextClaimAll(), 0);
         // Count unchanged (not removed yet)
         assertEq(agreementManager.getTotalAgreementCount(), 1);
     }
 
-    function test_GlobalTracking_TotalUnfunded_MultiProvider() public {
+    function test_GlobalTracking_TotalUndeposited_MultiProvider() public {
         IRecurringCollector.RecurringCollectionAgreement memory rca1 = _makeRCAForIndexer(
             indexer,
             100 ether,
@@ -210,13 +207,13 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         _offerAgreement(rca1);
         _offerAgreement(rca2);
 
-        // In Full mode, both are fully funded — totalUnfunded should be 0
-        assertEq(agreementManager.getTotalUnfunded(), 0, "Both funded: totalUnfunded = 0");
+        // In Full mode, both are fully deposited — totalEscrowDeficit should be 0
+        assertEq(agreementManager.getTotalEscrowDeficit(), 0, "Both deposited: totalEscrowDeficit = 0");
     }
 
-    function test_GlobalTracking_TotalUnfunded_OverfundedProviderDoesNotMaskDeficit() public {
-        // Regression test: over-funded provider must NOT mask another provider's deficit.
-        // Offer rca1 for indexer (gets fully funded)
+    function test_GlobalTracking_TotalUndeposited_OverdepositedProviderDoesNotMaskDeficit() public {
+        // Regression test: over-deposited provider must NOT mask another provider's deficit.
+        // Offer rca1 for indexer (gets fully deposited)
         IRecurringCollector.RecurringCollectionAgreement memory rca1 = _makeRCAForIndexer(
             indexer,
             100 ether,
@@ -227,14 +224,14 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         _offerAgreement(rca1);
         uint256 maxClaim1 = 1 ether * 3600 + 100 ether;
 
-        // Drain SAM so indexer2's agreement can't be funded
+        // Drain SAM so indexer2's agreement can't be deposited
         uint256 samBalance = token.balanceOf(address(agreementManager));
         if (0 < samBalance) {
             vm.prank(address(agreementManager));
             token.transfer(address(1), samBalance);
         }
 
-        // Offer rca2 for indexer2 (can't be funded)
+        // Offer rca2 for indexer2 (can't be deposited)
         IRecurringCollector.RecurringCollectionAgreement memory rca2 = _makeRCAForIndexer(
             indexer2,
             200 ether,
@@ -243,26 +240,26 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             2
         );
         vm.prank(operator);
-        agreementManager.offerAgreement(rca2, address(recurringCollector));
+        agreementManager.offerAgreement(rca2, _collector());
         uint256 maxClaim2 = 2 ether * 7200 + 200 ether;
 
-        // indexer is fully funded (unfunded = 0), indexer2 has full deficit (unfunded = maxClaim2)
-        // totalUnfunded must be maxClaim2, NOT 0 (the old buggy totalRequired - totalInEscrow approach
-        // would compute totalRequired = maxClaim1 + maxClaim2, totalInEscrow = maxClaim1,
+        // indexer is fully deposited (undeposited = 0), indexer2 has full deficit (undeposited = maxClaim2)
+        // totalEscrowDeficit must be maxClaim2, NOT 0 (the old buggy sumMaxNextClaim - totalInEscrow approach
+        // would compute sumMaxNextClaim = maxClaim1 + maxClaim2, totalInEscrow = maxClaim1,
         // deficit = maxClaim2 — which happens to be correct here, but would be wrong if indexer
-        // were over-funded and the excess masked indexer2's deficit)
-        assertEq(agreementManager.getTotalUnfunded(), maxClaim2, "Unfunded = indexer2's full deficit");
+        // were over-deposited and the excess masked indexer2's deficit)
+        assertEq(agreementManager.getTotalEscrowDeficit(), maxClaim2, "Undeposited = indexer2's full deficit");
 
         // Verify per-provider escrow state
         assertEq(
             paymentsEscrow.escrowAccounts(address(agreementManager), address(recurringCollector), indexer).balance,
             maxClaim1,
-            "indexer: fully funded"
+            "indexer: fully deposited"
         );
         assertEq(
             paymentsEscrow.escrowAccounts(address(agreementManager), address(recurringCollector), indexer2).balance,
             0,
-            "indexer2: unfunded"
+            "indexer2: undeposited"
         );
     }
 
@@ -312,7 +309,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
     // ==================== JustInTime Mode ====================
 
     function test_JustInTime_ThawsEverything() public {
-        // Start in Full mode, offer agreement (gets funded)
+        // Start in Full mode, offer agreement (gets deposited)
         IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
             indexer,
             100 ether,
@@ -326,10 +323,10 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
 
         // Switch to JustInTime
         vm.prank(governor);
-        agreementManager.setFundingBasis(IRecurringAgreementManager.FundingBasis.JustInTime);
+        agreementManager.setEscrowBasis(IRecurringAgreementManager.EscrowBasis.JustInTime);
 
         // Update escrow — should thaw everything
-        agreementManager.updateEscrow(address(recurringCollector), indexer);
+        agreementManager.updateEscrow(_collector(), indexer);
 
         IPaymentsEscrow.EscrowAccount memory account = paymentsEscrow.escrowAccounts(
             address(agreementManager),
@@ -342,7 +339,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
     function test_JustInTime_NoProactiveDeposit() public {
         // Switch to JustInTime before offering
         vm.prank(governor);
-        agreementManager.setFundingBasis(IRecurringAgreementManager.FundingBasis.JustInTime);
+        agreementManager.setEscrowBasis(IRecurringAgreementManager.EscrowBasis.JustInTime);
 
         IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
             indexer,
@@ -365,7 +362,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
 
     function test_JustInTime_JITStillWorks() public {
         vm.prank(governor);
-        agreementManager.setFundingBasis(IRecurringAgreementManager.FundingBasis.JustInTime);
+        agreementManager.setEscrowBasis(IRecurringAgreementManager.EscrowBasis.JustInTime);
 
         IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
             indexer,
@@ -391,7 +388,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
 
     function test_OnDemand_NoProactiveDeposit() public {
         vm.prank(governor);
-        agreementManager.setFundingBasis(IRecurringAgreementManager.FundingBasis.OnDemand);
+        agreementManager.setEscrowBasis(IRecurringAgreementManager.EscrowBasis.OnDemand);
 
         IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
             indexer,
@@ -427,8 +424,8 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
 
         // OnDemand thaw ceiling = required — no thaw expected (balance == thawCeiling)
         vm.prank(governor);
-        agreementManager.setFundingBasis(IRecurringAgreementManager.FundingBasis.OnDemand);
-        agreementManager.updateEscrow(address(recurringCollector), indexer);
+        agreementManager.setEscrowBasis(IRecurringAgreementManager.EscrowBasis.OnDemand);
+        agreementManager.updateEscrow(_collector(), indexer);
 
         IPaymentsEscrow.EscrowAccount memory account = paymentsEscrow.escrowAccounts(
             address(agreementManager),
@@ -439,8 +436,8 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         assertEq(account.balance, maxClaim, "OnDemand: balance held at required level");
     }
 
-    function test_OnDemand_DoesNotThawBelowRequired_VsJustInTime() public {
-        // Fund 6 agreements at Full level, compare OnDemand vs JustInTime
+    function test_OnDemand_PreservesThawFromJIT() public {
+        // Fund 6 agreements at Full level, then switch JIT -> OnDemand
         for (uint256 i = 1; i <= 6; i++) {
             IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
                 indexer,
@@ -453,37 +450,37 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         }
 
         uint256 maxClaimEach = 1 ether * 3600 + 100 ether;
-        uint256 totalRequired = maxClaimEach * 6;
+        uint256 sumMaxNextClaim = maxClaimEach * 6;
 
         // JustInTime would thaw everything
         vm.prank(governor);
-        agreementManager.setFundingBasis(IRecurringAgreementManager.FundingBasis.JustInTime);
-        agreementManager.updateEscrow(address(recurringCollector), indexer);
+        agreementManager.setEscrowBasis(IRecurringAgreementManager.EscrowBasis.JustInTime);
+        agreementManager.updateEscrow(_collector(), indexer);
 
         IPaymentsEscrow.EscrowAccount memory jitAccount = paymentsEscrow.escrowAccounts(
             address(agreementManager),
             address(recurringCollector),
             indexer
         );
-        assertEq(jitAccount.tokensThawing, totalRequired, "JustInTime: thaws everything");
+        assertEq(jitAccount.tokensThawing, sumMaxNextClaim, "JustInTime: thaws everything");
 
-        // Switch to OnDemand — should cancel thaw (thaw ceiling = required)
+        // Switch to OnDemand — min=0, liquid=0 >= min, so thaw is left alone
         vm.prank(governor);
-        agreementManager.setFundingBasis(IRecurringAgreementManager.FundingBasis.OnDemand);
-        agreementManager.updateEscrow(address(recurringCollector), indexer);
+        agreementManager.setEscrowBasis(IRecurringAgreementManager.EscrowBasis.OnDemand);
+        agreementManager.updateEscrow(_collector(), indexer);
 
         IPaymentsEscrow.EscrowAccount memory odAccount = paymentsEscrow.escrowAccounts(
             address(agreementManager),
             address(recurringCollector),
             indexer
         );
-        // OnDemand holds at required level — should reduce/cancel thaw
-        assertTrue(odAccount.tokensThawing < jitAccount.tokensThawing, "OnDemand thaws less than JustInTime");
+        // OnDemand: min=0, liquid(0) >= min(0) — existing thaw preserved, no unnecessary cancellation
+        assertEq(odAccount.tokensThawing, jitAccount.tokensThawing, "OnDemand preserves thaw when liquid >= min");
     }
 
     function test_OnDemand_JITStillWorks() public {
         vm.prank(governor);
-        agreementManager.setFundingBasis(IRecurringAgreementManager.FundingBasis.OnDemand);
+        agreementManager.setEscrowBasis(IRecurringAgreementManager.EscrowBasis.OnDemand);
 
         IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
             indexer,
@@ -529,11 +526,11 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             );
             token.mint(address(agreementManager), 100_000 ether);
             vm.prank(operator);
-            agreementManager.offerAgreement(rca, address(recurringCollector));
+            agreementManager.offerAgreement(rca, _collector());
         }
 
-        // totalRequired should be larger than totalUnfunded (degradation occurred: Full -> OnDemand)
-        assertTrue(0 < agreementManager.getTotalUnfunded(), "Degradation: some unfunded deficit exists");
+        // sumMaxNextClaim should be larger than totalEscrowDeficit (degradation occurred: Full -> OnDemand)
+        assertTrue(0 < agreementManager.getTotalEscrowDeficit(), "Degradation: some undeposited deficit exists");
     }
 
     function test_Degradation_NeverReachesJustInTime() public {
@@ -575,12 +572,12 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
 
         // Switch through all modes — agreement data preserved
         vm.prank(governor);
-        agreementManager.setFundingBasis(IRecurringAgreementManager.FundingBasis.OnDemand);
+        agreementManager.setEscrowBasis(IRecurringAgreementManager.EscrowBasis.OnDemand);
         assertEq(agreementManager.getAgreementMaxNextClaim(agreementId), maxClaim);
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), maxClaim);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), maxClaim);
 
         vm.prank(governor);
-        agreementManager.setFundingBasis(IRecurringAgreementManager.FundingBasis.JustInTime);
+        agreementManager.setEscrowBasis(IRecurringAgreementManager.EscrowBasis.JustInTime);
         assertEq(agreementManager.getAgreementMaxNextClaim(agreementId), maxClaim);
         assertEq(agreementManager.getProviderAgreementCount(indexer), 1);
     }
@@ -604,8 +601,8 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
 
         // Switch to JustInTime and update escrow
         vm.prank(governor);
-        agreementManager.setFundingBasis(IRecurringAgreementManager.FundingBasis.JustInTime);
-        agreementManager.updateEscrow(address(recurringCollector), indexer);
+        agreementManager.setEscrowBasis(IRecurringAgreementManager.EscrowBasis.JustInTime);
+        agreementManager.updateEscrow(_collector(), indexer);
 
         IPaymentsEscrow.EscrowAccount memory account = paymentsEscrow.escrowAccounts(
             address(agreementManager),
@@ -647,7 +644,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
 
     function test_AfterCollection_ReconcileInOnDemandMode() public {
         vm.prank(governor);
-        agreementManager.setFundingBasis(IRecurringAgreementManager.FundingBasis.OnDemand);
+        agreementManager.setEscrowBasis(IRecurringAgreementManager.EscrowBasis.OnDemand);
 
         IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
             indexer,
@@ -670,7 +667,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         assertEq(newMaxClaim, 1 ether * 3600, "maxNextClaim = ongoing only after first collection");
     }
 
-    // ==================== PendingUpdate with totalRequired tracking ====================
+    // ==================== PendingUpdate with sumMaxNextClaim tracking ====================
 
     function test_GlobalTracking_PendingUpdate() public {
         IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
@@ -683,7 +680,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         bytes16 agreementId = _offerAgreement(rca);
         uint256 maxClaim = 1 ether * 3600 + 100 ether;
 
-        assertEq(agreementManager.getTotalRequired(), maxClaim);
+        assertEq(agreementManager.sumMaxNextClaimAll(), maxClaim);
 
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _makeRCAU(
             agreementId,
@@ -697,7 +694,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         _offerAgreementUpdate(rcau);
 
         uint256 pendingMaxClaim = 2 ether * 7200 + 200 ether;
-        assertEq(agreementManager.getTotalRequired(), maxClaim + pendingMaxClaim);
+        assertEq(agreementManager.sumMaxNextClaimAll(), maxClaim + pendingMaxClaim);
     }
 
     function test_GlobalTracking_ReplacePendingUpdate() public {
@@ -723,7 +720,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         _offerAgreementUpdate(rcau1);
 
         uint256 pendingMaxClaim1 = 2 ether * 7200 + 200 ether;
-        assertEq(agreementManager.getTotalRequired(), maxClaim + pendingMaxClaim1);
+        assertEq(agreementManager.sumMaxNextClaimAll(), maxClaim + pendingMaxClaim1);
 
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau2 = _makeRCAU(
             agreementId,
@@ -737,7 +734,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         _offerAgreementUpdate(rcau2);
 
         uint256 pendingMaxClaim2 = 0.5 ether * 1800 + 50 ether;
-        assertEq(agreementManager.getTotalRequired(), maxClaim + pendingMaxClaim2);
+        assertEq(agreementManager.sumMaxNextClaimAll(), maxClaim + pendingMaxClaim2);
     }
 
     // ==================== Upward Transitions ====================
@@ -745,7 +742,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
     function test_Transition_JustInTimeToFull() public {
         // Start in JIT (no deposits), switch to Full (deposits required)
         vm.prank(governor);
-        agreementManager.setFundingBasis(IRecurringAgreementManager.FundingBasis.JustInTime);
+        agreementManager.setEscrowBasis(IRecurringAgreementManager.EscrowBasis.JustInTime);
 
         IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
             indexer,
@@ -766,8 +763,8 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
 
         // Switch to Full
         vm.prank(governor);
-        agreementManager.setFundingBasis(IRecurringAgreementManager.FundingBasis.Full);
-        agreementManager.updateEscrow(address(recurringCollector), indexer);
+        agreementManager.setEscrowBasis(IRecurringAgreementManager.EscrowBasis.Full);
+        agreementManager.updateEscrow(_collector(), indexer);
 
         assertEq(
             paymentsEscrow.escrowAccounts(address(agreementManager), address(recurringCollector), indexer).balance,
@@ -790,8 +787,8 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
 
         // Switch to OnDemand — holds at required (no thaw for 1 agreement)
         vm.prank(governor);
-        agreementManager.setFundingBasis(IRecurringAgreementManager.FundingBasis.OnDemand);
-        agreementManager.updateEscrow(address(recurringCollector), indexer);
+        agreementManager.setEscrowBasis(IRecurringAgreementManager.EscrowBasis.OnDemand);
+        agreementManager.updateEscrow(_collector(), indexer);
 
         IPaymentsEscrow.EscrowAccount memory odAccount = paymentsEscrow.escrowAccounts(
             address(agreementManager),
@@ -802,8 +799,8 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
 
         // Switch back to Full — no change needed (already at required)
         vm.prank(governor);
-        agreementManager.setFundingBasis(IRecurringAgreementManager.FundingBasis.Full);
-        agreementManager.updateEscrow(address(recurringCollector), indexer);
+        agreementManager.setEscrowBasis(IRecurringAgreementManager.EscrowBasis.Full);
+        agreementManager.updateEscrow(_collector(), indexer);
 
         IPaymentsEscrow.EscrowAccount memory fullAccount = paymentsEscrow.escrowAccounts(
             address(agreementManager),
@@ -852,28 +849,29 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         // Switch to JustInTime while thaw is active — existing thaw continues,
         // remaining balance thaws after current thaw completes and is withdrawn
         vm.prank(governor);
-        agreementManager.setFundingBasis(IRecurringAgreementManager.FundingBasis.JustInTime);
-        agreementManager.updateEscrow(address(recurringCollector), indexer);
+        agreementManager.setEscrowBasis(IRecurringAgreementManager.EscrowBasis.JustInTime);
+        agreementManager.updateEscrow(_collector(), indexer);
 
         IPaymentsEscrow.EscrowAccount memory midCycle = paymentsEscrow.escrowAccounts(
             address(agreementManager),
             address(recurringCollector),
             indexer
         );
-        // Existing thaw continues (effective >= thawCeiling=0)
-        assertEq(midCycle.tokensThawing, maxClaimEach, "Existing thaw continues");
+        // Same-block increase is fine (no timer reset) — thaws everything
+        assertEq(midCycle.tokensThawing, 2 * maxClaimEach, "Same-block: thaw increased to full balance");
 
-        // Complete first thaw, withdraw, then second cycle thaws the rest
+        // Complete thaw, withdraw all
         vm.warp(block.timestamp + 2 days);
-        agreementManager.updateEscrow(address(recurringCollector), indexer);
+        agreementManager.updateEscrow(_collector(), indexer);
 
         IPaymentsEscrow.EscrowAccount memory afterWithdraw = paymentsEscrow.escrowAccounts(
             address(agreementManager),
             address(recurringCollector),
             indexer
         );
-        // After withdrawal, remaining balance starts thawing
-        assertEq(afterWithdraw.tokensThawing, afterWithdraw.balance, "JIT: all remaining balance thawing");
+        // Everything withdrawn in one cycle
+        assertEq(afterWithdraw.balance, 0, "JIT: all withdrawn");
+        assertEq(afterWithdraw.tokensThawing, 0, "JIT: nothing left to thaw");
     }
 
     // ==================== Enforced JIT ====================
@@ -897,7 +895,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
 
         // Request collection exceeding escrow balance
         vm.expectEmit(address(agreementManager));
-        emit IRecurringAgreementManager.EnforcedJit(IRecurringAgreementManager.FundingBasis.Full);
+        emit IRecurringAgreementManager.EnforcedJit(IRecurringAgreementManager.EscrowBasis.Full);
 
         vm.prank(address(recurringCollector));
         agreementManager.beforeCollection(agreementId, 1_000_000 ether);
@@ -905,16 +903,16 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         // Verify state
         assertTrue(agreementManager.isEnforcedJit(), "Enforced JIT should be tripped");
         assertEq(
-            uint256(agreementManager.getFundingBasis()),
-            uint256(IRecurringAgreementManager.FundingBasis.Full),
-            "Basis unchanged (enforced JIT overrides behavior, not fundingBasis)"
+            uint256(agreementManager.getEscrowBasis()),
+            uint256(IRecurringAgreementManager.EscrowBasis.Full),
+            "Basis unchanged (enforced JIT overrides behavior, not escrowBasis)"
         );
     }
 
     function test_EnforcedJit_PreservesBasisOnTrip() public {
-        // Set OnDemand, trip — fundingBasis should NOT change
+        // Set OnDemand, trip — escrowBasis should NOT change
         vm.prank(governor);
-        agreementManager.setFundingBasis(IRecurringAgreementManager.FundingBasis.OnDemand);
+        agreementManager.setEscrowBasis(IRecurringAgreementManager.EscrowBasis.OnDemand);
 
         IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
             indexer,
@@ -933,15 +931,15 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         }
 
         vm.expectEmit(address(agreementManager));
-        emit IRecurringAgreementManager.EnforcedJit(IRecurringAgreementManager.FundingBasis.OnDemand);
+        emit IRecurringAgreementManager.EnforcedJit(IRecurringAgreementManager.EscrowBasis.OnDemand);
 
         vm.prank(address(recurringCollector));
         agreementManager.beforeCollection(agreementId, 1_000_000 ether);
 
         // Basis stays OnDemand (not switched to JIT)
         assertEq(
-            uint256(agreementManager.getFundingBasis()),
-            uint256(IRecurringAgreementManager.FundingBasis.OnDemand),
+            uint256(agreementManager.getEscrowBasis()),
+            uint256(IRecurringAgreementManager.EscrowBasis.OnDemand),
             "Basis unchanged during trip"
         );
         assertTrue(agreementManager.isEnforcedJit());
@@ -1008,7 +1006,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
     function test_EnforcedJit_TripsEvenWhenAlreadyJustInTime() public {
         // Governor explicitly sets JIT
         vm.prank(governor);
-        agreementManager.setFundingBasis(IRecurringAgreementManager.FundingBasis.JustInTime);
+        agreementManager.setEscrowBasis(IRecurringAgreementManager.EscrowBasis.JustInTime);
 
         IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
             indexer,
@@ -1067,7 +1065,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
     }
 
     function test_EnforcedJit_RecoveryOnUpdateEscrow() public {
-        // Offer rca1 (fully funded), drain SAM, offer rca2 (creates unfunded deficit)
+        // Offer rca1 (fully deposited), drain SAM, offer rca2 (creates undeposited deficit)
         IRecurringCollector.RecurringCollectionAgreement memory rca1 = _makeRCAForIndexer(
             indexer,
             100 ether,
@@ -1091,33 +1089,33 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             2
         );
         vm.prank(operator);
-        agreementManager.offerAgreement(rca2, address(recurringCollector));
+        agreementManager.offerAgreement(rca2, _collector());
 
         // Trip enforced JIT
         vm.prank(address(recurringCollector));
         agreementManager.beforeCollection(agreementId, 1_000_000 ether);
         assertTrue(agreementManager.isEnforcedJit());
 
-        // Mint enough to cover totalUnfunded — triggers recovery
-        uint256 totalUnfunded = agreementManager.getTotalUnfunded();
-        assertTrue(0 < totalUnfunded, "Deficit exists");
-        token.mint(address(agreementManager), totalUnfunded);
+        // Mint enough to cover totalEscrowDeficit — triggers recovery
+        uint256 totalEscrowDeficit = agreementManager.getTotalEscrowDeficit();
+        assertTrue(0 < totalEscrowDeficit, "Deficit exists");
+        token.mint(address(agreementManager), totalEscrowDeficit);
 
         vm.expectEmit(address(agreementManager));
-        emit IRecurringAgreementManager.EnforcedJitRecovered(IRecurringAgreementManager.FundingBasis.Full);
+        emit IRecurringAgreementManager.EnforcedJitRecovered(IRecurringAgreementManager.EscrowBasis.Full);
 
-        agreementManager.updateEscrow(address(recurringCollector), indexer);
+        agreementManager.updateEscrow(_collector(), indexer);
 
         assertFalse(agreementManager.isEnforcedJit(), "Enforced JIT recovered");
         assertEq(
-            uint256(agreementManager.getFundingBasis()),
-            uint256(IRecurringAgreementManager.FundingBasis.Full),
+            uint256(agreementManager.getEscrowBasis()),
+            uint256(IRecurringAgreementManager.EscrowBasis.Full),
             "Basis still Full"
         );
     }
 
     function test_EnforcedJit_NoRecoveryWhenPartiallyFunded() public {
-        // Offer rca1 (fully funded), drain, offer rca2 (unfunded — creates deficit)
+        // Offer rca1 (fully deposited), drain, offer rca2 (undeposited — creates deficit)
         IRecurringCollector.RecurringCollectionAgreement memory rca1 = _makeRCAForIndexer(
             indexer,
             100 ether,
@@ -1141,33 +1139,33 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             2
         );
         vm.prank(operator);
-        agreementManager.offerAgreement(rca2, address(recurringCollector));
+        agreementManager.offerAgreement(rca2, _collector());
 
         // Trip
         vm.prank(address(recurringCollector));
         agreementManager.beforeCollection(agreementId, 1_000_000 ether);
         assertTrue(agreementManager.isEnforcedJit());
 
-        uint256 totalUnfunded = agreementManager.getTotalUnfunded();
-        assertTrue(0 < totalUnfunded, "totalUnfunded > 0");
+        uint256 totalEscrowDeficit = agreementManager.getTotalEscrowDeficit();
+        assertTrue(0 < totalEscrowDeficit, "totalEscrowDeficit > 0");
 
-        // Mint less than totalUnfunded — no recovery
-        token.mint(address(agreementManager), totalUnfunded / 2);
+        // Mint less than totalEscrowDeficit — no recovery
+        token.mint(address(agreementManager), totalEscrowDeficit / 2);
 
-        agreementManager.updateEscrow(address(recurringCollector), indexer);
+        agreementManager.updateEscrow(_collector(), indexer);
 
         assertTrue(agreementManager.isEnforcedJit(), "Still tripped (insufficient balance)");
         assertEq(
-            uint256(agreementManager.getFundingBasis()),
-            uint256(IRecurringAgreementManager.FundingBasis.Full),
+            uint256(agreementManager.getEscrowBasis()),
+            uint256(IRecurringAgreementManager.EscrowBasis.Full),
             "Basis unchanged"
         );
     }
 
-    function test_EnforcedJit_FundingBasisPreservedDuringTrip() public {
-        // Set OnDemand, trip, recover — fundingBasis stays OnDemand throughout
+    function test_EnforcedJit_EscrowBasisPreservedDuringTrip() public {
+        // Set OnDemand, trip, recover — escrowBasis stays OnDemand throughout
         vm.prank(governor);
-        agreementManager.setFundingBasis(IRecurringAgreementManager.FundingBasis.OnDemand);
+        agreementManager.setEscrowBasis(IRecurringAgreementManager.EscrowBasis.OnDemand);
 
         IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
             indexer,
@@ -1190,27 +1188,27 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         assertTrue(agreementManager.isEnforcedJit());
 
         assertEq(
-            uint256(agreementManager.getFundingBasis()),
-            uint256(IRecurringAgreementManager.FundingBasis.OnDemand),
+            uint256(agreementManager.getEscrowBasis()),
+            uint256(IRecurringAgreementManager.EscrowBasis.OnDemand),
             "Basis preserved during trip"
         );
 
         // Recovery
-        token.mint(address(agreementManager), agreementManager.getTotalRequired());
+        token.mint(address(agreementManager), agreementManager.sumMaxNextClaimAll());
 
         vm.expectEmit(address(agreementManager));
-        emit IRecurringAgreementManager.EnforcedJitRecovered(IRecurringAgreementManager.FundingBasis.OnDemand);
+        emit IRecurringAgreementManager.EnforcedJitRecovered(IRecurringAgreementManager.EscrowBasis.OnDemand);
 
-        agreementManager.updateEscrow(address(recurringCollector), indexer);
+        agreementManager.updateEscrow(_collector(), indexer);
         assertFalse(agreementManager.isEnforcedJit());
         assertEq(
-            uint256(agreementManager.getFundingBasis()),
-            uint256(IRecurringAgreementManager.FundingBasis.OnDemand),
+            uint256(agreementManager.getEscrowBasis()),
+            uint256(IRecurringAgreementManager.EscrowBasis.OnDemand),
             "Basis still OnDemand after recovery"
         );
     }
 
-    function test_EnforcedJit_SetFundingBasisClearsBreaker() public {
+    function test_EnforcedJit_SetEscrowBasisClearsBreaker() public {
         IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
             indexer,
             100 ether,
@@ -1231,20 +1229,20 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         agreementManager.beforeCollection(agreementId, 1_000_000 ether);
         assertTrue(agreementManager.isEnforcedJit());
 
-        // Governor manually sets basis — clears enforced JIT
+        // Governor sets basis — enforcedJit remains (cleared by recovery, not by setBasis)
         vm.prank(governor);
-        agreementManager.setFundingBasis(IRecurringAgreementManager.FundingBasis.OnDemand);
+        agreementManager.setEscrowBasis(IRecurringAgreementManager.EscrowBasis.OnDemand);
 
-        assertFalse(agreementManager.isEnforcedJit(), "Governor cleared breaker");
+        assertTrue(agreementManager.isEnforcedJit(), "Breaker persists until recovery");
         assertEq(
-            uint256(agreementManager.getFundingBasis()),
-            uint256(IRecurringAgreementManager.FundingBasis.OnDemand),
+            uint256(agreementManager.getEscrowBasis()),
+            uint256(IRecurringAgreementManager.EscrowBasis.OnDemand),
             "Governor's chosen basis"
         );
     }
 
     function test_EnforcedJit_MultipleTripRecoverCycles() public {
-        // Offer rca1 (funded), drain SAM, offer rca2 (unfunded — creates deficit)
+        // Offer rca1 (deposited), drain SAM, offer rca2 (undeposited — creates deficit)
         IRecurringCollector.RecurringCollectionAgreement memory rca1 = _makeRCAForIndexer(
             indexer,
             100 ether,
@@ -1268,10 +1266,10 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             2
         );
         vm.prank(operator);
-        agreementManager.offerAgreement(rca2, address(recurringCollector));
+        agreementManager.offerAgreement(rca2, _collector());
 
-        uint256 unfunded = agreementManager.getTotalUnfunded();
-        assertTrue(0 < unfunded, "Has unfunded deficit");
+        uint256 undeposited = agreementManager.getTotalEscrowDeficit();
+        assertTrue(0 < undeposited, "Has undeposited deficit");
 
         // --- Cycle 1: Trip ---
         vm.prank(address(recurringCollector));
@@ -1279,10 +1277,10 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         assertTrue(agreementManager.isEnforcedJit());
 
         // --- Cycle 1: Recover ---
-        token.mint(address(agreementManager), unfunded);
-        agreementManager.updateEscrow(address(recurringCollector), indexer);
+        token.mint(address(agreementManager), undeposited);
+        agreementManager.updateEscrow(_collector(), indexer);
         assertFalse(agreementManager.isEnforcedJit());
-        assertEq(uint256(agreementManager.getFundingBasis()), uint256(IRecurringAgreementManager.FundingBasis.Full));
+        assertEq(uint256(agreementManager.getEscrowBasis()), uint256(IRecurringAgreementManager.EscrowBasis.Full));
 
         // After recovery, updateEscrow deposited into escrow. Drain again and create new deficit.
         samBalance = token.balanceOf(address(agreementManager));
@@ -1299,10 +1297,10 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             3
         );
         vm.prank(operator);
-        agreementManager.offerAgreement(rca3, address(recurringCollector));
+        agreementManager.offerAgreement(rca3, _collector());
 
-        unfunded = agreementManager.getTotalUnfunded();
-        assertTrue(0 < unfunded, "New unfunded deficit");
+        undeposited = agreementManager.getTotalEscrowDeficit();
+        assertTrue(0 < undeposited, "New undeposited deficit");
 
         // --- Cycle 2: Trip ---
         vm.prank(address(recurringCollector));
@@ -1310,14 +1308,14 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         assertTrue(agreementManager.isEnforcedJit());
 
         // --- Cycle 2: Recover ---
-        token.mint(address(agreementManager), unfunded);
-        agreementManager.updateEscrow(address(recurringCollector), indexer);
+        token.mint(address(agreementManager), undeposited);
+        agreementManager.updateEscrow(_collector(), indexer);
         assertFalse(agreementManager.isEnforcedJit());
-        assertEq(uint256(agreementManager.getFundingBasis()), uint256(IRecurringAgreementManager.FundingBasis.Full));
+        assertEq(uint256(agreementManager.getEscrowBasis()), uint256(IRecurringAgreementManager.EscrowBasis.Full));
     }
 
     function test_EnforcedJit_MultiProvider() public {
-        // Offer rca1 (funded), drain SAM, offer rca2 (creates deficit → totalUnfunded > 0)
+        // Offer rca1 (deposited), drain SAM, offer rca2 (creates deficit → totalEscrowDeficit > 0)
         IRecurringCollector.RecurringCollectionAgreement memory rca1 = _makeRCAForIndexer(
             indexer,
             100 ether,
@@ -1327,14 +1325,14 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         );
         bytes16 id1 = _offerAgreement(rca1);
 
-        // Drain SAM so rca2 can't be funded
+        // Drain SAM so rca2 can't be deposited
         uint256 samBalance = token.balanceOf(address(agreementManager));
         if (0 < samBalance) {
             vm.prank(address(agreementManager));
             token.transfer(address(1), samBalance);
         }
 
-        // Offer rca2 directly (no mint) — escrow stays unfunded, creates deficit
+        // Offer rca2 directly (no mint) — escrow stays undeposited, creates deficit
         IRecurringCollector.RecurringCollectionAgreement memory rca2 = _makeRCAForIndexer(
             indexer2,
             100 ether,
@@ -1343,8 +1341,8 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             2
         );
         vm.prank(operator);
-        agreementManager.offerAgreement(rca2, address(recurringCollector));
-        assertTrue(0 < agreementManager.getTotalUnfunded(), "should have unfunded escrow");
+        agreementManager.offerAgreement(rca2, _collector());
+        assertTrue(0 < agreementManager.getTotalEscrowDeficit(), "should have undeposited escrow");
 
         // Trip via indexer's agreement
         vm.prank(address(recurringCollector));
@@ -1352,8 +1350,8 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         assertTrue(agreementManager.isEnforcedJit());
 
         // Both providers should see JIT behavior (thaw everything)
-        agreementManager.updateEscrow(address(recurringCollector), indexer);
-        agreementManager.updateEscrow(address(recurringCollector), indexer2);
+        agreementManager.updateEscrow(_collector(), indexer);
+        agreementManager.updateEscrow(_collector(), indexer2);
 
         IPaymentsEscrow.EscrowAccount memory acc1 = paymentsEscrow.escrowAccounts(
             address(agreementManager),

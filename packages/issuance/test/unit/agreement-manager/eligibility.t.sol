@@ -10,6 +10,7 @@ import { MockEligibilityOracle } from "./mocks/MockEligibilityOracle.sol";
 /// @notice Tests for payment eligibility oracle in RecurringAgreementManager
 contract RecurringAgreementManagerEligibilityTest is RecurringAgreementManagerSharedTest {
     MockEligibilityOracle internal oracle;
+    IRewardsEligibility internal constant NO_ORACLE = IRewardsEligibility(address(0));
 
     function setUp() public override {
         super.setUp();
@@ -23,29 +24,43 @@ contract RecurringAgreementManagerEligibilityTest is RecurringAgreementManagerSh
 
     function test_SetPaymentEligibilityOracle() public {
         vm.expectEmit(address(agreementManager));
-        emit IRecurringAgreementManager.PaymentEligibilityOracleSet(address(0), address(oracle));
+        emit IRecurringAgreementManager.PaymentEligibilityOracleSet(NO_ORACLE, oracle);
 
         vm.prank(governor);
-        agreementManager.setPaymentEligibilityOracle(address(oracle));
+        agreementManager.setPaymentEligibilityOracle(oracle);
     }
 
     function test_SetPaymentEligibilityOracle_DisableWithZeroAddress() public {
         // First set an oracle
         vm.prank(governor);
-        agreementManager.setPaymentEligibilityOracle(address(oracle));
+        agreementManager.setPaymentEligibilityOracle(oracle);
 
         // Then disable it
         vm.expectEmit(address(agreementManager));
-        emit IRecurringAgreementManager.PaymentEligibilityOracleSet(address(oracle), address(0));
+        emit IRecurringAgreementManager.PaymentEligibilityOracleSet(oracle, NO_ORACLE);
 
         vm.prank(governor);
-        agreementManager.setPaymentEligibilityOracle(address(0));
+        agreementManager.setPaymentEligibilityOracle(NO_ORACLE);
+    }
+
+    function test_SetPaymentEligibilityOracle_NoopWhenSameOracle() public {
+        // Set oracle
+        vm.prank(governor);
+        agreementManager.setPaymentEligibilityOracle(oracle);
+
+        // Set same oracle again — early return, no event
+        vm.prank(governor);
+        agreementManager.setPaymentEligibilityOracle(oracle);
+
+        // Oracle still works (confirms state unchanged)
+        oracle.setEligible(indexer, true);
+        assertTrue(agreementManager.isEligible(indexer));
     }
 
     function test_SetPaymentEligibilityOracle_Revert_WhenNotGovernor() public {
         vm.expectRevert();
         vm.prank(operator);
-        agreementManager.setPaymentEligibilityOracle(address(oracle));
+        agreementManager.setPaymentEligibilityOracle(oracle);
     }
 
     // -- isEligible passthrough tests --
@@ -59,7 +74,7 @@ contract RecurringAgreementManagerEligibilityTest is RecurringAgreementManagerSh
         oracle.setEligible(indexer, true);
 
         vm.prank(governor);
-        agreementManager.setPaymentEligibilityOracle(address(oracle));
+        agreementManager.setPaymentEligibilityOracle(oracle);
 
         assertTrue(agreementManager.isEligible(indexer));
     }
@@ -68,7 +83,7 @@ contract RecurringAgreementManagerEligibilityTest is RecurringAgreementManagerSh
         // indexer not set as eligible, default is false
 
         vm.prank(governor);
-        agreementManager.setPaymentEligibilityOracle(address(oracle));
+        agreementManager.setPaymentEligibilityOracle(oracle);
 
         assertFalse(agreementManager.isEligible(indexer));
     }
@@ -76,12 +91,12 @@ contract RecurringAgreementManagerEligibilityTest is RecurringAgreementManagerSh
     function test_IsEligible_TrueAfterOracleDisabled() public {
         // Set oracle that denies indexer
         vm.prank(governor);
-        agreementManager.setPaymentEligibilityOracle(address(oracle));
+        agreementManager.setPaymentEligibilityOracle(oracle);
         assertFalse(agreementManager.isEligible(indexer));
 
         // Disable oracle
         vm.prank(governor);
-        agreementManager.setPaymentEligibilityOracle(address(0));
+        agreementManager.setPaymentEligibilityOracle(NO_ORACLE);
         assertTrue(agreementManager.isEligible(indexer));
     }
 

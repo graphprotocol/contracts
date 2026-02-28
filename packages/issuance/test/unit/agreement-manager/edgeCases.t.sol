@@ -43,9 +43,13 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         );
         rca.dataService = eoa;
 
+        // Grant DATA_SERVICE_ROLE so the offer goes through
+        vm.prank(governor);
+        agreementManager.grantRole(DATA_SERVICE_ROLE, eoa);
+
         token.mint(address(agreementManager), 1_000_000 ether);
         vm.prank(operator);
-        bytes16 agreementId = agreementManager.offerAgreement(rca, address(recurringCollector));
+        bytes16 agreementId = agreementManager.offerAgreement(rca, _collector());
 
         // Set as Accepted so it takes the cancel-via-dataService path
         recurringCollector.setAgreement(
@@ -328,7 +332,7 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         // maxNextClaim = 1e18 * 3600 + 0 = 3600e18
         uint256 expectedMaxClaim = 1 ether * 3600;
         assertEq(agreementManager.getAgreementMaxNextClaim(agreementId), expectedMaxClaim);
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), expectedMaxClaim);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), expectedMaxClaim);
     }
 
     function test_Offer_ZeroOngoingTokensPerSecond() public {
@@ -344,7 +348,7 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
 
         // maxNextClaim = 0 * 3600 + 100e18 = 100e18
         assertEq(agreementManager.getAgreementMaxNextClaim(agreementId), 100 ether);
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), 100 ether);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), 100 ether);
     }
 
     function test_Offer_AllZeroValues() public {
@@ -360,7 +364,7 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
 
         // maxNextClaim = 0 * 0 + 0 = 0
         assertEq(agreementManager.getAgreementMaxNextClaim(agreementId), 0);
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), 0);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), 0);
         assertEq(agreementManager.getProviderAgreementCount(indexer), 1);
     }
 
@@ -449,7 +453,7 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
 
         // getMaxNextClaim returns 0 when collectionEnd <= collectionStart
         assertEq(agreementManager.getAgreementMaxNextClaim(agreementId), 0);
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), 0);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), 0);
     }
 
     // ==================== Cancel Edge Cases ====================
@@ -489,13 +493,13 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
 
         // Don't fund the contract — zero token balance
         vm.prank(operator);
-        bytes16 agreementId = agreementManager.offerAgreement(rca, address(recurringCollector));
+        bytes16 agreementId = agreementManager.offerAgreement(rca, _collector());
 
         uint256 maxClaim = 1 ether * 3600 + 100 ether;
 
         // Agreement is tracked even though escrow couldn't be funded
         assertEq(agreementManager.getAgreementMaxNextClaim(agreementId), maxClaim);
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), maxClaim);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), maxClaim);
 
         // Escrow has zero balance
         assertEq(
@@ -503,8 +507,8 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
             0
         );
 
-        // Full deficit
-        assertEq(agreementManager.getDeficit(address(recurringCollector), indexer), maxClaim);
+        // Escrow balance is 0
+        assertEq(agreementManager.getEscrowAccount(_collector(), indexer).balance, 0);
     }
 
     // ==================== ReconcileBatch Edge Cases ====================
@@ -561,8 +565,8 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         agreementHelper.reconcileBatch(ids);
 
         // All reconciled to 0
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), 0);
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer2), 0);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), 0);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer2), 0);
     }
 
     function test_ReconcileBatch_EmptyArray() public {
@@ -598,16 +602,16 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         agreementManager.removeAgreement(agreementId);
 
         // First updateEscrow: initiates thaw
-        agreementManager.updateEscrow(address(recurringCollector), indexer);
+        agreementManager.updateEscrow(_collector(), indexer);
 
         // Warp past mock's thawing period (1 day)
         vm.warp(block.timestamp + 1 days + 1);
 
         // Second updateEscrow: withdraws thawed tokens, then no more to thaw
-        agreementManager.updateEscrow(address(recurringCollector), indexer);
+        agreementManager.updateEscrow(_collector(), indexer);
 
         // Third updateEscrow: should be a no-op (nothing to thaw or withdraw)
-        agreementManager.updateEscrow(address(recurringCollector), indexer);
+        agreementManager.updateEscrow(_collector(), indexer);
     }
 
     // ==================== Multiple Pending Update Replacements ====================
@@ -641,8 +645,8 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         bytes32 zeroHash = recurringCollector.hashRCAU(rcau1);
         // Zero-value hash should still be authorized
         assertEq(agreementManager.approveAgreement(zeroHash), IContractApprover.approveAgreement.selector);
-        // requiredEscrow should be unchanged (original + 0)
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), originalMaxClaim);
+        // sumMaxNextClaim should be unchanged (original + 0)
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), originalMaxClaim);
 
         // Replace with a non-zero update — the old zero-value hash must be cleaned up
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau2 = _makeRCAU(
@@ -664,10 +668,7 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         assertEq(agreementManager.approveAgreement(newHash), IContractApprover.approveAgreement.selector);
 
         uint256 pendingMaxClaim = 2 ether * 7200 + 200 ether;
-        assertEq(
-            agreementManager.getRequiredEscrow(address(recurringCollector), indexer),
-            originalMaxClaim + pendingMaxClaim
-        );
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), originalMaxClaim + pendingMaxClaim);
     }
 
     function test_Reconcile_ZeroValuePendingUpdate_ClearedWhenApplied() public {
@@ -742,19 +743,19 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         // 1. Offer
         bytes16 agreementId = _offerAgreement(rca);
         uint256 maxClaim = 1 ether * 3600 + 100 ether;
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), maxClaim);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), maxClaim);
         assertEq(agreementManager.getProviderAgreementCount(indexer), 1);
 
         // 2. SP cancels and remove
         _setAgreementCanceledBySP(agreementId, rca);
         agreementManager.removeAgreement(agreementId);
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), 0);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), 0);
         assertEq(agreementManager.getProviderAgreementCount(indexer), 0);
 
         // 3. Re-offer the same agreement (same parameters, same agreementId)
         bytes16 reofferedId = _offerAgreement(rca);
         assertEq(reofferedId, agreementId);
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), maxClaim);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), maxClaim);
         assertEq(agreementManager.getProviderAgreementCount(indexer), 1);
 
         // 4. Verify the re-offered agreement is fully functional
@@ -798,7 +799,7 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         assertTrue(id1 != id2);
 
         uint256 maxClaim2 = 2 ether * 7200 + 200 ether;
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), maxClaim2);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), maxClaim2);
         assertEq(agreementManager.getProviderAgreementCount(indexer), 1);
     }
 
@@ -817,7 +818,7 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         token.mint(address(agreementManager), 1_000_000 ether);
         vm.expectRevert(IRecurringAgreementManager.ServiceProviderZeroAddress.selector);
         vm.prank(operator);
-        agreementManager.offerAgreement(rca, address(recurringCollector));
+        agreementManager.offerAgreement(rca, _collector());
     }
 
     function test_Offer_Revert_ZeroDataService() public {
@@ -831,9 +832,11 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         rca.dataService = address(0);
 
         token.mint(address(agreementManager), 1_000_000 ether);
-        vm.expectRevert(IRecurringAgreementManager.DataServiceZeroAddress.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(IRecurringAgreementManager.UnauthorizedDataService.selector, address(0))
+        );
         vm.prank(operator);
-        agreementManager.offerAgreement(rca, address(recurringCollector));
+        agreementManager.offerAgreement(rca, _collector());
     }
 
     // ==================== getProviderAgreements ====================
@@ -953,6 +956,45 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         assertEq(indexer2Ids[0], id2);
     }
 
+    function test_GetIndexerAgreements_Paginated() public {
+        IRecurringCollector.RecurringCollectionAgreement memory rca1 = _makeRCA(
+            100 ether,
+            1 ether,
+            60,
+            3600,
+            uint64(block.timestamp + 365 days)
+        );
+        rca1.nonce = 1;
+
+        IRecurringCollector.RecurringCollectionAgreement memory rca2 = _makeRCA(
+            200 ether,
+            2 ether,
+            60,
+            7200,
+            uint64(block.timestamp + 365 days)
+        );
+        rca2.nonce = 2;
+
+        bytes16 id1 = _offerAgreement(rca1);
+        bytes16 id2 = _offerAgreement(rca2);
+
+        // Full range returns both
+        bytes16[] memory all = agreementManager.getProviderAgreements(indexer, 0, 10);
+        assertEq(all.length, 2);
+        assertEq(all[0], id1);
+        assertEq(all[1], id2);
+
+        // Offset skips first
+        bytes16[] memory fromOne = agreementManager.getProviderAgreements(indexer, 1, 10);
+        assertEq(fromOne.length, 1);
+        assertEq(fromOne[0], id2);
+
+        // Count limits result
+        bytes16[] memory firstOnly = agreementManager.getProviderAgreements(indexer, 0, 1);
+        assertEq(firstOnly.length, 1);
+        assertEq(firstOnly[0], id1);
+    }
+
     // ==================== Cancel Event Behavior ====================
 
     function test_CancelAgreement_NoEvent_WhenAlreadyCanceled() public {
@@ -1030,7 +1072,7 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         );
         _offerAgreementUpdate(rcau1);
         uint256 pending1 = 2 ether * 7200 + 200 ether;
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), originalMaxClaim + pending1);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), originalMaxClaim + pending1);
 
         // Update 2 replaces 1
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau2 = _makeRCAU(
@@ -1044,7 +1086,7 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         );
         _offerAgreementUpdate(rcau2);
         uint256 pending2 = 0.5 ether * 1800 + 50 ether;
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), originalMaxClaim + pending2);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), originalMaxClaim + pending2);
 
         // Update 3 replaces 2
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau3 = _makeRCAU(
@@ -1058,7 +1100,7 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         );
         _offerAgreementUpdate(rcau3);
         uint256 pending3 = 3 ether * 3600 + 300 ether;
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), originalMaxClaim + pending3);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), originalMaxClaim + pending3);
 
         // Only hash for update 3 should be authorized
         bytes32 hash1 = recurringCollector.hashRCAU(rcau1);

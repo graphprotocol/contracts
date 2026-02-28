@@ -7,6 +7,7 @@ import { IRewardsEligibilityAdministration } from "@graphprotocol/interfaces/con
 import { IRewardsEligibilityReporting } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibilityReporting.sol";
 import { IRewardsEligibilityStatus } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibilityStatus.sol";
 import { BaseUpgradeable } from "../common/BaseUpgradeable.sol";
+import { IGraphToken } from "../common/IGraphToken.sol";
 
 /**
  * @title RewardsEligibilityOracle
@@ -91,10 +92,10 @@ contract RewardsEligibilityOracle is
      * @notice Constructor for the RewardsEligibilityOracle contract
      * @dev This contract is upgradeable, but we use the constructor to pass the Graph Token address
      * to the base contract.
-     * @param graphToken Address of the Graph Token contract
+     * @param graphToken The Graph Token contract
      * @custom:oz-upgrades-unsafe-allow constructor
      */
-    constructor(address graphToken) BaseUpgradeable(graphToken) {}
+    constructor(IGraphToken graphToken) BaseUpgradeable(graphToken) {}
 
     // -- Initialization --
 

@@ -6,6 +6,7 @@ import { Test } from "forge-std/Test.sol";
 import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 import { RewardsEligibilityOracle } from "../../../contracts/eligibility/RewardsEligibilityOracle.sol";
+import { IGraphToken } from "../../../contracts/common/IGraphToken.sol";
 import { MockGraphToken } from "../mocks/MockGraphToken.sol";
 
 /// @notice Shared test setup for RewardsEligibilityOracle tests.
@@ -46,7 +47,7 @@ contract RewardsEligibilityOracleSharedTest is Test {
         token = new MockGraphToken();
 
         // Deploy RewardsEligibilityOracle behind proxy
-        RewardsEligibilityOracle impl = new RewardsEligibilityOracle(address(token));
+        RewardsEligibilityOracle impl = new RewardsEligibilityOracle(IGraphToken(address(token)));
         bytes memory initData = abi.encodeCall(RewardsEligibilityOracle.initialize, (governor));
         TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(impl), address(this), initData);
         oracle = RewardsEligibilityOracle(address(proxy));

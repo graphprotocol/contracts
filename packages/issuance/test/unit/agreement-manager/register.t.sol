@@ -26,7 +26,7 @@ contract RecurringAgreementManagerOfferTest is RecurringAgreementManagerSharedTe
         // = 1e18 * 3600 + 100e18 = 3700e18
         uint256 expectedMaxClaim = 1 ether * 3600 + 100 ether;
         assertEq(agreementManager.getAgreementMaxNextClaim(agreementId), expectedMaxClaim);
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), expectedMaxClaim);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), expectedMaxClaim);
         assertEq(agreementManager.getProviderAgreementCount(indexer), 1);
     }
 
@@ -41,10 +41,10 @@ contract RecurringAgreementManagerOfferTest is RecurringAgreementManagerSharedTe
 
         uint256 expectedMaxClaim = 1 ether * 3600 + 100 ether;
 
-        // Fund and register
-        token.mint(address(agreementManager), expectedMaxClaim);
+        // Fund with surplus so Full mode stays active (deficit < balance required)
+        token.mint(address(agreementManager), expectedMaxClaim + 1);
         vm.prank(operator);
-        agreementManager.offerAgreement(rca, address(recurringCollector));
+        agreementManager.offerAgreement(rca, _collector());
 
         // Verify escrow was funded
         assertEq(
@@ -68,7 +68,7 @@ contract RecurringAgreementManagerOfferTest is RecurringAgreementManagerSharedTe
         // Fund with less than needed
         token.mint(address(agreementManager), available);
         vm.prank(operator);
-        agreementManager.offerAgreement(rca, address(recurringCollector));
+        agreementManager.offerAgreement(rca, _collector());
 
         // Since available < required, Full degrades to OnDemand (deposit target = 0).
         // No proactive deposit; JIT beforeCollection is the safety net.
@@ -76,8 +76,8 @@ contract RecurringAgreementManagerOfferTest is RecurringAgreementManagerSharedTe
             paymentsEscrow.escrowAccounts(address(agreementManager), address(recurringCollector), indexer).balance,
             0
         );
-        // Deficit is full required since no deposit was made
-        assertEq(agreementManager.getDeficit(address(recurringCollector), indexer), expectedMaxClaim);
+        // Escrow balance is 0 since no deposit was made
+        assertEq(agreementManager.getEscrowAccount(_collector(), indexer).balance, 0);
     }
 
     function test_Offer_EmitsEvent() public {
@@ -104,7 +104,7 @@ contract RecurringAgreementManagerOfferTest is RecurringAgreementManagerSharedTe
         emit IRecurringAgreementManager.AgreementOffered(expectedId, indexer, expectedMaxClaim);
 
         vm.prank(operator);
-        agreementManager.offerAgreement(rca, address(recurringCollector));
+        agreementManager.offerAgreement(rca, _collector());
     }
 
     function test_Offer_AuthorizesHash() public {
@@ -151,7 +151,7 @@ contract RecurringAgreementManagerOfferTest is RecurringAgreementManagerSharedTe
 
         uint256 maxClaim1 = 1 ether * 3600 + 100 ether;
         uint256 maxClaim2 = 2 ether * 7200 + 200 ether;
-        assertEq(agreementManager.getRequiredEscrow(address(recurringCollector), indexer), maxClaim1 + maxClaim2);
+        assertEq(agreementManager.sumMaxNextClaim(_collector(), indexer), maxClaim1 + maxClaim2);
     }
 
     function test_Offer_Revert_WhenPayerMismatch() public {
@@ -172,7 +172,7 @@ contract RecurringAgreementManagerOfferTest is RecurringAgreementManagerSharedTe
             )
         );
         vm.prank(operator);
-        agreementManager.offerAgreement(rca, address(recurringCollector));
+        agreementManager.offerAgreement(rca, _collector());
     }
 
     function test_Offer_Revert_WhenAlreadyOffered() public {
@@ -190,7 +190,7 @@ contract RecurringAgreementManagerOfferTest is RecurringAgreementManagerSharedTe
             abi.encodeWithSelector(IRecurringAgreementManager.AgreementAlreadyOffered.selector, agreementId)
         );
         vm.prank(operator);
-        agreementManager.offerAgreement(rca, address(recurringCollector));
+        agreementManager.offerAgreement(rca, _collector());
     }
 
     function test_Offer_Revert_WhenNotOperator() public {
@@ -207,7 +207,25 @@ contract RecurringAgreementManagerOfferTest is RecurringAgreementManagerSharedTe
             abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, nonOperator, OPERATOR_ROLE)
         );
         vm.prank(nonOperator);
-        agreementManager.offerAgreement(rca, address(recurringCollector));
+        agreementManager.offerAgreement(rca, _collector());
+    }
+
+    function test_Offer_Revert_WhenUnauthorizedCollector() public {
+        IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCA(
+            100 ether,
+            1 ether,
+            60,
+            3600,
+            uint64(block.timestamp + 365 days)
+        );
+
+        address fakeCollector = makeAddr("fakeCollector");
+        token.mint(address(agreementManager), 10_000 ether);
+        vm.expectRevert(
+            abi.encodeWithSelector(IRecurringAgreementManager.UnauthorizedCollector.selector, fakeCollector)
+        );
+        vm.prank(operator);
+        agreementManager.offerAgreement(rca, IRecurringCollector(fakeCollector));
     }
 
     function test_Offer_Revert_WhenPaused() public {
@@ -227,7 +245,7 @@ contract RecurringAgreementManagerOfferTest is RecurringAgreementManagerSharedTe
 
         vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
         vm.prank(operator);
-        agreementManager.offerAgreement(rca, address(recurringCollector));
+        agreementManager.offerAgreement(rca, _collector());
     }
 
     /* solhint-enable graph/func-name-mixedcase */
