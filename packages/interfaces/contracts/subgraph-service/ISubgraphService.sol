@@ -3,8 +3,10 @@ pragma solidity ^0.8.22;
 
 import { IDataServiceFees } from "../data-service/IDataServiceFees.sol";
 import { IGraphPayments } from "../horizon/IGraphPayments.sol";
+import { IRecurringCollector } from "../horizon/IRecurringCollector.sol";
 
 import { IAllocation } from "./internal/IAllocation.sol";
+import { IIndexingAgreement } from "./internal/IIndexingAgreement.sol";
 import { ILegacyAllocation } from "./internal/ILegacyAllocation.sol";
 
 /**
@@ -69,10 +71,23 @@ interface ISubgraphService is IDataServiceFees {
     // solhint-disable-previous-line gas-indexed-events
 
     /**
+     * @notice Emitted when indexing fees cut is set
+     * @param indexingFeesCut The indexing fees cut
+     */
+    event IndexingFeesCutSet(uint256 indexingFeesCut);
+    // solhint-disable-previous-line gas-indexed-events
+
+    /**
      * @notice Thrown when trying to set a curation cut that is not a valid PPM value
      * @param curationCut The curation cut value
      */
     error SubgraphServiceInvalidCurationCut(uint256 curationCut);
+
+    /**
+     * @notice Thrown when trying to set an indexing fees cut that is not a valid PPM value
+     * @param indexingFeesCut The indexing fees cut value
+     */
+    error SubgraphServiceInvalidIndexingFeesCut(uint256 indexingFeesCut);
 
     /**
      * @notice Thrown when an indexer tries to register with an empty URL
@@ -104,7 +119,7 @@ interface ISubgraphService is IDataServiceFees {
     error SubgraphServiceInconsistentCollection(uint256 balanceBefore, uint256 balanceAfter);
 
     /**
-     * @notice @notice Thrown when the service provider in the RAV does not match the expected indexer.
+     * @notice @notice Thrown when the service provider does not match the expected indexer.
      * @param providedIndexer The address of the provided indexer.
      * @param expectedIndexer The address of the expected indexer.
      */
@@ -247,11 +262,58 @@ interface ISubgraphService is IDataServiceFees {
     function setCurationCut(uint256 curationCut) external;
 
     /**
+     * @notice Sets the data service payment cut for indexing fees
+     * @dev Emits a {IndexingFeesCutSet} event
+     * @param indexingFeesCut The indexing fees cut for the payment type
+     */
+    function setIndexingFeesCut(uint256 indexingFeesCut) external;
+
+    /**
      * @notice Sets the payments destination for an indexer to receive payments
      * @dev Emits a {PaymentsDestinationSet} event
      * @param newPaymentsDestination The address where payments should be sent
      */
     function setPaymentsDestination(address newPaymentsDestination) external;
+
+    /**
+     * @notice Accept an indexing agreement.
+     * @param allocationId The id of the allocation
+     * @param signedRCA The signed recurring collector agreement (RCA) that the indexer accepts
+     * @return agreementId The ID of the accepted indexing agreement
+     */
+    function acceptIndexingAgreement(
+        address allocationId,
+        IRecurringCollector.SignedRCA calldata signedRCA
+    ) external returns (bytes16);
+
+    /**
+     * @notice Update an indexing agreement.
+     * @param indexer The address of the indexer
+     * @param signedRCAU The signed recurring collector agreement update (RCAU) that the indexer accepts
+     */
+    function updateIndexingAgreement(address indexer, IRecurringCollector.SignedRCAU calldata signedRCAU) external;
+
+    /**
+     * @notice Cancel an indexing agreement by indexer / operator.
+     * @param indexer The address of the indexer
+     * @param agreementId The id of the indexing agreement
+     */
+    function cancelIndexingAgreement(address indexer, bytes16 agreementId) external;
+
+    /**
+     * @notice Cancel an indexing agreement by payer / signer.
+     * @param agreementId The id of the indexing agreement
+     */
+    function cancelIndexingAgreementByPayer(bytes16 agreementId) external;
+
+    /**
+     * @notice Get the indexing agreement for a given agreement ID.
+     * @param agreementId The id of the indexing agreement
+     * @return The indexing agreement details
+     */
+    function getIndexingAgreement(
+        bytes16 agreementId
+    ) external view returns (IIndexingAgreement.AgreementWrapper memory);
 
     /**
      * @notice Gets the details of an allocation
