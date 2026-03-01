@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import { MathUtils } from "@graphprotocol/horizon/contracts/libraries/MathUtils.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 import { IDisputeManager } from "@graphprotocol/interfaces/contracts/subgraph-service/IDisputeManager.sol";
 import { IAttestation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAttestation.sol";
@@ -203,81 +203,6 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         return _disputeId;
     }
 
-    struct Balances {
-        uint256 indexer;
-        uint256 fisherman;
-        uint256 arbitrator;
-        uint256 disputeManager;
-        uint256 staking;
-    }
-
-    function _createAndAcceptLegacyDispute(
-        address _allocationId,
-        address _fisherman,
-        uint256 _tokensSlash,
-        uint256 _tokensRewards
-    ) internal returns (bytes32) {
-        (, address arbitrator, ) = vm.readCallers();
-        address indexer = staking.getAllocation(_allocationId).indexer;
-
-        Balances memory beforeBalances = Balances({
-            indexer: token.balanceOf(indexer),
-            fisherman: token.balanceOf(_fisherman),
-            arbitrator: token.balanceOf(arbitrator),
-            disputeManager: token.balanceOf(address(disputeManager)),
-            staking: token.balanceOf(address(staking))
-        });
-
-        vm.expectEmit(address(disputeManager));
-        emit IDisputeManager.LegacyDisputeCreated(
-            keccak256(abi.encodePacked(_allocationId, "legacy")),
-            indexer,
-            _fisherman,
-            _allocationId,
-            _tokensSlash,
-            _tokensRewards
-        );
-        vm.expectEmit(address(disputeManager));
-        emit IDisputeManager.DisputeAccepted(
-            keccak256(abi.encodePacked(_allocationId, "legacy")),
-            indexer,
-            _fisherman,
-            _tokensRewards
-        );
-        bytes32 _disputeId = disputeManager.createAndAcceptLegacyDispute(
-            _allocationId,
-            _fisherman,
-            _tokensSlash,
-            _tokensRewards
-        );
-
-        Balances memory afterBalances = Balances({
-            indexer: token.balanceOf(indexer),
-            fisherman: token.balanceOf(_fisherman),
-            arbitrator: token.balanceOf(arbitrator),
-            disputeManager: token.balanceOf(address(disputeManager)),
-            staking: token.balanceOf(address(staking))
-        });
-
-        assertEq(afterBalances.indexer, beforeBalances.indexer);
-        assertEq(afterBalances.fisherman, beforeBalances.fisherman + _tokensRewards);
-        assertEq(afterBalances.arbitrator, beforeBalances.arbitrator);
-        assertEq(afterBalances.disputeManager, beforeBalances.disputeManager);
-        assertEq(afterBalances.staking, beforeBalances.staking - _tokensSlash);
-
-        IDisputeManager.Dispute memory dispute = _getDispute(_disputeId);
-        assertEq(dispute.indexer, indexer);
-        assertEq(dispute.fisherman, _fisherman);
-        assertEq(dispute.deposit, 0);
-        assertEq(dispute.relatedDisputeId, bytes32(0));
-        assertEq(uint8(dispute.disputeType), uint8(IDisputeManager.DisputeType.LegacyDispute));
-        assertEq(uint8(dispute.status), uint8(IDisputeManager.DisputeStatus.Accepted));
-        assertEq(dispute.createdAt, block.timestamp);
-        assertEq(dispute.stakeSnapshot, 0);
-
-        return _disputeId;
-    }
-
     struct BeforeValuesCreateQueryDisputeConflict {
         IAttestation.State attestation1;
         IAttestation.State attestation2;
@@ -423,10 +348,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
             uint32 provisionMaxVerifierCut = staking
                 .getProvision(dispute.indexer, address(subgraphService))
                 .maxVerifierCut;
-            uint256 fishermanRewardPercentage = MathUtils.min(
-                disputeManager.fishermanRewardCut(),
-                provisionMaxVerifierCut
-            );
+            uint256 fishermanRewardPercentage = Math.min(disputeManager.fishermanRewardCut(), provisionMaxVerifierCut);
             fishermanReward = _tokensSlash.mulPPM(fishermanRewardPercentage);
         }
 

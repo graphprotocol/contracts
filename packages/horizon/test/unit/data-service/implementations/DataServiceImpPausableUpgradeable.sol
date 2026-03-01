@@ -31,6 +31,10 @@ contract DataServiceImpPausableUpgradeable is DataServicePausableUpgradeable {
 
     function slash(address serviceProvider, bytes calldata data) external {}
 
+    function setPauseGuardian(address _pauseGuardian, bool _allowed) external {
+        _setPauseGuardian(_pauseGuardian, _allowed);
+    }
+
     function controller() external view returns (address) {
         return address(_graphController());
     }
