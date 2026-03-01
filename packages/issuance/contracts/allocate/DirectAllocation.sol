@@ -5,6 +5,7 @@ pragma solidity ^0.8.27;
 import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceTarget.sol";
 import { ISendTokens } from "@graphprotocol/interfaces/contracts/issuance/allocate/ISendTokens.sol";
 import { BaseUpgradeable } from "../common/BaseUpgradeable.sol";
+import { IGraphToken } from "../common/IGraphToken.sol";
 
 // solhint-disable-next-line no-unused-import
 import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol"; // Used by @inheritdoc
@@ -38,19 +39,16 @@ contract DirectAllocation is BaseUpgradeable, IIssuanceTarget, ISendTokens {
     event TokensSent(address indexed to, uint256 indexed amount);
     // Do not need to index amount, ignoring gas-indexed-events warning.
 
-    /// @notice Emitted before the issuance allocation changes
-    event BeforeIssuanceAllocationChange();
-
     // -- Constructor --
 
     /**
      * @notice Constructor for the DirectAllocation contract
      * @dev This contract is upgradeable, but we use the constructor to pass the Graph Token address
      * to the base contract.
-     * @param graphToken Address of the Graph Token contract
+     * @param graphToken The Graph Token contract
      * @custom:oz-upgrades-unsafe-allow constructor
      */
-    constructor(address graphToken) BaseUpgradeable(graphToken) {}
+    constructor(IGraphToken graphToken) BaseUpgradeable(graphToken) {}
 
     // -- Initialization --
 
@@ -89,9 +87,7 @@ contract DirectAllocation is BaseUpgradeable, IIssuanceTarget, ISendTokens {
      * before an allocation change. We simply receive tokens from the IssuanceAllocator.
      * @inheritdoc IIssuanceTarget
      */
-    function beforeIssuanceAllocationChange() external virtual override {
-        emit BeforeIssuanceAllocationChange();
-    }
+    function beforeIssuanceAllocationChange() external virtual override {}
 
     /**
      * @dev No-op for DirectAllocation; issuanceAllocator is not stored.

@@ -3,6 +3,7 @@
 pragma solidity ^0.8.27;
 
 import { IssuanceAllocator } from "../../allocate/IssuanceAllocator.sol";
+import { IGraphToken } from "../../common/IGraphToken.sol";
 
 /**
  * @title IssuanceAllocatorTestHarness
@@ -13,10 +14,10 @@ import { IssuanceAllocator } from "../../allocate/IssuanceAllocator.sol";
 contract IssuanceAllocatorTestHarness is IssuanceAllocator {
     /**
      * @notice Constructor for the test harness
-     * @param _graphToken Address of the Graph Token contract
+     * @param _graphToken The Graph Token contract
      * @custom:oz-upgrades-unsafe-allow constructor
      */
-    constructor(address _graphToken) IssuanceAllocator(_graphToken) {}
+    constructor(IGraphToken _graphToken) IssuanceAllocator(_graphToken) {}
 
     /**
      * @notice Exposes _distributePendingProportionally for testing

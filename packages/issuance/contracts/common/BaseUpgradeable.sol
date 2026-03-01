@@ -87,12 +87,12 @@ abstract contract BaseUpgradeable is
      * @notice Constructor for the BaseUpgradeable contract
      * @dev This contract is upgradeable, but we use the constructor to set immutable variables
      * and disable initializers to prevent the implementation contract from being initialized.
-     * @param graphToken Address of the Graph Token contract
+     * @param graphToken The Graph Token contract
      * @custom:oz-upgrades-unsafe-allow constructor
      */
-    constructor(address graphToken) {
-        require(graphToken != address(0), GraphTokenCannotBeZeroAddress());
-        GRAPH_TOKEN = IGraphToken(graphToken);
+    constructor(IGraphToken graphToken) {
+        require(address(graphToken) != address(0), GraphTokenCannotBeZeroAddress());
+        GRAPH_TOKEN = graphToken;
         _disableInitializers();
     }
 
