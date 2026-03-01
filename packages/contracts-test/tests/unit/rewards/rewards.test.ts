@@ -1035,7 +1035,7 @@ describe('Rewards', () => {
         )
         const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(false) // Deny
         await mockOracle.deployed()
-        await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
+        await rewardsManager.connect(governor).setProviderEligibilityOracle(mockOracle.address)
 
         // Align with the epoch boundary
         await helpers.mineEpoch(epochManager)

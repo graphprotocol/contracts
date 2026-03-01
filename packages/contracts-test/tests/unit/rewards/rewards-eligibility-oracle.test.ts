@@ -111,13 +111,13 @@ describe('Rewards - Eligibility Oracle', () => {
   })
 
   describe('rewards eligibility oracle', function () {
-    it('should reject setRewardsEligibilityOracle if unauthorized', async function () {
+    it('should reject setProviderEligibilityOracle if unauthorized', async function () {
       const MockRewardsEligibilityOracleFactory = await hre.ethers.getContractFactory(
         'contracts/tests/MockRewardsEligibilityOracle.sol:MockRewardsEligibilityOracle',
       )
       const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(true)
       await mockOracle.deployed()
-      const tx = rewardsManager.connect(indexer1).setRewardsEligibilityOracle(mockOracle.address)
+      const tx = rewardsManager.connect(indexer1).setProviderEligibilityOracle(mockOracle.address)
       await expect(tx).revertedWith('Only Controller governor')
     })
 
@@ -128,12 +128,12 @@ describe('Rewards - Eligibility Oracle', () => {
       const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(true)
       await mockOracle.deployed()
 
-      const tx = rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
+      const tx = rewardsManager.connect(governor).setProviderEligibilityOracle(mockOracle.address)
       await expect(tx)
-        .emit(rewardsManager, 'RewardsEligibilityOracleSet')
+        .emit(rewardsManager, 'ProviderEligibilityOracleSet')
         .withArgs(constants.AddressZero, mockOracle.address)
 
-      expect(await rewardsManager.getRewardsEligibilityOracle()).eq(mockOracle.address)
+      expect(await rewardsManager.getProviderEligibilityOracle()).eq(mockOracle.address)
     })
 
     it('should allow setting rewards eligibility oracle to zero address', async function () {
@@ -143,32 +143,32 @@ describe('Rewards - Eligibility Oracle', () => {
       )
       const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(true)
       await mockOracle.deployed()
-      await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
+      await rewardsManager.connect(governor).setProviderEligibilityOracle(mockOracle.address)
 
       // Then set to zero address to disable
-      const tx = rewardsManager.connect(governor).setRewardsEligibilityOracle(constants.AddressZero)
+      const tx = rewardsManager.connect(governor).setProviderEligibilityOracle(constants.AddressZero)
       await expect(tx)
-        .emit(rewardsManager, 'RewardsEligibilityOracleSet')
+        .emit(rewardsManager, 'ProviderEligibilityOracleSet')
         .withArgs(mockOracle.address, constants.AddressZero)
 
-      expect(await rewardsManager.getRewardsEligibilityOracle()).eq(constants.AddressZero)
+      expect(await rewardsManager.getProviderEligibilityOracle()).eq(constants.AddressZero)
     })
 
     it('should reject setting oracle that does not support interface', async function () {
       // Try to set an EOA (externally owned account) as the rewards eligibility oracle
-      const tx = rewardsManager.connect(governor).setRewardsEligibilityOracle(indexer1.address)
+      const tx = rewardsManager.connect(governor).setProviderEligibilityOracle(indexer1.address)
       // EOA doesn't have code, so the call will revert (error message may vary by ethers version)
       await expect(tx).to.be.reverted
     })
 
-    it('should reject setting oracle that does not support IRewardsEligibility interface', async function () {
-      // Deploy a contract that supports ERC165 but not IRewardsEligibility
+    it('should reject setting oracle that does not support IProviderEligibility interface', async function () {
+      // Deploy a contract that supports ERC165 but not IProviderEligibility
       const MockERC165Factory = await hre.ethers.getContractFactory('contracts/tests/MockERC165.sol:MockERC165')
       const mockERC165 = await MockERC165Factory.deploy()
       await mockERC165.deployed()
 
-      const tx = rewardsManager.connect(governor).setRewardsEligibilityOracle(mockERC165.address)
-      await expect(tx).revertedWith('Contract does not support IRewardsEligibility interface')
+      const tx = rewardsManager.connect(governor).setProviderEligibilityOracle(mockERC165.address)
+      await expect(tx).revertedWith('Contract does not support IProviderEligibility interface')
     })
 
     it('should not emit event when setting same oracle address', async function () {
@@ -177,11 +177,11 @@ describe('Rewards - Eligibility Oracle', () => {
       )
       const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(true)
       await mockOracle.deployed()
-      await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
+      await rewardsManager.connect(governor).setProviderEligibilityOracle(mockOracle.address)
 
       // Setting the same oracle again should not emit an event
-      const tx = rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
-      await expect(tx).to.not.emit(rewardsManager, 'RewardsEligibilityOracleSet')
+      const tx = rewardsManager.connect(governor).setProviderEligibilityOracle(mockOracle.address)
+      await expect(tx).to.not.emit(rewardsManager, 'ProviderEligibilityOracleSet')
     })
   })
 
@@ -195,7 +195,7 @@ describe('Rewards - Eligibility Oracle', () => {
       await mockOracle.deployed()
 
       // Set the rewards eligibility oracle
-      await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
+      await rewardsManager.connect(governor).setProviderEligibilityOracle(mockOracle.address)
 
       // Align with the epoch boundary
       await helpers.mineEpoch(epochManager)
@@ -240,7 +240,7 @@ describe('Rewards - Eligibility Oracle', () => {
       await mockOracle.deployed()
 
       // Set the rewards eligibility oracle
-      await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
+      await rewardsManager.connect(governor).setProviderEligibilityOracle(mockOracle.address)
 
       // Align with the epoch boundary
       await helpers.mineEpoch(epochManager)
@@ -295,7 +295,7 @@ describe('Rewards - Eligibility Oracle', () => {
       )
       const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(false) // Deny
       await mockOracle.deployed()
-      await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
+      await rewardsManager.connect(governor).setProviderEligibilityOracle(mockOracle.address)
 
       // Align with the epoch boundary
       await helpers.mineEpoch(epochManager)
@@ -323,7 +323,7 @@ describe('Rewards - Eligibility Oracle', () => {
       )
       const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(false) // Deny indexer
       await mockOracle.deployed()
-      await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
+      await rewardsManager.connect(governor).setProviderEligibilityOracle(mockOracle.address)
 
       // Align with the epoch boundary
       await helpers.mineEpoch(epochManager)
@@ -365,7 +365,7 @@ describe('Rewards - Eligibility Oracle', () => {
       )
       const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(true) // Start eligible
       await mockOracle.deployed()
-      await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
+      await rewardsManager.connect(governor).setProviderEligibilityOracle(mockOracle.address)
 
       // Align with the epoch boundary
       await helpers.mineEpoch(epochManager)
@@ -410,7 +410,7 @@ describe('Rewards - Eligibility Oracle', () => {
       )
       const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(false) // Start ineligible
       await mockOracle.deployed()
-      await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
+      await rewardsManager.connect(governor).setProviderEligibilityOracle(mockOracle.address)
 
       // Align with the epoch boundary
       await helpers.mineEpoch(epochManager)
@@ -498,7 +498,7 @@ describe('Rewards - Eligibility Oracle', () => {
 
     it('should allow rewards when REO is zero address (disabled)', async function () {
       // Ensure REO is not set (zero address = disabled)
-      expect(await rewardsManager.getRewardsEligibilityOracle()).eq(constants.AddressZero)
+      expect(await rewardsManager.getProviderEligibilityOracle()).eq(constants.AddressZero)
 
       // Align with the epoch boundary
       await helpers.mineEpoch(epochManager)
@@ -577,7 +577,7 @@ describe('Rewards - Eligibility Oracle', () => {
       )
       const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(false)
       await mockOracle.deployed()
-      await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
+      await rewardsManager.connect(governor).setProviderEligibilityOracle(mockOracle.address)
 
       await helpers.mineEpoch(epochManager)
       await setupIndexerAllocation()

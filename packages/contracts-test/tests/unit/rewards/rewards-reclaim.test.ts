@@ -306,7 +306,7 @@ describe('Rewards - Reclaim Addresses', () => {
       )
       const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(false) // Deny
       await mockOracle.deployed()
-      await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
+      await rewardsManager.connect(governor).setProviderEligibilityOracle(mockOracle.address)
 
       // Align with the epoch boundary
       await helpers.mineEpoch(epochManager)
@@ -370,7 +370,7 @@ describe('Rewards - Reclaim Addresses', () => {
       )
       const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(false) // Deny
       await mockOracle.deployed()
-      await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
+      await rewardsManager.connect(governor).setProviderEligibilityOracle(mockOracle.address)
 
       // Align with the epoch boundary
       await helpers.mineEpoch(epochManager)
@@ -431,7 +431,7 @@ describe('Rewards - Reclaim Addresses', () => {
       )
       const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(false) // Deny
       await mockOracle.deployed()
-      await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
+      await rewardsManager.connect(governor).setProviderEligibilityOracle(mockOracle.address)
 
       // Align with the epoch boundary
       await helpers.mineEpoch(epochManager)
@@ -482,7 +482,7 @@ describe('Rewards - Reclaim Addresses', () => {
       )
       const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(false) // Deny
       await mockOracle.deployed()
-      await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
+      await rewardsManager.connect(governor).setProviderEligibilityOracle(mockOracle.address)
 
       // Align with the epoch boundary
       await helpers.mineEpoch(epochManager)
@@ -524,7 +524,7 @@ describe('Rewards - Reclaim Addresses', () => {
       )
       const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(false) // Deny
       await mockOracle.deployed()
-      await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
+      await rewardsManager.connect(governor).setProviderEligibilityOracle(mockOracle.address)
 
       // Align with the epoch boundary
       await helpers.mineEpoch(epochManager)
@@ -573,7 +573,7 @@ describe('Rewards - Reclaim Addresses', () => {
       )
       const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(false) // Deny
       await mockOracle.deployed()
-      await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
+      await rewardsManager.connect(governor).setProviderEligibilityOracle(mockOracle.address)
 
       // Align with the epoch boundary
       await helpers.mineEpoch(epochManager)
@@ -604,7 +604,7 @@ describe('Rewards - Reclaim Addresses', () => {
       )
       const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(true) // Allow
       await mockOracle.deployed()
-      await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
+      await rewardsManager.connect(governor).setProviderEligibilityOracle(mockOracle.address)
 
       // Align with the epoch boundary
       await helpers.mineEpoch(epochManager)
@@ -1075,7 +1075,7 @@ describe('Rewards - Reclaim Addresses', () => {
       )
       const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(false) // Deny
       await mockOracle.deployed()
-      await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
+      await rewardsManager.connect(governor).setProviderEligibilityOracle(mockOracle.address)
 
       // Align with the epoch boundary
       await helpers.mineEpoch(epochManager)
