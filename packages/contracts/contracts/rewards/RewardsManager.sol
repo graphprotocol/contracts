@@ -520,13 +520,14 @@ contract RewardsManager is
         ) = _getSubgraphRewardsState(_subgraphDeploymentID);
         subgraph.accRewardsPerSignalSnapshot = accRewardsPerSignal;
 
-        // Calculate undistributed: rewards accumulated but not yet distributed to allocations.
-        // Will be just rewards since last snapshot for subgraphs that have had onSubgraphSignalUpdate or
-        // onSubgraphAllocationUpdate called since upgrade;
-        // can include non-zero (original) accRewardsForSubgraph - accRewardsForSubgraphSnapshot for
-        // subgraphs that have not had either hook called since upgrade.
-        uint256 undistributedRewards = accRewardsForSubgraph.sub(subgraph.accRewardsForSubgraphSnapshot).add(
-            rewardsSinceSignalSnapshot
+        // undistributed = (accRewardsForSubgraph + rewardsSinceSignalSnapshot) - accRewardsForSubgraphSnapshot
+        // We add rewardsSinceSignalSnapshot before subtracting accRewardsForSubgraphSnapshot to avoid
+        // an intermediate underflow: pre-upgrade state can have accRewardsForSubgraph <
+        // accRewardsForSubgraphSnapshot (the old alloc hook set the snapshot from a view that included
+        // pending rewards, while the old signal hook only wrote the stored value). The full expression
+        // is always non-negative because rewardsSinceSignalSnapshot covers a superset of the gap.
+        uint256 undistributedRewards = accRewardsForSubgraph.add(rewardsSinceSignalSnapshot).sub(
+            subgraph.accRewardsForSubgraphSnapshot
         );
 
         if (condition != RewardsCondition.NONE) {
