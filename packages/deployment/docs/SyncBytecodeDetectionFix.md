@@ -45,27 +45,32 @@ The sync step saved the **implementation's bytecode** under the **proxy's deploy
 
 ## Fixes Applied
 
-### Fix 1: Auto-Heal Bytecode Hash ([sync-utils.ts:641-683](../lib/sync-utils.ts#L641-L683))
+### Fix 1: Hash Comparison and Stale Record Cleanup ([sync-utils.ts:645-679](../lib/sync-utils.ts#L645-L679))
 
-When sync detects missing/mismatched bytecode hash:
+When sync processes an implementation:
 
-1. **Fetch on-chain bytecode** from the implementation address
-2. **Compare three versions**: local artifact, on-chain, address book
-3. **Auto-heal** if local matches on-chain:
+1. **Compare local artifact hash to address-book-stored hash**
+2. **If hashes match**: sync the implementation record to rocketh normally
+3. **If hashes don't match**: overwrite any stale rocketh record with empty bytecode, forcing a fresh deployment
 
    ```typescript
-   if (localHash === onChainHash) {
-     // Update address book with verified hash
-     hashMatches = true
-     shouldSync = true
-     syncNotes.push('hash verified' or 'hash healed')
+   if (storedHash && localHash) {
+     hashMatches = storedHash === localHash
+   }
+
+   // Clean up stale rocketh record if hash doesn't match
+   if (!hashMatches && existingImpl) {
+     // Overwrite stale record with empty bytecode - forces fresh deployment
+     await env.save(`${spec.name}_Implementation`, {
+       address: existingImpl.address,
+       bytecode: '0x',
+       deployedBytecode: undefined,
+       ...
+     })
    }
    ```
 
-4. **Show clear status** if they differ:
-   - `local code changed` - local differs from on-chain (ready to deploy)
-   - `impl state unclear` - all three hashes differ (investigation needed)
-   - `impl unverified` - couldn't fetch on-chain bytecode
+This ensures rocketh correctly detects when local code has changed and triggers a new deployment.
 
 ### Fix 2: Don't Store Wrong Bytecode for Proxy ([sync-utils.ts:508-532](../lib/sync-utils.ts#L508-L532))
 
@@ -85,23 +90,10 @@ This ensures rocketh only uses implementation bytecode for the actual implementa
 
 ## Expected Behavior After Fix
 
-### Scenario 1: Local Matches On-Chain (Hash Missing)
+### Scenario 1: Local Matches Address Book
 
-**Before**:
-
-```
-△   SubgraphService @ 0xc24A3dAC... → 0x2af1b0ed... (code changed)
-✓ SubgraphService implementation unchanged  ← WRONG!
-```
-
-**After**:
-
-```
-△   SubgraphService @ 0xc24A3dAC... → 0x2af1b0ed... (hash verified)
-✓ SubgraphService implementation unchanged  ← Correct (hash now matches)
-```
-
-Address book is auto-healed with correct bytecode hash.
+When local artifact hash matches the stored hash, sync proceeds normally and rocketh
+correctly reports the implementation as unchanged.
 
 ### Scenario 2: Local Code Changed
 
@@ -122,21 +114,11 @@ Address book is auto-healed with correct bytecode hash.
 
 Deploy correctly detects the change and deploys new implementation.
 
-### Scenario 3: Complex State (All Different)
+### Scenario 3: Stale Rocketh Record
 
-**Before**:
-
-```
-△   SubgraphService @ 0xc24A3dAC... → 0x2af1b0ed... (code changed)
-```
-
-**After**:
-
-```
-△   SubgraphService @ 0xc24A3dAC... → 0x2af1b0ed... (impl state unclear)
-```
-
-Clear warning that investigation needed - all three hashes differ.
+When the hash doesn't match and a stale rocketh record exists, sync overwrites it
+with empty bytecode. This forces the next deploy to create a fresh implementation
+record rather than incorrectly reporting "unchanged".
 
 ## Testing
 
@@ -156,10 +138,9 @@ npx hardhat deploy --skip-prompts --network arbitrumSepolia --tags subgraph-serv
 
 ## Migration Notes
 
-- **No manual migration needed** - the fix auto-heals address books
-- First sync after fix will fetch on-chain bytecode and update hashes
-- Address book will be updated in place with correct metadata
-- Subsequent syncs will use the healed hashes
+- **No manual migration needed** - stale rocketh records are cleaned up automatically
+- First sync after fix will detect hash mismatches and clear stale records
+- Subsequent deploys will create fresh implementation records
 
 ## Related Files
 
