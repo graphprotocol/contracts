@@ -8,6 +8,7 @@ on:
         required: true
         type: choice
         options:
+          - address-book
           - contracts
           - sdk
       tag:
@@ -29,8 +30,19 @@ jobs:
         uses: ./.github/actions/setup
       - name: Set npm token for publishing
         run: pnpm config set //registry.npmjs.org/:_authToken ${{ secrets.GRAPHPROTOCOL_NPM_TOKEN }}
+      - name: Read package info
+        id: pkg
+        shell: bash
+        run: |
+          PKG_NAME=$(node -p "require('./packages/${{ inputs.package }}/package.json').name")
+          PKG_VERSION=$(node -p "require('./packages/${{ inputs.package }}/package.json').version")
+          echo "tag=${PKG_NAME}@${PKG_VERSION}" >> $GITHUB_OUTPUT
       - name: Publish 🚀
         shell: bash
         run: |
           pushd packages/${{ inputs.package }}
           pnpm publish --tag ${{ inputs.tag }} --access public --no-git-checks
+      - name: Tag release
+        run: |
+          git tag ${{ steps.pkg.outputs.tag }}
+          git push origin ${{ steps.pkg.outputs.tag }}
