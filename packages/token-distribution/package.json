@@ -1,6 +1,6 @@
 {
   "name": "@graphprotocol/token-distribution",
-  "version": "2.0.1",
+  "version": "3.0.0",
   "private": true,
   "description": "Graph Token Distribution",
   "author": "Edge & Node",
