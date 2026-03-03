@@ -799,22 +799,22 @@ Run these operations in sequence to validate a complete indexer lifecycle:
 
 ### Arbitrum Sepolia (testnet)
 
-| Parameter               | Value                                                                                                                                                            |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Explorer                | <https://testnet.thegraph.com/explorer>                                                                                                                          |
-| Gateway                 | <https://gateway.testnet.thegraph.com>                                                                                                                           |
-| Network subgraph        | [eAENt2ctaMdbCY34apzXYkBy2nEYwyojjVxLahsHo9D](https://thegraph.com/explorer/subgraphs/eAENt2ctaMdbCY34apzXYkBy2nEYwyojjVxLahsHo9D?view=Query&chain=arbitrum-one) |
-| Epoch length            | ~554 blocks (~110 minutes)                                                                                                                                       |
-| Max allocation lifetime | 8 epochs (~15 hours)                                                                                                                                             |
-| Min indexer stake       | 100k GRT                                                                                                                                                         |
-| Thawing period          | Shortened for faster testing                                                                                                                                     |
+| Parameter               | Value                                                                                                                                                              |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Explorer                | <https://testnet.thegraph.com/explorer>                                                                                                                            |
+| Gateway                 | <https://gateway.testnet.thegraph.com>                                                                                                                             |
+| Network subgraph        | [3xQHhMudr1oh69ut36G2mbzpYmYxwqCeU6wwqyCDCnqV](https://thegraph.com/explorer/subgraphs/3xQHhMudr1oh69ut36G2mbzpYmYxwqCeU6wwqyCDCnqV?view=Query&chain=arbitrum-one) |
+| Epoch length            | ~554 blocks (~110 minutes)                                                                                                                                         |
+| Max allocation lifetime | 8 epochs (~15 hours)                                                                                                                                               |
+| Min indexer stake       | 100k GRT                                                                                                                                                           |
+| Thawing period          | Shortened for faster testing                                                                                                                                       |
 
 ### Querying the network subgraph
 
 All GraphQL verification queries in this plan run against the network subgraph. To query it, use the gateway endpoint with your API key:
 
 ```
-https://gateway-arbitrum.network.thegraph.com/api/<API_KEY>/subgraphs/id/eAENt2ctaMdbCY34apzXYkBy2nEYwyojjVxLahsHo9D
+https://gateway-arbitrum.network.thegraph.com/api/<API_KEY>/subgraphs/id/3xQHhMudr1oh69ut36G2mbzpYmYxwqCeU6wwqyCDCnqV
 ```
 
 You can also use the Explorer playground at the link above. All addresses in queries must be **lowercase** — invisible Unicode characters from copy-pasting (e.g. from chat tools) will cause empty results.
