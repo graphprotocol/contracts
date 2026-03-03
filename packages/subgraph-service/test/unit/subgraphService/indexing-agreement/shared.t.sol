@@ -130,6 +130,9 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
 
     function _setupIndexer(Context storage _ctx, IndexerSeed memory _seed) internal returns (IndexerState memory) {
         vm.assume(_getIndexer(_ctx, _seed.addr).addr == address(0));
+        // Exclude named test users: mint() uses deal() which SETS (not adds) token balances,
+        // so a collision would overwrite the user's initial balance, then staking drains it to 0.
+        vm.assume(!_isTestUser(_seed.addr));
 
         (uint256 allocationKey, address allocationId) = boundKeyAndAddr(_seed.unboundedAllocationPrivateKey);
         vm.assume(_ctx.allocations[allocationId] == address(0));
@@ -315,6 +318,21 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
         }
 
         return zero;
+    }
+
+    function _isTestUser(address _addr) internal view returns (bool) {
+        return
+            _addr == users.governor ||
+            _addr == users.deployer ||
+            _addr == users.indexer ||
+            _addr == users.operator ||
+            _addr == users.gateway ||
+            _addr == users.verifier ||
+            _addr == users.delegator ||
+            _addr == users.arbitrator ||
+            _addr == users.fisherman ||
+            _addr == users.rewardsDestination ||
+            _addr == users.pauseGuardian;
     }
 
     function _isSafeSubgraphServiceCaller(address _candidate) internal view returns (bool) {
