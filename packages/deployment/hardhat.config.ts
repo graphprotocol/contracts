@@ -13,6 +13,7 @@ import checkDeployerTask from './tasks/check-deployer.js'
 import deploymentStatusTask from './tasks/deployment-status.js'
 import executeGovernanceTask from './tasks/execute-governance.js'
 import grantRoleTask from './tasks/grant-role.js'
+import { grtBalanceTask, grtMintTask, grtStatusTask, grtTransferTask } from './tasks/grt-tasks.js'
 import listPendingTask from './tasks/list-pending-implementations.js'
 import listRolesTask from './tasks/list-roles.js'
 import { reoDisableTask, reoEnableTask, reoStatusTask } from './tasks/reo-tasks.js'
@@ -85,6 +86,10 @@ const config: HardhatUserConfig = {
     deploymentStatusTask,
     executeGovernanceTask,
     grantRoleTask,
+    grtBalanceTask,
+    grtMintTask,
+    grtStatusTask,
+    grtTransferTask,
     listPendingTask,
     listRolesTask,
     reoDisableTask,
