@@ -4,7 +4,7 @@
 
 ### Minor Changes
 
-- Upgraded Rewards Manager and Subgraph Service with Rewards Eligibility Oracle and recwards reclaiming.
+- Upgraded Rewards Manager and Subgraph Service with Rewards Eligibility Oracle and rewards reclaiming.
 
 ## 1.1.0
 
