@@ -11,8 +11,8 @@
   <a href="https://github.com/graphprotocol/contracts/actions/workflows/build.yml">
     <img src="https://github.com/graphprotocol/contracts/actions/workflows/build.yml/badge.svg" alt="Build">
   </a>
-  <a href="https://github.com/graphprotocol/contracts/actions/workflows/ci-contracts.yml">
-    <img src="https://github.com/graphprotocol/contracts/actions/workflows/ci-contracts.yml/badge.svg" alt="CI-Contracts">
+  <a href="https://github.com/graphprotocol/contracts/actions/workflows/lint.yml">
+    <img src="https://github.com/graphprotocol/contracts/actions/workflows/lint.yml/badge.svg" alt="Lint">
   </a>
 </p>
 
