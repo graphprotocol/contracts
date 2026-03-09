@@ -9,16 +9,12 @@ import { DeployOptions } from 'hardhat-deploy/types'
 
 import { GraphTokenLockManager, GraphTokenLockWallet, GraphTokenMock, StakingMock } from '../types'
 import { defaultInitArgs, Revocability, TokenLockParameters } from './config'
-import { Account, advanceBlocks, advanceTimeAndBlock, getAccounts, getContract, randomHexBytes, toGRT } from './network'
+import { Account, advanceTimeAndBlock, getAccounts, getContract, randomHexBytes, toGRT } from './network'
 
 const { AddressZero, MaxUint256 } = constants
 
 // -- Time utils --
 
-const advancePeriods = async (tokenLock: GraphTokenLockWallet, n = 1) => {
-  const periodDuration = await tokenLock.periodDuration()
-  return advanceTimeAndBlock(periodDuration.mul(n).toNumber()) // advance N period
-}
 const advanceToStart = async (tokenLock: GraphTokenLockWallet) => moveToTime(tokenLock, await tokenLock.startTime(), 60)
 const moveToTime = async (tokenLock: GraphTokenLockWallet, target: BigNumber, buffer: number) => {
   const ts = await tokenLock.currentTime()
