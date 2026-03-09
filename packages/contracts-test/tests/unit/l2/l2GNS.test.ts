@@ -182,21 +182,27 @@ describe('L2GNS', () => {
     it('should reject a new version with the same subgraph deployment ID', async function () {
       const tx = gns
         .connect(me)
-        .publishNewVersion(subgraph.id, newSubgraph0.subgraphDeploymentID, newSubgraph0.versionMetadata)
+        [
+          'publishNewVersion(uint256,bytes32,bytes32,uint256)'
+        ](subgraph.id, newSubgraph0.subgraphDeploymentID, newSubgraph0.versionMetadata, 0)
       await expect(tx).revertedWith('GNS: Cannot publish a new version with the same subgraph deployment ID')
     })
 
     it('should reject publishing a version to a subgraph that does not exist', async function () {
       const tx = gns
         .connect(me)
-        .publishNewVersion(randomHexBytes(32), newSubgraph1.subgraphDeploymentID, newSubgraph1.versionMetadata)
+        [
+          'publishNewVersion(uint256,bytes32,bytes32,uint256)'
+        ](randomHexBytes(32), newSubgraph1.subgraphDeploymentID, newSubgraph1.versionMetadata, 0)
       await expect(tx).revertedWith('ERC721: owner query for nonexistent token')
     })
 
     it('reject if not the owner', async function () {
       const tx = gns
         .connect(other)
-        .publishNewVersion(subgraph.id, newSubgraph1.subgraphDeploymentID, newSubgraph1.versionMetadata)
+        [
+          'publishNewVersion(uint256,bytes32,bytes32,uint256)'
+        ](subgraph.id, newSubgraph1.subgraphDeploymentID, newSubgraph1.versionMetadata, 0)
       await expect(tx).revertedWith('GNS: Must be authorized')
     })
 
@@ -211,7 +217,9 @@ describe('L2GNS', () => {
       await burnSignal(me, subgraph.id, gns, curation)
       const tx = gns
         .connect(me)
-        .publishNewVersion(subgraph.id, newSubgraph1.subgraphDeploymentID, newSubgraph1.versionMetadata)
+        [
+          'publishNewVersion(uint256,bytes32,bytes32,uint256)'
+        ](subgraph.id, newSubgraph1.subgraphDeploymentID, newSubgraph1.versionMetadata, 0)
       await expect(tx)
         .emit(gns, 'SubgraphVersionUpdated')
         .withArgs(subgraph.id, newSubgraph1.subgraphDeploymentID, newSubgraph1.versionMetadata)
@@ -221,9 +229,130 @@ describe('L2GNS', () => {
       await deprecateSubgraph(me, subgraph.id, gns, curation, grt)
       const tx = gns
         .connect(me)
-        .publishNewVersion(subgraph.id, newSubgraph1.subgraphDeploymentID, newSubgraph1.versionMetadata)
+        [
+          'publishNewVersion(uint256,bytes32,bytes32,uint256)'
+        ](subgraph.id, newSubgraph1.subgraphDeploymentID, newSubgraph1.versionMetadata, 0)
       // NOTE: deprecate burns the Subgraph NFT, when someone wants to publish a new version it won't find it
       await expect(tx).revertedWith('ERC721: owner query for nonexistent token')
+    })
+
+    it('should protect against front-running with slippage protection', async function () {
+      // Give attacker massive funds for the attack
+      await grt.connect(governor).mint(attacker.address, toGRT('1000000'))
+      await grt.connect(attacker).approve(curation.address, toGRT('1000000'))
+      await grt.connect(attacker).approve(staking.address, toGRT('1000000'))
+
+      // Step 1: Set minimum curation deposit to 1 wei and disable tax for accurate attack test
+      await curation.connect(governor).setMinimumCurationDeposit(1)
+      await curation.connect(governor).setCurationTaxPercentage(0)
+      await curation.connect(attacker).mint(newSubgraph1.subgraphDeploymentID, 1, 0)
+
+      // Step 2: Attacker stakes and creates allocation on the deployment
+      await staking.connect(attacker).stake(toGRT('100000'))
+      const channelKey = deriveChannelKey()
+      await staking
+        .connect(attacker)
+        .allocateFrom(
+          attacker.address,
+          newSubgraph1.subgraphDeploymentID,
+          toGRT('10000'),
+          channelKey.address,
+          randomHexBytes(32),
+          await channelKey.generateProof(attacker.address),
+        )
+
+      // Calculate expected signal from burning current subgraph (before attack)
+      const subgraphData = await gns.subgraphs(subgraph.id)
+      const tokensFromOldCurve = await curation.signalToTokens(newSubgraph0.subgraphDeploymentID, subgraphData.vSignal)
+      const expectedSignalWithoutAttack = await curation.tokensToSignalNoTax(
+        newSubgraph1.subgraphDeploymentID,
+        tokensFromOldCurve,
+      )
+
+      // Step 3: Attacker inflates the curation pool by collecting massive query fees
+      // Simulate the token collection flow: TokenUtils.pushTokens + curation.collect
+      const collectTokens = toGRT('50000') // 50k GRT collected as fees
+
+      // Mint tokens to curation contract (simulating TokenUtils.pushTokens from staking)
+      await grt.connect(governor).mint(curation.address, collectTokens)
+
+      // Impersonate staking contract to call collect (only staking can call this)
+      const stakingImpersonator = await helpers.impersonateAccount(staking.address)
+      await helpers.setBalance(staking.address, parseEther('1'))
+      await curation.connect(stakingImpersonator).collect(newSubgraph1.subgraphDeploymentID, collectTokens)
+
+      // Now calculate signal after the attack - should be much less due to inflated pool
+      const actualSignalAfterAttack = await curation.tokensToSignalNoTax(
+        newSubgraph1.subgraphDeploymentID,
+        tokensFromOldCurve,
+      )
+
+      // Verify the attack worked - victim gets much less signal
+      expect(actualSignalAfterAttack).to.be.lt(expectedSignalWithoutAttack.div(10))
+
+      // Step 4: With slippage protection, the upgrade should fail when expecting reasonable signal
+      const tx = gns
+        .connect(me)
+        [
+          'publishNewVersion(uint256,bytes32,bytes32,uint256)'
+        ](subgraph.id, newSubgraph1.subgraphDeploymentID, newSubgraph1.versionMetadata, expectedSignalWithoutAttack.div(2))
+      await expect(tx).to.be.revertedWith('Slippage protection')
+    })
+
+    it('should succeed when slippage protection is satisfied', async function () {
+      // Give attacker funds and pre-curate the new deployment with some tokens
+      await grt.connect(governor).mint(attacker.address, toGRT('100'))
+      await grt.connect(attacker).approve(curation.address, toGRT('100'))
+      await curation.connect(attacker).mint(newSubgraph1.subgraphDeploymentID, toGRT('100'), 0)
+
+      // Calculate the minimum signal we'll accept (allowing for some slippage)
+      const subgraphData = await gns.subgraphs(subgraph.id)
+      const tokensFromOldCurve = await curation.signalToTokens(newSubgraph0.subgraphDeploymentID, subgraphData.vSignal)
+      const expectedSignal = await curation.tokensToSignalNoTax(newSubgraph1.subgraphDeploymentID, tokensFromOldCurve)
+      const minSignalWithSlippage = expectedSignal.mul(95).div(100) // Accept 5% slippage
+
+      // Upgrade should succeed with reasonable slippage protection
+      const tx = gns
+        .connect(me)
+        [
+          'publishNewVersion(uint256,bytes32,bytes32,uint256)'
+        ](subgraph.id, newSubgraph1.subgraphDeploymentID, newSubgraph1.versionMetadata, minSignalWithSlippage)
+      await expect(tx)
+        .emit(gns, 'SubgraphVersionUpdated')
+        .withArgs(subgraph.id, newSubgraph1.subgraphDeploymentID, newSubgraph1.versionMetadata)
+    })
+
+    it('should succeed using L1 version (3-param) when deployment is NOT pre-curated', async function () {
+      // Use the 3-parameter version (inherited from GNS)
+      const tx = gns
+        .connect(me)
+        [
+          'publishNewVersion(uint256,bytes32,bytes32)'
+        ](
+          subgraph.id,
+          newSubgraph1.subgraphDeploymentID,
+          newSubgraph1.versionMetadata,
+        )
+      await expect(tx)
+        .emit(gns, 'SubgraphVersionUpdated')
+        .withArgs(subgraph.id, newSubgraph1.subgraphDeploymentID, newSubgraph1.versionMetadata)
+    })
+
+    it('should revert using L1 version (3-param) when deployment IS pre-curated', async function () {
+      // Pre-curate the new deployment
+      await curation.connect(me).mint(newSubgraph1.subgraphDeploymentID, tokens1000, 0)
+
+      // Use the 3-parameter version (inherited from GNS) - should revert due to pre-curation check
+      const tx = gns
+        .connect(me)
+        [
+          'publishNewVersion(uint256,bytes32,bytes32)'
+        ](
+          subgraph.id,
+          newSubgraph1.subgraphDeploymentID,
+          newSubgraph1.versionMetadata,
+        )
+      await expect(tx).revertedWith('GNS: Owner cannot point to a subgraphID that has been pre-curated')
     })
   })
 
