@@ -1,6 +1,6 @@
 # Issuance Upgrade Testing Documentation
 
-Comprehensive test plans for validating The Graph Network after the issuance upgrade. Three-layer approach: baseline indexer operations (upgrade-agnostic), REO-specific eligibility and oracle tests, and reward condition tests covering denial, reclaim, signal, POI paths, and allocation lifecycle changes.
+Comprehensive test plans for validating The Graph Network after an upgrade. Three-layer approach: baseline indexer operations (upgrade-agnostic), REO-specific eligibility and oracle tests, and reward condition tests covering denial, reclaim, signal, POI paths, and allocation lifecycle changes.
 
 ## Quick Start
 
@@ -52,21 +52,13 @@ BaselineTestPlan (7 cycles, 22 tests)
 
 ### Test Plans
 
-| Document                                                     | Purpose                                                                                 | Status                                            |
-| ------------------------------------------------------------ | --------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| [BaselineTestPlan.md](BaselineTestPlan.md)                   | Detailed baseline indexer operational tests (7 cycles, 22 tests)                        | ✅ Complete                                       |
-| [ReoTestPlan.md](ReoTestPlan.md)                             | REO eligibility, oracle, and rewards integration (8 cycles + mock path, 36 tests)       | ✅ Complete                                       |
-| [RewardsConditionsTestPlan.md](RewardsConditionsTestPlan.md) | Reclaim system, signal conditions, POI paths, allocation lifecycle (7 cycles, 26 tests) | ✅ Complete (local automation: Cycles 1-4, 6)     |
-| [SubgraphDenialTestPlan.md](SubgraphDenialTestPlan.md)       | Subgraph denial: accumulator freeze, deferral, recovery (6 cycles, 18 tests)            | ✅ Complete (local automation: Cycles 2, 3, 5, 6) |
-| [IndexerTestGuide.md](IndexerTestGuide.md)                   | Condensed indexer eligibility tests (5 sets + 3 mock sets, 11 tests)                    | ✅ Complete                                       |
-
-### Support Files (`support/`)
-
-| Document                                                             | Purpose                                                          | Status      |
-| -------------------------------------------------------------------- | ---------------------------------------------------------------- | ----------- |
-| [NotionSetup.md](support/NotionSetup.md)                             | Instructions for importing test tracker into Notion              | ✅ Complete |
-| [NotionTracker.csv](support/NotionTracker.csv)                       | CSV export for Notion import                                     | ✅ Complete |
-| [IssuanceAllocatorTestPlan.md](support/IssuanceAllocatorTestPlan.md) | IssuanceAllocator tests (independent of REO, pending deployment) | ⏸️ Pending  |
+| Document                                                     | Purpose                                                                                 |
+| ------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| [BaselineTestPlan.md](BaselineTestPlan.md)                   | Detailed baseline indexer operational tests (7 cycles, 22 tests)                        |
+| [ReoTestPlan.md](ReoTestPlan.md)                             | REO eligibility, oracle, and rewards integration (8 cycles + mock path, 36 tests)       |
+| [RewardsConditionsTestPlan.md](RewardsConditionsTestPlan.md) | Reclaim system, signal conditions, POI paths, allocation lifecycle (7 cycles, 26 tests) |
+| [SubgraphDenialTestPlan.md](SubgraphDenialTestPlan.md)       | Subgraph denial: accumulator freeze, deferral, recovery (6 cycles, 18 tests)            |
+| [IndexerTestGuide.md](IndexerTestGuide.md)                   | Condensed indexer eligibility tests (5 sets + 3 mock sets, 11 tests)                    |
 
 ## Test Coverage
 
@@ -151,10 +143,10 @@ See also: [IssuanceAllocatorTestPlan](support/IssuanceAllocatorTestPlan.md) (ind
 
 ## Network Configuration
 
-| Network          | Environment | Explorer                                | Gateway                                |
-| ---------------- | ----------- | --------------------------------------- | -------------------------------------- |
-| Arbitrum Sepolia | Testnet     | <https://testnet.thegraph.com/explorer> | <https://gateway.testnet.thegraph.com> |
-| Arbitrum One     | Mainnet     | <https://thegraph.com/explorer>         | <https://gateway.thegraph.com>         |
+- [Arbitrum Sepolia (testnet)](TestnetDetails.md) — Explorer, Gateway, network subgraph, RPC, contract addresses
+- [Arbitrum One (mainnet)](MainnetDetails.md) — Explorer, Gateway, network subgraph, contract addresses
+
+> **GraphQL note**: All addresses in queries must be lowercase. Invisible Unicode characters are sometimes introduced when copying queries from GitHub or chat tools and will inexplicably cause empty results.
 
 ## Testing Approach
 
@@ -162,7 +154,3 @@ See also: [IssuanceAllocatorTestPlan](support/IssuanceAllocatorTestPlan.md) (ind
 2. **Reusable baseline** - Upgrade-agnostic tests reused across protocol upgrades
 3. **Incremental** - Baseline confidence first, then upgrade-specific scenarios
 4. **Three-layer validation** - Standard operations + REO eligibility + reward conditions/denial
-
----
-
-_Test plans developed for The Graph Protocol issuance upgrade validation._
