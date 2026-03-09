@@ -9,7 +9,7 @@ pragma experimental ABIEncoderV2;
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
-import { GraphTokenLock, MathUtils } from "./GraphTokenLock.sol";
+import { GraphTokenLock } from "./GraphTokenLock.sol";
 import { IGraphTokenLock } from "./IGraphTokenLock.sol";
 import { IGraphTokenLockManager } from "./IGraphTokenLockManager.sol";
 
