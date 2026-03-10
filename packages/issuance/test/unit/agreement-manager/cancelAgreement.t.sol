@@ -121,7 +121,9 @@ contract RecurringAgreementManagerCancelAgreementTest is RecurringAgreementManag
         bytes16 agreementId = _offerAgreement(rca);
 
         // Agreement is NotAccepted — should revert
-        vm.expectRevert(abi.encodeWithSelector(IRecurringAgreementManagement.AgreementNotAccepted.selector, agreementId));
+        vm.expectRevert(
+            abi.encodeWithSelector(IRecurringAgreementManagement.AgreementNotAccepted.selector, agreementId)
+        );
         vm.prank(operator);
         agreementManager.cancelAgreement(agreementId);
     }
@@ -154,7 +156,11 @@ contract RecurringAgreementManagerCancelAgreementTest is RecurringAgreementManag
 
         address nonOperator = makeAddr("nonOperator");
         vm.expectRevert(
-            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, nonOperator, AGREEMENT_MANAGER_ROLE)
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                nonOperator,
+                AGREEMENT_MANAGER_ROLE
+            )
         );
         vm.prank(nonOperator);
         agreementManager.cancelAgreement(agreementId);

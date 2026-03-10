@@ -11,6 +11,7 @@ import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/al
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 
 import { RecurringAgreementManagerSharedTest } from "./shared.t.sol";
+import { MockIssuanceAllocator } from "./mocks/MockIssuanceAllocator.sol";
 
 contract RecurringAgreementManagerApproverTest is RecurringAgreementManagerSharedTest {
     /* solhint-disable graph/func-name-mixedcase */
@@ -103,14 +104,16 @@ contract RecurringAgreementManagerApproverTest is RecurringAgreementManagerShare
 
     function test_SetIssuanceAllocator_OnlyGovernor() public {
         address nonGovernor = makeAddr("nonGovernor");
+        MockIssuanceAllocator alloc = new MockIssuanceAllocator(token, address(agreementManager));
         vm.expectRevert();
         vm.prank(nonGovernor);
-        agreementManager.setIssuanceAllocator(makeAddr("allocator"));
+        agreementManager.setIssuanceAllocator(address(alloc));
     }
 
     function test_SetIssuanceAllocator_Governor() public {
+        MockIssuanceAllocator alloc = new MockIssuanceAllocator(token, address(agreementManager));
         vm.prank(governor);
-        agreementManager.setIssuanceAllocator(makeAddr("allocator"));
+        agreementManager.setIssuanceAllocator(address(alloc));
     }
 
     // -- View Function Tests --

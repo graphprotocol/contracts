@@ -61,8 +61,11 @@ contract RecurringAgreementManagerFuzzTest is RecurringAgreementManagerSharedTes
         bytes16 agreementId = agreementManager.offerAgreement(rca, _collector());
 
         uint256 maxNextClaim = agreementManager.getAgreementMaxNextClaim(agreementId);
-        (uint256 escrowBalance,,) = paymentsEscrow
-            .escrowAccounts(address(agreementManager), address(recurringCollector), indexer);
+        (uint256 escrowBalance, , ) = paymentsEscrow.escrowAccounts(
+            address(agreementManager),
+            address(recurringCollector),
+            indexer
+        );
 
         // In Full mode (default):
         // If totalEscrowDeficit < available: Full deposits required (there is buffer).

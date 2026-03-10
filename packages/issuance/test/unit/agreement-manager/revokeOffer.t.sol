@@ -144,7 +144,11 @@ contract RecurringAgreementManagerRevokeOfferTest is RecurringAgreementManagerSh
 
         address nonOperator = makeAddr("nonOperator");
         vm.expectRevert(
-            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, nonOperator, AGREEMENT_MANAGER_ROLE)
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                nonOperator,
+                AGREEMENT_MANAGER_ROLE
+            )
         );
         vm.prank(nonOperator);
         agreementManager.revokeOffer(agreementId);
