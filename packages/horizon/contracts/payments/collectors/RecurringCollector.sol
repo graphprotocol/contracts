@@ -300,6 +300,15 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
      * @notice Collect payment through the payments protocol.
      * @dev Caller must be the data service the RCA was issued to.
      *
+     * `_params.tokens` is the data service's requested amount — an upper bound, not a guarantee.
+     * The actual payout is `min(_params.tokens, maxOngoingTokensPerSecond * collectionSeconds
+     * [+ maxInitialTokens on first collection])`, where `collectionSeconds` is already capped at
+     * `maxSecondsPerCollection` by `_getCollectionInfo`.
+     *
+     * Temporal validation (`minSecondsPerCollection`) is enforced unconditionally, even when
+     * `_params.tokens` is zero, to prevent bypassing collection windows while updating
+     * `lastCollectionAt`.
+     *
      * Emits {PaymentCollected} and {RCACollected} events.
      *
      * @param _paymentType The type of payment to collect
@@ -450,12 +459,15 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     }
 
     /**
-     * @notice Requires that the collection params are valid.
+     * @notice Validates temporal constraints and caps the requested token amount.
+     * @dev Enforces `minSecondsPerCollection` (unless canceled/elapsed) and returns the lesser of
+     * the requested amount and the RCA payer's per-collection cap
+     * (`maxOngoingTokensPerSecond * collectionSeconds`, plus `maxInitialTokens` on first collection).
      * @param _agreement The agreement data
      * @param _agreementId The ID of the agreement
-     * @param _tokens The number of tokens to collect
-     * @param _collectionSeconds Collection duration from _getCollectionInfo()
-     * @return The number of tokens that can be collected
+     * @param _tokens The requested token amount (upper bound from data service)
+     * @param _collectionSeconds Collection duration, already capped at maxSecondsPerCollection
+     * @return The capped token amount: min(_tokens, payer's max for this collection)
      */
     function _requireValidCollect(
         AgreementData memory _agreement,
@@ -679,11 +691,14 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     }
 
     /**
-     * @notice Internal function to get collection info for an agreement
-     * @dev This is the single source of truth for collection window logic
+     * @notice Internal function to get collection info for an agreement.
+     * @dev Single source of truth for collection window logic. The returned `collectionSeconds`
+     * is capped at `maxSecondsPerCollection` — this is a cap on tokens, not a deadline; late
+     * collections succeed but receive at most `maxSecondsPerCollection` worth of tokens.
      * @param _agreement The agreement data
      * @return isCollectable Whether the agreement can be collected from
-     * @return collectionSeconds The valid collection duration in seconds (0 if not collectable)
+     * @return collectionSeconds The valid collection duration in seconds, capped at
+     * maxSecondsPerCollection (0 if not collectable)
      * @return reason The reason why the agreement is not collectable (None if collectable)
      */
     function _getCollectionInfo(
