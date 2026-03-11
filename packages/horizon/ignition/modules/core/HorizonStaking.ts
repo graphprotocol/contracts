@@ -15,12 +15,12 @@ export default buildModule('HorizonStaking', (m) => {
   const subgraphServiceAddress = m.getParameter('subgraphServiceAddress')
   const maxThawingPeriod = m.getParameter('maxThawingPeriod')
 
-  // Deploy HorizonStaking implementation
+  // Deploy HorizonStaking implementation - requires periphery and proxies to be registered in the controller
   const HorizonStakingImplementation = deployImplementation(m, {
     name: 'HorizonStaking',
     artifact: HorizonStakingArtifact,
     constructorArgs: [Controller, subgraphServiceAddress],
-  })
+  }, { after: [GraphPeripheryModule, HorizonProxiesModule] })
 
   // Upgrade proxy to implementation contract
   const HorizonStaking = upgradeGraphProxy(m, GraphProxyAdmin, HorizonStakingProxy, HorizonStakingImplementation, {
