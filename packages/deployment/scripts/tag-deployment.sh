@@ -3,11 +3,12 @@
 # tag-deployment.sh - Create annotated git tag for a contract deployment
 #
 # Usage:
-#   ./scripts/tag-deployment.sh --deployer <description> --network <network> [options]
+#   ./scripts/tag-deployment.sh --deployer <description> --network <network> --name <short-name> [options]
 #
 # Options:
 #   --deployer <desc>   What performed the deployment (free-form, e.g., "packages/deployment --tags rewards-manager")
 #   --network <name>    Network: arbitrumOne or arbitrumSepolia
+#   --name <short-name> Upgrade short name for the tag (e.g., "reward-manager-and-subgraph-service")
 #   --base <ref>        Git ref to diff against (default: HEAD~1)
 #   --dry-run           Preview tag without creating it
 #   --sign              Force-sign the tag with -s
@@ -28,6 +29,7 @@ REPO_ROOT="$(git rev-parse --show-toplevel)"
 # --- Defaults ---
 DEPLOYER=""
 NETWORK=""
+UPGRADE_NAME=""
 BASE_REF="HEAD~1"
 DRY_RUN=false
 SIGN_FLAG="-a"
@@ -74,6 +76,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --deployer) DEPLOYER="$2"; shift 2 ;;
     --network)  NETWORK="$2"; shift 2 ;;
+    --name)     UPGRADE_NAME="$2"; shift 2 ;;
     --base)     BASE_REF="$2"; shift 2 ;;
     --dry-run)  DRY_RUN=true; shift ;;
     --sign)     SIGN_FLAG="-s"; shift ;;
@@ -90,6 +93,17 @@ fi
 if [[ -z "$NETWORK" ]]; then
   echo "Error: --network is required"
   usage 1
+fi
+
+if [[ -z "$UPGRADE_NAME" ]]; then
+  echo "Error: --name is required"
+  usage 1
+fi
+
+# Validate upgrade name: lowercase, digits, hyphens only
+if [[ ! "$UPGRADE_NAME" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]; then
+  echo "Error: --name must be lowercase alphanumeric with hyphens (e.g., 'reward-manager-and-subgraph-service')"
+  exit 1
 fi
 
 CHAIN_ID="$(network_to_chain_id "$NETWORK")"
@@ -202,10 +216,10 @@ fi
 
 # --- Generate tag name ---
 TAG_DATE="$(date +%Y-%m-%d)"
-TAG_BASE="deploy/${LABEL}/${TAG_DATE}"
+TAG_BASE="deploy/${LABEL}/${TAG_DATE}/${UPGRADE_NAME}"
 TAG_NAME="$TAG_BASE"
 
-# Handle suffix for multiple deploys per day
+# Handle suffix for multiple deploys with the same name on the same day
 if git tag -l "$TAG_NAME" | grep -q .; then
   for suffix in b c d e f; do
     candidate="${TAG_BASE}-${suffix}"
@@ -215,13 +229,14 @@ if git tag -l "$TAG_NAME" | grep -q .; then
     fi
   done
   if [[ "$TAG_NAME" == "$TAG_BASE" ]]; then
-    echo "Error: too many deployment tags for $TAG_DATE"
+    echo "Error: too many deployment tags for ${TAG_DATE}/${UPGRADE_NAME}"
     exit 1
   fi
 fi
 
 # --- Build annotation ---
-ANNOTATION="network: ${DISPLAY} (${CHAIN_ID})
+ANNOTATION="upgrade: ${UPGRADE_NAME}
+network: ${DISPLAY} (${CHAIN_ID})
 deployed-by: ${DEPLOYER}
 commit: ${COMMIT_SHA}"
 
