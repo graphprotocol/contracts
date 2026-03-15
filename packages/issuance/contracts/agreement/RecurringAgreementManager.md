@@ -69,13 +69,14 @@ Collection flows through `SubgraphService → RecurringCollector → PaymentsEsc
 
 The manager exposes `reconcileAgreement` (gas-predictable, per-agreement). Batch convenience functions `reconcileBatch` (caller-selected list) and `reconcile(provider)` (iterates all agreements) are in the stateless `RecurringAgreementHelper` contract, which delegates each reconciliation back to the manager.
 
-### Revoke / Cancel / Remove
+### Revoke / Cancel
 
 - **`revokeOffer`** — withdraws an un-accepted offer
 - **`cancelAgreement`** — for accepted agreements, routes cancellation through the data service then reconciles; idempotent for already-canceled agreements
-- **`removeAgreement`** (permissionless) — cleans up agreements with maxNextClaim = 0
 
-| State                     | Removable when                        |
+Cleanup is automatic: `reconcileAgreement` deletes agreements whose `maxNextClaim` is 0 and have no escrow thaw pending (via `_reconcileAndCleanup`).
+
+| State                     | Deleted by reconcile when             |
 | ------------------------- | ------------------------------------- |
 | CanceledByServiceProvider | Immediately (maxNextClaim = 0)        |
 | CanceledByPayer           | After collection window expires       |
@@ -147,24 +148,23 @@ Per-agreement reconciliation (`reconcileAgreement`) re-reads agreement state fro
 
 ### Global Tracking
 
-| Storage field                       | Type    | Updated at                                                           |
-| ----------------------------------- | ------- | -------------------------------------------------------------------- |
-| `escrowBasis`                       | enum    | `setEscrowBasis()`                                                   |
-| `sumMaxNextClaimAll`                | uint256 | Every `sumMaxNextClaim[c][p]` mutation                               |
-| `totalEscrowDeficit`                | uint256 | Every `sumMaxNextClaim[c][p]` or `escrowSnap[c][p]` mutation         |
-| `totalAgreementCount`               | uint256 | `offerAgreement` (+1), `revokeOffer` (-1), `reconcileAgreement` (-1) |
-| `escrowSnap[c][p]`                  | mapping | End of `_updateEscrow` via snapshot diff                             |
-| `minOnDemandBasisThreshold`         | uint8   | `setMinOnDemandBasisThreshold()` (operator)                          |
-| `minFullBasisMargin`                | uint8   | `setMinFullBasisMargin()` (operator)                                 |
-| `issuanceAllocator`                 | address | `setIssuanceAllocator()` (governor)                                  |
-| `ensuredIncomingDistributedToBlock` | uint64  | `_ensureIncomingDistributionToCurrentBlock()` (per-block dedup)      |
+| Storage field                       | Type    | Updated at                                                                  |
+| ----------------------------------- | ------- | --------------------------------------------------------------------------- |
+| `escrowBasis`                       | enum    | `setEscrowBasis()`                                                          |
+| `sumMaxNextClaimAll`                | uint256 | Every `sumMaxNextClaim[c][p]` mutation                                      |
+| `totalEscrowDeficit`                | uint256 | Every `sumMaxNextClaim[c][p]` or `escrowSnap[c][p]` mutation                |
+| `totalAgreementCount`               | uint256 | `offerAgreement` (+1), `revokeOffer` (-1), `reconcileAgreement` (-1)        |
+| `escrowSnap[c][p]`                  | mapping | End of `_updateEscrow` via snapshot diff                                    |
+| `tempJit`                           | bool    | `beforeCollection` (trip), `_updateEscrow` (recover), `setTempJit` (manual) |
+| `issuanceAllocator`                 | address | `setIssuanceAllocator()` (governor)                                         |
+| `ensuredIncomingDistributedToBlock` | uint64  | `_ensureIncomingDistributionToCurrentBlock()` (per-block dedup)             |
 
 **`totalEscrowDeficit`** is maintained incrementally as `Σ max(0, sumMaxNextClaim[c][p] - escrowSnap[c][p])` per (collector, provider). Over-deposited pairs cannot mask another pair's deficit. At each mutation point, the pair's deficit is recomputed before and after.
 
 ## Roles
 
 - **GOVERNOR_ROLE**: Sets issuance allocator, eligibility oracle; grants `DATA_SERVICE_ROLE`, `COLLECTOR_ROLE`, and other roles; admin of `OPERATOR_ROLE`
-- **OPERATOR_ROLE**: Sets escrow basis and threshold/margin parameters; admin of `AGREEMENT_MANAGER_ROLE`
+- **OPERATOR_ROLE**: Sets escrow basis and temp JIT; admin of `AGREEMENT_MANAGER_ROLE`
   - **AGREEMENT_MANAGER_ROLE**: Offers agreements/updates, revokes offers, cancels agreements
 - **PAUSE_ROLE**: Pauses contract (reconcile remains available)
 - **Permissionless**: `reconcileAgreement`, `reconcileCollectorProvider`

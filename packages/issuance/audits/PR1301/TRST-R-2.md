@@ -11,6 +11,4 @@ The functions below are mentioned in various documentation files but do not exis
 
 ---
 
-Updated `acceptUnsignedIndexingAgreement` → `acceptIndexingAgreement` in `RecurringAgreementManager.md`. No remaining stale references found.
-
-TODO: Check again.
+Updated `acceptUnsignedIndexingAgreement` → `acceptIndexingAgreement` in `RecurringAgreementManager.md`. Updated `removeAgreement` → `reconcileAgreement` in docs. No remaining stale references found.
