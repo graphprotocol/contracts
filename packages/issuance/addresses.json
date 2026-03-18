@@ -1,5 +1,9 @@
 {
-  "42161": {},
+  "42161": {
+    "RewardsEligibilityOracle": {
+      "address": "0x8ec2767a9d9ba02b4e09e8ff4fac2e14a340f304"
+    }
+  },
   "421614": {
     "NetworkOperator": {
       "address": "0xade6b8eb69a49b56929c1d4f4b428d791861db6f"
