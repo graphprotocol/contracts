@@ -218,6 +218,85 @@ contract RecurringAgreementHelperAuditTest is RecurringAgreementManagerSharedTes
         assertEq(empty.length, 0);
     }
 
+    // -- Tests: getProviderAgreements (paginated) --
+
+    function test_GetProviderAgreements_Paginated() public {
+        IRecurringCollector.RecurringCollectionAgreement memory rca1 = _makeRCAForCollector(
+            recurringCollector,
+            indexer,
+            1
+        );
+        _offerAgreement(rca1);
+
+        IRecurringCollector.RecurringCollectionAgreement memory rca2 = _makeRCAForCollector(
+            recurringCollector,
+            indexer,
+            2
+        );
+        _offerAgreement(rca2);
+
+        // Full list
+        bytes16[] memory all = agreementHelper.getProviderAgreements(indexer);
+        assertEq(all.length, 2);
+
+        // First page
+        bytes16[] memory first = agreementHelper.getProviderAgreements(indexer, 0, 1);
+        assertEq(first.length, 1);
+        assertEq(first[0], all[0]);
+
+        // Second page
+        bytes16[] memory second = agreementHelper.getProviderAgreements(indexer, 1, 1);
+        assertEq(second.length, 1);
+        assertEq(second[0], all[1]);
+
+        // Past end
+        bytes16[] memory empty = agreementHelper.getProviderAgreements(indexer, 2, 1);
+        assertEq(empty.length, 0);
+
+        // Count larger than remaining
+        bytes16[] memory clamped = agreementHelper.getProviderAgreements(indexer, 1, 100);
+        assertEq(clamped.length, 1);
+        assertEq(clamped[0], all[1]);
+    }
+
+    // -- Tests: getCollectors (paginated) --
+
+    function test_GetCollectors_Paginated() public {
+        // Create agreements under two different collectors to register them
+        IRecurringCollector.RecurringCollectionAgreement memory rca1 = _makeRCAForCollector(
+            recurringCollector,
+            indexer,
+            1
+        );
+        _offerAgreement(rca1);
+
+        IRecurringCollector.RecurringCollectionAgreement memory rca2 = _makeRCAForCollector(collector2, indexer, 2);
+        _offerForCollector(collector2, rca2);
+
+        // Full list
+        address[] memory all = agreementHelper.getCollectors();
+        assertEq(all.length, 2);
+
+        // First page
+        address[] memory first = agreementHelper.getCollectors(0, 1);
+        assertEq(first.length, 1);
+        assertEq(first[0], all[0]);
+
+        // Second page
+        address[] memory second = agreementHelper.getCollectors(1, 1);
+        assertEq(second.length, 1);
+        assertEq(second[0], all[1]);
+
+        // Past end
+        address[] memory empty = agreementHelper.getCollectors(2, 1);
+        assertEq(empty.length, 0);
+
+        // Count larger than remaining
+        address[] memory clamped = agreementHelper.getCollectors(1, 100);
+        assertEq(clamped.length, 1);
+        assertEq(clamped[0], all[1]);
+    }
+
     function test_AuditPairs_IsolatesCollectors() public {
         IRecurringCollector.RecurringCollectionAgreement memory rca1 = _makeRCAForCollector(
             recurringCollector,

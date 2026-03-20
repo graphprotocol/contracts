@@ -8,11 +8,14 @@ import { Bounder } from "../../../unit/utils/Bounder.t.sol";
 
 contract RecurringCollectorHelper is AuthorizableHelper, Bounder {
     RecurringCollector public collector;
+    address public proxyAdmin;
 
     constructor(
-        RecurringCollector collector_
+        RecurringCollector collector_,
+        address proxyAdmin_
     ) AuthorizableHelper(collector_, collector_.REVOKE_AUTHORIZATION_THAWING_PERIOD()) {
         collector = collector_;
+        proxyAdmin = proxyAdmin_;
     }
 
     function generateSignedRCA(
@@ -104,6 +107,10 @@ contract RecurringCollectorHelper is AuthorizableHelper, Bounder {
         vm.assume(rca.dataService != address(0));
         vm.assume(rca.payer != address(0));
         vm.assume(rca.serviceProvider != address(0));
+        // Exclude ProxyAdmin address — TransparentProxy routes admin calls to ProxyAdmin, not implementation
+        vm.assume(rca.dataService != proxyAdmin);
+        vm.assume(rca.payer != proxyAdmin);
+        vm.assume(rca.serviceProvider != proxyAdmin);
 
         // Ensure we have a nonce if it's zero
         if (rca.nonce == 0) {

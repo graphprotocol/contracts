@@ -65,5 +65,9 @@ export function upgradeTransparentUpgradeableProxy(
     [proxy, implementation, m.encodeFunctionCall(implementation, 'initialize', metadata.initArgs)],
     options,
   )
-  return loadProxyWithABI(m, proxy, metadata, { ...options, after: [upgradeCall] })
+  return loadProxyWithABI(m, proxy, metadata, {
+    ...options,
+    id: `${metadata.name}_UpgradedProxyWithABI`,
+    after: [upgradeCall],
+  })
 }

@@ -74,7 +74,7 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
     function setUp() public override {
         super.setUp();
 
-        _recurringCollectorHelper = new RecurringCollectorHelper(recurringCollector);
+        _recurringCollectorHelper = new RecurringCollectorHelper(recurringCollector, recurringCollectorProxyAdmin);
     }
 
     /*

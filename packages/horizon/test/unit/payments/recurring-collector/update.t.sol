@@ -76,6 +76,7 @@ contract RecurringCollectorUpdateTest is RecurringCollectorSharedTest {
         address notDataService
     ) public {
         vm.assume(fuzzyTestUpdate.fuzzyTestAccept.rca.dataService != notDataService);
+        vm.assume(notDataService != _proxyAdmin);
         (, , uint256 signerKey, bytes16 agreementId) = _sensibleAuthorizeAndAccept(fuzzyTestUpdate.fuzzyTestAccept);
 
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _recurringCollectorHelper.sensibleRCAU(

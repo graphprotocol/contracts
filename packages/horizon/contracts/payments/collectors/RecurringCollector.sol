@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.27;
 
-import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
+import { EIP712Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
-import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
 
 import { Authorizable } from "../../utilities/Authorizable.sol";
 import { GraphDirectory } from "../../utilities/GraphDirectory.sol";
@@ -24,7 +25,14 @@ import { PPMMath } from "../../libraries/PPMMath.sol";
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */
-contract RecurringCollector is EIP712, GraphDirectory, Authorizable, Pausable, IRecurringCollector {
+contract RecurringCollector is
+    Initializable,
+    EIP712Upgradeable,
+    GraphDirectory,
+    Authorizable,
+    PausableUpgradeable,
+    IRecurringCollector
+{
     using PPMMath for uint256;
 
     /// @notice The minimum number of seconds that must be between two collections
@@ -34,21 +42,6 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, Pausable, I
     /// Caps gas available to payer implementations, preventing 63/64-rule gas siphoning attacks
     /// that could starve the core collect() call of gas.
     uint256 private constant MAX_PAYER_CALLBACK_GAS = 1_500_000;
-
-    /// @notice List of pause guardians and their allowed status
-    mapping(address pauseGuardian => bool allowed) public override pauseGuardians;
-
-    /**
-     * @notice Checks if the caller is a pause guardian.
-     */
-    modifier onlyPauseGuardian() {
-        _checkPauseGuardian();
-        _;
-    }
-
-    function _checkPauseGuardian() internal view {
-        require(pauseGuardians[msg.sender], RecurringCollectorNotPauseGuardian(msg.sender));
-    }
 
     /* solhint-disable gas-small-strings */
     /// @notice The EIP712 typehash for the RecurringCollectionAgreement struct
@@ -64,22 +57,70 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, Pausable, I
         );
     /* solhint-enable gas-small-strings */
 
-    /// @notice Tracks agreements
-    mapping(bytes16 agreementId => AgreementData data) internal agreements;
+    /// @custom:storage-location erc7201:graphprotocol.storage.RecurringCollector
+    struct RecurringCollectorStorage {
+        /// @notice List of pause guardians and their allowed status
+        mapping(address pauseGuardian => bool allowed) pauseGuardians;
+        /// @notice Tracks agreements
+        mapping(bytes16 agreementId => AgreementData data) agreements;
+    }
+
+    /// @dev keccak256(abi.encode(uint256(keccak256("graphprotocol.storage.RecurringCollector")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant RECURRING_COLLECTOR_STORAGE_LOCATION =
+        0x436d179d846767cf46c6cda3ec5a404bcbe1b4351ce320082402e5e9ab4d6600;
+
+    function _getStorage() private pure returns (RecurringCollectorStorage storage $) {
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            $.slot := RECURRING_COLLECTOR_STORAGE_LOCATION
+        }
+    }
 
     /**
-     * @notice Constructs a new instance of the RecurringCollector contract.
-     * @param eip712Name The name of the EIP712 domain.
-     * @param eip712Version The version of the EIP712 domain.
+     * @notice List of pause guardians and their allowed status
+     * @param pauseGuardian The address to check
+     * @return Whether the address is a pause guardian
+     */
+    function pauseGuardians(address pauseGuardian) public view override returns (bool) {
+        return _getStorage().pauseGuardians[pauseGuardian];
+    }
+
+    /**
+     * @notice Checks if the caller is a pause guardian.
+     */
+    modifier onlyPauseGuardian() {
+        _checkPauseGuardian();
+        _;
+    }
+
+    function _checkPauseGuardian() internal view {
+        require(_getStorage().pauseGuardians[msg.sender], RecurringCollectorNotPauseGuardian(msg.sender));
+    }
+
+    /**
+     * @notice Constructs a new instance of the RecurringCollector implementation contract.
+     * @dev Immutables are set here; proxy state is initialized via {initialize}.
      * @param controller The address of the Graph controller.
      * @param revokeSignerThawingPeriod The duration (in seconds) in which a signer is thawing before they can be revoked.
      */
     constructor(
-        string memory eip712Name,
-        string memory eip712Version,
         address controller,
         uint256 revokeSignerThawingPeriod
-    ) EIP712(eip712Name, eip712Version) GraphDirectory(controller) Authorizable(revokeSignerThawingPeriod) {}
+    ) GraphDirectory(controller) Authorizable(revokeSignerThawingPeriod) {
+        _disableInitializers();
+    }
+
+    /* solhint-disable gas-calldata-parameters */
+    /**
+     * @notice Initializes the contract (proxy storage).
+     * @param eip712Name The name of the EIP712 domain.
+     * @param eip712Version The version of the EIP712 domain.
+     */
+    function initialize(string memory eip712Name, string memory eip712Version) external initializer {
+        __EIP712_init(eip712Name, eip712Version);
+        __Pausable_init();
+    }
+    /* solhint-enable gas-calldata-parameters */
 
     /// @inheritdoc IRecurringCollector
     function pause() external override onlyPauseGuardian {
@@ -99,11 +140,12 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, Pausable, I
      */
     function setPauseGuardian(address _pauseGuardian, bool _allowed) external {
         require(msg.sender == _graphController().getGovernor(), RecurringCollectorNotPauseGuardian(msg.sender));
+        RecurringCollectorStorage storage $ = _getStorage();
         require(
-            pauseGuardians[_pauseGuardian] != _allowed,
+            $.pauseGuardians[_pauseGuardian] != _allowed,
             RecurringCollectorPauseGuardianNoChange(_pauseGuardian, _allowed)
         );
-        pauseGuardians[_pauseGuardian] = _allowed;
+        $.pauseGuardians[_pauseGuardian] = _allowed;
         emit PauseGuardianSet(_pauseGuardian, _allowed);
     }
 
@@ -321,7 +363,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, Pausable, I
 
     /// @inheritdoc IRecurringCollector
     function getMaxNextClaim(bytes16 agreementId) external view returns (uint256) {
-        return _getMaxNextClaim(agreements[agreementId]);
+        return _getMaxNextClaim(_getStorage().agreements[agreementId]);
     }
 
     /// @inheritdoc IRecurringCollector
@@ -340,7 +382,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, Pausable, I
         RecurringCollectionAgreementUpdate calldata rcau
     ) external view returns (uint256 initialExtra, uint256 ongoing) {
         ongoing = _computeMaxClaim(rcau.maxOngoingTokensPerSecond, rcau.maxSecondsPerCollection, 0, rcau.endsAt);
-        initialExtra = agreements[agreementId].lastCollectionAt == 0 ? rcau.maxInitialTokens : 0;
+        initialExtra = _getStorage().agreements[agreementId].lastCollectionAt == 0 ? rcau.maxInitialTokens : 0;
     }
 
     /**
@@ -783,7 +825,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, Pausable, I
      * @return The storage reference to the agreement data
      */
     function _getAgreementStorage(bytes16 _agreementId) private view returns (AgreementData storage) {
-        return agreements[_agreementId];
+        return _getStorage().agreements[_agreementId];
     }
 
     /**
@@ -792,7 +834,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, Pausable, I
      * @return The agreement data
      */
     function _getAgreement(bytes16 _agreementId) private view returns (AgreementData memory) {
-        return agreements[_agreementId];
+        return _getStorage().agreements[_agreementId];
     }
 
     /**

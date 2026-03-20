@@ -31,6 +31,9 @@ export default buildModule('GraphHorizon_Deploy', (m) => {
     PaymentsEscrow,
     PaymentsEscrowImplementation,
     GraphTallyCollector,
+    RecurringCollectorProxyAdmin,
+    RecurringCollector,
+    RecurringCollectorImplementation,
   } = m.useModule(GraphHorizonCoreModule)
 
   const governor = m.getAccount(1)
@@ -74,5 +77,8 @@ export default buildModule('GraphHorizon_Deploy', (m) => {
     Transparent_Proxy_PaymentsEscrow: PaymentsEscrow,
     Implementation_PaymentsEscrow: PaymentsEscrowImplementation,
     GraphTallyCollector,
+    Transparent_ProxyAdmin_RecurringCollector: RecurringCollectorProxyAdmin,
+    Transparent_Proxy_RecurringCollector: RecurringCollector,
+    Implementation_RecurringCollector: RecurringCollectorImplementation,
   }
 })
