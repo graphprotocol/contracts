@@ -20,3 +20,9 @@ The original intention cannot be truly fulfilled without major redesign of multi
 ## Team Response
 
 TBD
+
+---
+
+Fixed. The entire `tempJit` mechanism has been replaced with threshold-based basis degradation (`58c7f7c7f`). The old unreachable `tempJit` auto-set path no longer exists.
+
+Instead of a boolean `tempJit` flag and manual `setTempJit()` override, `_escrowMinMax()` now uses `minOnDemandBasisThreshold` and `minFullBasisMargin` parameters to automatically degrade effective escrow basis based on the ratio of spare balance to `sumMaxNextClaimAll`. This does not rely on a callback to activate. It also provides automatic transition boundaries (configurable) with defaults that reduce the likihood of failed collections due to tokens being locked in escrow.

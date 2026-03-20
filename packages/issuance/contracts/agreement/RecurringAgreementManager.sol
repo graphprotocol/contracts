@@ -128,15 +128,20 @@ contract RecurringAgreementManager is
         /// @notice Number of agreements per (collector, provider) pair
         mapping(address collector => mapping(address provider => uint256)) pairAgreementCount;
         /// @notice The issuance allocator that mints GRT to this contract (20 bytes)
-        /// @dev Packed slot (30/32 bytes): issuanceAllocator (20) + ensuredIncomingDistributedToBlock (8) +
-        /// escrowBasis (1) + tempJit (1). All read together in _updateEscrow / beforeCollection.
+        /// @dev Packed slot (31/32 bytes): issuanceAllocator (20) + ensuredIncomingDistributedToBlock (8) +
+        /// escrowBasis (1) + minOnDemandBasisThreshold (1) + minFullBasisMargin (1).
+        /// All read together in _updateEscrow / beforeCollection.
         IIssuanceAllocationDistribution issuanceAllocator;
         /// @notice Block number when _ensureIncomingDistributionToCurrentBlock last ran
         uint64 ensuredIncomingDistributedToBlock;
-        /// @notice Governance-configured escrow level (not modified by temp JIT)
+        /// @notice Governance-configured escrow level (maximum aspiration)
         EscrowBasis escrowBasis;
-        /// @notice Whether temporary JIT mode is active (beforeCollection couldn't deposit)
-        bool tempJit;
+        /// @notice Threshold for OnDemand: sumMaxNextClaimAll * threshold / 256 < spare.
+        /// Governance-configured.
+        uint8 minOnDemandBasisThreshold;
+        /// @notice Margin for Full: sumMaxNextClaimAll * (256 + margin) / 256 < spare.
+        /// Governance-configured.
+        uint8 minFullBasisMargin;
         /// @notice Optional oracle for checking payment eligibility of service providers (20/32 bytes in slot)
         IProviderEligibility providerEligibilityOracle;
     }
@@ -168,7 +173,11 @@ contract RecurringAgreementManager is
         _setRoleAdmin(DATA_SERVICE_ROLE, GOVERNOR_ROLE);
         _setRoleAdmin(COLLECTOR_ROLE, GOVERNOR_ROLE);
         _setRoleAdmin(AGREEMENT_MANAGER_ROLE, OPERATOR_ROLE);
-        _getStorage().escrowBasis = EscrowBasis.Full;
+
+        RecurringAgreementManagerStorage storage $ = _getStorage();
+        $.escrowBasis = EscrowBasis.Full;
+        $.minOnDemandBasisThreshold = 128;
+        $.minFullBasisMargin = 16;
     }
 
     // -- ERC165 --
@@ -243,14 +252,11 @@ contract RecurringAgreementManager is
         // Ensure issuance is distributed so balanceOf reflects all available tokens
         _ensureIncomingDistributionToCurrentBlock($);
 
-        // Strict <: when deficit == available, enter tempJit rather than depleting entire balance
         uint256 deficit = tokensToCollect - escrowBalance;
-        if (deficit < GRAPH_TOKEN.balanceOf(address(this))) {
+        uint256 available = GRAPH_TOKEN.balanceOf(address(this));
+        if (deficit < available) {
             GRAPH_TOKEN.approve(address(PAYMENTS_ESCROW), deficit);
             PAYMENTS_ESCROW.deposit(msg.sender, provider, deficit);
-        } else if (!$.tempJit) {
-            $.tempJit = true;
-            emit TempJitSet(true, true);
         }
     }
 
@@ -430,12 +436,23 @@ contract RecurringAgreementManager is
     }
 
     /// @inheritdoc IRecurringEscrowManagement
-    function setTempJit(bool active) external onlyRole(OPERATOR_ROLE) {
+    function setMinOnDemandBasisThreshold(uint8 threshold) external onlyRole(OPERATOR_ROLE) {
         RecurringAgreementManagerStorage storage $ = _getStorage();
-        if ($.tempJit != active) {
-            $.tempJit = active;
-            emit TempJitSet(active, false);
-        }
+        if ($.minOnDemandBasisThreshold == threshold) return;
+
+        uint8 oldThreshold = $.minOnDemandBasisThreshold;
+        $.minOnDemandBasisThreshold = threshold;
+        emit MinOnDemandBasisThresholdSet(oldThreshold, threshold);
+    }
+
+    /// @inheritdoc IRecurringEscrowManagement
+    function setMinFullBasisMargin(uint8 margin) external onlyRole(OPERATOR_ROLE) {
+        RecurringAgreementManagerStorage storage $ = _getStorage();
+        if ($.minFullBasisMargin == margin) return;
+
+        uint8 oldMargin = $.minFullBasisMargin;
+        $.minFullBasisMargin = margin;
+        emit MinFullBasisMarginSet(oldMargin, margin);
     }
 
     // -- IProviderEligibilityManagement --
@@ -520,8 +537,13 @@ contract RecurringAgreementManager is
     }
 
     /// @inheritdoc IRecurringAgreements
-    function isTempJit() external view returns (bool) {
-        return _getStorage().tempJit;
+    function getMinOnDemandBasisThreshold() external view returns (uint8) {
+        return _getStorage().minOnDemandBasisThreshold;
+    }
+
+    /// @inheritdoc IRecurringAgreements
+    function getMinFullBasisMargin() external view returns (uint8) {
+        return _getStorage().minFullBasisMargin;
     }
 
     /// @inheritdoc IRecurringAgreements
@@ -791,9 +813,9 @@ contract RecurringAgreementManager is
      * | OnDemand   | 0                   | sumMaxNext         |
      * | JustInTime | 0                   | 0                  |
      *
-     * When tempJit, behaves as JustInTime regardless of configured basis.
-     * Full degrades to OnDemand when available balance <= totalEscrowDeficit.
-     * Full requires strictly more tokens on hand than the global deficit.
+     * The effective basis is the configured escrowBasis degraded based on spare balance
+     * (balance - totalEscrowDeficit). OnDemand requires sumMaxNextClaimAll * threshold / 256 < spare.
+     * Full requires sumMaxNextClaimAll * (256 + margin) / 256 < spare.
      *
      * @param collector The collector address
      * @param provider The service provider
@@ -806,10 +828,18 @@ contract RecurringAgreementManager is
         address collector,
         address provider
     ) private view returns (uint256 min, uint256 max) {
-        EscrowBasis basis = $.tempJit ? EscrowBasis.JustInTime : $.escrowBasis;
+        uint256 balance = GRAPH_TOKEN.balanceOf(address(this));
+        uint256 totalDeficit = $.totalEscrowDeficit;
+        uint256 spare = totalDeficit < balance ? balance - totalDeficit : 0;
+        uint256 sumMaxNext = $.sumMaxNextClaimAll;
 
-        max = basis == EscrowBasis.JustInTime ? 0 : $.sumMaxNextClaim[collector][provider];
-        min = (basis == EscrowBasis.Full && $.totalEscrowDeficit < GRAPH_TOKEN.balanceOf(address(this))) ? max : 0;
+        EscrowBasis basis = $.escrowBasis;
+        max = basis != EscrowBasis.JustInTime && ((sumMaxNext * uint256($.minOnDemandBasisThreshold)) / 256 < spare)
+            ? $.sumMaxNextClaim[collector][provider]
+            : 0;
+        min = basis == EscrowBasis.Full && ((sumMaxNext * (256 + uint256($.minFullBasisMargin))) / 256 < spare)
+            ? max
+            : 0;
     }
 
     /**
@@ -860,11 +890,6 @@ contract RecurringAgreementManager is
     // solhint-disable-next-line use-natspec
     function _updateEscrow(RecurringAgreementManagerStorage storage $, address collector, address provider) private {
         _ensureIncomingDistributionToCurrentBlock($);
-        // Auto-recover from tempJit when balance exceeds deficit (same strict < as beforeCollection/escrowMinMax)
-        if ($.tempJit && $.totalEscrowDeficit < GRAPH_TOKEN.balanceOf(address(this))) {
-            $.tempJit = false;
-            emit TempJitSet(false, true);
-        }
 
         IPaymentsEscrow.EscrowAccount memory account = _fetchEscrowAccount(collector, provider);
         (uint256 min, uint256 max) = _escrowMinMax($, collector, provider);

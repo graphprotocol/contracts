@@ -1245,24 +1245,4 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         assertEq(agreementManager.approveAgreement(hash2), bytes4(0));
         assertEq(agreementManager.approveAgreement(hash3), IAgreementOwner.approveAgreement.selector);
     }
-
-    // ==================== setTempJit No-Op ====================
-
-    function test_SetTempJit_NoopWhenAlreadyFalse() public {
-        // Default tempJit is false; setting false again should early-return with no event
-        vm.recordLogs();
-        vm.prank(operator);
-        agreementManager.setTempJit(false);
-
-        Vm.Log[] memory logs = vm.getRecordedLogs();
-        for (uint256 i = 0; i < logs.length; i++) {
-            assertTrue(
-                logs[i].topics[0] != IRecurringEscrowManagement.TempJitSet.selector,
-                "TempJitSet should not be emitted"
-            );
-        }
-        assertFalse(agreementManager.isTempJit());
-    }
-
-    /* solhint-enable graph/func-name-mixedcase */
 }
