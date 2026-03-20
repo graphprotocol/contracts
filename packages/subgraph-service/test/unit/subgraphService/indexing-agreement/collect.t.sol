@@ -308,6 +308,37 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
         );
     }
 
+    function test_SubgraphService_CollectIndexingFees_Revert_WhenNotCollectable(
+        Seed memory seed,
+        uint256 entities,
+        bytes32 poi
+    ) public {
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+        (, bytes16 acceptedAgreementId) = _withAcceptedIndexingAgreement(ctx, indexerState);
+
+        resetPrank(indexerState.addr);
+        uint256 currentEpochBlock = epochManager.currentEpochBlock();
+
+        // Mock getCollectionInfo to return not collectable
+        vm.mockCall(
+            address(recurringCollector),
+            abi.encodeWithSelector(IRecurringCollector.getCollectionInfo.selector),
+            abi.encode(false, uint256(0), IRecurringCollector.AgreementNotCollectableReason.ZeroCollectionSeconds)
+        );
+
+        bytes memory expectedErr = abi.encodeWithSelector(
+            IndexingAgreement.IndexingAgreementNotCollectable.selector,
+            acceptedAgreementId
+        );
+        vm.expectRevert(expectedErr);
+        subgraphService.collect(
+            indexerState.addr,
+            IGraphPayments.PaymentTypes.IndexingFee,
+            _encodeCollectDataV1(acceptedAgreementId, entities, poi, currentEpochBlock, bytes(""))
+        );
+    }
+
     /* solhint-enable graph/func-name-mixedcase */
 
     function _expectCollectCallAndEmit(

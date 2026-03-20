@@ -4,6 +4,8 @@ pragma solidity ^0.8.27;
 import { IDisputeManager } from "@graphprotocol/interfaces/contracts/subgraph-service/IDisputeManager.sol";
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { IPaymentsCollector } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsCollector.sol";
+import { IHorizonStakingBase } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingBase.sol";
+import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 
 import { SubgraphServiceIndexingAgreementSharedTest } from "../../../subgraphService/indexing-agreement/shared.t.sol";
@@ -176,6 +178,45 @@ contract DisputeManagerIndexingFeeCreateDisputeTest is SubgraphServiceIndexingAg
         assertEq(disputeId, expectedDisputeId);
     }
 
+    function test_IndexingFee_Create_Dispute_RevertWhen_ZeroStake(
+        Seed memory seed,
+        uint256 unboundedTokensCollected
+    ) public {
+        (bytes16 agreementId, IndexerState memory indexerState) = _setupCollectedAgreement(
+            seed,
+            unboundedTokensCollected
+        );
+
+        // Mock staking to return zero provision tokens and zero delegation
+        IHorizonStakingTypes.Provision memory emptyProvision;
+        vm.mockCall(
+            address(staking),
+            abi.encodeWithSelector(
+                IHorizonStakingBase.getProvision.selector,
+                indexerState.addr,
+                address(subgraphService)
+            ),
+            abi.encode(emptyProvision)
+        );
+        IHorizonStakingTypes.DelegationPool memory emptyPool;
+        vm.mockCall(
+            address(staking),
+            abi.encodeWithSelector(
+                IHorizonStakingBase.getDelegationPool.selector,
+                indexerState.addr,
+                address(subgraphService)
+            ),
+            abi.encode(emptyPool)
+        );
+
+        resetPrank(users.fisherman);
+        token.approve(address(disputeManager), disputeManager.disputeDeposit());
+
+        vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerZeroTokens.selector));
+        // forge-lint: disable-next-line(unsafe-typecast)
+        disputeManager.createIndexingFeeDisputeV1(agreementId, bytes32("disputePOI"), 200, block.number);
+    }
+
     function test_IndexingFee_Create_Dispute_RevertWhen_AlreadyCreated(
         Seed memory seed,
         uint256 unboundedTokensCollected
@@ -195,5 +236,44 @@ contract DisputeManagerIndexingFeeCreateDisputeTest is SubgraphServiceIndexingAg
         );
         // forge-lint: disable-next-line(unsafe-typecast)
         disputeManager.createIndexingFeeDisputeV1(agreementId, bytes32("POI"), 100, block.number);
+    }
+
+    function test_IndexingFee_Accept_Dispute_RevertWhen_InvalidDisputeId() public {
+        // forge-lint: disable-next-line(unsafe-typecast)
+        bytes32 fakeDisputeId = bytes32("nonexistent");
+
+        resetPrank(users.arbitrator);
+        vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerInvalidDispute.selector, fakeDisputeId));
+        disputeManager.acceptDispute(fakeDisputeId, 1);
+    }
+
+    function test_IndexingFee_Accept_Dispute_RevertWhen_NotPending(
+        Seed memory seed,
+        uint256 unboundedTokensCollected
+    ) public {
+        (bytes16 agreementId, ) = _setupCollectedAgreement(seed, unboundedTokensCollected);
+
+        // Create and reject a dispute so it is no longer pending
+        resetPrank(users.fisherman);
+        token.approve(address(disputeManager), disputeManager.disputeDeposit());
+        // forge-lint: disable-next-line(unsafe-typecast)
+        bytes32 disputeId = disputeManager.createIndexingFeeDisputeV1(
+            agreementId,
+            bytes32("disputePOI"),
+            200,
+            block.number
+        );
+
+        resetPrank(users.arbitrator);
+        disputeManager.rejectDispute(disputeId);
+
+        // Attempt to accept the already-rejected dispute
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IDisputeManager.DisputeManagerDisputeNotPending.selector,
+                IDisputeManager.DisputeStatus.Rejected
+            )
+        );
+        disputeManager.acceptDispute(disputeId, 1);
     }
 }
