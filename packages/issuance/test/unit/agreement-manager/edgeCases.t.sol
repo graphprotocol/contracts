@@ -18,6 +18,14 @@ import { RecurringAgreementManagerSharedTest } from "./shared.t.sol";
 contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerSharedTest {
     /* solhint-disable graph/func-name-mixedcase */
 
+    // -- Helpers --
+
+    function _getProviderAgreements(address provider) internal view returns (bytes16[] memory result) {
+        uint256 count = agreementManager.getProviderAgreementCount(provider);
+        result = new bytes16[](count);
+        for (uint256 i = 0; i < count; ++i) result[i] = agreementManager.getProviderAgreementAt(provider, i);
+    }
+
     // ==================== supportsInterface Fallback ====================
 
     function test_SupportsInterface_UnknownInterfaceReturnsFalse() public view {
@@ -849,7 +857,7 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
     // ==================== getProviderAgreements ====================
 
     function test_GetIndexerAgreements_Empty() public {
-        bytes16[] memory ids = agreementManager.getProviderAgreements(indexer);
+        bytes16[] memory ids = _getProviderAgreements(indexer);
         assertEq(ids.length, 0);
     }
 
@@ -864,7 +872,7 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
 
         bytes16 agreementId = _offerAgreement(rca);
 
-        bytes16[] memory ids = agreementManager.getProviderAgreements(indexer);
+        bytes16[] memory ids = _getProviderAgreements(indexer);
         assertEq(ids.length, 1);
         assertEq(ids[0], agreementId);
     }
@@ -891,7 +899,7 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         bytes16 id1 = _offerAgreement(rca1);
         bytes16 id2 = _offerAgreement(rca2);
 
-        bytes16[] memory ids = agreementManager.getProviderAgreements(indexer);
+        bytes16[] memory ids = _getProviderAgreements(indexer);
         assertEq(ids.length, 2);
         // EnumerableSet maintains insertion order
         assertEq(ids[0], id1);
@@ -924,7 +932,7 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         _setAgreementCanceledBySP(id1, rca1);
         agreementManager.reconcileAgreement(id1);
 
-        bytes16[] memory ids = agreementManager.getProviderAgreements(indexer);
+        bytes16[] memory ids = _getProviderAgreements(indexer);
         assertEq(ids.length, 1);
         assertEq(ids[0], id2);
     }
@@ -954,8 +962,8 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         bytes16 id1 = _offerAgreement(rca1);
         bytes16 id2 = _offerAgreement(rca2);
 
-        bytes16[] memory indexer1Ids = agreementManager.getProviderAgreements(indexer);
-        bytes16[] memory indexer2Ids = agreementManager.getProviderAgreements(indexer2);
+        bytes16[] memory indexer1Ids = _getProviderAgreements(indexer);
+        bytes16[] memory indexer2Ids = _getProviderAgreements(indexer2);
 
         assertEq(indexer1Ids.length, 1);
         assertEq(indexer1Ids[0], id1);
@@ -963,7 +971,7 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         assertEq(indexer2Ids[0], id2);
     }
 
-    function test_GetIndexerAgreements_Paginated() public {
+    function test_GetIndexerAgreements_Enumeration() public {
         IRecurringCollector.RecurringCollectionAgreement memory rca1 = _makeRCA(
             100 ether,
             1 ether,
@@ -985,21 +993,12 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         bytes16 id1 = _offerAgreement(rca1);
         bytes16 id2 = _offerAgreement(rca2);
 
-        // Full range returns both
-        bytes16[] memory all = agreementManager.getProviderAgreements(indexer, 0, 10);
-        assertEq(all.length, 2);
-        assertEq(all[0], id1);
-        assertEq(all[1], id2);
+        // Count returns total
+        assertEq(agreementManager.getProviderAgreementCount(indexer), 2);
 
-        // Offset skips first
-        bytes16[] memory fromOne = agreementManager.getProviderAgreements(indexer, 1, 10);
-        assertEq(fromOne.length, 1);
-        assertEq(fromOne[0], id2);
-
-        // Count limits result
-        bytes16[] memory firstOnly = agreementManager.getProviderAgreements(indexer, 0, 1);
-        assertEq(firstOnly.length, 1);
-        assertEq(firstOnly[0], id1);
+        // Individual access by index
+        assertEq(agreementManager.getProviderAgreementAt(indexer, 0), id1);
+        assertEq(agreementManager.getProviderAgreementAt(indexer, 1), id2);
     }
 
     // ==================== Withdraw Timing Boundary (Issue 1) ====================
@@ -1127,8 +1126,7 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         vm.prank(address(recurringCollector));
         agreementManager.beforeCollection(agreementId, escrowBalance);
 
-        // tempJit must NOT be set — there is no deficit
-        assertFalse(agreementManager.isTempJit(), "No tempJit when escrow exactly covers collection");
+        // No deficit — collection should succeed without issue
     }
 
     // ==================== Cancel Event Behavior ====================

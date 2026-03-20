@@ -95,9 +95,9 @@ contract RecurringAgreementManagerCascadeCleanupTest is RecurringAgreementManage
         _offerAgreement(rca);
 
         assertEq(agreementManager.getCollectorCount(), 1);
-        assertEq(agreementManager.getCollectors()[0], address(recurringCollector));
+        assertEq(agreementManager.getCollectorAt(0), address(recurringCollector));
         assertEq(agreementManager.getCollectorProviderCount(address(recurringCollector)), 1);
-        assertEq(agreementManager.getCollectorProviders(address(recurringCollector))[0], indexer);
+        assertEq(agreementManager.getCollectorProviderAt(address(recurringCollector), 0), indexer);
         assertEq(agreementManager.getPairAgreementCount(address(recurringCollector), indexer), 1);
     }
 
@@ -213,7 +213,7 @@ contract RecurringAgreementManagerCascadeCleanupTest is RecurringAgreementManage
 
         // collector1 cleaned up, collector2 remains
         assertEq(agreementManager.getCollectorCount(), 1);
-        assertEq(agreementManager.getCollectors()[0], address(collector2));
+        assertEq(agreementManager.getCollectorAt(0), address(collector2));
         assertEq(agreementManager.getCollectorProviderCount(address(recurringCollector)), 0);
         assertEq(agreementManager.getCollectorProviderCount(address(collector2)), 1);
     }
@@ -246,7 +246,7 @@ contract RecurringAgreementManagerCascadeCleanupTest is RecurringAgreementManage
 
         // Now only indexer2 remains
         assertEq(agreementManager.getCollectorProviderCount(address(recurringCollector)), 1);
-        assertEq(agreementManager.getCollectorProviders(address(recurringCollector))[0], indexer2);
+        assertEq(agreementManager.getCollectorProviderAt(address(recurringCollector), 0), indexer2);
     }
 
     // -- Tests: Re-addition after cleanup --
@@ -385,32 +385,24 @@ contract RecurringAgreementManagerCascadeCleanupTest is RecurringAgreementManage
 
     // -- Tests: Pagination --
 
-    function test_GetCollectors_Pagination() public {
+    function test_GetCollectors_Enumeration() public {
         (IRecurringCollector.RecurringCollectionAgreement memory rca1, ) = _makeRCAForCollector(recurringCollector, 1);
         _offerAgreement(rca1);
 
         (IRecurringCollector.RecurringCollectionAgreement memory rca2, ) = _makeRCAForCollector(collector2, 2);
         _offerForCollector(collector2, rca2);
 
-        // Full list
-        address[] memory all = agreementManager.getCollectors();
-        assertEq(all.length, 2);
+        // Full enumeration
+        assertEq(agreementManager.getCollectorCount(), 2);
+        address collector0 = agreementManager.getCollectorAt(0);
+        address collector1 = agreementManager.getCollectorAt(1);
 
-        // Paginated
-        address[] memory first = agreementManager.getCollectors(0, 1);
-        assertEq(first.length, 1);
-        assertEq(first[0], all[0]);
-
-        address[] memory second = agreementManager.getCollectors(1, 1);
-        assertEq(second.length, 1);
-        assertEq(second[0], all[1]);
-
-        // Past end
-        address[] memory empty = agreementManager.getCollectors(2, 1);
-        assertEq(empty.length, 0);
+        // Individual access by index
+        assertEq(agreementManager.getCollectorAt(0), collector0);
+        assertEq(agreementManager.getCollectorAt(1), collector1);
     }
 
-    function test_GetCollectorProviders_Pagination() public {
+    function test_GetCollectorProviders_Enumeration() public {
         address indexer2 = makeAddr("indexer2");
 
         (IRecurringCollector.RecurringCollectionAgreement memory rca1, ) = _makeRCAForProvider(indexer, 1);
@@ -419,14 +411,14 @@ contract RecurringAgreementManagerCascadeCleanupTest is RecurringAgreementManage
         (IRecurringCollector.RecurringCollectionAgreement memory rca2, ) = _makeRCAForProvider(indexer2, 2);
         _offerAgreement(rca2);
 
-        // Full list
-        address[] memory all = agreementManager.getCollectorProviders(address(recurringCollector));
-        assertEq(all.length, 2);
+        // Full enumeration
+        assertEq(agreementManager.getCollectorProviderCount(address(recurringCollector)), 2);
+        address provider0 = agreementManager.getCollectorProviderAt(address(recurringCollector), 0);
+        address provider1 = agreementManager.getCollectorProviderAt(address(recurringCollector), 1);
 
-        // Paginated
-        address[] memory first = agreementManager.getCollectorProviders(address(recurringCollector), 0, 1);
-        assertEq(first.length, 1);
-        assertEq(first[0], all[0]);
+        // Individual access by index
+        assertEq(agreementManager.getCollectorProviderAt(address(recurringCollector), 0), provider0);
+        assertEq(agreementManager.getCollectorProviderAt(address(recurringCollector), 1), provider1);
     }
 
     /* solhint-enable graph/func-name-mixedcase */

@@ -96,27 +96,12 @@ interface IRecurringAgreements {
     function getProviderAgreementCount(address provider) external view returns (uint256 count);
 
     /**
-     * @notice Get all managed agreement IDs for a provider
-     * @dev Returns the full set of tracked agreement IDs. May be expensive for providers
-     * with many agreements — prefer the paginated overload or {getProviderAgreementCount}
-     * for on-chain use.
+     * @notice Get a managed agreement ID by index for a provider
      * @param provider The provider address
-     * @return agreementIds The array of agreement IDs
+     * @param index The index in the agreement set
+     * @return agreementId The agreement ID
      */
-    function getProviderAgreements(address provider) external view returns (bytes16[] memory agreementIds);
-
-    /**
-     * @notice Get a paginated slice of managed agreement IDs for a provider
-     * @param provider The provider address
-     * @param offset The index to start from
-     * @param count Maximum number of IDs to return (clamped to available)
-     * @return agreementIds The array of agreement IDs
-     */
-    function getProviderAgreements(
-        address provider,
-        uint256 offset,
-        uint256 count
-    ) external view returns (bytes16[] memory agreementIds);
+    function getProviderAgreementAt(address provider, uint256 index) external view returns (bytes16 agreementId);
 
     /**
      * @notice Get the current escrow basis setting
@@ -164,19 +149,11 @@ interface IRecurringAgreements {
     function getCollectorCount() external view returns (uint256 count);
 
     /**
-     * @notice Get all collector addresses with active agreements
-     * @dev May be expensive for large sets — prefer the paginated overload for on-chain use.
-     * @return result Array of collector addresses
+     * @notice Get a collector address by index
+     * @param index The index in the collector set
+     * @return collector The collector address
      */
-    function getCollectors() external view returns (address[] memory result);
-
-    /**
-     * @notice Get a paginated slice of collector addresses
-     * @param offset The index to start from
-     * @param count Maximum number to return (clamped to available)
-     * @return result Array of collector addresses
-     */
-    function getCollectors(uint256 offset, uint256 count) external view returns (address[] memory result);
+    function getCollectorAt(uint256 index) external view returns (address collector);
 
     /**
      * @notice Get the number of providers with active agreements for a collector
@@ -186,25 +163,12 @@ interface IRecurringAgreements {
     function getCollectorProviderCount(address collector) external view returns (uint256 count);
 
     /**
-     * @notice Get all provider addresses with active agreements for a collector
-     * @dev May be expensive for large sets — prefer the paginated overload for on-chain use.
+     * @notice Get a provider address by index for a given collector
      * @param collector The collector address
-     * @return result Array of provider addresses
+     * @param index The index in the provider set
+     * @return provider The provider address
      */
-    function getCollectorProviders(address collector) external view returns (address[] memory result);
-
-    /**
-     * @notice Get a paginated slice of provider addresses for a collector
-     * @param collector The collector address
-     * @param offset The index to start from
-     * @param count Maximum number to return (clamped to available)
-     * @return result Array of provider addresses
-     */
-    function getCollectorProviders(
-        address collector,
-        uint256 offset,
-        uint256 count
-    ) external view returns (address[] memory result);
+    function getCollectorProviderAt(address collector, uint256 index) external view returns (address provider);
 
     /**
      * @notice Get the number of managed agreements for a (collector, provider) pair

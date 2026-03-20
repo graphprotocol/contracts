@@ -59,7 +59,7 @@ maxNextClaim = maxOngoingTokensPerSecond * maxSecondsPerCollection + maxInitialT
 ### Offer → Accept (two-step)
 
 1. **Agreement manager** calls `offerAgreement(rca, collector)` — stores hash, calculates conservative maxNextClaim, deposits into escrow
-2. **Service provider operator** calls `SubgraphService.acceptUnsignedIndexingAgreement(allocationId, rca)` — SubgraphService → RecurringCollector → `approveAgreement(hash)` callback to RecurringAgreementManager
+2. **Service provider operator** calls `SubgraphService.acceptIndexingAgreement(allocationId, rca)` — SubgraphService → RecurringCollector → `approveAgreement(hash)` callback to RecurringAgreementManager
 
 During the pending update window, both current and pending maxNextClaim are escrowed simultaneously (conservative).
 

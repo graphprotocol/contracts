@@ -90,6 +90,62 @@ interface IRecurringAgreementHelper {
      */
     function auditPair(address collector, address provider) external view returns (PairAudit memory pair);
 
+    // -- Enumeration Views --
+
+    /**
+     * @notice Get all managed agreement IDs for a provider
+     * @param provider The provider address
+     * @return agreementIds The array of agreement IDs
+     */
+    function getProviderAgreements(address provider) external view returns (bytes16[] memory agreementIds);
+
+    /**
+     * @notice Get a paginated slice of managed agreement IDs for a provider
+     * @param provider The provider address
+     * @param offset The index to start from
+     * @param count Maximum number to return (clamped to available)
+     * @return agreementIds The array of agreement IDs
+     */
+    function getProviderAgreements(
+        address provider,
+        uint256 offset,
+        uint256 count
+    ) external view returns (bytes16[] memory agreementIds);
+
+    /**
+     * @notice Get all collector addresses with active agreements
+     * @return result Array of collector addresses
+     */
+    function getCollectors() external view returns (address[] memory result);
+
+    /**
+     * @notice Get a paginated slice of collector addresses
+     * @param offset The index to start from
+     * @param count Maximum number to return (clamped to available)
+     * @return result Array of collector addresses
+     */
+    function getCollectors(uint256 offset, uint256 count) external view returns (address[] memory result);
+
+    /**
+     * @notice Get all provider addresses with active agreements for a collector
+     * @param collector The collector address
+     * @return result Array of provider addresses
+     */
+    function getCollectorProviders(address collector) external view returns (address[] memory result);
+
+    /**
+     * @notice Get a paginated slice of provider addresses for a collector
+     * @param collector The collector address
+     * @param offset The index to start from
+     * @param count Maximum number to return (clamped to available)
+     * @return result Array of provider addresses
+     */
+    function getCollectorProviders(
+        address collector,
+        uint256 offset,
+        uint256 count
+    ) external view returns (address[] memory result);
+
     // -- Reconciliation --
 
     /**

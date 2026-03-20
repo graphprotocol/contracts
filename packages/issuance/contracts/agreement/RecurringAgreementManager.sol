@@ -19,7 +19,6 @@ import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon
 import { IDataServiceAgreements } from "@graphprotocol/interfaces/contracts/data-service/IDataServiceAgreements.sol";
 import { IProviderEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IProviderEligibility.sol";
 
-import { EnumerableSetUtil } from "../common/EnumerableSetUtil.sol";
 import { BaseUpgradeable } from "../common/BaseUpgradeable.sol";
 import { IGraphToken } from "../common/IGraphToken.sol";
 
@@ -64,7 +63,6 @@ contract RecurringAgreementManager is
 {
     using EnumerableSet for EnumerableSet.Bytes32Set;
     using EnumerableSet for EnumerableSet.AddressSet;
-    using EnumerableSetUtil for EnumerableSet.AddressSet;
 
     /// @notice Emitted when distributeIssuance() reverts (collection continues without fresh issuance)
     /// @param allocator The allocator that reverted
@@ -72,8 +70,6 @@ contract RecurringAgreementManager is
 
     /// @notice Thrown when the issuance allocator does not support IIssuanceAllocationDistribution
     error InvalidIssuanceAllocator(address allocator);
-
-    using EnumerableSetUtil for EnumerableSet.Bytes32Set;
 
     // -- Role Constants --
 
@@ -499,17 +495,8 @@ contract RecurringAgreementManager is
     }
 
     /// @inheritdoc IRecurringAgreements
-    function getProviderAgreements(address provider) external view returns (bytes16[] memory) {
-        return _getStorage().providerAgreementIds[provider].getPageBytes16(0, type(uint256).max);
-    }
-
-    /// @inheritdoc IRecurringAgreements
-    function getProviderAgreements(
-        address provider,
-        uint256 offset,
-        uint256 count
-    ) external view returns (bytes16[] memory) {
-        return _getStorage().providerAgreementIds[provider].getPageBytes16(offset, count);
+    function getProviderAgreementAt(address provider, uint256 index) external view returns (bytes16) {
+        return bytes16(_getStorage().providerAgreementIds[provider].at(index));
     }
 
     /// @inheritdoc IRecurringAgreements
@@ -543,13 +530,8 @@ contract RecurringAgreementManager is
     }
 
     /// @inheritdoc IRecurringAgreements
-    function getCollectors() external view returns (address[] memory) {
-        return _getStorage().collectors.getPage(0, type(uint256).max);
-    }
-
-    /// @inheritdoc IRecurringAgreements
-    function getCollectors(uint256 offset, uint256 count) external view returns (address[] memory) {
-        return _getStorage().collectors.getPage(offset, count);
+    function getCollectorAt(uint256 index) external view returns (address) {
+        return _getStorage().collectors.at(index);
     }
 
     /// @inheritdoc IRecurringAgreements
@@ -558,17 +540,8 @@ contract RecurringAgreementManager is
     }
 
     /// @inheritdoc IRecurringAgreements
-    function getCollectorProviders(address collector) external view returns (address[] memory) {
-        return _getStorage().collectorProviders[collector].getPage(0, type(uint256).max);
-    }
-
-    /// @inheritdoc IRecurringAgreements
-    function getCollectorProviders(
-        address collector,
-        uint256 offset,
-        uint256 count
-    ) external view returns (address[] memory) {
-        return _getStorage().collectorProviders[collector].getPage(offset, count);
+    function getCollectorProviderAt(address collector, uint256 index) external view returns (address) {
+        return _getStorage().collectorProviders[collector].at(index);
     }
 
     /// @inheritdoc IRecurringAgreements
