@@ -4,6 +4,7 @@ pragma solidity ^0.8.27;
 import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
+import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
 
 import { Authorizable } from "../../utilities/Authorizable.sol";
 import { GraphDirectory } from "../../utilities/GraphDirectory.sol";
@@ -23,7 +24,7 @@ import { PPMMath } from "../../libraries/PPMMath.sol";
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */
-contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringCollector {
+contract RecurringCollector is EIP712, GraphDirectory, Authorizable, Pausable, IRecurringCollector {
     using PPMMath for uint256;
 
     /// @notice The minimum number of seconds that must be between two collections
@@ -33,6 +34,21 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     /// Caps gas available to payer implementations, preventing 63/64-rule gas siphoning attacks
     /// that could starve the core collect() call of gas.
     uint256 private constant MAX_PAYER_CALLBACK_GAS = 1_500_000;
+
+    /// @notice List of pause guardians and their allowed status
+    mapping(address pauseGuardian => bool allowed) public override pauseGuardians;
+
+    /**
+     * @notice Checks if the caller is a pause guardian.
+     */
+    modifier onlyPauseGuardian() {
+        _checkPauseGuardian();
+        _;
+    }
+
+    function _checkPauseGuardian() internal view {
+        require(pauseGuardians[msg.sender], RecurringCollectorNotPauseGuardian(msg.sender));
+    }
 
     /* solhint-disable gas-small-strings */
     /// @notice The EIP712 typehash for the RecurringCollectionAgreement struct
@@ -65,13 +81,42 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         uint256 revokeSignerThawingPeriod
     ) EIP712(eip712Name, eip712Version) GraphDirectory(controller) Authorizable(revokeSignerThawingPeriod) {}
 
+    /// @inheritdoc IRecurringCollector
+    function pause() external override onlyPauseGuardian {
+        _pause();
+    }
+
+    /// @inheritdoc IRecurringCollector
+    function unpause() external override onlyPauseGuardian {
+        _unpause();
+    }
+
+    /**
+     * @notice Sets a pause guardian.
+     * @dev Only callable by the governor.
+     * @param _pauseGuardian The address of the pause guardian
+     * @param _allowed Whether the address should be a pause guardian
+     */
+    function setPauseGuardian(address _pauseGuardian, bool _allowed) external {
+        require(msg.sender == _graphController().getGovernor(), RecurringCollectorNotPauseGuardian(msg.sender));
+        require(
+            pauseGuardians[_pauseGuardian] != _allowed,
+            RecurringCollectorPauseGuardianNoChange(_pauseGuardian, _allowed)
+        );
+        pauseGuardians[_pauseGuardian] = _allowed;
+        emit PauseGuardianSet(_pauseGuardian, _allowed);
+    }
+
     /**
      * @inheritdoc IPaymentsCollector
      * @notice Initiate a payment collection through the payments protocol.
      * See {IPaymentsCollector.collect}.
      * @dev Caller must be the data service the RCA was issued to.
      */
-    function collect(IGraphPayments.PaymentTypes paymentType, bytes calldata data) external returns (uint256) {
+    function collect(
+        IGraphPayments.PaymentTypes paymentType,
+        bytes calldata data
+    ) external whenNotPaused returns (uint256) {
         try this.decodeCollectData(data) returns (CollectParams memory collectParams) {
             return _collect(paymentType, collectParams);
         } catch {
@@ -84,7 +129,10 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
      * @notice Accept a Recurring Collection Agreement.
      * @dev Caller must be the data service the RCA was issued to.
      */
-    function accept(RecurringCollectionAgreement calldata rca, bytes calldata signature) external returns (bytes16) {
+    function accept(
+        RecurringCollectionAgreement calldata rca,
+        bytes calldata signature
+    ) external whenNotPaused returns (bytes16) {
         /* solhint-disable gas-strict-inequalities */
         require(
             rca.deadline >= block.timestamp,
@@ -176,7 +224,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
      * See {IRecurringCollector.cancel}.
      * @dev Caller must be the data service for the agreement.
      */
-    function cancel(bytes16 agreementId, CancelAgreementBy by) external {
+    function cancel(bytes16 agreementId, CancelAgreementBy by) external whenNotPaused {
         AgreementData storage agreement = _getAgreementStorage(agreementId);
         require(
             agreement.state == AgreementState.Accepted,
@@ -210,7 +258,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
      * @dev Note: Updated pricing terms apply immediately and will affect the next collection
      * for the entire period since lastCollectionAt.
      */
-    function update(RecurringCollectionAgreementUpdate calldata rcau, bytes calldata signature) external {
+    function update(RecurringCollectionAgreementUpdate calldata rcau, bytes calldata signature) external whenNotPaused {
         AgreementData storage agreement = _requireValidUpdateTarget(rcau.agreementId);
 
         /* solhint-disable gas-strict-inequalities */

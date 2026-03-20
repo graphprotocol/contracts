@@ -403,12 +403,6 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     error RecurringCollectorApproverNotContract(address approver);
 
     /**
-     * @notice Thrown when the caller does not provide enough gas for the payer callback
-     * after collection
-     */
-    error RecurringCollectorInsufficientCallbackGas();
-
-    /**
      * @notice Thrown when an update uses a different authorization method than the original agreement
      * @param agreementId The agreement ID
      * @param expected The authorization basis set at acceptance time
@@ -421,6 +415,33 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     );
 
     /**
+     * @notice Thrown when the caller does not provide enough gas for the payer callback
+     * after collection
+     */
+    error RecurringCollectorInsufficientCallbackGas();
+
+    /**
+     * @notice Thrown when the caller is not a pause guardian
+     * @param account The address of the caller
+     */
+    error RecurringCollectorNotPauseGuardian(address account);
+
+    /**
+     * @notice Thrown when setting a pause guardian to the same status
+     * @param account The address of the pause guardian
+     * @param allowed The (unchanged) allowed status
+     */
+    error RecurringCollectorPauseGuardianNoChange(address account, bool allowed);
+
+    /**
+     * @notice Emitted when a pause guardian is set
+     * @param account The address of the pause guardian
+     * @param allowed The allowed status
+     */
+    event PauseGuardianSet(address indexed account, bool allowed);
+    // solhint-disable-previous-line gas-indexed-events
+
+    /**
      * @notice Emitted when a payer callback (beforeCollection / afterCollection) reverts.
      * @dev The try/catch ensures provider liveness but this event enables off-chain
      * monitoring to detect repeated failures and trigger reconciliation.
@@ -429,6 +450,25 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @param stage Whether the failure occurred before or after collection
      */
     event PayerCallbackFailed(bytes16 indexed agreementId, address indexed payer, PayerCallbackStage stage);
+
+    /**
+     * @notice Pauses the collector, blocking accept, update, collect, and cancel.
+     * @dev Only callable by a pause guardian. Uses OpenZeppelin Pausable.
+     */
+    function pause() external;
+
+    /**
+     * @notice Unpauses the collector.
+     * @dev Only callable by a pause guardian.
+     */
+    function unpause() external;
+
+    /**
+     * @notice Gets the allowed status of a pause guardian
+     * @param pauseGuardian The address of the pause guardian
+     * @return Whether the address is an allowed pause guardian
+     */
+    function pauseGuardians(address pauseGuardian) external view returns (bool);
 
     /**
      * @notice Accept a Recurring Collection Agreement.

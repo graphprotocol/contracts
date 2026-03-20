@@ -20,3 +20,9 @@ Add a pause check to `approveAgreement()` that returns `bytes4(0)` when the cont
 ## Team Response
 
 TBD
+
+---
+
+1. **RAM**: `approveAgreement()` now returns `bytes4(0)` when paused, preventing contract-approval-based acceptance of pre-offered agreements during RAM pause.
+
+2. **RecurringCollector**: Added `Pausable` with pause guardian pattern, gating accept, update, collect, and cancel behind `whenNotPaused`. Pause guardians managed by governor via `setPauseGuardian`.
