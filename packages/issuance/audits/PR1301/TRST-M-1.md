@@ -24,3 +24,7 @@ Add a minimum thaw threshold in `_updateEscrow()`. Amounts below the threshold s
 ## Team Response
 
 TBD
+
+---
+
+Added configurable `minThawFraction` (uint8, proportion of 256, default 16 ≈ 6.25%) that skips thaws when the excess above max is below `sumMaxNextClaim * fraction / 256` for the (collector, provider) pair. An attacker must now donate a meaningful fraction per griefing round, making such an attack both economically unattractive and less effective.

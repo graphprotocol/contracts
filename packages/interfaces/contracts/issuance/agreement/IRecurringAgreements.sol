@@ -150,6 +150,13 @@ interface IRecurringAgreements {
     function getMinFullBasisMargin() external view returns (uint8 margin);
 
     /**
+     * @notice Get the minimum thaw fraction (dust threshold).
+     * @dev Thaws below sumMaxNextClaim * minThawFraction / 256 for a pair are skipped.
+     * @return fraction The numerator over 256
+     */
+    function getMinThawFraction() external view returns (uint8 fraction);
+
+    /**
      * @notice Get the number of collectors with active agreements
      * @return count The number of tracked collectors
      */
