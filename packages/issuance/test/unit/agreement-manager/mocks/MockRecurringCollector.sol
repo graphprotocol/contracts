@@ -23,8 +23,10 @@ contract MockRecurringCollector {
     }
 
     function getMaxNextClaim(bytes16 agreementId) external view returns (uint256) {
-        IRecurringCollector.AgreementData memory a = _agreements[agreementId];
-        // Mirror RecurringCollector._getMaxNextClaim logic
+        return _mockGetMaxNextClaim(_agreements[agreementId]);
+    }
+
+    function _mockGetMaxNextClaim(IRecurringCollector.AgreementData memory a) private pure returns (uint256) {
         if (a.state == IRecurringCollector.AgreementState.CanceledByServiceProvider) return 0;
         if (
             a.state != IRecurringCollector.AgreementState.Accepted &&
@@ -45,6 +47,39 @@ contract MockRecurringCollector {
         uint256 maxClaim = a.maxOngoingTokensPerSecond * maxSeconds;
         if (a.lastCollectionAt == 0) maxClaim += a.maxInitialTokens;
         return maxClaim;
+    }
+
+    function computeMaxFirstClaim(
+        IRecurringCollector.RecurringCollectionAgreement calldata rca
+    ) external view returns (uint256) {
+        return
+            _computeMaxClaim(
+                rca.maxOngoingTokensPerSecond,
+                rca.maxSecondsPerCollection,
+                rca.maxInitialTokens,
+                rca.endsAt
+            );
+    }
+
+    function computeMaxUpdateClaim(
+        bytes16 agreementId,
+        IRecurringCollector.RecurringCollectionAgreementUpdate calldata rcau
+    ) external view returns (uint256 initialExtra, uint256 ongoing) {
+        ongoing = _computeMaxClaim(rcau.maxOngoingTokensPerSecond, rcau.maxSecondsPerCollection, 0, rcau.endsAt);
+        initialExtra = _agreements[agreementId].lastCollectionAt == 0 ? rcau.maxInitialTokens : 0;
+    }
+
+    function _computeMaxClaim(
+        uint256 maxOngoingTokensPerSecond,
+        uint256 maxSecondsPerCollection,
+        uint256 maxInitialTokens,
+        uint256 endsAt
+    ) private view returns (uint256) {
+        uint256 remainingSeconds = block.timestamp < endsAt ? endsAt - block.timestamp : 0;
+        uint256 effectiveSeconds = remainingSeconds < maxSecondsPerCollection
+            ? remainingSeconds
+            : maxSecondsPerCollection;
+        return maxOngoingTokensPerSecond * effectiveSeconds + maxInitialTokens;
     }
 
     function generateAgreementId(

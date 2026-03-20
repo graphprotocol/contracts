@@ -277,6 +277,46 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     }
 
     /// @inheritdoc IRecurringCollector
+    function computeMaxFirstClaim(RecurringCollectionAgreement calldata rca) external view returns (uint256 maxTokens) {
+        maxTokens = _computeMaxClaim(
+            rca.maxOngoingTokensPerSecond,
+            rca.maxSecondsPerCollection,
+            rca.maxInitialTokens,
+            rca.endsAt
+        );
+    }
+
+    /// @inheritdoc IRecurringCollector
+    function computeMaxUpdateClaim(
+        bytes16 agreementId,
+        RecurringCollectionAgreementUpdate calldata rcau
+    ) external view returns (uint256 initialExtra, uint256 ongoing) {
+        ongoing = _computeMaxClaim(rcau.maxOngoingTokensPerSecond, rcau.maxSecondsPerCollection, 0, rcau.endsAt);
+        initialExtra = agreements[agreementId].lastCollectionAt == 0 ? rcau.maxInitialTokens : 0;
+    }
+
+    /**
+     * @notice Internal claim formula: rate * min(remaining, maxSeconds) + initialBonus.
+     * @param maxOngoingTokensPerSecond Maximum ongoing tokens per second
+     * @param maxSecondsPerCollection Maximum seconds per collection period
+     * @param maxInitialTokens Maximum initial tokens
+     * @param endsAt The timestamp when the agreement ends
+     * @return The maximum possible claim amount
+     */
+    function _computeMaxClaim(
+        uint256 maxOngoingTokensPerSecond,
+        uint256 maxSecondsPerCollection,
+        uint256 maxInitialTokens,
+        uint256 endsAt
+    ) private view returns (uint256) {
+        uint256 remainingSeconds = block.timestamp < endsAt ? endsAt - block.timestamp : 0;
+        uint256 effectiveSeconds = remainingSeconds < maxSecondsPerCollection
+            ? remainingSeconds
+            : maxSecondsPerCollection;
+        return maxOngoingTokensPerSecond * effectiveSeconds + maxInitialTokens;
+    }
+
+    /// @inheritdoc IRecurringCollector
     function generateAgreementId(
         address payer,
         address dataService,

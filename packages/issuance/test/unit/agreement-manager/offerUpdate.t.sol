@@ -33,15 +33,15 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
 
         _offerAgreementUpdate(rcau);
 
-        // pendingMaxNextClaim = 2e18 * 7200 + 200e18 = 14600e18
-        uint256 expectedPendingMaxClaim = 2 ether * 7200 + 200 ether;
         // Original maxNextClaim = 1e18 * 3600 + 100e18 = 3700e18
         uint256 originalMaxClaim = 1 ether * 3600 + 100 ether;
+        // Pending = ongoing + initialExtra = 2e18 * 7200 + 200e18 = 14600e18
+        uint256 pendingTotal = 2 ether * 7200 + 200 ether;
 
-        // Required escrow should include both
+        // Contribution = max(pending, current) since only one set of terms is active at a time
         assertEq(
             agreementManager.getSumMaxNextClaim(_collector(), indexer),
-            originalMaxClaim + expectedPendingMaxClaim
+            pendingTotal // max(3700, 14600) = 14600
         );
         // Original maxNextClaim unchanged
         assertEq(agreementManager.getAgreementMaxNextClaim(agreementId), originalMaxClaim);
@@ -85,12 +85,14 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
         );
 
         uint256 originalMaxClaim = 1 ether * 3600 + 100 ether;
-        uint256 pendingMaxClaim = 2 ether * 7200 + 200 ether;
-        uint256 sumMaxNextClaim = originalMaxClaim + pendingMaxClaim;
+        // Pending = ongoing + initialExtra = 2e18 * 7200 + 200e18 = 14600e18
+        uint256 pendingTotal = 2 ether * 7200 + 200 ether;
+        // Contribution = max(pendingTotal, originalMaxClaim) = 14600 (only one agreement)
+        uint256 sumMaxNextClaim = pendingTotal;
 
         // Fund generously so Full mode stays active through both offers.
         // After both offers, smnca = sumMaxNextClaim, deficit = sumMaxNextClaim.
-        // spare = balance - deficit. Full requires spare > smnca * 272 / 256.
+        // spare = balance - deficit. Full requires smnca * 272 / 256 < spare.
         token.mint(address(agreementManager), sumMaxNextClaim + (sumMaxNextClaim * 272) / 256 + 1);
         vm.prank(operator);
         bytes16 agreementId = agreementManager.offerAgreement(rca, _collector());
@@ -141,8 +143,10 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
         );
         _offerAgreementUpdate(rcau1);
 
-        uint256 pendingMaxClaim1 = 2 ether * 7200 + 200 ether;
-        assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), originalMaxClaim + pendingMaxClaim1);
+        // Pending1 = ongoing + initialExtra = 2e18 * 7200 + 200e18 = 14600e18
+        // Contribution = max(14600, 3700) = 14600
+        uint256 pendingTotal1 = 2 ether * 7200 + 200 ether;
+        assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), pendingTotal1);
 
         // Second pending update (replaces first — same nonce since first was never accepted)
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau2 = _makeRCAU(
@@ -156,9 +160,9 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
         );
         _offerAgreementUpdate(rcau2);
 
-        uint256 pendingMaxClaim2 = 0.5 ether * 1800 + 50 ether;
-        // Old pending removed, new pending added
-        assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), originalMaxClaim + pendingMaxClaim2);
+        // Pending2 = ongoing + initialExtra = 0.5e18 * 1800 + 50e18 = 950e18
+        // Contribution = max(950, 3700) = 3700 (original dominates)
+        assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), originalMaxClaim);
     }
 
     function test_OfferUpdate_EmitsEvent() public {
@@ -181,10 +185,11 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
             1
         );
 
-        uint256 pendingMaxClaim = 2 ether * 7200 + 200 ether;
+        // Event emits ongoing + initialExtra = 2e18 * 7200 + 200e18 = 14600e18
+        uint256 pendingTotal = 2 ether * 7200 + 200 ether;
 
         vm.expectEmit(address(agreementManager));
-        emit IRecurringAgreementManagement.AgreementUpdateOffered(agreementId, pendingMaxClaim, 1);
+        emit IRecurringAgreementManagement.AgreementUpdateOffered(agreementId, pendingTotal, 1);
 
         vm.prank(operator);
         agreementManager.offerAgreementUpdate(rcau);

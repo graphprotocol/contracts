@@ -681,8 +681,9 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         bytes32 newHash = recurringCollector.hashRCAU(rcau2);
         assertEq(agreementManager.approveAgreement(newHash), IAgreementOwner.approveAgreement.selector);
 
-        uint256 pendingMaxClaim = 2 ether * 7200 + 200 ether;
-        assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), originalMaxClaim + pendingMaxClaim);
+        // max(current, pending) = max(3700, 14600) = 14600
+        uint256 pendingMaxClaim = 14600 ether;
+        assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), pendingMaxClaim);
     }
 
     function test_Reconcile_ZeroValuePendingUpdate_ClearedWhenApplied() public {
@@ -1131,7 +1132,7 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
 
     // ==================== Cancel Event Behavior ====================
 
-    function test_CancelAgreement_NoEvent_WhenAlreadyCanceled() public {
+    function test_CancelAgreement_Idempotent_WhenAlreadyCanceled() public {
         IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCA(
             100 ether,
             1 ether,
@@ -1145,7 +1146,8 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         // Set as already CanceledByServiceProvider
         _setAgreementCanceledBySP(agreementId, rca);
 
-        // Record logs to verify no AgreementCanceled event
+        // cancelAgreement is idempotent — already-canceled agreements skip the
+        // data service call and proceed directly to reconcile/cleanup
         vm.recordLogs();
         vm.prank(operator);
         agreementManager.cancelAgreement(agreementId);
@@ -1205,8 +1207,9 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
             1
         );
         _offerAgreementUpdate(rcau1);
-        uint256 pending1 = 2 ether * 7200 + 200 ether;
-        assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), originalMaxClaim + pending1);
+        // max(current, pending) = max(3700, 14600) = 14600
+        uint256 pending1 = 14600 ether;
+        assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), pending1);
 
         // Update 2 replaces 1 (same nonce — collector hasn't accepted either)
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau2 = _makeRCAU(
@@ -1219,8 +1222,9 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
             1
         );
         _offerAgreementUpdate(rcau2);
-        uint256 pending2 = 0.5 ether * 1800 + 50 ether;
-        assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), originalMaxClaim + pending2);
+        // max(current, pending) = max(3700, 950) = 3700 (current dominates)
+        uint256 pending2 = 950 ether;
+        assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), originalMaxClaim);
 
         // Update 3 replaces 2 (same nonce — collector still hasn't accepted)
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau3 = _makeRCAU(
@@ -1233,8 +1237,9 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
             1
         );
         _offerAgreementUpdate(rcau3);
-        uint256 pending3 = 3 ether * 3600 + 300 ether;
-        assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), originalMaxClaim + pending3);
+        // max(current, pending) = max(3700, 11100) = 11100
+        uint256 pending3 = 11100 ether;
+        assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), pending3);
 
         // Only hash for update 3 should be authorized
         bytes32 hash1 = recurringCollector.hashRCAU(rcau1);

@@ -35,7 +35,8 @@ interface IRecurringAgreements {
      * @param deadline The RCA deadline for acceptance (used to detect expired offers)
      * @param pendingUpdateNonce The RCAU nonce for the pending update (0 means no pending)
      * @param maxNextClaim The current maximum tokens claimable in the next collection
-     * @param pendingUpdateMaxNextClaim Max next claim for an offered-but-not-yet-applied update
+     * @param pendingUpdateMaxNextClaim Ongoing component of the pending update's max claim
+     * @param pendingUpdateInitialExtra Initial bonus component of the pending update (cleared on first collection)
      * @param agreementHash The RCA hash stored for cleanup of authorizedHashes on deletion
      * @param pendingUpdateHash The RCAU hash stored for cleanup of authorizedHashes on deletion
      * @param dataService The data service contract for this agreement
@@ -47,6 +48,7 @@ interface IRecurringAgreements {
         uint32 pendingUpdateNonce;
         uint256 maxNextClaim;
         uint256 pendingUpdateMaxNextClaim;
+        uint256 pendingUpdateInitialExtra;
         bytes32 agreementHash;
         bytes32 pendingUpdateHash;
         IDataServiceAgreements dataService;

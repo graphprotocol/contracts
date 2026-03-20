@@ -35,8 +35,9 @@ contract RecurringAgreementManagerRevokeAgreementUpdateTest is RecurringAgreemen
         );
         _offerAgreementUpdate(rcau);
 
-        uint256 pendingMaxClaim = 2 ether * 7200 + 200 ether;
-        assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), originalMaxClaim + pendingMaxClaim);
+        // max(current, pending) = max(3700, 14600) = 14600
+        uint256 pendingMaxClaim = 14600 ether;
+        assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), pendingMaxClaim);
 
         // Revoke the pending update
         vm.prank(operator);
@@ -79,7 +80,8 @@ contract RecurringAgreementManagerRevokeAgreementUpdateTest is RecurringAgreemen
         );
         _offerAgreementUpdate(rcau);
 
-        uint256 pendingMaxClaim = 2 ether * 7200 + 200 ether;
+        // Full update max = 14600
+        uint256 pendingMaxClaim = 14600 ether;
 
         vm.expectEmit(address(agreementManager));
         emit IRecurringAgreementManagement.AgreementUpdateRevoked(agreementId, pendingMaxClaim, 1);
@@ -193,10 +195,9 @@ contract RecurringAgreementManagerRevokeAgreementUpdateTest is RecurringAgreemen
         );
         _offerAgreementUpdate(rcau2);
 
-        // New pending should be set
-        uint256 newPendingMaxClaim = 0.5 ether * 1800 + 50 ether;
+        // Update max: ongoing = 0.5e18 * 1800 = 900e18, initialExtra = 50e18
         IRecurringAgreements.AgreementInfo memory info = agreementManager.getAgreementInfo(agreementId);
-        assertEq(info.pendingUpdateMaxNextClaim, newPendingMaxClaim);
+        assertEq(info.pendingUpdateMaxNextClaim + info.pendingUpdateInitialExtra, 950 ether);
         assertEq(info.pendingUpdateNonce, 1);
     }
 

@@ -40,6 +40,14 @@ import { ReentrancyGuardTransient } from "@openzeppelin/contracts/utils/Reentran
  * RCAs for that (collector, provider) pair. Each agreement stores its own collector
  * address. Other participants can independently use RCAs via the standard ECDSA-signed flow.
  *
+ * @custom:design-coupling This contract is structurally coupled to RecurringCollector's
+ * lifecycle semantics: AgreementState transitions, updateNonce progression, and the
+ * RCA/RCAU struct shapes. Claim computation (pricing formula) is decoupled — delegated
+ * to the collector via {IRecurringCollector.computeMaxFirstClaim} and
+ * {IRecurringCollector.computeMaxUpdateClaim}, so a collector with a different pricing
+ * model can be used without changes to this contract. Lifecycle changes (new states,
+ * different update mechanics) would require coordinated updates to both contracts.
+ *
  * @custom:security CEI — All external calls target trusted protocol contracts (PaymentsEscrow,
  * GRT, RecurringCollector) except {cancelAgreement}'s call to the data service, which is
  * governance-gated, and {_ensureIncomingDistributionToCurrentBlock}'s call to the issuance
@@ -327,15 +335,11 @@ contract RecurringAgreementManager is
         agreement.pendingUpdateNonce = rcau.nonce;
         agreement.pendingUpdateHash = updateHash;
 
-        uint256 pendingMaxNextClaim = _computeMaxFirstClaim(
-            rcau.maxOngoingTokensPerSecond,
-            rcau.maxSecondsPerCollection,
-            rcau.maxInitialTokens
-        );
-        _setAgreementMaxNextClaim($, agreementId, pendingMaxNextClaim, true);
+        (uint256 initialExtra, uint256 ongoing) = agreement.collector.computeMaxUpdateClaim(agreementId, rcau);
+        _setAgreementClaims($, agreementId, agreement.maxNextClaim, ongoing, initialExtra);
         _updateEscrow($, address(agreement.collector), agreement.provider);
 
-        emit AgreementUpdateOffered(agreementId, pendingMaxNextClaim, rcau.nonce);
+        emit AgreementUpdateOffered(agreementId, ongoing + initialExtra, rcau.nonce);
     }
 
     /// @inheritdoc IRecurringAgreementManagement
@@ -351,10 +355,10 @@ contract RecurringAgreementManager is
 
         if (agreement.pendingUpdateHash == bytes32(0)) return false;
 
-        uint256 pendingMaxClaim = agreement.pendingUpdateMaxNextClaim;
+        uint256 pendingMaxClaim = agreement.pendingUpdateMaxNextClaim + agreement.pendingUpdateInitialExtra;
         uint32 nonce = agreement.pendingUpdateNonce;
 
-        _setAgreementMaxNextClaim($, agreementId, 0, true);
+        _setAgreementClaims($, agreementId, agreement.maxNextClaim, 0, 0);
         delete $.authorizedHashes[agreement.pendingUpdateHash];
         agreement.pendingUpdateNonce = 0;
         agreement.pendingUpdateHash = bytes32(0);
@@ -605,6 +609,7 @@ contract RecurringAgreementManager is
             pendingUpdateNonce: 0,
             maxNextClaim: 0,
             pendingUpdateMaxNextClaim: 0,
+            pendingUpdateInitialExtra: 0,
             agreementHash: agreementHash,
             pendingUpdateHash: bytes32(0),
             dataService: IDataServiceAgreements(rca.dataService),
@@ -617,27 +622,8 @@ contract RecurringAgreementManager is
             $.collectors.add(address(collector));
         }
 
-        maxNextClaim = _computeMaxFirstClaim(
-            rca.maxOngoingTokensPerSecond,
-            rca.maxSecondsPerCollection,
-            rca.maxInitialTokens
-        );
-        _setAgreementMaxNextClaim($, agreementId, maxNextClaim, false);
-    }
-
-    /**
-     * @notice Compute maximum first claim from agreement rate parameters.
-     * @param maxOngoingTokensPerSecond Maximum ongoing tokens per second
-     * @param maxSecondsPerCollection Maximum seconds per collection period
-     * @param maxInitialTokens Maximum initial tokens
-     * @return Maximum possible claim amount
-     */
-    function _computeMaxFirstClaim(
-        uint256 maxOngoingTokensPerSecond,
-        uint256 maxSecondsPerCollection,
-        uint256 maxInitialTokens
-    ) private pure returns (uint256) {
-        return maxOngoingTokensPerSecond * maxSecondsPerCollection + maxInitialTokens;
+        maxNextClaim = collector.computeMaxFirstClaim(rca);
+        _setAgreementClaims($, agreementId, maxNextClaim, 0, 0);
     }
 
     /**
@@ -688,11 +674,15 @@ contract RecurringAgreementManager is
             // Deadline passed: zero out so the caller can delete the expired offer
             uint256 prev = agreement.maxNextClaim;
             if (prev != 0) {
-                _setAgreementMaxNextClaim($, agreementId, 0, false);
+                _setAgreementClaims($, agreementId, 0, 0, 0);
                 emit AgreementReconciled(agreementId, prev, 0);
             }
             return;
         }
+
+        // Determine new pending values
+        uint256 newPendingOngoing = agreement.pendingUpdateMaxNextClaim;
+        uint256 newPendingInitialExtra = agreement.pendingUpdateInitialExtra;
 
         // Clear pending update if applied (updateNonce advanced) or unreachable (agreement canceled)
         if (
@@ -700,19 +690,21 @@ contract RecurringAgreementManager is
             (agreement.pendingUpdateNonce <= rca.updateNonce ||
                 rca.state != IRecurringCollector.AgreementState.Accepted)
         ) {
-            _setAgreementMaxNextClaim($, agreementId, 0, true);
+            newPendingOngoing = 0;
+            newPendingInitialExtra = 0;
             delete $.authorizedHashes[agreement.pendingUpdateHash];
             agreement.pendingUpdateNonce = 0;
             agreement.pendingUpdateHash = bytes32(0);
+        } else if (rca.lastCollectionAt != 0) {
+            // A collection has occurred — initial bonus will not apply to any pending update
+            newPendingInitialExtra = 0;
         }
 
         uint256 oldMaxClaim = agreement.maxNextClaim;
         uint256 newMaxClaim = rc.getMaxNextClaim(agreementId);
 
-        if (oldMaxClaim != newMaxClaim) {
-            _setAgreementMaxNextClaim($, agreementId, newMaxClaim, false);
-            emit AgreementReconciled(agreementId, oldMaxClaim, newMaxClaim);
-        }
+        _setAgreementClaims($, agreementId, newMaxClaim, newPendingOngoing, newPendingInitialExtra);
+        if (oldMaxClaim != newMaxClaim) emit AgreementReconciled(agreementId, oldMaxClaim, newMaxClaim);
     }
 
     /**
@@ -735,8 +727,7 @@ contract RecurringAgreementManager is
         if (agreement.pendingUpdateHash != bytes32(0)) delete $.authorizedHashes[agreement.pendingUpdateHash];
 
         // Zero out escrow requirements before deleting
-        _setAgreementMaxNextClaim($, agreementId, 0, false);
-        _setAgreementMaxNextClaim($, agreementId, 0, true);
+        _setAgreementClaims($, agreementId, 0, 0, 0);
         --$.totalAgreementCount;
         $.providerAgreementIds[provider].remove(bytes32(agreementId));
 
@@ -773,33 +764,48 @@ contract RecurringAgreementManager is
     }
 
     /**
-     * @notice Atomically set one escrow obligation slot of an agreement and cascade to provider/global totals.
+     * @notice Atomically set all three escrow obligation values for an agreement
+     * and cascade to provider/global totals.
      * @dev This and {_setEscrowSnap} are the only two functions that mutate totalEscrowDeficit.
-     * @param agreementId The agreement to update
-     * @param newValue The new obligation value
-     * @param pending If true, updates pendingUpdateMaxNextClaim; otherwise updates maxNextClaim
+     * Only one set of terms is active at a time, so the agreement's contribution to
+     * sumMaxNextClaim is max(maxNextClaim, pendingOngoing + pendingInitialExtra).
+     * @param newMaxNextClaim The current agreement's maximum next claim
+     * @param newPendingOngoing The pending update's ongoing component
+     * @param newPendingInitialExtra The pending update's initial bonus (0 if already collected)
      */
     // solhint-disable-next-line use-natspec
-    function _setAgreementMaxNextClaim(
+    function _setAgreementClaims(
         RecurringAgreementManagerStorage storage $,
         bytes16 agreementId,
-        uint256 newValue,
-        bool pending
+        uint256 newMaxNextClaim,
+        uint256 newPendingOngoing,
+        uint256 newPendingInitialExtra
     ) private {
         AgreementInfo storage agreement = $.agreements[agreementId];
 
-        uint256 oldValue = pending ? agreement.pendingUpdateMaxNextClaim : agreement.maxNextClaim;
-        if (oldValue == newValue) return;
+        uint256 oldPending = agreement.pendingUpdateMaxNextClaim + agreement.pendingUpdateInitialExtra;
+        uint256 oldContribution = oldPending < agreement.maxNextClaim ? agreement.maxNextClaim : oldPending;
 
+        uint256 newPending = newPendingOngoing + newPendingInitialExtra;
+        uint256 newContribution = newPending < newMaxNextClaim ? newMaxNextClaim : newPending;
+
+        // Capture deficit before any writes — it depends on sumMaxNextClaim
         address collector = address(agreement.collector);
         address provider = agreement.provider;
         uint256 oldDeficit = _providerEscrowDeficit($, collector, provider);
 
-        if (pending) agreement.pendingUpdateMaxNextClaim = newValue;
-        else agreement.maxNextClaim = newValue;
+        agreement.maxNextClaim = newMaxNextClaim;
+        agreement.pendingUpdateMaxNextClaim = newPendingOngoing;
+        agreement.pendingUpdateInitialExtra = newPendingInitialExtra;
 
-        $.sumMaxNextClaim[collector][provider] = $.sumMaxNextClaim[collector][provider] - oldValue + newValue;
-        $.sumMaxNextClaimAll = $.sumMaxNextClaimAll - oldValue + newValue;
+        // Skip sum/deficit updates if the agreement's contribution hasn't changed
+        if (oldContribution == newContribution) return;
+
+        $.sumMaxNextClaim[collector][provider] =
+            $.sumMaxNextClaim[collector][provider] -
+            oldContribution +
+            newContribution;
+        $.sumMaxNextClaimAll = $.sumMaxNextClaimAll - oldContribution + newContribution;
         $.totalEscrowDeficit = $.totalEscrowDeficit - oldDeficit + _providerEscrowDeficit($, collector, provider);
     }
 
@@ -966,7 +972,7 @@ contract RecurringAgreementManager is
 
     /**
      * @notice Atomically sync the escrow snapshot for a (collector, provider) pair after escrow mutations.
-     * @dev This and {_setAgreementMaxNextClaim} are the only two functions that mutate totalEscrowDeficit.
+     * @dev This and {_setAgreementClaims} are the only two functions that mutate totalEscrowDeficit.
      * @param collector The collector address
      * @param provider The service provider
      */

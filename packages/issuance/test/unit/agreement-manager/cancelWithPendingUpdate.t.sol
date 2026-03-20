@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import { IRecurringAgreementManagement } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreementManagement.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { IRecurringAgreements } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreements.sol";
 
@@ -43,11 +42,12 @@ contract RecurringAgreementManagerCancelWithPendingUpdateTest is RecurringAgreem
         );
         _offerAgreementUpdate(rcau);
 
-        uint256 pendingMaxClaim = 2 ether * 7200 + 200 ether;
+        // max(current, pending) = max(3700, 14600) = 14600
+        uint256 pendingMaxClaim = 14600 ether;
         assertEq(
             agreementManager.getSumMaxNextClaim(_collector(), indexer),
-            originalMaxClaim + pendingMaxClaim,
-            "both original and pending escrow should be reserved"
+            pendingMaxClaim,
+            "escrow reserved for max of current and pending"
         );
 
         // 3. Cancel the agreement — simulate CanceledByPayer with remaining collection window.
@@ -57,11 +57,10 @@ contract RecurringAgreementManagerCancelWithPendingUpdateTest is RecurringAgreem
         vm.warp(canceledAt);
         _setAgreementCanceledByPayer(agreementId, rca, acceptedAt, canceledAt, 0);
 
-        // Call cancelAgreement — state is already CanceledByPayer so it skips the DS call
-        // and goes straight to reconcile-and-cleanup.
-        vm.prank(operator);
-        bool gone = agreementManager.cancelAgreement(agreementId);
-        assertFalse(gone, "agreement should still exist (has remaining claims)");
+        // State is CanceledByPayer — cancelAgreement rejects non-Accepted states,
+        // so use reconcileAgreement to trigger cleanup.
+        bool exists = agreementManager.reconcileAgreement(agreementId);
+        assertTrue(exists, "agreement should still exist (has remaining claims)");
 
         // 4. BUG: The pending update can never be accepted (collector rejects updates on
         // canceled agreements), yet pendingUpdateMaxNextClaim is still reserved.
@@ -115,10 +114,8 @@ contract RecurringAgreementManagerCancelWithPendingUpdateTest is RecurringAgreem
         vm.warp(canceledAt);
         _setAgreementCanceledByPayer(agreementId, rca, acceptedAt, canceledAt, 0);
 
-        vm.prank(operator);
-        agreementManager.cancelAgreement(agreementId);
-
-        // 4. Explicit reconcile — pending should already be cleared
+        // State is CanceledByPayer — cancelAgreement rejects non-Accepted states,
+        // so use reconcileAgreement to trigger cleanup.
         agreementManager.reconcileAgreement(agreementId);
 
         IRecurringAgreements.AgreementInfo memory info = agreementManager.getAgreementInfo(agreementId);

@@ -704,8 +704,9 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         );
         _offerAgreementUpdate(rcau);
 
-        uint256 pendingMaxClaim = 2 ether * 7200 + 200 ether;
-        assertEq(agreementManager.getSumMaxNextClaimAll(), maxClaim + pendingMaxClaim);
+        // max(current, pending) = max(3700, 14600) = 14600
+        uint256 pendingMaxClaim = 14600 ether;
+        assertEq(agreementManager.getSumMaxNextClaimAll(), pendingMaxClaim);
     }
 
     function test_GlobalTracking_ReplacePendingUpdate() public {
@@ -730,8 +731,9 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         );
         _offerAgreementUpdate(rcau1);
 
-        uint256 pendingMaxClaim1 = 2 ether * 7200 + 200 ether;
-        assertEq(agreementManager.getSumMaxNextClaimAll(), maxClaim + pendingMaxClaim1);
+        // max(current, pending) = max(3700, 14600) = 14600
+        uint256 pendingMaxClaim1 = 14600 ether;
+        assertEq(agreementManager.getSumMaxNextClaimAll(), pendingMaxClaim1);
 
         // Replace with different terms (same nonce — collector hasn't accepted either)
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau2 = _makeRCAU(
@@ -745,8 +747,8 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         );
         _offerAgreementUpdate(rcau2);
 
-        uint256 pendingMaxClaim2 = 0.5 ether * 1800 + 50 ether;
-        assertEq(agreementManager.getSumMaxNextClaimAll(), maxClaim + pendingMaxClaim2);
+        // max(current, pending) = max(3700, 950) = 3700 (current dominates)
+        assertEq(agreementManager.getSumMaxNextClaimAll(), maxClaim);
     }
 
     // ==================== Upward Transitions ====================

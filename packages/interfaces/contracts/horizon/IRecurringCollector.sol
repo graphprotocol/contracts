@@ -544,4 +544,23 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         uint64 deadline,
         uint256 nonce
     ) external pure returns (bytes16 agreementId);
+
+    /**
+     * @notice Compute the maximum possible first claim for an agreement.
+     * @param rca The recurring collection agreement
+     * @return maxTokens The maximum possible claim amount
+     */
+    function computeMaxFirstClaim(RecurringCollectionAgreement calldata rca) external view returns (uint256 maxTokens);
+
+    /**
+     * @notice Compute the maximum possible claim for an agreement update.
+     * @param agreementId The agreement ID
+     * @param rcau The recurring collection agreement update
+     * @return initialExtra The extra initial tokens (non-zero only if not yet collected)
+     * @return ongoing The maximum ongoing claim
+     */
+    function computeMaxUpdateClaim(
+        bytes16 agreementId,
+        RecurringCollectionAgreementUpdate calldata rcau
+    ) external view returns (uint256 initialExtra, uint256 ongoing);
 }

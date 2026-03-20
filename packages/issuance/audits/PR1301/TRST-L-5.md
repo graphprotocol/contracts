@@ -20,3 +20,7 @@ Align `_computeMaxFirstClaim()` with the RecurringCollector's `getMaxNextClaim()
 ## Team Response
 
 TBD
+
+---
+
+Now delegates to Recurring Collector for max next claim calculation. The Recurring Collector's calculation has been refactored to be available as a view function on RCA data, ensuring consistent and complete shared logic.

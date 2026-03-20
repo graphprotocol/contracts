@@ -178,9 +178,7 @@ interface IRecurringAgreementManagement {
      * @notice Offer a pending agreement update for escrow management. Must be called
      * before the data service applies the update (with empty authData).
      * @dev Stores the authorized RCAU hash for the {IAgreementOwner} callback and
-     * adds the pending update's max next claim to sumMaxNextClaim. Treats the
-     * pending update as a separate escrow entry alongside the current agreement.
-     * If a previous pending update exists, it is replaced.
+     * calculates the pending update's max next claim to sumMaxNextClaim.
      * Requires AGREEMENT_MANAGER_ROLE.
      *
      * WARNING: potentially increases `sumMaxNextClaim` (and `totalEscrowDeficit`), without

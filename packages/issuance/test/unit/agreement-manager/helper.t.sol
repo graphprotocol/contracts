@@ -332,8 +332,9 @@ contract RecurringAgreementHelperTest is RecurringAgreementManagerSharedTest {
         _offerAgreementUpdate(rcau);
 
         uint256 originalMaxClaim = 1 ether * 3600 + 100 ether;
-        uint256 pendingMaxClaim = 2 ether * 7200 + 200 ether;
-        assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), originalMaxClaim + pendingMaxClaim);
+        // max(current, pending) = max(3700, 14600) = 14600
+        uint256 pendingMaxClaim = 14600 ether;
+        assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), pendingMaxClaim);
 
         // Simulate: accepted with the update already applied (pending <= updateNonce)
         recurringCollector.setAgreement(

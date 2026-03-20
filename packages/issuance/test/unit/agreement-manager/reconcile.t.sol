@@ -242,8 +242,9 @@ contract RecurringAgreementManagerReconcileTest is RecurringAgreementManagerShar
         );
         _offerAgreementUpdate(rcau);
 
-        uint256 pendingMaxClaim = 2 ether * 7200 + 200 ether;
-        assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), originalMaxClaim + pendingMaxClaim);
+        // max(current, pending) = max(3700, 14600) = 14600
+        uint256 pendingMaxClaim = 14600 ether;
+        assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), pendingMaxClaim);
 
         // Simulate: agreement accepted and update applied on-chain (updateNonce = 1)
         recurringCollector.setAgreement(
@@ -300,7 +301,8 @@ contract RecurringAgreementManagerReconcileTest is RecurringAgreementManagerShar
         );
         _offerAgreementUpdate(rcau);
 
-        uint256 pendingMaxClaim = 2 ether * 7200 + 200 ether;
+        // Full update max = 14600
+        uint256 pendingMaxClaim = 14600 ether;
 
         // Simulate: agreement accepted but update NOT yet applied (updateNonce = 0)
         _setAgreementAccepted(agreementId, rca, uint64(block.timestamp));
@@ -310,8 +312,8 @@ contract RecurringAgreementManagerReconcileTest is RecurringAgreementManagerShar
         assertTrue(exists);
         // maxNextClaim recalculated from original terms (same value since never collected)
         assertEq(agreementManager.getAgreementMaxNextClaim(agreementId), originalMaxClaim);
-        // Pending still present
-        assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), originalMaxClaim + pendingMaxClaim);
+        // Pending still present — max(3700, 14600) = 14600
+        assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), pendingMaxClaim);
     }
 
     // -- Tests merged from remove (cleanup behavior) --
@@ -477,8 +479,9 @@ contract RecurringAgreementManagerReconcileTest is RecurringAgreementManagerShar
         _offerAgreementUpdate(rcau);
 
         uint256 originalMaxClaim = 1 ether * 3600 + 100 ether;
-        uint256 pendingMaxClaim = 2 ether * 7200 + 200 ether;
-        assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), originalMaxClaim + pendingMaxClaim);
+        // max(current, pending) = max(3700, 14600) = 14600
+        uint256 pendingMaxClaim = 14600 ether;
+        assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), pendingMaxClaim);
 
         // SP cancels - immediately removable
         _setAgreementCanceledBySP(agreementId, rca);

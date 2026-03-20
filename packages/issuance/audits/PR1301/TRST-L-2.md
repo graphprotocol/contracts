@@ -20,3 +20,7 @@ The `pendingMaxNextClaim` should be computed as stated above, then reduced by th
 ## Team Response
 
 TBD
+
+---
+
+Fixed.
