@@ -8,3 +8,9 @@ The functions below are mentioned in various documentation files but do not exis
 
 - `acceptUnsignedIndexingAgreement()`
 - `removeAgreement()`
+
+---
+
+Updated `acceptUnsignedIndexingAgreement` → `acceptIndexingAgreement` in `RecurringAgreementManager.md`. No remaining stale references found.
+
+TODO: Check again.

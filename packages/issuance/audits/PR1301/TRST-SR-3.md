@@ -9,3 +9,7 @@ The RAM relies on periodic issuance distribution (via the issuance allocator) to
 Once the free balance reaches zero, the RAM cannot fund JIT top-ups in `beforeCollection()`, cannot proactively deposit in Full mode for new agreements, and existing escrow accounts gradually drain with each collection. Prolonged issuance interruption could cascade into escrow mode degradation (Full -> OnDemand -> JIT), ultimately affecting all providers' payment reliability.
 
 This is an external dependency that the RAM admin cannot mitigate beyond maintaining a buffer balance.
+
+---
+
+Acknowledged. The RAM maintains a buffer balance and the escrow degradation mechanism (Full → OnDemand → JIT) provides graceful fallback. Issuance interruptions are visible on-chain, allowing operators to respond before provider payments are affected.
