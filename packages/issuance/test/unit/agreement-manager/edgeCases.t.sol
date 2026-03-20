@@ -70,7 +70,8 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
                 maxSecondsPerCollection: rca.maxSecondsPerCollection,
                 updateNonce: 0,
                 canceledAt: 0,
-                state: IRecurringCollector.AgreementState.Accepted
+                state: IRecurringCollector.AgreementState.Accepted,
+                authBasis: IRecurringCollector.AuthorizationBasis.Signature
             })
         );
 
@@ -229,7 +230,8 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
                 maxSecondsPerCollection: 7200,
                 updateNonce: 1, // (pending <=)
                 canceledAt: 0,
-                state: IRecurringCollector.AgreementState.Accepted
+                state: IRecurringCollector.AgreementState.Accepted,
+                authBasis: IRecurringCollector.AuthorizationBasis.Signature
             })
         );
 
@@ -446,7 +448,8 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
                 maxSecondsPerCollection: rca.maxSecondsPerCollection,
                 updateNonce: 0,
                 canceledAt: 0,
-                state: IRecurringCollector.AgreementState.Accepted
+                state: IRecurringCollector.AgreementState.Accepted,
+                authBasis: IRecurringCollector.AuthorizationBasis.Signature
             })
         );
 
@@ -716,7 +719,8 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
                 maxSecondsPerCollection: 3600,
                 updateNonce: 1,
                 canceledAt: 0,
-                state: IRecurringCollector.AgreementState.Accepted
+                state: IRecurringCollector.AgreementState.Accepted,
+                authBasis: IRecurringCollector.AuthorizationBasis.Signature
             })
         );
 

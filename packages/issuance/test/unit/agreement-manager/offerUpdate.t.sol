@@ -336,7 +336,8 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
                 maxSecondsPerCollection: 7200,
                 updateNonce: 1,
                 canceledAt: 0,
-                state: IRecurringCollector.AgreementState.Accepted
+                state: IRecurringCollector.AgreementState.Accepted,
+                authBasis: IRecurringCollector.AuthorizationBasis.Signature
             })
         );
 
@@ -397,7 +398,8 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
                 maxSecondsPerCollection: 7200,
                 updateNonce: 1,
                 canceledAt: 0,
-                state: IRecurringCollector.AgreementState.Accepted
+                state: IRecurringCollector.AgreementState.Accepted,
+                authBasis: IRecurringCollector.AuthorizationBasis.Signature
             })
         );
 

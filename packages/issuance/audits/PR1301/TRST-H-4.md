@@ -22,3 +22,28 @@ Record whether the payer had code at agreement acceptance time by adding a bool 
 ## Team Response
 
 TBD
+
+---
+
+## Response
+
+- **Status:** Fixed
+- **Commit:** `643f4f24` fix(collector): record authorization basis at acceptance time
+
+### Analysis
+
+The finding is valid. EIP-7702 allows EOAs to acquire code post-acceptance, enabling them to block collection via `IProviderEligibility`.
+
+### Fix
+
+Added `AuthorizationBasis` enum (`Signature` / `ContractApproval`) recorded in `AgreementData.authBasis` at acceptance time. Eligibility checks, callbacks, and unsigned updates are gated on `authBasis` instead of runtime `code.length`. Updates must match the original basis (`AuthorizationBasisMismatch` error). Auth verification unified into `_requireAuthorization` helper.
+
+## Proposed Action
+
+**Recommendation:** Accept as resolved
+
+The fix eliminates the EIP-7702 attack vector by recording the authorization method at acceptance time rather than relying on runtime `code.length`. An EOA payer that later acquires code via EIP-7702 delegation will still be treated as a signature-based payer — eligibility checks and callbacks are skipped, preserving the original trust model. The `AuthorizationBasisMismatch` error prevents basis switching on updates. This approach is forward-compatible: any future EVM changes that allow EOAs to acquire/remove code will not affect agreement security.
+
+**Remaining work:**
+
+- None — finding fully addressed

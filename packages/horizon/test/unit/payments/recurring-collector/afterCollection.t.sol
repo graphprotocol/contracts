@@ -124,6 +124,46 @@ contract RecurringCollectorAfterCollectionTest is RecurringCollectorSharedTest {
         assertEq(approver.lastCollectedTokens(), 0);
     }
 
+    function test_Collect_Revert_WhenInsufficientCallbackGas() public {
+        MockAgreementOwner approver = _newApprover();
+        (IRecurringCollector.RecurringCollectionAgreement memory rca, bytes16 agreementId) = _acceptUnsignedAgreement(
+            approver
+        );
+
+        skip(rca.minSecondsPerCollection);
+        uint256 tokens = 1 ether;
+        bytes memory data = _generateCollectData(_generateCollectParams(rca, agreementId, bytes32("col1"), tokens, 0));
+
+        // Encode the outer collect call
+        bytes memory callData = abi.encodeCall(
+            _recurringCollector.collect,
+            (IGraphPayments.PaymentTypes.IndexingFee, data)
+        );
+
+        // Binary-search for a gas limit that passes core collect logic but trips the
+        // callback gas guard (gasleft < MAX_PAYER_CALLBACK_GAS * 64/63 ≈ 1_523_810).
+        // Core logic + escrow call + beforeCollection + events uses ~200k gas.
+        bool triggered;
+        for (uint256 gasLimit = 1_700_000; gasLimit > 1_500_000; gasLimit -= 10_000) {
+            uint256 snap = vm.snapshot();
+            vm.prank(rca.dataService);
+            (bool success, bytes memory returnData) = address(_recurringCollector).call{ gas: gasLimit }(callData);
+            if (!success && returnData.length >= 4) {
+                bytes4 selector;
+                assembly {
+                    selector := mload(add(returnData, 32))
+                }
+                if (selector == IRecurringCollector.RecurringCollectorInsufficientCallbackGas.selector) {
+                    triggered = true;
+                    assertTrue(vm.revertTo(snap));
+                    break;
+                }
+            }
+            assertTrue(vm.revertTo(snap));
+        }
+        assertTrue(triggered, "Should have triggered InsufficientCallbackGas at some gas limit");
+    }
+
     function test_AfterCollection_NotCalledForEOAPayer(FuzzyTestCollect calldata fuzzy) public {
         // Use standard ECDSA-signed path (EOA payer, no contract)
         (IRecurringCollector.RecurringCollectionAgreement memory acceptedRca, , , ) = _sensibleAuthorizeAndAccept(

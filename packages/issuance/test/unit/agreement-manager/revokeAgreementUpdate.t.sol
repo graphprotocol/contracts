@@ -142,7 +142,8 @@ contract RecurringAgreementManagerRevokeAgreementUpdateTest is RecurringAgreemen
                 maxSecondsPerCollection: rcau.maxSecondsPerCollection,
                 updateNonce: 1,
                 canceledAt: 0,
-                state: IRecurringCollector.AgreementState.Accepted
+                state: IRecurringCollector.AgreementState.Accepted,
+                authBasis: IRecurringCollector.AuthorizationBasis.Signature
             })
         );
 

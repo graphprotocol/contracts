@@ -10,8 +10,8 @@ import { MockAgreementOwner } from "./MockAgreementOwner.t.sol";
 contract RecurringCollectorMixedPathTest is RecurringCollectorSharedTest {
     /* solhint-disable graph/func-name-mixedcase */
 
-    /// @notice ECDSA accept, then contract-approved update should fail (payer is EOA)
-    function test_MixedPath_ECDSAAccept_UnsignedUpdate_RevertsForEOA() public {
+    /// @notice ECDSA accept, then contract-approved update should fail (basis mismatch)
+    function test_MixedPath_ECDSAAccept_UnsignedUpdate_RevertsForBasisMismatch() public {
         uint256 signerKey = 0xA11CE;
         address payer = vm.addr(signerKey);
 
@@ -49,15 +49,27 @@ contract RecurringCollectorMixedPathTest is RecurringCollectorSharedTest {
             })
         );
 
+        bytes16 agreementId2 = _recurringCollector.generateAgreementId(
+            rca.payer,
+            rca.dataService,
+            rca.serviceProvider,
+            rca.deadline,
+            rca.nonce
+        );
         vm.expectRevert(
-            abi.encodeWithSelector(IRecurringCollector.RecurringCollectorApproverNotContract.selector, payer)
+            abi.encodeWithSelector(
+                IRecurringCollector.RecurringCollectorAuthorizationBasisMismatch.selector,
+                agreementId2,
+                IRecurringCollector.AuthorizationBasis.Signature,
+                IRecurringCollector.AuthorizationBasis.ContractApproval
+            )
         );
         vm.prank(rca.dataService);
         _recurringCollector.update(rcau, "");
     }
 
-    /// @notice Contract-approved accept, then ECDSA update should fail (no authorized signer)
-    function test_MixedPath_UnsignedAccept_ECDSAUpdate_RevertsForUnauthorizedSigner() public {
+    /// @notice Contract-approved accept, then ECDSA update should fail (basis mismatch)
+    function test_MixedPath_UnsignedAccept_ECDSAUpdate_RevertsForBasisMismatch() public {
         MockAgreementOwner approver = new MockAgreementOwner();
 
         IRecurringCollector.RecurringCollectionAgreement memory rca = _recurringCollectorHelper.sensibleRCA(
@@ -101,7 +113,14 @@ contract RecurringCollectorMixedPathTest is RecurringCollectorSharedTest {
 
         (, bytes memory sig) = _recurringCollectorHelper.generateSignedRCAU(rcau, wrongKey);
 
-        vm.expectRevert(IRecurringCollector.RecurringCollectorInvalidSigner.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IRecurringCollector.RecurringCollectorAuthorizationBasisMismatch.selector,
+                agreementId,
+                IRecurringCollector.AuthorizationBasis.ContractApproval,
+                IRecurringCollector.AuthorizationBasis.Signature
+            )
+        );
         vm.prank(rca.dataService);
         _recurringCollector.update(rcau, sig);
     }

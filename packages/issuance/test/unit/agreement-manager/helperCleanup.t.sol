@@ -62,7 +62,8 @@ contract RecurringAgreementHelperCleanupTest is RecurringAgreementManagerSharedT
                 maxSecondsPerCollection: rca.maxSecondsPerCollection,
                 updateNonce: 0,
                 canceledAt: uint64(block.timestamp),
-                state: IRecurringCollector.AgreementState.CanceledByServiceProvider
+                state: IRecurringCollector.AgreementState.CanceledByServiceProvider,
+                authBasis: IRecurringCollector.AuthorizationBasis.Signature
             })
         );
     }

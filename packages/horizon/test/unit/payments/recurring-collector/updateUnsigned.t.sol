@@ -104,9 +104,9 @@ contract RecurringCollectorUpdateUnsignedTest is RecurringCollectorSharedTest {
         assertEq(rcau.nonce, agreement.updateNonce);
     }
 
-    function test_UpdateUnsigned_Revert_WhenPayerNotContract() public {
+    function test_UpdateUnsigned_Revert_WhenAuthorizationBasisMismatch() public {
         // Use the signed accept path to create an agreement with an EOA payer,
-        // then attempt updateUnsigned which should fail because payer isn't a contract
+        // then attempt unsigned update which should fail because basis is Signature
         uint256 signerKey = 0xA11CE;
         address payer = vm.addr(signerKey);
         IRecurringCollector.RecurringCollectionAgreement memory rca = _recurringCollectorHelper.sensibleRCA(
@@ -135,7 +135,12 @@ contract RecurringCollectorUpdateUnsignedTest is RecurringCollectorSharedTest {
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _makeSimpleRCAU(agreementId, 1);
 
         vm.expectRevert(
-            abi.encodeWithSelector(IRecurringCollector.RecurringCollectorApproverNotContract.selector, payer)
+            abi.encodeWithSelector(
+                IRecurringCollector.RecurringCollectorAuthorizationBasisMismatch.selector,
+                agreementId,
+                IRecurringCollector.AuthorizationBasis.Signature,
+                IRecurringCollector.AuthorizationBasis.ContractApproval
+            )
         );
         vm.prank(rca.dataService);
         _recurringCollector.update(rcau, "");

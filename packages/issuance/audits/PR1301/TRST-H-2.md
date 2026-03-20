@@ -20,3 +20,17 @@ Avoid receiving and decoding values from untrusted contract calls. This can be d
 ## Team Response
 
 TBD
+
+---
+
+Removed the two-step `supportsInterface` → `isEligible` pattern and replaced it with a single direct `isEligible` call via low-level `staticcall`.
+
+The `supportsInterface` gate is unnecessary: payers already explicitly opt in via `ContractApproval` at acceptance time, which is a stronger signal than an ERC-165 declaration. Removing it also avoids brittleness if the eligibility interface evolves.
+
+The new implementation:
+
+- Calls `isEligible(provider)` directly via `staticcall` with gas cap
+- Validates returndata length (≥32 bytes) before decoding
+- Decodes as `uint256` (cannot revert on any 32+ byte input)
+- Only blocks collection when the call succeeds and returns exactly `0` (false)
+- Reverts, malformed data, and short returndata are all treated as "no opinion" (collection proceeds)

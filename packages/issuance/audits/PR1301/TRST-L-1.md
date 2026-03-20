@@ -20,3 +20,7 @@ Enforce a minimum gas forwarding requirement for the `afterCollection()` callbac
 ## Team Response
 
 TBD
+
+---
+
+Added `gasleft()` guard before the `afterCollection` try/catch that reverts the entire collection when insufficient gas remains for the callback.

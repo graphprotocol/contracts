@@ -117,7 +117,8 @@ contract RecurringCollectorSharedTest is Test, Bounder {
             _rca.maxInitialTokens,
             _rca.maxOngoingTokensPerSecond,
             _rca.minSecondsPerCollection,
-            _rca.maxSecondsPerCollection
+            _rca.maxSecondsPerCollection,
+            IRecurringCollector.AuthorizationBasis.Signature
         );
         vm.prank(_rca.dataService);
         bytes16 actualAgreementId = _recurringCollector.accept(_rca, _signature);

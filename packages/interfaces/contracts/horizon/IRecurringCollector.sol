@@ -22,6 +22,15 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         CanceledByPayer
     }
 
+    /// @notice How the agreement was authorized at acceptance time
+    /// @dev Used to decide whether contract-payer callbacks (eligibility gate,
+    /// beforeCollection, afterCollection) apply. Prevents an EOA that later
+    /// acquires code via EIP-7702 from blocking collection.
+    enum AuthorizationBasis {
+        Signature,
+        ContractApproval
+    }
+
     /// @notice The party that can cancel an agreement
     enum CancelAgreementBy {
         ServiceProvider,
@@ -114,6 +123,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @param updateNonce The current nonce for updates (prevents replay attacks)
      * @param canceledAt The timestamp when the agreement was canceled
      * @param state The state of the agreement
+     * @param authBasis How the agreement was authorized (Signature or ContractApproval)
      */
     struct AgreementData {
         address dataService;
@@ -129,6 +139,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         uint32 updateNonce;
         uint64 canceledAt;
         AgreementState state;
+        AuthorizationBasis authBasis;
     }
 
     /**
@@ -161,6 +172,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @param maxOngoingTokensPerSecond The maximum amount of tokens that can be collected per second
      * @param minSecondsPerCollection The minimum amount of seconds that must pass between collections
      * @param maxSecondsPerCollection The maximum seconds of service that can be collected in a single collection
+     * @param authBasis How the agreement was authorized (Signature or ContractApproval)
      */
     event AgreementAccepted(
         address indexed dataService,
@@ -172,7 +184,8 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         uint256 maxInitialTokens,
         uint256 maxOngoingTokensPerSecond,
         uint32 minSecondsPerCollection,
-        uint32 maxSecondsPerCollection
+        uint32 maxSecondsPerCollection,
+        AuthorizationBasis authBasis
     );
 
     /**
@@ -381,6 +394,24 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @param approver The address that is not a contract
      */
     error RecurringCollectorApproverNotContract(address approver);
+
+    /**
+     * @notice Thrown when the caller does not provide enough gas for the payer callback
+     * after collection
+     */
+    error RecurringCollectorInsufficientCallbackGas();
+
+    /**
+     * @notice Thrown when an update uses a different authorization method than the original agreement
+     * @param agreementId The agreement ID
+     * @param expected The authorization basis set at acceptance time
+     * @param provided The authorization basis of the update attempt
+     */
+    error RecurringCollectorAuthorizationBasisMismatch(
+        bytes16 agreementId,
+        AuthorizationBasis expected,
+        AuthorizationBasis provided
+    );
 
     /**
      * @notice Accept a Recurring Collection Agreement.

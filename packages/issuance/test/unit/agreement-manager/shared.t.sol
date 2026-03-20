@@ -196,7 +196,8 @@ contract RecurringAgreementManagerSharedTest is Test {
                 maxSecondsPerCollection: rca.maxSecondsPerCollection,
                 updateNonce: 0,
                 canceledAt: 0,
-                state: IRecurringCollector.AgreementState.Accepted
+                state: IRecurringCollector.AgreementState.Accepted,
+                authBasis: IRecurringCollector.AuthorizationBasis.Signature
             })
         );
     }
@@ -221,7 +222,8 @@ contract RecurringAgreementManagerSharedTest is Test {
                 maxSecondsPerCollection: rca.maxSecondsPerCollection,
                 updateNonce: 0,
                 canceledAt: uint64(block.timestamp),
-                state: IRecurringCollector.AgreementState.CanceledByServiceProvider
+                state: IRecurringCollector.AgreementState.CanceledByServiceProvider,
+                authBasis: IRecurringCollector.AuthorizationBasis.Signature
             })
         );
     }
@@ -249,7 +251,8 @@ contract RecurringAgreementManagerSharedTest is Test {
                 maxSecondsPerCollection: rca.maxSecondsPerCollection,
                 updateNonce: 0,
                 canceledAt: canceledAt,
-                state: IRecurringCollector.AgreementState.CanceledByPayer
+                state: IRecurringCollector.AgreementState.CanceledByPayer,
+                authBasis: IRecurringCollector.AuthorizationBasis.Signature
             })
         );
     }
@@ -276,7 +279,8 @@ contract RecurringAgreementManagerSharedTest is Test {
                 maxSecondsPerCollection: rca.maxSecondsPerCollection,
                 updateNonce: 0,
                 canceledAt: 0,
-                state: IRecurringCollector.AgreementState.Accepted
+                state: IRecurringCollector.AgreementState.Accepted,
+                authBasis: IRecurringCollector.AuthorizationBasis.Signature
             })
         );
     }

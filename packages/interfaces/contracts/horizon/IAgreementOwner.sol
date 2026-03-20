@@ -28,6 +28,11 @@ interface IAgreementOwner {
      * @notice Confirms this contract authorized the given agreement or update
      * @dev Called by {RecurringCollector.accept} with an RCA hash or by
      * {RecurringCollector.update} with an RCAU hash to verify authorization (empty authData path).
+     *
+     * WARNING: This function provides no replay protection. It returns approval for any
+     * hash that was previously authorized, regardless of how many times it is called.
+     * Collectors MUST ensure that agreement acceptance is a one-way state transition
+     * (e.g. NotAccepted → Accepted with no path back) to prevent replay of approved hashes.
      * @param agreementHash The EIP712 hash of the RCA or RCAU struct
      * @return magic `IAgreementOwner.approveAgreement.selector` if authorized
      */

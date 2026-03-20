@@ -9,7 +9,6 @@ import { Authorizable } from "../../utilities/Authorizable.sol";
 import { GraphDirectory } from "../../utilities/GraphDirectory.sol";
 // solhint-disable-next-line no-unused-import
 import { IPaymentsCollector } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsCollector.sol"; // for @inheritdoc
-import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import { IAgreementOwner } from "@graphprotocol/interfaces/contracts/horizon/IAgreementOwner.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
@@ -29,6 +28,11 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
 
     /// @notice The minimum number of seconds that must be between two collections
     uint32 public constant MIN_SECONDS_COLLECTION_WINDOW = 600;
+
+    /// @notice Maximum gas forwarded to payer contract callbacks (beforeCollection / afterCollection).
+    /// Caps gas available to payer implementations, preventing 63/64-rule gas siphoning attacks
+    /// that could starve the core collect() call of gas.
+    uint256 private constant MAX_PAYER_CALLBACK_GAS = 1_500_000;
 
     /* solhint-disable gas-small-strings */
     /// @notice The EIP712 typehash for the RecurringCollectionAgreement struct
@@ -88,19 +92,15 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         );
         /* solhint-enable gas-strict-inequalities */
 
-        if (0 < signature.length) {
-            // ECDSA-signed path: verify signature
-            _requireAuthorizedRCASigner(rca, signature);
-        } else {
-            // Contract-approved path: verify payer is a contract and confirms the agreement
+        AuthorizationBasis authBasis = 0 < signature.length
+            ? AuthorizationBasis.Signature
+            : AuthorizationBasis.ContractApproval;
+
+        if (authBasis == AuthorizationBasis.ContractApproval)
             require(0 < rca.payer.code.length, RecurringCollectorApproverNotContract(rca.payer));
-            bytes32 agreementHash = _hashRCA(rca);
-            require(
-                IAgreementOwner(rca.payer).approveAgreement(agreementHash) == IAgreementOwner.approveAgreement.selector,
-                RecurringCollectorInvalidSigner()
-            );
-        }
-        return _validateAndStoreAgreement(rca);
+
+        _requireAuthorization(rca.payer, _hashRCA(rca), signature, authBasis);
+        return _validateAndStoreAgreement(rca, authBasis);
     }
 
     /**
@@ -109,7 +109,10 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
      * @return agreementId The deterministically generated agreement ID
      */
     /* solhint-disable function-max-lines */
-    function _validateAndStoreAgreement(RecurringCollectionAgreement memory _rca) private returns (bytes16) {
+    function _validateAndStoreAgreement(
+        RecurringCollectionAgreement memory _rca,
+        AuthorizationBasis _authBasis
+    ) private returns (bytes16) {
         bytes16 agreementId = _generateAgreementId(
             _rca.payer,
             _rca.dataService,
@@ -147,6 +150,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         agreement.minSecondsPerCollection = _rca.minSecondsPerCollection;
         agreement.maxSecondsPerCollection = _rca.maxSecondsPerCollection;
         agreement.updateNonce = 0;
+        agreement.authBasis = _authBasis;
 
         emit AgreementAccepted(
             agreement.dataService,
@@ -158,7 +162,8 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
             agreement.maxInitialTokens,
             agreement.maxOngoingTokensPerSecond,
             agreement.minSecondsPerCollection,
-            agreement.maxSecondsPerCollection
+            agreement.maxSecondsPerCollection,
+            _authBasis
         );
 
         return agreementId;
@@ -215,19 +220,15 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         );
         /* solhint-enable gas-strict-inequalities */
 
-        if (0 < signature.length) {
-            // ECDSA-signed path: verify signature
-            _requireAuthorizedRCAUSigner(rcau, signature, agreement.payer);
-        } else {
-            // Contract-approved path: verify payer is a contract and confirms the update
-            require(0 < agreement.payer.code.length, RecurringCollectorApproverNotContract(agreement.payer));
-            bytes32 updateHash = _hashRCAU(rcau);
-            require(
-                IAgreementOwner(agreement.payer).approveAgreement(updateHash) ==
-                    IAgreementOwner.approveAgreement.selector,
-                RecurringCollectorInvalidSigner()
-            );
-        }
+        AuthorizationBasis updateBasis = 0 < signature.length
+            ? AuthorizationBasis.Signature
+            : AuthorizationBasis.ContractApproval;
+        require(
+            updateBasis == agreement.authBasis,
+            RecurringCollectorAuthorizationBasisMismatch(rcau.agreementId, agreement.authBasis, updateBasis)
+        );
+
+        _requireAuthorization(agreement.payer, _hashRCAU(rcau), signature, updateBasis);
 
         _validateAndStoreUpdate(agreement, rcau);
     }
@@ -364,20 +365,30 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         }
         agreement.lastCollectionAt = uint64(block.timestamp);
 
-        // Hard eligibility gate for contract payers that opt in via ERC165
-        if (0 < tokensToCollect && 0 < agreement.payer.code.length) {
-            try IERC165(agreement.payer).supportsInterface(type(IProviderEligibility).interfaceId) returns (
-                bool supported
-            ) {
-                if (supported) {
-                    require(
-                        IProviderEligibility(agreement.payer).isEligible(agreement.serviceProvider),
-                        RecurringCollectorCollectionNotEligible(_params.agreementId, agreement.serviceProvider)
-                    );
-                }
-            } catch {}
+        // Hard eligibility gate and callbacks for contract-approved payers only.
+        // Uses authBasis recorded at acceptance time rather than runtime code.length
+        // to prevent EOAs from blocking collection via EIP-7702 delegation.
+        // Low-level staticcall avoids caller-side ABI decoding reverts.
+        if (0 < tokensToCollect && agreement.authBasis == AuthorizationBasis.ContractApproval) {
+            // Gas guard: two external calls (staticcall + beforeCollection) each capped at
+            // MAX_PAYER_CALLBACK_GAS. 64/63 accounts for EIP-150 63/64 gas forwarding rule.
+            if (gasleft() < (2 * MAX_PAYER_CALLBACK_GAS * 64) / 63) {
+                revert RecurringCollectorInsufficientCallbackGas();
+            }
+            // solhint-disable-next-line avoid-low-level-calls
+            (bool success, bytes memory result) = agreement.payer.staticcall{ gas: MAX_PAYER_CALLBACK_GAS }(
+                abi.encodeCall(IProviderEligibility.isEligible, (agreement.serviceProvider))
+            );
+            if (success && !(result.length < 32) && abi.decode(result, (uint256)) == 0) {
+                revert RecurringCollectorCollectionNotEligible(_params.agreementId, agreement.serviceProvider);
+            }
             // Let contract payers top up escrow if short
-            try IAgreementOwner(agreement.payer).beforeCollection(_params.agreementId, tokensToCollect) {} catch {}
+            try
+                IAgreementOwner(agreement.payer).beforeCollection{ gas: MAX_PAYER_CALLBACK_GAS }(
+                    _params.agreementId,
+                    tokensToCollect
+                )
+            {} catch {}
         }
 
         if (0 < tokensToCollect) {
@@ -411,9 +422,20 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
             _params.dataServiceCut
         );
 
-        // Notify contract payers so they can reconcile escrow in the same transaction
-        if (0 < agreement.payer.code.length) {
-            try IAgreementOwner(agreement.payer).afterCollection(_params.agreementId, tokensToCollect) {} catch {}
+        // Notify contract-approved payers so they can reconcile escrow in the same transaction.
+        // Gas guard ensures the callback cannot be starved; try/catch still
+        // absorbs non-gas failures so a buggy payer cannot block collection.
+        if (agreement.authBasis == AuthorizationBasis.ContractApproval) {
+            // 64/63 accounts for EIP-150 63/64 gas forwarding rule.
+            if (gasleft() < (MAX_PAYER_CALLBACK_GAS * 64) / 63) {
+                revert RecurringCollectorInsufficientCallbackGas();
+            }
+            try
+                IAgreementOwner(agreement.payer).afterCollection{ gas: MAX_PAYER_CALLBACK_GAS }(
+                    _params.agreementId,
+                    tokensToCollect
+                )
+            {} catch {}
         }
 
         return tokensToCollect;
@@ -578,39 +600,27 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     }
 
     /**
-     * @notice Requires that the signer for the RCA is authorized
-     * by the payer of the RCA.
-     * @param _rca The RCA whose hash was signed
-     * @param _signature The ECDSA signature bytes
-     * @return The address of the authorized signer
+     * @notice Verifies authorization for an EIP712 hash using the given basis.
+     * @param _payer The payer address (signer owner for ECDSA, contract for approval)
+     * @param _hash The EIP712 typed data hash
+     * @param _signature The ECDSA signature (only used when basis is Signature)
+     * @param _basis The authorization method to use
      */
-    function _requireAuthorizedRCASigner(
-        RecurringCollectionAgreement memory _rca,
-        bytes memory _signature
-    ) private view returns (address) {
-        address signer = _recoverRCASigner(_rca, _signature);
-        require(_isAuthorized(_rca.payer, signer), RecurringCollectorInvalidSigner());
-
-        return signer;
-    }
-
-    /**
-     * @notice Requires that the signer for the RCAU is authorized
-     * by the payer.
-     * @param _rcau The RCAU whose hash was signed
-     * @param _signature The ECDSA signature bytes
-     * @param _payer The address of the payer
-     * @return The address of the authorized signer
-     */
-    function _requireAuthorizedRCAUSigner(
-        RecurringCollectionAgreementUpdate memory _rcau,
+    function _requireAuthorization(
+        address _payer,
+        bytes32 _hash,
         bytes memory _signature,
-        address _payer
-    ) private view returns (address) {
-        address signer = _recoverRCAUSigner(_rcau, _signature);
-        require(_isAuthorized(_payer, signer), RecurringCollectorInvalidSigner());
-
-        return signer;
+        AuthorizationBasis _basis
+    ) private view {
+        if (_basis == AuthorizationBasis.Signature) {
+            address signer = ECDSA.recover(_hash, _signature);
+            require(_isAuthorized(_payer, signer), RecurringCollectorInvalidSigner());
+        } else {
+            require(
+                IAgreementOwner(_payer).approveAgreement(_hash) == IAgreementOwner.approveAgreement.selector,
+                RecurringCollectorInvalidSigner()
+            );
+        }
     }
 
     /**

@@ -20,3 +20,7 @@ Enforce a minimum gas reservation before each callback. Before calling `beforeCo
 ## Team Response
 
 TBD
+
+---
+
+Added `MAX_PAYER_CALLBACK_GAS` constant (1,500,000 gas) in `RecurringCollector._collect()`. All external calls to payer contracts (`isEligible`, `beforeCollection`, `afterCollection`) now use `{gas: limit}` syntax, capping gas available to payer implementations. Cross-package gas measurements with real contracts confirm 21-27x headroom at warm-storage and 4-7x at worst-case cold-storage.

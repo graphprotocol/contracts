@@ -63,7 +63,8 @@ contract RecurringCollectorAcceptUnsignedTest is RecurringCollectorSharedTest {
             rca.maxInitialTokens,
             rca.maxOngoingTokensPerSecond,
             rca.minSecondsPerCollection,
-            rca.maxSecondsPerCollection
+            rca.maxSecondsPerCollection,
+            IRecurringCollector.AuthorizationBasis.ContractApproval
         );
 
         vm.prank(rca.dataService);
@@ -76,6 +77,11 @@ contract RecurringCollectorAcceptUnsignedTest is RecurringCollectorSharedTest {
         assertEq(agreement.payer, address(approver));
         assertEq(agreement.serviceProvider, rca.serviceProvider);
         assertEq(agreement.dataService, rca.dataService);
+        assertEq(
+            uint8(agreement.authBasis),
+            uint8(IRecurringCollector.AuthorizationBasis.ContractApproval),
+            "unsigned accept should set authBasis to ContractApproval"
+        );
     }
 
     function test_AcceptUnsigned_Revert_WhenPayerNotContract() public {

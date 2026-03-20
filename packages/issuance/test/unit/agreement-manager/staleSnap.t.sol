@@ -2,7 +2,6 @@
 pragma solidity ^0.8.27;
 
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
-import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
 
 import { RecurringAgreementManagerSharedTest } from "./shared.t.sol";
 
@@ -109,7 +108,8 @@ contract StaleEscrowSnapTest is RecurringAgreementManagerSharedTest {
                 maxSecondsPerCollection: rca.maxSecondsPerCollection,
                 updateNonce: 0,
                 canceledAt: 0,
-                state: IRecurringCollector.AgreementState.Accepted
+                state: IRecurringCollector.AgreementState.Accepted,
+                authBasis: IRecurringCollector.AuthorizationBasis.Signature
             })
         );
     }
