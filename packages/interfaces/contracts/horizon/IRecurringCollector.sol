@@ -22,6 +22,13 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         CanceledByPayer
     }
 
+    /// @notice The stage of a payer callback
+    enum PayerCallbackStage {
+        BeforeCollection,
+        AfterCollection,
+        EligibilityCheck
+    }
+
     /// @notice How the agreement was authorized at acceptance time
     /// @dev Used to decide whether contract-payer callbacks (eligibility gate,
     /// beforeCollection, afterCollection) apply. Prevents an EOA that later
@@ -412,6 +419,16 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         AuthorizationBasis expected,
         AuthorizationBasis provided
     );
+
+    /**
+     * @notice Emitted when a payer callback (beforeCollection / afterCollection) reverts.
+     * @dev The try/catch ensures provider liveness but this event enables off-chain
+     * monitoring to detect repeated failures and trigger reconciliation.
+     * @param agreementId The agreement ID
+     * @param payer The payer contract whose callback reverted
+     * @param stage Whether the failure occurred before or after collection
+     */
+    event PayerCallbackFailed(bytes16 indexed agreementId, address indexed payer, PayerCallbackStage stage);
 
     /**
      * @notice Accept a Recurring Collection Agreement.

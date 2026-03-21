@@ -379,16 +379,21 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
             (bool success, bytes memory result) = agreement.payer.staticcall{ gas: MAX_PAYER_CALLBACK_GAS }(
                 abi.encodeCall(IProviderEligibility.isEligible, (agreement.serviceProvider))
             );
-            if (success && !(result.length < 32) && abi.decode(result, (uint256)) == 0) {
+            if (success && !(result.length < 32) && abi.decode(result, (uint256)) == 0)
                 revert RecurringCollectorCollectionNotEligible(_params.agreementId, agreement.serviceProvider);
-            }
+
+            if (!success || result.length < 32)
+                emit PayerCallbackFailed(_params.agreementId, agreement.payer, PayerCallbackStage.EligibilityCheck);
+
             // Let contract payers top up escrow if short
             try
                 IAgreementOwner(agreement.payer).beforeCollection{ gas: MAX_PAYER_CALLBACK_GAS }(
                     _params.agreementId,
                     tokensToCollect
                 )
-            {} catch {}
+            {} catch {
+                emit PayerCallbackFailed(_params.agreementId, agreement.payer, PayerCallbackStage.BeforeCollection);
+            }
         }
 
         if (0 < tokensToCollect) {
@@ -435,7 +440,9 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
                     _params.agreementId,
                     tokensToCollect
                 )
-            {} catch {}
+            {} catch {
+                emit PayerCallbackFailed(_params.agreementId, agreement.payer, PayerCallbackStage.AfterCollection);
+            }
         }
 
         return tokensToCollect;
