@@ -97,7 +97,7 @@
     "typechain": "^8.3.2",
     "typescript": "catalog:",
     "winston": "^3.3.3",
-    "yaml": "^1.10.2",
+    "yaml": "^1.10.3",
     "yargs": "^17.0.0"
   },
   "exports": {
