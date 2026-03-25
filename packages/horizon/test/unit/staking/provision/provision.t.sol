@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
+pragma solidity ^0.8.27;
 
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
@@ -92,22 +92,6 @@ contract HorizonStakingProvisionTest is HorizonStakingTest {
         );
         vm.expectRevert(expectedError);
         staking.provision(users.indexer, subgraphDataServiceAddress, amount, maxVerifierCut, thawingPeriod);
-    }
-
-    function testProvision_RevertWhen_VerifierIsNotSubgraphDataServiceDuringTransitionPeriod(
-        uint256 amount
-    ) public useIndexer useStake(amount) {
-        // simulate the transition period
-        _setStorageDeprecatedThawingPeriod(THAWING_PERIOD_IN_BLOCKS);
-
-        // oddly we use subgraphDataServiceLegacyAddress as the subgraph service address
-        // so subgraphDataServiceAddress is not the subgraph service ¯\_(ツ)_/¯
-        bytes memory expectedError = abi.encodeWithSignature(
-            "HorizonStakingInvalidVerifier(address)",
-            subgraphDataServiceAddress
-        );
-        vm.expectRevert(expectedError);
-        staking.provision(users.indexer, subgraphDataServiceAddress, amount, 0, 0);
     }
 
     function testProvision_AddTokensToProvision(

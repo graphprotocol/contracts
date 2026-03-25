@@ -109,6 +109,9 @@ describe('Rewards - Reclaim Addresses', () => {
       await grt.connect(wallet).approve(staking.address, toGRT('1000000'))
       await grt.connect(wallet).approve(curation.address, toGRT('1000000'))
     }
+
+    // Set the staking contract as the subgraph service so it can call takeRewards
+    await rewardsManager.connect(governor).setSubgraphService(staking.address)
   })
 
   beforeEach(async function () {
@@ -303,7 +306,7 @@ describe('Rewards - Reclaim Addresses', () => {
       )
       const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(false) // Deny
       await mockOracle.deployed()
-      await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
+      await rewardsManager.connect(governor).setProviderEligibilityOracle(mockOracle.address)
 
       // Align with the epoch boundary
       await helpers.mineEpoch(epochManager)
@@ -367,7 +370,7 @@ describe('Rewards - Reclaim Addresses', () => {
       )
       const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(false) // Deny
       await mockOracle.deployed()
-      await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
+      await rewardsManager.connect(governor).setProviderEligibilityOracle(mockOracle.address)
 
       // Align with the epoch boundary
       await helpers.mineEpoch(epochManager)
@@ -428,7 +431,7 @@ describe('Rewards - Reclaim Addresses', () => {
       )
       const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(false) // Deny
       await mockOracle.deployed()
-      await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
+      await rewardsManager.connect(governor).setProviderEligibilityOracle(mockOracle.address)
 
       // Align with the epoch boundary
       await helpers.mineEpoch(epochManager)
@@ -479,7 +482,7 @@ describe('Rewards - Reclaim Addresses', () => {
       )
       const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(false) // Deny
       await mockOracle.deployed()
-      await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
+      await rewardsManager.connect(governor).setProviderEligibilityOracle(mockOracle.address)
 
       // Align with the epoch boundary
       await helpers.mineEpoch(epochManager)
@@ -521,7 +524,7 @@ describe('Rewards - Reclaim Addresses', () => {
       )
       const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(false) // Deny
       await mockOracle.deployed()
-      await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
+      await rewardsManager.connect(governor).setProviderEligibilityOracle(mockOracle.address)
 
       // Align with the epoch boundary
       await helpers.mineEpoch(epochManager)
@@ -570,7 +573,7 @@ describe('Rewards - Reclaim Addresses', () => {
       )
       const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(false) // Deny
       await mockOracle.deployed()
-      await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
+      await rewardsManager.connect(governor).setProviderEligibilityOracle(mockOracle.address)
 
       // Align with the epoch boundary
       await helpers.mineEpoch(epochManager)
@@ -601,7 +604,7 @@ describe('Rewards - Reclaim Addresses', () => {
       )
       const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(true) // Allow
       await mockOracle.deployed()
-      await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
+      await rewardsManager.connect(governor).setProviderEligibilityOracle(mockOracle.address)
 
       // Align with the epoch boundary
       await helpers.mineEpoch(epochManager)
@@ -726,6 +729,39 @@ describe('Rewards - Reclaim Addresses', () => {
       expect(result).eq(0)
 
       const tx = await mockSubgraphService.callReclaimRewards(rewardsManager.address, CLOSE_ALLOCATION, allocationID1)
+      await expect(tx).to.not.emit(rewardsManager, 'RewardsReclaimed')
+    })
+
+    it('should return 0 when reason is NONE', async function () {
+      // Setup allocation in real staking contract
+      await setupIndexerAllocation()
+
+      // Also set allocation data in mock so RewardsManager can query it
+      const tokensAllocated = toGRT('12500')
+      await mockSubgraphService.setAllocation(
+        allocationID1,
+        true,
+        indexer1.address,
+        subgraphDeploymentID1,
+        tokensAllocated,
+        0,
+        0,
+      )
+      await mockSubgraphService.setSubgraphAllocatedTokens(subgraphDeploymentID1, tokensAllocated)
+
+      // Jump to next epoch to accrue rewards
+      await helpers.mineEpoch(epochManager)
+
+      // Call reclaimRewards with NONE (HashZero) - should return 0
+      const result = await mockSubgraphService.callStatic.callReclaimRewards(
+        rewardsManager.address,
+        HashZero,
+        allocationID1,
+      )
+      expect(result).eq(0)
+
+      // Verify no RewardsReclaimed event emitted
+      const tx = await mockSubgraphService.callReclaimRewards(rewardsManager.address, HashZero, allocationID1)
       await expect(tx).to.not.emit(rewardsManager, 'RewardsReclaimed')
     })
 
@@ -1039,7 +1075,7 @@ describe('Rewards - Reclaim Addresses', () => {
       )
       const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(false) // Deny
       await mockOracle.deployed()
-      await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
+      await rewardsManager.connect(governor).setProviderEligibilityOracle(mockOracle.address)
 
       // Align with the epoch boundary
       await helpers.mineEpoch(epochManager)

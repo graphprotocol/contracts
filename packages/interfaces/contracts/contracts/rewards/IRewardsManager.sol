@@ -3,7 +3,6 @@
 pragma solidity ^0.7.6 || ^0.8.0;
 
 import { IIssuanceAllocationDistribution } from "../../issuance/allocate/IIssuanceAllocationDistribution.sol";
-import { IRewardsEligibility } from "../../issuance/eligibility/IRewardsEligibility.sol";
 import { IRewardsIssuer } from "./IRewardsIssuer.sol";
 
 /**
@@ -52,16 +51,6 @@ interface IRewardsManager {
      */
     event RewardsDeniedDueToEligibility(address indexed indexer, address indexed allocationID, uint256 amount);
     // solhint-disable-previous-line gas-indexed-events
-
-    /**
-     * @notice Emitted when the rewards eligibility oracle contract is set
-     * @param oldRewardsEligibilityOracle Previous rewards eligibility oracle address
-     * @param newRewardsEligibilityOracle New rewards eligibility oracle address
-     */
-    event RewardsEligibilityOracleSet(
-        address indexed oldRewardsEligibilityOracle,
-        address indexed newRewardsEligibilityOracle
-    );
 
     /**
      * @notice New reclaim address set
@@ -123,12 +112,6 @@ interface IRewardsManager {
      * @param newSubgraphService Address of the subgraph service contract
      */
     function setSubgraphService(address newSubgraphService) external;
-
-    /**
-     * @notice Set the rewards eligibility oracle address
-     * @param newRewardsEligibilityOracle The address of the rewards eligibility oracle
-     */
-    function setRewardsEligibilityOracle(address newRewardsEligibilityOracle) external;
 
     /**
      * @notice Set the reclaim address for a specific reason
@@ -202,12 +185,6 @@ interface IRewardsManager {
     function getDefaultReclaimAddress() external view returns (address);
 
     /**
-     * @notice Get the rewards eligibility oracle address
-     * @return The rewards eligibility oracle contract
-     */
-    function getRewardsEligibilityOracle() external view returns (IRewardsEligibility);
-
-    /**
      * @notice Gets the effective issuance per block, accounting for the issuance allocator
      * @dev When an issuance allocator is set, returns the allocated rate for this contract.
      * Otherwise falls back to the raw storage value.
@@ -278,7 +255,7 @@ interface IRewardsManager {
 
     /**
      * @notice Pull rewards from the contract for a particular allocation
-     * @dev This function can only be called by the Staking contract.
+     * @dev This function can only be called by the Subgraph Service contract.
      * This function will mint the necessary tokens to reward based on the inflation calculation.
      * @param allocationID Allocation
      * @return Assigned rewards amount

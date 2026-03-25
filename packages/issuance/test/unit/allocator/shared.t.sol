@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.33;
+pragma solidity ^0.8.27;
 
 import { Test } from "forge-std/Test.sol";
 
 import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 import { IssuanceAllocator } from "../../../contracts/allocate/IssuanceAllocator.sol";
+import { IGraphToken } from "../../../contracts/common/IGraphToken.sol";
 import { MockGraphToken } from "../mocks/MockGraphToken.sol";
 import { MockSimpleTarget } from "../../../contracts/test/allocate/MockSimpleTarget.sol";
 import { MockNotificationTracker } from "../../../contracts/test/allocate/MockNotificationTracker.sol";
@@ -51,7 +52,7 @@ contract IssuanceAllocatorSharedTest is Test {
         token = new MockGraphToken();
 
         // Deploy IssuanceAllocator behind proxy
-        IssuanceAllocator impl = new IssuanceAllocator(address(token));
+        IssuanceAllocator impl = new IssuanceAllocator(IGraphToken(address(token)));
         bytes memory initData = abi.encodeCall(IssuanceAllocator.initialize, (governor));
         TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(impl), address(this), initData);
         allocator = IssuanceAllocator(address(proxy));

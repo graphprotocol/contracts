@@ -31,4 +31,14 @@ interface IRewardsEligibilityEvents {
     /// @param oldTimeout The previous timeout period in seconds
     /// @param newTimeout The new timeout period in seconds
     event OracleUpdateTimeoutUpdated(uint256 indexed oldTimeout, uint256 indexed newTimeout);
+
+    /// @notice Emitted when an indexer is added to or removed from the tracked set
+    /// @param indexer The indexer address
+    /// @param tracked True when added (first renewal), false when removed (stale cleanup)
+    event IndexerTrackingUpdated(address indexed indexer, bool indexed tracked);
+
+    /// @notice Emitted when the indexer retention period is updated
+    /// @param oldPeriod The previous retention period in seconds
+    /// @param newPeriod The new retention period in seconds
+    event IndexerRetentionPeriodSet(uint256 indexed oldPeriod, uint256 indexed newPeriod);
 }

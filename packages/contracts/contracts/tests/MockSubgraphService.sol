@@ -2,7 +2,7 @@
 
 // solhint-disable named-parameters-mapping
 
-pragma solidity 0.7.6;
+pragma solidity ^0.7.6;
 
 import { IRewardsIssuer } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsIssuer.sol";
 
