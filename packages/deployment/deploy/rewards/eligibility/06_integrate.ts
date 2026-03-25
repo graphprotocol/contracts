@@ -1,6 +1,7 @@
 import { applyConfiguration } from '@graphprotocol/deployment/lib/apply-configuration.js'
 import { createRMIntegrationCondition } from '@graphprotocol/deployment/lib/contract-checks.js'
 import { Contracts } from '@graphprotocol/deployment/lib/contract-registry.js'
+import { canSignAsGovernor } from '@graphprotocol/deployment/lib/controller-utils.js'
 import { ComponentTags, Tags } from '@graphprotocol/deployment/lib/deployment-tags.js'
 import { requireContracts } from '@graphprotocol/deployment/lib/issuance-deploy-utils.js'
 import { graph } from '@graphprotocol/deployment/rocketh/deploy.js'
@@ -9,6 +10,10 @@ import type { PublicClient } from 'viem'
 
 /**
  * Integrate RewardsEligibilityOracle with RewardsManager
+ *
+ * Requires governor authority on the RewardsManager (via Controller).
+ * If the provider has access to the governor key (e.g., mnemonic-derived accounts
+ * in local network), executes directly. Otherwise generates governance TX file.
  *
  * See: docs/deploy/RewardsEligibilityOracleDeployment.md
  */
@@ -19,11 +24,13 @@ const func: DeployScriptModule = async (env) => {
   ])
   const client = graph.getPublicClient(env) as PublicClient
 
-  // Apply: RM.rewardsEligibilityOracle = REO (always governance TX)
+  const { governor, canSign } = await canSignAsGovernor(env)
+
   await applyConfiguration(env, client, [createRMIntegrationCondition(reo.address)], {
     contractName: `${Contracts.horizon.RewardsManager.name}-REO`,
     contractAddress: rm.address,
-    canExecuteDirectly: false,
+    canExecuteDirectly: canSign,
+    executor: governor,
   })
 }
 

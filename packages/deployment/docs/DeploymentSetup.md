@@ -124,6 +124,7 @@ npx hardhat deploy --skip-prompts --network arbitrumSepolia --tags <deploy-tag>
 
 | Network         | Chain ID | RPC (default)                            |
 | --------------- | -------- | ---------------------------------------- |
+| localNetwork    | 1337     | `http://chain:8545`                      |
 | arbitrumSepolia | 421614   | <https://sepolia-rollup.arbitrum.io/rpc> |
 | arbitrumOne     | 42161    | <https://arb1.arbitrum.io/rpc>           |
 
@@ -155,6 +156,66 @@ For deploy scripts that run verification automatically, export the API key:
 ```bash
 export ARBISCAN_API_KEY=$(npx hardhat keystore get ARBISCAN_API_KEY)
 npx hardhat deploy --skip-prompts --network arbitrumSepolia --tags <deploy-tag>
+```
+
+## Tagging Deployments (WIP)
+
+> This convention is a work in progress — feedback and changes welcome.
+
+After a deployment is committed, create an annotated git tag to record the deployment.
+Tags use `deploy/{mainnet|testnet}/YYYY-MM-DD` format. The annotation is auto-generated
+from address book diffs, listing which contracts changed.
+
+**Requires:** `jq` (`sudo apt install jq` / `brew install jq`)
+
+### Usage
+
+```bash
+# Preview first
+./scripts/tag-deployment.sh \
+  --deployer "packages/deployment --tags rewards-manager" \
+  --network arbitrumSepolia \
+  --base main \
+  --dry-run
+
+# Create the tag
+./scripts/tag-deployment.sh \
+  --deployer "packages/deployment --tags rewards-manager" \
+  --network arbitrumSepolia \
+  --base main
+
+# Push
+git push origin deploy/testnet/2026-03-02
+```
+
+The `--deployer` argument is free-form — describe what performed the deployment:
+
+- `"packages/deployment --tags rewards-manager,subgraph-service"`
+- `"packages/horizon ignition migrate"`
+- `"manual: forge script DeployFoo"`
+
+### Workflow
+
+1. Deploy contracts and update address books
+2. Commit the address book changes
+3. Run `tag-deployment.sh` (tag must point to a finalized commit)
+4. Push branch and tag
+
+### Options
+
+| Option              | Description                                   |
+| ------------------- | --------------------------------------------- |
+| `--deployer <desc>` | What performed the deployment (required)      |
+| `--network <name>`  | `arbitrumOne` or `arbitrumSepolia` (required) |
+| `--base <ref>`      | Git ref to diff against (default: `HEAD~1`)   |
+| `--dry-run`         | Preview without creating tag                  |
+| `--sign`            | Force-sign the tag with `-s`                  |
+
+### Viewing tags
+
+```bash
+git tag -l 'deploy/*'                    # List all deployment tags
+git show --no-patch deploy/testnet/...   # View tag annotation
 ```
 
 ## See Also
