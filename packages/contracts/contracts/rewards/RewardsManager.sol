@@ -265,6 +265,14 @@ contract RewardsManager is
         }
     }
 
+    /// @inheritdoc IRewardsManager
+    function setRevertOnIneligible(bool _revertOnIneligible) external override onlyGovernor {
+        if (revertOnIneligible != _revertOnIneligible) {
+            revertOnIneligible = _revertOnIneligible;
+            emit ParameterUpdated("revertOnIneligible");
+        }
+    }
+
     // -- Denylist --
 
     /**
@@ -342,6 +350,11 @@ contract RewardsManager is
      */
     function getProviderEligibilityOracle() external view override returns (IProviderEligibility) {
         return rewardsEligibilityOracle;
+    }
+
+    /// @inheritdoc IRewardsManager
+    function getRevertOnIneligible() external view override returns (bool) {
+        return revertOnIneligible;
     }
 
     /// @inheritdoc IRewardsManager
@@ -772,6 +785,11 @@ contract RewardsManager is
         bool isDeniedSubgraph = isDenied(subgraphDeploymentID);
         bool isIneligible = address(rewardsEligibilityOracle) != address(0) &&
             !rewardsEligibilityOracle.isEligible(indexer);
+
+        // When configured to revert, block collection so rewards remain claimable if
+        // the indexer becomes eligible and collects before the allocation goes stale.
+        require(!isIneligible || !revertOnIneligible, "Indexer not eligible for rewards");
+
         if (!isDeniedSubgraph && !isIneligible) return false;
 
         if (isDeniedSubgraph) emit RewardsDenied(indexer, allocationID);
