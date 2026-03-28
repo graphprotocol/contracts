@@ -163,6 +163,13 @@ interface IRecurringAgreements {
     function getMinFullBasisMargin() external view returns (uint8 margin);
 
     /**
+     * @notice Minimum fraction of sumMaxNextClaim required to initiate an escrow thaw.
+     * @dev Escrow thaw is not initiated if excess is below sumMaxNextClaim * minThawFraction / 256 for a (collector, provider) pair.
+     * @return fraction The numerator over 256
+     */
+    function getMinThawFraction() external view returns (uint8 fraction);
+
+    /**
      * @notice Get the number of collectors with active agreements
      * @return count The number of tracked collectors
      */
