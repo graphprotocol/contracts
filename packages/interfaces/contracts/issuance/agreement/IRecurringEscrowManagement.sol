@@ -69,6 +69,13 @@ interface IRecurringEscrowManagement {
      */
     event MinFullBasisMarginSet(uint8 oldMargin, uint8 newMargin);
 
+    /**
+     * @notice Emitted when the minimum thaw fraction is changed
+     * @param oldFraction The previous fraction
+     * @param newFraction The new fraction
+     */
+    event MinThawFractionSet(uint8 oldFraction, uint8 newFraction);
+
     // solhint-enable gas-indexed-events
 
     // -- Functions --
@@ -99,4 +106,15 @@ interface IRecurringEscrowManagement {
      * @param margin The margin added to 256 for the spare threshold numerator
      */
     function setMinFullBasisMargin(uint8 margin) external;
+
+    /**
+     * @notice Set the minimum fraction to initiate thawing excess escrow.
+     * @dev Requires OPERATOR_ROLE. When excess above max for a (collector, provider) pair
+     * is less than sumMaxNextClaim[collector][provider] * minThawFraction / 256, the thaw
+     * is skipped. This avoids wasting the thaw timer on negligible amounts and prevents
+     * micro-deposit griefing where an attacker deposits dust via depositTo() and triggers
+     * reconciliation to start a tiny thaw that blocks legitimate thaw increases.
+     * @param fraction The numerator over 256 for the dust threshold
+     */
+    function setMinThawFraction(uint8 fraction) external;
 }

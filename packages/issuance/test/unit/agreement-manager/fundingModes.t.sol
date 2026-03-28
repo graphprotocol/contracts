@@ -1625,5 +1625,37 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         }
     }
 
+    function test_SetMinThawFraction() public {
+        assertEq(agreementManager.getMinThawFraction(), 16, "Default fraction");
+
+        vm.expectEmit(address(agreementManager));
+        emit IRecurringEscrowManagement.MinThawFractionSet(16, 32);
+
+        vm.prank(operator);
+        agreementManager.setMinThawFraction(32);
+
+        assertEq(agreementManager.getMinThawFraction(), 32, "Updated fraction");
+    }
+
+    function test_SetMinThawFraction_NoopWhenSame() public {
+        vm.recordLogs();
+        vm.prank(operator);
+        agreementManager.setMinThawFraction(16); // same as default
+
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        for (uint256 i = 0; i < logs.length; i++) {
+            assertTrue(
+                logs[i].topics[0] != IRecurringEscrowManagement.MinThawFractionSet.selector,
+                "Should not emit when unchanged"
+            );
+        }
+    }
+
+    function test_SetMinThawFraction_Revert_WhenNotOperator() public {
+        vm.prank(governor);
+        vm.expectRevert();
+        agreementManager.setMinThawFraction(32);
+    }
+
     /* solhint-enable graph/func-name-mixedcase */
 }

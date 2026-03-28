@@ -132,8 +132,8 @@ contract RecurringAgreementManager is
         /// @notice Number of agreements per (collector, provider) pair
         mapping(address collector => mapping(address provider => uint256)) pairAgreementCount;
         /// @notice The issuance allocator that mints GRT to this contract (20 bytes)
-        /// @dev Packed slot (31/32 bytes): issuanceAllocator (20) + ensuredIncomingDistributedToBlock (8) +
-        /// escrowBasis (1) + minOnDemandBasisThreshold (1) + minFullBasisMargin (1).
+        /// @dev Packed slot (32/32 bytes): issuanceAllocator (20) + ensuredIncomingDistributedToBlock (8) +
+        /// escrowBasis (1) + minOnDemandBasisThreshold (1) + minFullBasisMargin (1) + minThawFraction (1).
         /// All read together in _updateEscrow / beforeCollection.
         IIssuanceAllocationDistribution issuanceAllocator;
         /// @notice Block number when _ensureIncomingDistributionToCurrentBlock last ran
@@ -146,6 +146,10 @@ contract RecurringAgreementManager is
         /// @notice Margin for Full: sumMaxNextClaimAll * (256 + margin) / 256 < spare.
         /// Governance-configured.
         uint8 minFullBasisMargin;
+        /// @notice Minimum thaw fraction: escrow excess below sumMaxNextClaim * minThawFraction / 256
+        /// per (collector, provider) pair is skipped as operationally insignificant.
+        /// Governance-configured.
+        uint8 minThawFraction;
         /// @notice Optional oracle for checking payment eligibility of service providers (20/32 bytes in slot)
         IProviderEligibility providerEligibilityOracle;
     }
@@ -182,6 +186,7 @@ contract RecurringAgreementManager is
         $.escrowBasis = EscrowBasis.Full;
         $.minOnDemandBasisThreshold = 128;
         $.minFullBasisMargin = 16;
+        $.minThawFraction = 16;
     }
 
     // -- ERC165 --
@@ -458,6 +463,16 @@ contract RecurringAgreementManager is
         emit MinFullBasisMarginSet(oldMargin, margin);
     }
 
+    /// @inheritdoc IRecurringEscrowManagement
+    function setMinThawFraction(uint8 fraction) external onlyRole(OPERATOR_ROLE) {
+        RecurringAgreementManagerStorage storage $ = _getStorage();
+        if ($.minThawFraction == fraction) return;
+
+        uint8 oldFraction = $.minThawFraction;
+        $.minThawFraction = fraction;
+        emit MinThawFractionSet(oldFraction, fraction);
+    }
+
     // -- IProviderEligibilityManagement --
 
     /// @inheritdoc IProviderEligibilityManagement
@@ -556,6 +571,11 @@ contract RecurringAgreementManager is
     /// @inheritdoc IRecurringAgreements
     function getMinFullBasisMargin() external view returns (uint8) {
         return _getStorage().minFullBasisMargin;
+    }
+
+    /// @inheritdoc IRecurringAgreements
+    function getMinThawFraction() external view returns (uint8) {
+        return _getStorage().minThawFraction;
     }
 
     /// @inheritdoc IRecurringAgreements
@@ -930,21 +950,30 @@ contract RecurringAgreementManager is
 
         // Defensive: PaymentsEscrow maintains tokensThawing <= balance, guard against external invariant breach
         uint256 escrowed = account.tokensThawing < account.balance ? account.balance - account.tokensThawing : 0;
+        // Thaw threshold: ignore thaws below this for two reasons:
+        // 1. Operational: small excess proportions are not worth thawing; better to wait for a larger rebalance.
+        // 2. Anti-griefing: an attacker could deposit dust via depositTo(), trigger reconciliation,
+        //    and start a tiny thaw that blocks legitimate thaw increases for the entire thawing period.
+        uint256 thawThreshold = ($.sumMaxNextClaim[collector][provider] * uint256($.minThawFraction)) / 256;
         // Objectives in order of priority:
         // We want to end with escrowed of at least min, and seek to thaw down to no more than max.
         // 1. Do not reset thaw timer if a thaw is in progress.
         //    (This is to avoid thrash of restarting thaws resulting in never withdrawing excess.)
         // 2. Make minimal adjustment to thawing tokens to get as close to min/max as possible.
         //    (First cancel unrealised thawing before depositing.)
+        // 3. Skip thaw if excess above max is below the minimum thaw threshold.
+        uint256 excess = max < escrowed ? escrowed - max : 0;
         uint256 thawTarget = (escrowed < min)
             ? (min < account.balance ? account.balance - min : 0)
-            : (max < escrowed ? account.balance - max : account.tokensThawing);
-        if (thawTarget != account.tokensThawing) {
+            : (max < account.balance ? account.balance - max : 0);
+        // Act when the target differs, but skip thaw increases below thawThreshold (obj 3).
+        // Deficit adjustments (escrowed < min) always proceed — the threshold only gates new thaws.
+        if (thawTarget != account.tokensThawing && (escrowed < min || thawThreshold <= excess)) {
             PAYMENTS_ESCROW.adjustThaw(collector, provider, thawTarget, false);
             account = _fetchEscrowAccount(collector, provider);
         }
 
-        _withdrawAndRebalance(collector, provider, account, min, max);
+        _withdrawAndRebalance(collector, provider, account, min, max, thawThreshold);
         _setEscrowSnap($, collector, provider);
     }
 
@@ -958,13 +987,15 @@ contract RecurringAgreementManager is
      * @param account Current escrow account state
      * @param min Deposit floor
      * @param max Thaw ceiling
+     * @param thawThreshold Thaw threshold — do not initiate a thaw if excess is less than this
      */
     function _withdrawAndRebalance(
         address collector,
         address provider,
         IPaymentsEscrow.EscrowAccount memory account,
         uint256 min,
-        uint256 max
+        uint256 max,
+        uint256 thawThreshold
     ) private {
         // Withdraw any remaining thawed tokens (realised thawing is withdrawn even if within [min, max])
         if (0 < account.tokensThawing && account.thawEndTimestamp < block.timestamp) {
@@ -975,16 +1006,17 @@ contract RecurringAgreementManager is
         }
 
         if (account.tokensThawing == 0) {
-            if (max < account.balance)
-                // Thaw excess above max (might have withdrawn allowing a new thaw to start)
-                PAYMENTS_ESCROW.adjustThaw(collector, provider, account.balance - max, false);
-            else {
+            if (max < account.balance) {
+                if (thawThreshold <= account.balance - max)
+                    // Thaw excess above max (might have withdrawn allowing a new thaw to start)
+                    PAYMENTS_ESCROW.adjustThaw(collector, provider, account.balance - max, false);
+            } else {
                 // Deposit any deficit below min (deposit exactly the missing amount, no more)
-                uint256 deposit = (min < account.balance) ? 0 : min - account.balance;
-                if (0 < deposit) {
-                    GRAPH_TOKEN.approve(address(PAYMENTS_ESCROW), deposit);
-                    PAYMENTS_ESCROW.deposit(collector, provider, deposit);
-                    emit EscrowFunded(provider, collector, deposit);
+                uint256 deficit = (min < account.balance) ? 0 : min - account.balance;
+                if (0 < deficit) {
+                    GRAPH_TOKEN.approve(address(PAYMENTS_ESCROW), deficit);
+                    PAYMENTS_ESCROW.deposit(collector, provider, deficit);
+                    emit EscrowFunded(provider, collector, deficit);
                 }
             }
         }

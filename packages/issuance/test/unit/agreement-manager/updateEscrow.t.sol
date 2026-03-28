@@ -123,15 +123,16 @@ contract RecurringAgreementManagerUpdateEscrowTest is RecurringAgreementManagerS
 
     function test_UpdateEscrow_ThawsExcessWithActiveAgreements() public {
         // Offer agreement, accept, then reconcile down — excess should be thawed
+        // Use 300 ether initial so excess (300) exceeds dust threshold (3600*16/256 = 225)
         (IRecurringCollector.RecurringCollectionAgreement memory rca, ) = _makeRCAWithId(
-            100 ether,
+            300 ether,
             1 ether,
             3600,
             uint64(block.timestamp + 365 days)
         );
 
         bytes16 agreementId = _offerAgreement(rca);
-        uint256 maxClaim = 1 ether * 3600 + 100 ether;
+        uint256 maxClaim = 1 ether * 3600 + 300 ether;
 
         // Accept and simulate a collection (reduces maxNextClaim)
         _setAgreementAccepted(agreementId, rca, uint64(block.timestamp));
@@ -595,15 +596,16 @@ contract RecurringAgreementManagerUpdateEscrowTest is RecurringAgreementManagerS
 
     function test_Reconcile_AutomaticallyThawsExcess() public {
         // Reconcile calls _updateEscrow, which should thaw excess automatically
+        // Use 300 ether initial so excess (300) exceeds dust threshold (3600*16/256 = 225)
         (IRecurringCollector.RecurringCollectionAgreement memory rca, ) = _makeRCAWithId(
-            100 ether,
+            300 ether,
             1 ether,
             3600,
             uint64(block.timestamp + 365 days)
         );
 
         bytes16 agreementId = _offerAgreement(rca);
-        uint256 maxClaim = 1 ether * 3600 + 100 ether;
+        uint256 maxClaim = 1 ether * 3600 + 300 ether;
 
         // Accept and simulate a collection
         _setAgreementAccepted(agreementId, rca, uint64(block.timestamp));
