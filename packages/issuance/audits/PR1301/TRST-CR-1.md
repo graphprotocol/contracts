@@ -13,3 +13,7 @@ The RecurringAgreementManager's `GOVERNOR_ROLE` has broad unilateral authority o
 - Can pause the entire contract, halting all agreement management
 
 A compromised or malicious governor could revoke a data service's role (preventing new agreements), change the issuance allocator to a contract that withholds funds, or set a malicious eligibility oracle that blocks specific providers from collecting. These actions affect all agreements managed by the RAM, not just future ones.
+
+---
+
+Accepted centralization tradeoff. The governor must have these powers for effective protocol operation. Expected to be a multisig or governance contract in production.

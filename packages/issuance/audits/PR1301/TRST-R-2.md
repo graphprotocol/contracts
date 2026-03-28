@@ -8,3 +8,7 @@ The functions below are mentioned in various documentation files but do not exis
 
 - `acceptUnsignedIndexingAgreement()`
 - `removeAgreement()`
+
+---
+
+Updated documentation to remove references to `acceptUnsignedIndexingAgreement()` and `removeAgreement()`.
