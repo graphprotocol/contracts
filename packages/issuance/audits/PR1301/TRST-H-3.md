@@ -22,3 +22,7 @@ Read the fresh escrow balance inside `_escrowMinMax()` when computing the defici
 ## Team Response
 
 TBD
+
+---
+
+Now refreshing the cached `escrowSnap` at the start of `_updateEscrow()` so that `_escrowMinMax()` uses updated `totalEscrowDeficit`.

@@ -917,6 +917,14 @@ contract RecurringAgreementManager is
     function _updateEscrow(RecurringAgreementManagerStorage storage $, address collector, address provider) private {
         _ensureIncomingDistributionToCurrentBlock($);
 
+        // Sync snapshot before decisions: the escrow balance may have changed externally
+        // (e.g. RecurringCollector.collect drained it before calling afterCollection).
+        // Without this, totalEscrowDeficit is stale → spare is overstated → basis is inflated
+        // → deposit attempt for tokens we don't have → revert swallowed by try/catch → snap
+        // stays permanently stale.  Reading the fresh balance here makes the function
+        // self-correcting regardless of prior callback failures.
+        _setEscrowSnap($, collector, provider);
+
         IPaymentsEscrow.EscrowAccount memory account = _fetchEscrowAccount(collector, provider);
         (uint256 min, uint256 max) = _escrowMinMax($, collector, provider);
 
