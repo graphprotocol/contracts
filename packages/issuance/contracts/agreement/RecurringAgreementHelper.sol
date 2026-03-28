@@ -53,7 +53,8 @@ contract RecurringAgreementHelper is IRecurringAgreementHelper {
             totalEscrowDeficit: mgr.getTotalEscrowDeficit(),
             totalAgreementCount: mgr.getTotalAgreementCount(),
             escrowBasis: mgr.getEscrowBasis(),
-            tempJit: mgr.isTempJit(),
+            minOnDemandBasisThreshold: mgr.getMinOnDemandBasisThreshold(),
+            minFullBasisMargin: mgr.getMinFullBasisMargin(),
             collectorCount: mgr.getCollectorCount()
         });
     }

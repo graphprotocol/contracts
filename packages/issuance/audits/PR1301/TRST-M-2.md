@@ -20,3 +20,9 @@ The original intention cannot be truly fulfilled without major redesign of multi
 ## Team Response
 
 TBD
+
+---
+
+The `tempJit` mechanism has been replaced with threshold-based basis degradation.
+
+`_escrowMinMax()` now uses `minOnDemandBasisThreshold` and `minFullBasisMargin` parameters to automatically limit the effective escrow basis based on the ratio of spare balance to `sumMaxNextClaimAll`. This does not rely on a callback to activate and provides automatic, configurable transition boundaries.

@@ -112,20 +112,18 @@ contract RecurringAgreementManagerEnsureDistributedTest is RecurringAgreementMan
         token.transfer(address(1), freeBalance);
         assertEq(token.balanceOf(address(agreementManager)), 0);
 
-        // Configure allocator to mint enough to cover the deficit
+        // Configure allocator to mint enough to cover the deficit plus 50% of sumMaxNextClaimAll reserve
         uint256 deficit = 500 ether;
-        mockAllocator.setMintPerDistribution(deficit + 1 ether);
+        uint256 reserve = agreementManager.getSumMaxNextClaimAll(); // >= 50% threshold
+        mockAllocator.setMintPerDistribution(deficit + reserve);
 
         // Advance block so distribution actually mints
         vm.roll(block.number + 1);
 
-        // Without distribution, this would trigger tempJit (balance=0, deficit=500).
-        // With distribution, the allocator mints tokens first, so JIT deposit succeeds.
+        // Without distribution, balance would be 0. With distribution, the allocator mints
+        // tokens first, so JIT deposit succeeds.
         vm.prank(address(recurringCollector));
         agreementManager.beforeCollection(agreementId, escrowBalance + deficit);
-
-        // tempJit should NOT be active — distribution provided funds
-        assertFalse(agreementManager.isTempJit(), "tempJit should not be set when distribution provides funds");
     }
 
     function test_BeforeCollection_SkipsDistributeWhenEscrowSufficient() public {

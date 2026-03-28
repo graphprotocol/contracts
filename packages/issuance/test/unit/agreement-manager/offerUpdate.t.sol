@@ -88,13 +88,14 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
         uint256 pendingMaxClaim = 2 ether * 7200 + 200 ether;
         uint256 sumMaxNextClaim = originalMaxClaim + pendingMaxClaim;
 
-        // Fund and offer agreement
-        token.mint(address(agreementManager), sumMaxNextClaim);
+        // Fund generously so Full mode stays active through both offers.
+        // After both offers, smnca = sumMaxNextClaim, deficit = sumMaxNextClaim.
+        // spare = balance - deficit. Full requires spare > smnca * 272 / 256.
+        token.mint(address(agreementManager), sumMaxNextClaim + (sumMaxNextClaim * 272) / 256 + 1);
         vm.prank(operator);
         bytes16 agreementId = agreementManager.offerAgreement(rca, _collector());
 
         // Offer update (should fund the deficit)
-        token.mint(address(agreementManager), pendingMaxClaim);
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _makeRCAU(
             agreementId,
             200 ether,
