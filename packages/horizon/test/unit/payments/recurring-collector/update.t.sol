@@ -94,7 +94,7 @@ contract RecurringCollectorUpdateTest is RecurringCollectorSharedTest {
         _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
 
         // Step 2: Wrong caller tries to accept - should revert
-        bytes32 pendingHash = _recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 pendingHash = _recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
         bytes memory expectedErr = abi.encodeWithSelector(
             IRecurringCollector.UnauthorizedServiceProvider.selector,
             notServiceProvider,
@@ -162,7 +162,7 @@ contract RecurringCollectorUpdateTest is RecurringCollectorSharedTest {
         _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
 
         // Step 2: Service provider accepts the update
-        bytes32 pendingHash = _recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 pendingHash = _recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
         vm.expectEmit(address(_recurringCollector));
         emit IRecurringCollector.AgreementUpdated(rcau.agreementId, pendingHash, REGISTERED | ACCEPTED | UPDATE);
         vm.prank(acceptedRca.serviceProvider);
@@ -242,7 +242,7 @@ contract RecurringCollectorUpdateTest is RecurringCollectorSharedTest {
         // First update succeeds (offerUpdate + accept)
         vm.prank(acceptedRca.payer);
         _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau1), 0);
-        bytes32 pendingHash1 = _recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 pendingHash1 = _recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
         vm.prank(acceptedRca.serviceProvider);
         _recurringCollector.accept(agreementId, pendingHash1, bytes(""), 0);
 
@@ -264,7 +264,7 @@ contract RecurringCollectorUpdateTest is RecurringCollectorSharedTest {
 
         vm.prank(acceptedRca.payer);
         _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau2), 0);
-        bytes32 pendingHash2 = _recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 pendingHash2 = _recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
         vm.prank(acceptedRca.serviceProvider);
         _recurringCollector.accept(agreementId, pendingHash2, bytes(""), 0);
 
@@ -299,7 +299,7 @@ contract RecurringCollectorUpdateTest is RecurringCollectorSharedTest {
 
         vm.prank(acceptedRca.payer);
         _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau1), 0);
-        bytes32 pendingHash1 = _recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 pendingHash1 = _recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
         vm.prank(acceptedRca.serviceProvider);
         _recurringCollector.accept(agreementId, pendingHash1, bytes(""), 0);
 
@@ -325,7 +325,7 @@ contract RecurringCollectorUpdateTest is RecurringCollectorSharedTest {
 
         vm.prank(acceptedRca.payer);
         _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau2), 0);
-        bytes32 pendingHash2 = _recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 pendingHash2 = _recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
         vm.prank(acceptedRca.serviceProvider);
         _recurringCollector.accept(agreementId, pendingHash2, bytes(""), 0);
 

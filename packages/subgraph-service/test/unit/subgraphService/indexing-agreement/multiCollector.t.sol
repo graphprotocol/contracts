@@ -89,7 +89,7 @@ contract SubgraphServiceMultiCollectorTest is SubgraphServiceIndexingAgreementSh
 
         vm.prank(rca.payer);
         bytes16 agreementId = recurringCollector.offer(0, abi.encode(rca), 0).agreementId;
-        bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
 
         // Accept should revert because RC is no longer authorized
         vm.expectRevert(

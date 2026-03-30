@@ -271,7 +271,7 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
         ) = _withAcceptedIndexingAgreement(ctx, indexerState);
 
         // BY_PROVIDER cancel sets SETTLED immediately — required before closing the allocation
-        bytes32 activeHash = recurringCollector.getAgreementVersionAt(acceptedAgreementId, 0).versionHash;
+        bytes32 activeHash = recurringCollector.getAgreementDetails(acceptedAgreementId, 0).versionHash;
         resetPrank(rca.serviceProvider);
         recurringCollector.cancel(acceptedAgreementId, activeHash, 0);
 

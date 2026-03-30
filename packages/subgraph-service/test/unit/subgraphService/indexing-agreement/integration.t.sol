@@ -113,7 +113,7 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
         // Payer cancel enforces minSecondsPayerCancellationNotice — agreement enters
         // NOTICE_GIVEN | BY_PAYER state with collectableUntil in the future.
         resetPrank(rca.payer);
-        bytes32 activeHash = recurringCollector.getAgreementVersionAt(acceptedAgreementId, 0).versionHash;
+        bytes32 activeHash = recurringCollector.getAgreementDetails(acceptedAgreementId, 0).versionHash;
         recurringCollector.cancel(acceptedAgreementId, activeHash, 0);
 
         // Verify agreement is in NOTICE_GIVEN state
@@ -223,7 +223,7 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
         bytes16 agreementId = recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(_rca), 0).agreementId;
 
         // Step 2: Service provider accepts via RC, which callbacks to SS
-        bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.prank(_indexerState.addr);
         recurringCollector.accept(agreementId, activeHash, abi.encode(_indexerState.allocationId), 0);
 

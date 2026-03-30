@@ -29,7 +29,7 @@ uint16 constant BY_DATA_SERVICE = 64;
 
 /// @dev Terms originated from an RCAU (update), not the initial RCA.
 /// Set on agreement state when active terms come from an accepted or pre-acceptance update.
-/// ORed into returned state by getAgreementVersionAt for pending versions (index 1).
+/// ORed into returned state by getAgreementDetails for pending versions (index 1).
 uint16 constant UPDATE = 128;
 
 // -- Togglable option flags (set via accept options parameter) --
@@ -71,28 +71,19 @@ interface IAgreementCollector is IPaymentsCollector {
     // -- Structs --
 
     /**
-     * @notice Snapshot of an agreement's version hash and state at a given index.
+     * @notice Agreement details: participants, version hash, and state flags.
+     * Returned by {offer} and {getAgreementDetails}.
      * @param agreementId The agreement ID
-     * @param versionHash The EIP-712 hash of the terms at that index
-     * @param state The agreement state flags, with UPDATE set when applicable
-     */
-    struct AgreementVersion {
-        bytes16 agreementId;
-        bytes32 versionHash;
-        uint16 state;
-    }
-
-    /**
-     * @notice Return value for opaque offer overloads.
-     * @param agreementId The deterministically generated agreement ID
-     * @param dataService The data service address from the decoded agreement
-     * @param serviceProvider The service provider address from the decoded agreement
-     * @param versionHash The EIP-712 hash of the terms that were stored
-     * @param state Agreement state flags, includes UPDATE when the version is pending
+     * @param payer The address of the payer
+     * @param dataService The address of the data service
+     * @param serviceProvider The address of the service provider
+     * @param versionHash The EIP-712 hash of the terms at the requested version
+     * @param state Agreement state flags, with UPDATE set when applicable
      */
     // solhint-disable-next-line gas-struct-packing
-    struct OfferResult {
+    struct AgreementDetails {
         bytes16 agreementId;
+        address payer;
         address dataService;
         address serviceProvider;
         bytes32 versionHash;
@@ -115,9 +106,9 @@ interface IAgreementCollector is IPaymentsCollector {
      * @param offerType The type of offer (OFFER_TYPE_NEW or OFFER_TYPE_UPDATE)
      * @param data ABI-encoded offer data
      * @param options Bitmask of offer options (e.g. WITH_NOTICE)
-     * @return The offer result containing agreementId, dataService, and serviceProvider
+     * @return Agreement details including participants and version hash
      */
-    function offer(uint8 offerType, bytes calldata data, uint16 options) external returns (OfferResult memory);
+    function offer(uint8 offerType, bytes calldata data, uint16 options) external returns (AgreementDetails memory);
 
     /**
      * @notice Accept a previously offered agreement or pending update by its ID and hash.
@@ -137,12 +128,12 @@ interface IAgreementCollector is IPaymentsCollector {
     function cancel(bytes16 agreementId, bytes32 termsHash, uint16 options) external;
 
     /**
-     * @notice Get the version hash and state at a given index for an agreement.
+     * @notice Get agreement details at a given version index.
      * @param agreementId The ID of the agreement
      * @param index The zero-based version index
-     * @return The AgreementVersion containing versionHash and state
+     * @return Agreement details including participants, version hash, and state flags
      */
-    function getAgreementVersionAt(bytes16 agreementId, uint256 index) external view returns (AgreementVersion memory);
+    function getAgreementDetails(bytes16 agreementId, uint256 index) external view returns (AgreementDetails memory);
 
     /**
      * @notice Get the number of term versions stored for an agreement.

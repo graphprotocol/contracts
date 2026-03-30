@@ -104,7 +104,7 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
         address _payer,
         bool byIndexer
     ) internal {
-        bytes32 termsHash = recurringCollector.getAgreementVersionAt(_agreementId, 0).versionHash;
+        bytes32 termsHash = recurringCollector.getAgreementDetails(_agreementId, 0).versionHash;
         if (byIndexer) {
             _subgraphServiceSafePrank(_indexer);
             recurringCollector.cancel(_agreementId, termsHash, 0);
@@ -197,7 +197,7 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
         assertEq(offeredId, agreementId);
 
         // Step 2: Service provider accepts via RC, which callbacks to SS
-        bytes32 versionHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 versionHash = recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.expectEmit(address(subgraphService));
         emit IndexingAgreement.IndexingAgreementAccepted(
             rca.serviceProvider,

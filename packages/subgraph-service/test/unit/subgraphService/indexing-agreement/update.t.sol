@@ -25,7 +25,7 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
         vm.stopPrank();
         vm.prank(payer);
         recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
-        bytes32 pendingHash = recurringCollector.getAgreementVersionAt(rcau.agreementId, 1).versionHash;
+        bytes32 pendingHash = recurringCollector.getAgreementDetails(rcau.agreementId, 1).versionHash;
         vm.expectRevert(expectedErr);
         vm.prank(acceptCaller);
         recurringCollector.accept(rcau.agreementId, pendingHash, bytes(""), 0);
@@ -42,7 +42,7 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
         vm.stopPrank();
         vm.prank(payer);
         recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
-        bytes32 pendingHash = recurringCollector.getAgreementVersionAt(rcau.agreementId, 1).versionHash;
+        bytes32 pendingHash = recurringCollector.getAgreementDetails(rcau.agreementId, 1).versionHash;
         vm.expectRevert(expectedErr);
         vm.prank(acceptCaller);
         recurringCollector.accept(rcau.agreementId, pendingHash, extraData, 0);
@@ -141,7 +141,7 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
         // Rebind to allocation on same deployment should succeed
         vm.prank(acceptedRca.payer);
         recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(acceptableRcau), 0);
-        bytes32 pendingHash = recurringCollector.getAgreementVersionAt(acceptableRcau.agreementId, 1).versionHash;
+        bytes32 pendingHash = recurringCollector.getAgreementDetails(acceptableRcau.agreementId, 1).versionHash;
         vm.prank(indexerState.addr);
         recurringCollector.accept(acceptableRcau.agreementId, pendingHash, abi.encode(secondAllocId), 0);
 
@@ -176,7 +176,7 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
         // offerUpdate and accept succeed even when SS is paused
         vm.prank(acceptedRca.payer);
         recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(acceptableRcau), 0);
-        bytes32 pendingHash = recurringCollector.getAgreementVersionAt(acceptableRcau.agreementId, 1).versionHash;
+        bytes32 pendingHash = recurringCollector.getAgreementDetails(acceptableRcau.agreementId, 1).versionHash;
         vm.prank(indexerState.addr);
         recurringCollector.accept(acceptableRcau.agreementId, pendingHash, bytes(""), 0);
     }
@@ -219,7 +219,7 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
         // (RC checks msg.sender == serviceProvider)
         vm.prank(acceptedRca.payer);
         recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(acceptableRcau), 0);
-        bytes32 pendingHash = recurringCollector.getAgreementVersionAt(acceptableRcau.agreementId, 1).versionHash;
+        bytes32 pendingHash = recurringCollector.getAgreementDetails(acceptableRcau.agreementId, 1).versionHash;
         bytes memory expectedErr = abi.encodeWithSelector(
             IRecurringCollector.UnauthorizedServiceProvider.selector,
             indexerStateB.addr,
@@ -273,7 +273,7 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
         recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(acceptableRcau), 0);
 
         // Step 2: Accept update via RC (serviceProvider calls directly)
-        bytes32 pendingHash = recurringCollector.getAgreementVersionAt(acceptableRcau.agreementId, 1).versionHash;
+        bytes32 pendingHash = recurringCollector.getAgreementDetails(acceptableRcau.agreementId, 1).versionHash;
         vm.expectEmit(address(subgraphService));
         emit IndexingAgreement.IndexingAgreementUpdated(
             acceptedRca.serviceProvider,

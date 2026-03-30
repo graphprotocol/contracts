@@ -131,18 +131,18 @@ contract RecurringCollectorCoverageGapsTest is RecurringCollectorSharedTest {
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    // Gap 3 — Lines 472-482: getAgreementVersionAt()
+    // Gap 3 — Lines 472-482: getAgreementDetails()
     // ══════════════════════════════════════════════════════════════════════
 
-    function test_GetAgreementVersionAt_Index0(FuzzyTestAccept calldata fuzzy) public {
+    function test_GetAgreementDetails_Index0(FuzzyTestAccept calldata fuzzy) public {
         (, bytes16 agreementId) = _sensibleAccept(fuzzy);
 
-        IAgreementCollector.AgreementVersion memory version = _recurringCollector.getAgreementVersionAt(agreementId, 0);
-        assertTrue(version.versionHash != bytes32(0), "Index 0 should return non-zero active terms hash");
-        assertEq(version.state, REGISTERED | ACCEPTED, "Index 0 state should be REGISTERED | ACCEPTED");
+        IAgreementCollector.AgreementDetails memory details = _recurringCollector.getAgreementDetails(agreementId, 0);
+        assertTrue(details.versionHash != bytes32(0), "Index 0 should return non-zero active terms hash");
+        assertEq(details.state, REGISTERED | ACCEPTED, "Index 0 state should be REGISTERED | ACCEPTED");
     }
 
-    function test_GetAgreementVersionAt_Index1_WithPending(FuzzyTestAccept calldata fuzzy) public {
+    function test_GetAgreementDetails_Index1_WithPending(FuzzyTestAccept calldata fuzzy) public {
         (IRecurringCollector.RecurringCollectionAgreement memory rca, bytes16 agreementId) = _sensibleAccept(fuzzy);
 
         // Submit an update (creates pendingTerms)
@@ -164,9 +164,9 @@ contract RecurringCollectorCoverageGapsTest is RecurringCollectorSharedTest {
         vm.prank(rca.payer);
         _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
 
-        IAgreementCollector.AgreementVersion memory version = _recurringCollector.getAgreementVersionAt(agreementId, 1);
-        assertTrue(version.versionHash != bytes32(0), "Index 1 should return non-zero pending terms hash");
-        assertEq(version.state, REGISTERED | ACCEPTED | UPDATE, "Index 1 state should include UPDATE flag");
+        IAgreementCollector.AgreementDetails memory details = _recurringCollector.getAgreementDetails(agreementId, 1);
+        assertTrue(details.versionHash != bytes32(0), "Index 1 should return non-zero pending terms hash");
+        assertEq(details.state, REGISTERED | ACCEPTED | UPDATE, "Index 1 state should include UPDATE flag");
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -176,7 +176,7 @@ contract RecurringCollectorCoverageGapsTest is RecurringCollectorSharedTest {
     function test_GetAgreementOfferAt_Index0(FuzzyTestAccept calldata fuzzy) public {
         (, bytes16 agreementId) = _sensibleAccept(fuzzy);
 
-        bytes32 activeHash = _recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = _recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         (uint8 offerType, bytes memory offerData) = _recurringCollector.getAgreementOfferAt(agreementId, 0);
 
         assertEq(offerType, OFFER_TYPE_NEW, "Index 0 should be OFFER_TYPE_NEW");
@@ -209,7 +209,7 @@ contract RecurringCollectorCoverageGapsTest is RecurringCollectorSharedTest {
         vm.prank(rca.payer);
         _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
 
-        bytes32 pendingHash = _recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 pendingHash = _recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
         (uint8 offerType, bytes memory offerData) = _recurringCollector.getAgreementOfferAt(agreementId, 1);
 
         assertEq(offerType, OFFER_TYPE_UPDATE, "Index 1 should be OFFER_TYPE_UPDATE");
@@ -312,7 +312,7 @@ contract RecurringCollectorCoverageGapsTest is RecurringCollectorSharedTest {
         bytes16 agreementId = _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0).agreementId;
 
         // Service provider accepts
-        bytes32 activeHash = _recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = _recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.prank(rca.serviceProvider);
         _recurringCollector.accept(agreementId, activeHash, bytes(""), 0);
 
@@ -490,7 +490,7 @@ contract RecurringCollectorCoverageGapsTest is RecurringCollectorSharedTest {
         _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
 
         // Cancel specifically the pending update (using pending version hash)
-        bytes32 pendingHash = _recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 pendingHash = _recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
         assertTrue(pendingHash != bytes32(0), "Should have pending terms");
 
         vm.prank(rca.payer);
@@ -498,7 +498,7 @@ contract RecurringCollectorCoverageGapsTest is RecurringCollectorSharedTest {
 
         // Pending terms cleared, active terms intact
         assertEq(_recurringCollector.getAgreementVersionCount(agreementId), 1, "Pending terms should be cleared");
-        bytes32 activeHash = _recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = _recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         assertTrue(activeHash != bytes32(0), "Active terms should remain");
     }
 
@@ -509,7 +509,7 @@ contract RecurringCollectorCoverageGapsTest is RecurringCollectorSharedTest {
     function test_Cancel_ByDataService(FuzzyTestAccept calldata fuzzy) public {
         (IRecurringCollector.RecurringCollectionAgreement memory rca, bytes16 agreementId) = _sensibleAccept(fuzzy);
 
-        bytes32 vHash = _recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 vHash = _recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.expectEmit(address(_recurringCollector));
         emit IRecurringCollector.AgreementUpdated(
             agreementId,
@@ -557,7 +557,7 @@ contract RecurringCollectorCoverageGapsTest is RecurringCollectorSharedTest {
         assertEq(before.state, REGISTERED, "Should be REGISTERED only before cancel");
 
         // Cancel by payer (any party works, using payer)
-        bytes32 vHash = _recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 vHash = _recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.expectEmit(address(_recurringCollector));
         emit IRecurringCollector.AgreementUpdated(agreementId, vHash, REGISTERED | NOTICE_GIVEN | SETTLED | BY_PAYER);
         vm.prank(payer);
@@ -596,7 +596,7 @@ contract RecurringCollectorCoverageGapsTest is RecurringCollectorSharedTest {
 
         // Cancel using the ACTIVE terms hash (not pendingTerms hash)
         // This hits the else branch at line 271
-        bytes32 activeHash = _recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = _recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.prank(rca.serviceProvider);
         _recurringCollector.cancel(agreementId, activeHash, 0);
 
@@ -617,7 +617,7 @@ contract RecurringCollectorCoverageGapsTest is RecurringCollectorSharedTest {
     function test_Cancel_Revert_WhenHashMatchesNeither(FuzzyTestAccept calldata fuzzy) public {
         (IRecurringCollector.RecurringCollectionAgreement memory rca, bytes16 agreementId) = _sensibleAccept(fuzzy);
 
-        bytes32 activeHash = _recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = _recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         bytes32 bogusHash = bytes32(uint256(0xdead));
         vm.assume(bogusHash != activeHash);
 

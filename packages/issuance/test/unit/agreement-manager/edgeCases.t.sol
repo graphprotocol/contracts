@@ -1066,7 +1066,7 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         _setAgreementCanceledBySP(agreementId, rca);
 
         // cancelAgreement always forwards to collector — no idempotent skip
-        bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.prank(operator);
         agreementManager.cancelAgreement(IAgreementCollector(address(recurringCollector)), agreementId, activeHash, 0);
         // Verify it doesn't revert — collector handles already-canceled state
@@ -1084,7 +1084,7 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         bytes16 agreementId = _offerAgreement(rca);
         _setAgreementAccepted(agreementId, rca, uint64(block.timestamp));
 
-        bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
 
         // cancelAgreement triggers the callback which reconciles — expect AgreementRemoved
         vm.expectEmit(address(agreementManager));

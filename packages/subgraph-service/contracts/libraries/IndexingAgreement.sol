@@ -352,11 +352,11 @@ library IndexingAgreement {
      * When `_blockIfActive` is true, reverts if the agreement is not SETTLED.
      * When false, clears the mapping regardless of settlement state.
      *
-     * DoS note: the external call to `getAgreementVersionAt` is unguarded. If the
+     * DoS note: the external call to `getAgreementDetails` is unguarded. If the
      * collector reverts (broken upgrade, corrupt storage), allocation closure is blocked.
      * Mitigations: (1) governor can disable `blockClosingAllocationWithActiveAgreement`,
      * (2) indexer can self-cancel via collector to set SETTLED then close,
-     * (3) `getAgreementVersionAt` is a view with no pause guard, so collector pause
+     * (3) `getAgreementDetails` is a view with no pause guard, so collector pause
      * does not block it.
      *
      * Escape hatch: BY_PROVIDER cancel sets SETTLED immediately, so the indexer can
@@ -373,11 +373,11 @@ library IndexingAgreement {
 
         if (_blockIfActive) {
             // Check SETTLED on-demand via the collector
-            IAgreementCollector.AgreementVersion memory version = IAgreementCollector(
+            IAgreementCollector.AgreementDetails memory details = IAgreementCollector(
                 self.agreements[agreementId].collector
-            ).getAgreementVersionAt(agreementId, 0);
+            ).getAgreementDetails(agreementId, 0);
 
-            if (version.state & SETTLED == 0)
+            if (details.state & SETTLED == 0)
                 revert ISubgraphService.SubgraphServiceAllocationHasActiveAgreement(_allocationId, agreementId);
         }
 

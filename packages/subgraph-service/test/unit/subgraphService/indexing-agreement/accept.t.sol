@@ -27,7 +27,7 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
         vm.stopPrank();
         vm.prank(rca.payer);
         bytes16 agreementId = recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0).agreementId;
-        bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.expectRevert(expectedErr);
         vm.prank(acceptCaller);
         recurringCollector.accept(agreementId, activeHash, abi.encode(allocationId), 0);
@@ -58,7 +58,7 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
         // Offer and accept succeed even when SS is paused
         vm.prank(acceptableRca.payer);
         bytes16 agreementId = recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(acceptableRca), 0).agreementId;
-        bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.prank(indexerState.addr);
         recurringCollector.accept(agreementId, activeHash, abi.encode(indexerState.allocationId), 0);
     }
@@ -91,7 +91,7 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
         );
         vm.prank(rca.payer);
         bytes16 agreementId = recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0).agreementId;
-        bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.expectRevert(expectedErr);
         vm.prank(indexer);
         recurringCollector.accept(agreementId, activeHash, abi.encode(address(0)), 0);
@@ -122,7 +122,7 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
         );
         vm.prank(rca.payer);
         bytes16 agreementId = recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0).agreementId;
-        bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.expectRevert(expectedErr);
         vm.prank(indexer);
         recurringCollector.accept(agreementId, activeHash, abi.encode(address(0)), 0);
@@ -150,7 +150,7 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
         // We just verify the offer succeeds and accept reverts.
         vm.prank(acceptableRca.payer);
         bytes16 agreementId = recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(acceptableRca), 0).agreementId;
-        bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.expectRevert();
         vm.prank(indexerState.addr);
         recurringCollector.accept(agreementId, activeHash, abi.encode(indexerState.allocationId), 0);
@@ -261,7 +261,7 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
         // The agreement is already accepted on the collector, so trying to accept again
         // goes to the pending-update path (state has ACCEPTED set). Since there is no pending
         // update, the pending terms hash is bytes32(0) and the guard rejects with AgreementTermsEmpty.
-        bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         bytes memory expectedErr = abi.encodeWithSelector(
             IRecurringCollector.AgreementTermsEmpty.selector,
             agreementId
@@ -345,7 +345,7 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
         assertEq(agreementId, expectedAgreementId);
 
         // Step 2: Accept via RC (serviceProvider calls directly)
-        bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.expectEmit(address(subgraphService));
         emit IndexingAgreement.IndexingAgreementAccepted(
             acceptableRca.serviceProvider,

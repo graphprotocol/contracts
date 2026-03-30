@@ -45,7 +45,7 @@ contract RecurringCollectorAfterCollectionTest is RecurringCollectorSharedTest {
         agreementId = _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0).agreementId;
 
         // Data service accepts with stored hash
-        bytes32 activeHash = _recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = _recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.prank(rca.serviceProvider);
         _recurringCollector.accept(agreementId, activeHash, bytes(""), 0);
     }

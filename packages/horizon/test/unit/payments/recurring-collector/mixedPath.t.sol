@@ -44,7 +44,7 @@ contract RecurringCollectorMixedPathTest is RecurringCollectorSharedTest {
         _setupValidProvision(rca.serviceProvider, rca.dataService);
         vm.prank(address(approver));
         bytes16 agreementId = _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0).agreementId;
-        bytes32 activeHash = _recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = _recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.prank(rca.serviceProvider);
         _recurringCollector.accept(agreementId, activeHash, bytes(""), 0);
 
@@ -70,7 +70,7 @@ contract RecurringCollectorMixedPathTest is RecurringCollectorSharedTest {
         _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
 
         // Data service accepts update with stored hash
-        bytes32 pendingHash = _recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 pendingHash = _recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
 
         vm.expectEmit(address(_recurringCollector));
         emit IRecurringCollector.AgreementUpdated(agreementId, pendingHash, REGISTERED | ACCEPTED | UPDATE);
@@ -118,7 +118,7 @@ contract RecurringCollectorMixedPathTest is RecurringCollectorSharedTest {
         _setupValidProvision(rca.serviceProvider, rca.dataService);
         vm.prank(address(approver));
         bytes16 agreementId = _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0).agreementId;
-        bytes32 activeHash = _recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = _recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.prank(rca.serviceProvider);
         _recurringCollector.accept(agreementId, activeHash, bytes(""), 0);
 
@@ -142,7 +142,7 @@ contract RecurringCollectorMixedPathTest is RecurringCollectorSharedTest {
         _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), WITH_NOTICE);
 
         // Service provider manually accepts the deadline=0 pending terms
-        bytes32 pendingHash = _recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 pendingHash = _recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
         vm.prank(rca.serviceProvider);
         _recurringCollector.accept(agreementId, pendingHash, bytes(""), 0);
 

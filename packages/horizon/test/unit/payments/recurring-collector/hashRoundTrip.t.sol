@@ -65,7 +65,7 @@ contract RecurringCollectorHashRoundTripTest is RecurringCollectorSharedTest {
         vm.prank(rca.payer);
         _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
 
-        bytes32 pendingHash = _recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 pendingHash = _recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
         vm.prank(rca.serviceProvider);
         _recurringCollector.accept(agreementId, pendingHash, bytes(""), 0);
 
@@ -110,7 +110,7 @@ contract RecurringCollectorHashRoundTripTest is RecurringCollectorSharedTest {
         _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
 
         // Cancel the pending update
-        bytes32 pendingCancelHash = _recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 pendingCancelHash = _recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
         vm.prank(rca.payer);
         _recurringCollector.cancel(agreementId, pendingCancelHash, 0);
 
@@ -148,7 +148,7 @@ contract RecurringCollectorHashRoundTripTest is RecurringCollectorSharedTest {
 
     /// @notice Verify that getAgreementOfferAt round-trips to the stored version hash
     function _verifyVersionHash(bytes16 agreementId, uint256 index) internal view {
-        bytes32 storedHash = _recurringCollector.getAgreementVersionAt(agreementId, index).versionHash;
+        bytes32 storedHash = _recurringCollector.getAgreementDetails(agreementId, index).versionHash;
         (uint8 offerType, bytes memory offerData) = _recurringCollector.getAgreementOfferAt(agreementId, index);
 
         bytes32 reconstructedHash;

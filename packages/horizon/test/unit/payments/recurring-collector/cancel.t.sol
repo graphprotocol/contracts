@@ -63,7 +63,7 @@ contract RecurringCollectorCancelTest is RecurringCollectorSharedTest {
         vm.assume(notAuthorized != rca.serviceProvider);
         vm.assume(notAuthorized != _proxyAdmin);
 
-        bytes32 activeHash = _recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = _recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         bytes memory expectedErr = abi.encodeWithSelector(
             IRecurringCollector.UnauthorizedCaller.selector,
             notAuthorized,
@@ -105,7 +105,7 @@ contract RecurringCollectorCancelTest is RecurringCollectorSharedTest {
 
         // Provider works for minSecondsPerCollection more, then cancels
         skip(rca.minSecondsPerCollection);
-        bytes32 vHash = _recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 vHash = _recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.prank(rca.serviceProvider);
         _recurringCollector.cancel(agreementId, vHash, 0);
 

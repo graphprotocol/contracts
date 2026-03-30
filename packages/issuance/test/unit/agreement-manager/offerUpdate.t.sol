@@ -85,7 +85,7 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
         _offerAgreementUpdate(rcau);
 
         // The update is stored on the collector (not via hash authorization)
-        bytes32 pendingHash = recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 pendingHash = recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
         assertTrue(pendingHash != bytes32(0), "Pending update should be stored");
     }
 
@@ -225,7 +225,9 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
             1
         );
 
-        vm.expectRevert(abi.encodeWithSelector(IRecurringAgreementManagement.ServiceProviderZeroAddress.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(IRecurringAgreementManagement.PayerMismatch.selector, address(0))
+        );
         vm.prank(operator);
         agreementManager.offerAgreement(_collector(), OFFER_TYPE_UPDATE, abi.encode(rcau));
     }
@@ -346,7 +348,7 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
         _offerAgreementUpdate(rcau2);
 
         // Verify pending state was set on the collector
-        bytes32 pendingHash = recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 pendingHash = recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
         assertTrue(pendingHash != bytes32(0), "Second pending update should be stored");
         IRecurringCollector.AgreementData memory result = recurringCollector.getAgreementData(agreementId);
         assertEq(result.updateNonce, 2);

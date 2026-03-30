@@ -59,17 +59,20 @@ contract MockRecurringCollector {
         data_.collectionSeconds = 0; // Not needed for agreement manager tests
     }
 
-    function getAgreementVersionAt(
+    function getAgreementDetails(
         bytes16 agreementId,
         uint256 index
-    ) external view returns (IAgreementCollector.AgreementVersion memory version) {
+    ) external view returns (IAgreementCollector.AgreementDetails memory details) {
         AgreementStorage storage a = _agreements[agreementId];
-        version.agreementId = agreementId;
-        version.state = a.state;
+        details.agreementId = agreementId;
+        details.payer = a.payer;
+        details.dataService = a.dataService;
+        details.serviceProvider = a.serviceProvider;
+        details.state = a.state;
         if (index == 0) {
-            version.versionHash = a.activeTerms.hash;
+            details.versionHash = a.activeTerms.hash;
         } else if (index == 1) {
-            version.versionHash = a.pendingTerms.hash;
+            details.versionHash = a.pendingTerms.hash;
         }
     }
 
@@ -134,26 +137,30 @@ contract MockRecurringCollector {
         uint8 offerType,
         bytes calldata data,
         uint16 /* options */
-    ) external returns (IRecurringCollector.OfferResult memory result) {
+    ) external returns (IAgreementCollector.AgreementDetails memory details) {
         if (offerType == OFFER_TYPE_NEW) {
             IRecurringCollector.RecurringCollectionAgreement memory rca = abi.decode(
                 data,
                 (IRecurringCollector.RecurringCollectionAgreement)
             );
-            require(msg.sender == rca.payer, "MockRecurringCollector: unauthorized payer");
-            result.agreementId = _storeOffer(rca);
-            result.dataService = rca.dataService;
-            result.serviceProvider = rca.serviceProvider;
+            // No payer check — the real collector does this, but RAM tests need to exercise
+            // the payer-mismatch path in offerAgreement, which requires the mock to return
+            // an arbitrary payer without reverting.
+            details.agreementId = _storeOffer(rca);
+            details.payer = rca.payer;
+            details.dataService = rca.dataService;
+            details.serviceProvider = rca.serviceProvider;
         } else if (offerType == OFFER_TYPE_UPDATE) {
             IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = abi.decode(
                 data,
                 (IRecurringCollector.RecurringCollectionAgreementUpdate)
             );
             _storeUpdate(rcau);
-            result.agreementId = rcau.agreementId;
+            details.agreementId = rcau.agreementId;
             AgreementStorage storage a = _agreements[rcau.agreementId];
-            result.dataService = a.dataService;
-            result.serviceProvider = a.serviceProvider;
+            details.payer = a.payer;
+            details.dataService = a.dataService;
+            details.serviceProvider = a.serviceProvider;
         }
         // No callback to msg.sender — caller reconciles after return (see RecurringCollector callback model)
     }

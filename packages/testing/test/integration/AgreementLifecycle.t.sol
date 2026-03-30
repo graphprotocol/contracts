@@ -101,7 +101,7 @@ contract AgreementLifecycleTest is RealStackHarness {
         ram.offerAgreement(IRecurringCollector(address(recurringCollector)), OFFER_TYPE_UPDATE, abi.encode(rcau));
 
         // Accept the update
-        bytes32 pendingHash = recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 pendingHash = recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
         vm.prank(indexer);
         recurringCollector.accept(agreementId, pendingHash, bytes(""), 0);
 
@@ -113,7 +113,7 @@ contract AgreementLifecycleTest is RealStackHarness {
         );
         assertEq(activeUpdate.maxOngoingTokensPerSecond, 2 ether);
         assertEq(activeUpdate.maxInitialTokens, 200 ether);
-        assertEq(recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash, bytes32(0)); // cleared
+        assertEq(recurringCollector.getAgreementDetails(agreementId, 1).versionHash, bytes32(0)); // cleared
     }
 
     // ==================== Deadline enforcement ====================
@@ -127,7 +127,7 @@ contract AgreementLifecycleTest is RealStackHarness {
         );
         bytes16 agreementId = _offerAgreement(rca);
 
-        bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
 
         // Warp past deadline
         vm.warp(block.timestamp + 2 hours);
@@ -164,7 +164,7 @@ contract AgreementLifecycleTest is RealStackHarness {
         vm.prank(operator);
         ram.offerAgreement(IRecurringCollector(address(recurringCollector)), OFFER_TYPE_UPDATE, abi.encode(rcau));
 
-        bytes32 pendingHash = recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 pendingHash = recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
 
         // Warp past update deadline
         vm.warp(block.timestamp + 2 hours);
@@ -242,7 +242,7 @@ contract AgreementLifecycleTest is RealStackHarness {
         }
 
         // Accept update — conditions change
-        bytes32 pendingHash = recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 pendingHash = recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
         vm.prank(indexer);
         recurringCollector.accept(agreementId, pendingHash, bytes(""), 0);
 
@@ -283,7 +283,7 @@ contract AgreementLifecycleTest is RealStackHarness {
             uint64(block.timestamp + 365 days)
         );
         bytes16 agreementId = _offerAndAccept(rca);
-        bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
 
         vm.prank(address(ram));
         recurringCollector.cancel(agreementId, activeHash, 0);
@@ -300,7 +300,7 @@ contract AgreementLifecycleTest is RealStackHarness {
             uint64(block.timestamp + 365 days)
         );
         bytes16 agreementId = _offerAndAccept(rca);
-        bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
 
         vm.prank(indexer);
         recurringCollector.cancel(agreementId, activeHash, 0);

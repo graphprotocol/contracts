@@ -198,7 +198,7 @@ contract RecurringAgreementManagerSharedTest is Test {
     /// @notice Cancel an agreement by reading the activeTerms hash from the collector
     /// @return gone True if the agreement was removed (no longer tracked)
     function _cancelAgreement(bytes16 agreementId) internal returns (bool gone) {
-        bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.prank(operator);
         agreementManager.cancelAgreement(IAgreementCollector(address(recurringCollector)), agreementId, activeHash, 0);
         // cancelAgreement is void; the callback handles reconciliation.
@@ -211,7 +211,7 @@ contract RecurringAgreementManagerSharedTest is Test {
     /// @notice Cancel a pending update by reading the pendingTerms hash from the collector
     /// @return gone True if the agreement was removed (no longer tracked)
     function _cancelPendingUpdate(bytes16 agreementId) internal returns (bool gone) {
-        bytes32 pendingHash = recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 pendingHash = recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
         vm.prank(operator);
         agreementManager.cancelAgreement(IAgreementCollector(address(recurringCollector)), agreementId, pendingHash, 0);
         return

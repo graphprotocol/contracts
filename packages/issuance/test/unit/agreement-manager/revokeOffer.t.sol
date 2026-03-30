@@ -137,7 +137,7 @@ contract RecurringAgreementManagerCancelOfferedTest is RecurringAgreementManager
         bytes16 agreementId = _offerAgreement(rca);
 
         address nonOperator = makeAddr("nonOperator");
-        bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.expectRevert(
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
@@ -165,7 +165,7 @@ contract RecurringAgreementManagerCancelOfferedTest is RecurringAgreementManager
         vm.stopPrank();
 
         // Role-gated functions should succeed even when paused
-        bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.prank(operator);
         agreementManager.cancelAgreement(IAgreementCollector(address(recurringCollector)), agreementId, activeHash, 0);
     }

@@ -208,7 +208,7 @@ contract RecurringCollectorGetMaxNextClaimTest is RecurringCollectorSharedTest {
         _setupValidProvision(serviceProvider, dataService);
         vm.prank(payer);
         bytes16 agreementId = _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0).agreementId;
-        bytes32 activeHash = _recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = _recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.prank(serviceProvider);
         _recurringCollector.accept(agreementId, activeHash, bytes(""), 0);
 
@@ -259,7 +259,7 @@ contract RecurringCollectorGetMaxNextClaimTest is RecurringCollectorSharedTest {
         _setupValidProvision(serviceProvider, dataService);
         vm.prank(payer);
         bytes16 agreementId = _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0).agreementId;
-        bytes32 activeHash = _recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = _recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.prank(serviceProvider);
         _recurringCollector.accept(agreementId, activeHash, bytes(""), 0);
 

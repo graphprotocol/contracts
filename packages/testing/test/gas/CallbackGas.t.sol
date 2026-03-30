@@ -180,7 +180,7 @@ contract CallbackGasTest is RealStackHarness {
 
         // Cancel one agreement by SP → maxNextClaim drops to 0 for that agreement,
         // sumMaxNextClaim halves, escrow is now above max → triggers thaw of excess.
-        bytes32 activeHash2 = recurringCollector.getAgreementVersionAt(agreementId2, 0).versionHash;
+        bytes32 activeHash2 = recurringCollector.getAgreementDetails(agreementId2, 0).versionHash;
         vm.prank(indexer);
         recurringCollector.cancel(agreementId2, activeHash2, 0);
 
@@ -212,7 +212,7 @@ contract CallbackGasTest is RealStackHarness {
         bytes16 agreementId = _offerAndAccept(rca);
 
         // SP cancels → state becomes NOTICE_GIVEN | SETTLED, maxNextClaim → 0
-        bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.prank(indexer);
         recurringCollector.cancel(agreementId, activeHash, 0);
 
@@ -256,7 +256,7 @@ contract CallbackGasTest is RealStackHarness {
         bytes16 agreementId = _offerAgreement(rca);
 
         // Accept the agreement (SP signs)
-        bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.prank(indexer2);
         recurringCollector.accept(agreementId, activeHash, bytes(""), 0);
 
@@ -331,7 +331,7 @@ contract CallbackGasTest is RealStackHarness {
         bytes16 agreementId = _offerAndAccept(rca);
 
         // SP cancels
-        bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.prank(indexer);
         recurringCollector.cancel(agreementId, activeHash, 0);
 

@@ -76,6 +76,31 @@ contract RecurringAgreementManagerBranchCoverageTest is RecurringAgreementManage
     }
 
     // ══════════════════════════════════════════════════════════════════════
+    //  offerAgreement — payer mismatch
+    // ══════════════════════════════════════════════════════════════════════
+
+    /// @notice offerAgreement reverts when collector returns payer != address(this).
+    function test_OfferAgreement_Revert_PayerMismatch() public {
+        address wrongPayer = makeAddr("wrongPayer");
+        IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCA(
+            100 ether,
+            1 ether,
+            60,
+            3600,
+            uint64(block.timestamp + 365 days)
+        );
+        rca.payer = wrongPayer; // mock will return this as-is
+
+        token.mint(address(agreementManager), 1_000_000 ether);
+
+        vm.prank(operator);
+        vm.expectRevert(
+            abi.encodeWithSelector(IRecurringAgreementManagement.PayerMismatch.selector, wrongPayer)
+        );
+        agreementManager.offerAgreement(_collector(), OFFER_TYPE_NEW, abi.encode(rca));
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
     //  offerAgreement — zero service provider (L378)
     // ══════════════════════════════════════════════════════════════════════
 

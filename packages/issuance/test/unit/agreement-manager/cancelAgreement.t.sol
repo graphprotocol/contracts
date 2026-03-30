@@ -161,7 +161,7 @@ contract RecurringAgreementManagerCancelAgreementTest is RecurringAgreementManag
             rca.nonce
         );
 
-        bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         address nonOperator = makeAddr("nonOperator");
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -190,7 +190,7 @@ contract RecurringAgreementManagerCancelAgreementTest is RecurringAgreementManag
         vm.stopPrank();
 
         // Role-gated functions should succeed even when paused
-        bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.prank(operator);
         agreementManager.cancelAgreement(IAgreementCollector(address(recurringCollector)), agreementId, activeHash, 0);
     }
@@ -228,7 +228,7 @@ contract RecurringAgreementManagerCancelAgreementTest is RecurringAgreementManag
         vm.stopPrank();
 
         // Role-gated functions should succeed even when paused
-        bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.prank(operator);
         agreementManager.cancelAgreement(IAgreementCollector(address(recurringCollector)), agreementId, activeHash, 0);
     }

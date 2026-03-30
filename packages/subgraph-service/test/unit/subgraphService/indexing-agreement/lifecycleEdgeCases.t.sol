@@ -99,7 +99,7 @@ contract LifecycleEdgeCasesTest is SubgraphServiceIndexingAgreementSharedTest {
         agreementId = recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0).agreementId;
 
         // Accept
-        bytes32 versionHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 versionHash = recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.prank(_indexer.addr);
         recurringCollector.accept(agreementId, versionHash, abi.encode(_indexer.allocationId), 0);
     }
@@ -217,7 +217,7 @@ contract LifecycleEdgeCasesTest is SubgraphServiceIndexingAgreementSharedTest {
 
         // Payer cancels → NOTICE_GIVEN with 2h notice
         resetPrank(rca.payer);
-        bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         recurringCollector.cancel(agreementId, activeHash, 0);
 
         IRecurringCollector.AgreementData memory afterCancel = recurringCollector.getAgreementData(agreementId);
@@ -278,7 +278,7 @@ contract LifecycleEdgeCasesTest is SubgraphServiceIndexingAgreementSharedTest {
         assertEq(afterSecond.collectableUntil, originalCollectableUntil, "active terms still unchanged");
 
         // Accept second update -- first is effectively discarded
-        bytes32 pendingHash = recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 pendingHash = recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
         resetPrank(indexer.addr);
         recurringCollector.accept(agreementId, pendingHash, bytes(""), 0);
 
@@ -304,7 +304,7 @@ contract LifecycleEdgeCasesTest is SubgraphServiceIndexingAgreementSharedTest {
         resetPrank(rca.payer);
         recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau1), 0);
 
-        bytes32 hash1 = recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 hash1 = recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
         resetPrank(indexer.addr);
         recurringCollector.accept(agreementId, hash1, bytes(""), 0);
 
@@ -321,7 +321,7 @@ contract LifecycleEdgeCasesTest is SubgraphServiceIndexingAgreementSharedTest {
         resetPrank(rca.payer);
         recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau2), 0);
 
-        bytes32 hash2 = recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 hash2 = recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
         resetPrank(indexer.addr);
         recurringCollector.accept(agreementId, hash2, bytes(""), 0);
 
@@ -385,7 +385,7 @@ contract LifecycleEdgeCasesTest is SubgraphServiceIndexingAgreementSharedTest {
             resetPrank(rca.payer);
             recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau1), 0);
 
-            bytes32 hash1 = recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+            bytes32 hash1 = recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
             resetPrank(indexer.addr);
             recurringCollector.accept(agreementId, hash1, bytes(""), 0);
 
@@ -423,7 +423,7 @@ contract LifecycleEdgeCasesTest is SubgraphServiceIndexingAgreementSharedTest {
             resetPrank(rca.payer);
             recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau2), 0);
 
-            bytes32 hash2 = recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+            bytes32 hash2 = recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
             resetPrank(indexer.addr);
             recurringCollector.accept(agreementId, hash2, bytes(""), 0);
 
@@ -504,7 +504,7 @@ contract LifecycleEdgeCasesTest is SubgraphServiceIndexingAgreementSharedTest {
         resetPrank(rca.payer);
         recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
 
-        bytes32 hash = recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 hash = recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
         resetPrank(indexer.addr);
         recurringCollector.accept(agreementId, hash, bytes(""), 0);
 
@@ -536,7 +536,7 @@ contract LifecycleEdgeCasesTest is SubgraphServiceIndexingAgreementSharedTest {
         subgraphService.stopService(indexer.addr, abi.encode(indexer.allocationId));
 
         // Try to accept -- callback reverts, entire tx reverts
-        bytes32 versionHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 versionHash = recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         resetPrank(indexer.addr);
         vm.expectRevert();
         recurringCollector.accept(agreementId, versionHash, abi.encode(indexer.allocationId), 0);
@@ -582,7 +582,7 @@ contract LifecycleEdgeCasesTest is SubgraphServiceIndexingAgreementSharedTest {
         // Payer cancels -- collectableUntil = now + 60
         uint256 cancelTimestamp = block.timestamp;
         resetPrank(rca.payer);
-        bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         recurringCollector.cancel(agreementId, activeHash, 0);
 
         IRecurringCollector.AgreementData memory afterCancel = recurringCollector.getAgreementData(agreementId);

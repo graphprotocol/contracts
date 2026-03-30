@@ -79,15 +79,18 @@ contract IndexingAgreementTest is Test {
 
         // Mock collector returning REGISTERED | ACCEPTED (not SETTLED)
         uint16 notSettledState = REGISTERED | ACCEPTED;
-        IAgreementCollector.AgreementVersion memory version = IAgreementCollector.AgreementVersion({
+        IAgreementCollector.AgreementDetails memory details = IAgreementCollector.AgreementDetails({
             agreementId: agreementId,
+            payer: address(0),
+            dataService: address(0),
+            serviceProvider: address(0),
             versionHash: bytes32(uint256(1)),
             state: notSettledState
         });
         vm.mockCall(
             _mockCollector,
-            abi.encodeWithSelector(IAgreementCollector.getAgreementVersionAt.selector, agreementId, 0),
-            abi.encode(version)
+            abi.encodeWithSelector(IAgreementCollector.getAgreementDetails.selector, agreementId, 0),
+            abi.encode(details)
         );
 
         vm.expectRevert(
@@ -117,15 +120,18 @@ contract IndexingAgreementTest is Test {
 
         // Mock collector returning SETTLED state
         uint16 settledState = REGISTERED | ACCEPTED | NOTICE_GIVEN | SETTLED | BY_PROVIDER;
-        IAgreementCollector.AgreementVersion memory version = IAgreementCollector.AgreementVersion({
+        IAgreementCollector.AgreementDetails memory details = IAgreementCollector.AgreementDetails({
             agreementId: agreementId,
+            payer: address(0),
+            dataService: address(0),
+            serviceProvider: address(0),
             versionHash: bytes32(uint256(1)),
             state: settledState
         });
         vm.mockCall(
             _mockCollector,
-            abi.encodeWithSelector(IAgreementCollector.getAgreementVersionAt.selector, agreementId, 0),
-            abi.encode(version)
+            abi.encodeWithSelector(IAgreementCollector.getAgreementDetails.selector, agreementId, 0),
+            abi.encode(details)
         );
 
         IndexingAgreement.onCloseAllocation(_storageManager, allocationId, true);

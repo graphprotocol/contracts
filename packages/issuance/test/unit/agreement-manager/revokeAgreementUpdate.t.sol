@@ -72,7 +72,7 @@ contract RecurringAgreementManagerCancelPendingUpdateTest is RecurringAgreementM
         _offerAgreementUpdate(rcau);
 
         // Read pending terms hash from the collector
-        bytes32 pendingHash = recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 pendingHash = recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
 
         // Before cancel: maxNextClaim = max(active=3700, pending=14600) = 14600
         // After cancel: pending deleted, maxNextClaim = active-only = 3700

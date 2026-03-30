@@ -137,7 +137,7 @@ contract RecurringCollectorPauseTest is RecurringCollectorSharedTest {
     function test_Cancel_Revert_WhenPaused(FuzzyTestAccept calldata fuzzy) public {
         (IRecurringCollector.RecurringCollectionAgreement memory rca, bytes16 agreementId) = _sensibleAccept(fuzzy);
 
-        bytes32 activeHash = _recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = _recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         _setGuardian(guardian, true);
         _pause();
 

@@ -46,7 +46,7 @@ contract AllocationAgreementLifecycleTest is SubgraphServiceIndexingAgreementSha
         resetPrank(_rca.payer);
         recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau1), 0);
 
-        bytes32 pendingHash = recurringCollector.getAgreementVersionAt(_agreementId, 1).versionHash;
+        bytes32 pendingHash = recurringCollector.getAgreementDetails(_agreementId, 1).versionHash;
         resetPrank(_indexer);
         recurringCollector.accept(_agreementId, pendingHash, bytes(""), 0);
 
@@ -136,7 +136,7 @@ contract AllocationAgreementLifecycleTest is SubgraphServiceIndexingAgreementSha
         resetPrank(rca.payer);
         recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
 
-        bytes32 pendingHash = recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 pendingHash = recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
         resetPrank(indexer.addr);
         recurringCollector.accept(agreementId, pendingHash, abi.encode(indexer.allocationId), 0);
 
@@ -157,7 +157,7 @@ contract AllocationAgreementLifecycleTest is SubgraphServiceIndexingAgreementSha
         resetPrank(rca2.payer);
         bytes16 agreementId2 = recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca2), 0).agreementId;
 
-        bytes32 versionHash = recurringCollector.getAgreementVersionAt(agreementId2, 0).versionHash;
+        bytes32 versionHash = recurringCollector.getAgreementDetails(agreementId2, 0).versionHash;
         vm.expectRevert(
             abi.encodeWithSelector(
                 IndexingAgreement.AllocationAlreadyHasIndexingAgreement.selector,
@@ -191,7 +191,7 @@ contract AllocationAgreementLifecycleTest is SubgraphServiceIndexingAgreementSha
         recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
 
         // Accept — agreement is SETTLED so acceptAgreement MUST be called regardless of metadata
-        bytes32 pendingHash = recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 pendingHash = recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
 
         vm.recordLogs();
         resetPrank(indexer.addr);
@@ -233,7 +233,7 @@ contract AllocationAgreementLifecycleTest is SubgraphServiceIndexingAgreementSha
         recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
 
         // Accept without extraData — allocation is still open and bound
-        bytes32 pendingHash = recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 pendingHash = recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
         resetPrank(indexer.addr);
         recurringCollector.accept(agreementId, pendingHash, bytes(""), 0);
 
@@ -265,7 +265,7 @@ contract AllocationAgreementLifecycleTest is SubgraphServiceIndexingAgreementSha
         resetPrank(rca.payer);
         recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau2), 0);
 
-        bytes32 pendingHash = recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 pendingHash = recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
 
         vm.recordLogs();
         resetPrank(indexer.addr);
@@ -304,7 +304,7 @@ contract AllocationAgreementLifecycleTest is SubgraphServiceIndexingAgreementSha
         resetPrank(rca.payer);
         recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau2), 0);
 
-        bytes32 pendingHash = recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 pendingHash = recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
 
         vm.recordLogs();
         resetPrank(indexer.addr);
@@ -368,7 +368,7 @@ contract AllocationAgreementLifecycleTest is SubgraphServiceIndexingAgreementSha
         resetPrank(rca.payer);
         recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
 
-        bytes32 pendingHash = recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 pendingHash = recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
         resetPrank(indexer.addr);
         recurringCollector.accept(agreementId, pendingHash, abi.encode(newAllocationId), 0);
 
@@ -401,7 +401,7 @@ contract AllocationAgreementLifecycleTest is SubgraphServiceIndexingAgreementSha
         resetPrank(rca.payer);
         recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
 
-        bytes32 pendingHash = recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 pendingHash = recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
         resetPrank(indexer.addr);
         recurringCollector.accept(agreementId, pendingHash, abi.encode(newAllocationId), 0);
 
@@ -432,7 +432,7 @@ contract AllocationAgreementLifecycleTest is SubgraphServiceIndexingAgreementSha
         resetPrank(rca.payer);
         recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
 
-        bytes32 pendingHash = recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 pendingHash = recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
         vm.expectRevert(
             abi.encodeWithSelector(AllocationHandler.AllocationHandlerAllocationClosed.selector, closedAllocationId)
         );
@@ -460,7 +460,7 @@ contract AllocationAgreementLifecycleTest is SubgraphServiceIndexingAgreementSha
         resetPrank(rca.payer);
         recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
 
-        bytes32 pendingHash = recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 pendingHash = recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
         resetPrank(indexer.addr);
         recurringCollector.accept(agreementId, pendingHash, abi.encode(newAllocationId), 0);
 
@@ -525,7 +525,7 @@ contract AllocationAgreementLifecycleTest is SubgraphServiceIndexingAgreementSha
         resetPrank(rca.payer);
         recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
 
-        bytes32 pendingHash = recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 pendingHash = recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
         vm.expectRevert(
             abi.encodeWithSelector(
                 IndexingAgreement.IndexingAgreementDeploymentIdMismatch.selector,
@@ -570,7 +570,7 @@ contract AllocationAgreementLifecycleTest is SubgraphServiceIndexingAgreementSha
         resetPrank(rca.payer);
         recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
 
-        bytes32 pendingHash = recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 pendingHash = recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
 
         IndexingAgreement.UpdateIndexingAgreementMetadata memory meta = abi.decode(
             rcau.metadata,

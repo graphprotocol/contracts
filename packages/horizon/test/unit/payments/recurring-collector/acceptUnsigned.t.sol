@@ -63,7 +63,7 @@ contract RecurringCollectorAcceptUnsignedTest is RecurringCollectorSharedTest {
         assertEq(agreementId, expectedId);
 
         // Data service accepts with stored hash
-        bytes32 activeHash = _recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = _recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
 
         vm.expectEmit(address(_recurringCollector));
         emit IRecurringCollector.AgreementUpdated(expectedId, activeHash, REGISTERED | ACCEPTED);
@@ -85,7 +85,7 @@ contract RecurringCollectorAcceptUnsignedTest is RecurringCollectorSharedTest {
 
         _setupValidProvision(rca.serviceProvider, rca.dataService);
         vm.prank(eoa);
-        IRecurringCollector.OfferResult memory result = _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0);
+        IRecurringCollector.AgreementDetails memory result = _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0);
         assertTrue(result.agreementId != bytes16(0));
     }
 
@@ -115,7 +115,7 @@ contract RecurringCollectorAcceptUnsignedTest is RecurringCollectorSharedTest {
         vm.prank(address(approver));
         bytes16 agreementId = _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0).agreementId;
 
-        bytes32 activeHash = _recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = _recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
 
         address notServiceProvider = makeAddr("notServiceProvider");
         vm.expectRevert(
@@ -143,7 +143,7 @@ contract RecurringCollectorAcceptUnsignedTest is RecurringCollectorSharedTest {
         bytes16 agreementId = _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0).agreementId;
 
         // Service provider accepts
-        bytes32 activeHash = _recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = _recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.prank(rca.serviceProvider);
         _recurringCollector.accept(agreementId, activeHash, bytes(""), 0);
 
@@ -170,7 +170,7 @@ contract RecurringCollectorAcceptUnsignedTest is RecurringCollectorSharedTest {
         vm.prank(address(approver));
         bytes16 agreementId = _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0).agreementId;
 
-        bytes32 activeHash = _recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = _recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
 
         // Accept with wrong hash should revert
         bytes32 wrongHash = bytes32(uint256(1));
@@ -221,7 +221,7 @@ contract RecurringCollectorAcceptUnsignedTest is RecurringCollectorSharedTest {
 
         // Try accept with a completely wrong hash
         bytes32 badHash = bytes32(uint256(0xdead));
-        bytes32 activeHash = _recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = _recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.expectRevert(
             abi.encodeWithSelector(IRecurringCollector.AgreementHashMismatch.selector, agreementId, activeHash, badHash)
         );

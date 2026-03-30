@@ -218,11 +218,12 @@ contract RecurringCollector is
         uint8 offerType,
         bytes calldata data,
         uint16 options
-    ) external nonReentrant whenNotPaused returns (OfferResult memory result) {
+    ) external nonReentrant whenNotPaused returns (AgreementDetails memory result) {
         if (offerType == OFFER_TYPE_NEW) {
             RecurringCollectionAgreement memory rca = abi.decode(data, (RecurringCollectionAgreement));
             require(msg.sender == rca.payer, UnauthorizedPayer(msg.sender, rca.payer));
             (result.agreementId, result.versionHash) = _validateAndStoreOffer(rca);
+            result.payer = rca.payer;
             result.dataService = rca.dataService;
             result.serviceProvider = rca.serviceProvider;
             result.state = REGISTERED;
@@ -337,18 +338,21 @@ contract RecurringCollector is
     }
 
     /// @inheritdoc IAgreementCollector
-    function getAgreementVersionAt(
+    function getAgreementDetails(
         bytes16 agreementId,
         uint256 index
-    ) external view returns (AgreementVersion memory version) {
+    ) external view returns (AgreementDetails memory details) {
         AgreementStorage storage agreement = _getAgreementStorage(agreementId);
-        version.agreementId = agreementId;
-        version.state = agreement.state;
+        details.agreementId = agreementId;
+        details.payer = agreement.payer;
+        details.dataService = agreement.dataService;
+        details.serviceProvider = agreement.serviceProvider;
+        details.state = agreement.state;
 
-        if (index == 0) version.versionHash = agreement.activeTerms.hash;
+        if (index == 0) details.versionHash = agreement.activeTerms.hash;
         else if (index == 1) {
-            version.versionHash = agreement.pendingTerms.hash;
-            version.state = version.state | UPDATE;
+            details.versionHash = agreement.pendingTerms.hash;
+            details.state = details.state | UPDATE;
         }
     }
 
@@ -867,14 +871,14 @@ contract RecurringCollector is
      * @param agreement The storage reference to the agreement data
      * @param rcau The Recurring Collection Agreement Update to apply
      * @param offerOptions Bitmask of offer options (e.g. WITH_NOTICE) controlling update behavior
-     * @return The offer result containing the agreement ID and updated terms
+     * @return Agreement details containing the agreement ID and updated terms
      */
     /* solhint-disable function-max-lines */
     function _validateAndStoreUpdate(
         AgreementStorage storage agreement,
         RecurringCollectionAgreementUpdate memory rcau,
         uint16 offerOptions
-    ) private returns (OfferResult memory) {
+    ) private returns (AgreementDetails memory) {
         uint16 state = agreement.state;
 
         require(state & REGISTERED != 0, AgreementIncorrectState(rcau.agreementId, state));
@@ -937,8 +941,9 @@ contract RecurringCollector is
         _emitAndNotify(rcau.agreementId, terms.hash, eventState, agreement.dataService, agreement.payer);
 
         return
-            OfferResult({
+            AgreementDetails({
                 agreementId: rcau.agreementId,
+                payer: agreement.payer,
                 dataService: agreement.dataService,
                 serviceProvider: agreement.serviceProvider,
                 versionHash: terms.hash,

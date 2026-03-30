@@ -16,7 +16,6 @@ import { IProviderEligibilityManagement } from "@graphprotocol/interfaces/contra
 import { IRecurringAgreements } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreements.sol";
 import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
 import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
-import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { IProviderEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IProviderEligibility.sol";
 import { IEmergencyRoleControl } from "@graphprotocol/interfaces/contracts/issuance/common/IEmergencyRoleControl.sol";
 
@@ -30,8 +29,8 @@ import { ReentrancyGuardTransient } from "@openzeppelin/contracts/utils/Reentran
 /**
  * @title RecurringAgreementManager
  * @author Edge & Node
- * @notice Manages escrow for RCAs (Recurring Collection Agreements) using issuance-allocated
- * tokens. This contract:
+ * @notice Manages escrow for collector-managed agreements using issuance-allocated tokens.
+ * This contract:
  *
  * 1. Receives minted GRT from IssuanceAllocator ({IIssuanceTarget})
  * 2. Offers and cancels agreements by calling collectors directly (AGREEMENT_MANAGER_ROLE-gated)
@@ -39,21 +38,20 @@ import { ReentrancyGuardTransient } from "@openzeppelin/contracts/utils/Reentran
  *    ({IAgreementOwner})
  * 4. Tracks max-next-claim per agreement, deposits into PaymentsEscrow to cover maximums
  *
- * One escrow per (this contract, collector, provider) covers all managed RCAs for that
+ * One escrow per (this contract, collector, provider) covers all managed agreements for that
  * (collector, provider) pair. Agreements are namespaced under their collector to prevent
  * cross-collector ID collisions.
  *
- * @custom:design-coupling Structurally coupled to RecurringCollector's lifecycle semantics:
- * AgreementState transitions, updateNonce progression, and the RCA/RCAU struct shapes.
- * Claim computation is decoupled — delegated to the collector via
- * {IAgreementCollector.getMaxNextClaim}. Lifecycle changes (new states, different update
- * mechanics) would require coordinated updates to both contracts.
+ * @custom:design-coupling All collector interactions go through {IAgreementCollector}:
+ * discovery via {IAgreementCollector.getAgreementDetails}, claim computation via
+ * {IAgreementCollector.getMaxNextClaim}. A collector with a different pricing model or
+ * agreement type works without changes here.
  *
  * @custom:security CEI — external calls target trusted protocol contracts (PaymentsEscrow,
  * GRT, issuance allocator) which are governance-gated.
  *
  * Collector trust: collectors are COLLECTOR_ROLE-gated (governor-managed). {offerAgreement}
- * and {cancelAgreement} call collectors directly. Discovery calls `getAgreementData`;
+ * and {cancelAgreement} call collectors directly. Discovery calls `getAgreementDetails`;
  * reconciliation calls `getMaxNextClaim` — these return values drive escrow accounting.
  * A broken or malicious collector can cause reconciliation to revert; use
  * {forceRemoveAgreement} as an operator escape hatch. Once tracked, reconciliation proceeds
@@ -348,12 +346,13 @@ contract RecurringAgreementManager is
         require(hasRole(COLLECTOR_ROLE, address(collector)), UnauthorizedCollector(address(collector)));
 
         // Forward to collector — no callback to msg.sender, we reconcile after return
-        IAgreementCollector.OfferResult memory result = collector.offer(offerType, offerData, 0);
-        agreementId = result.agreementId;
+        IAgreementCollector.AgreementDetails memory details = collector.offer(offerType, offerData, 0);
+        agreementId = details.agreementId;
 
         require(agreementId != bytes16(0), AgreementIdZero());
-        require(result.serviceProvider != address(0), ServiceProviderZeroAddress());
-        require(hasRole(DATA_SERVICE_ROLE, result.dataService), UnauthorizedDataService(result.dataService));
+        require(details.payer == address(this), PayerMismatch(details.payer));
+        require(details.serviceProvider != address(0), ServiceProviderZeroAddress());
+        require(hasRole(DATA_SERVICE_ROLE, details.dataService), UnauthorizedDataService(details.dataService));
 
         _reconcileAgreement(_getStorage(), address(collector), agreementId);
     }
@@ -654,17 +653,20 @@ contract RecurringAgreementManager is
             emit AgreementRejected(agreementId, collector, AgreementRejectionReason.UnauthorizedCollector);
             return address(0);
         }
-        IRecurringCollector.AgreementData memory data = IRecurringCollector(collector).getAgreementData(agreementId);
-        provider = data.serviceProvider;
+        IAgreementCollector.AgreementDetails memory details = IAgreementCollector(collector).getAgreementDetails(
+            agreementId,
+            0
+        );
+        provider = details.serviceProvider;
         if (provider == address(0)) {
             emit AgreementRejected(agreementId, collector, AgreementRejectionReason.UnknownAgreement);
             return address(0);
         }
-        if (data.payer != address(this)) {
+        if (details.payer != address(this)) {
             emit AgreementRejected(agreementId, collector, AgreementRejectionReason.PayerMismatch);
             return address(0);
         }
-        if (!hasRole(DATA_SERVICE_ROLE, data.dataService)) {
+        if (!hasRole(DATA_SERVICE_ROLE, details.dataService)) {
             emit AgreementRejected(agreementId, collector, AgreementRejectionReason.UnauthorizedDataService);
             return address(0);
         }
@@ -675,7 +677,7 @@ contract RecurringAgreementManager is
         cpd.agreements.add(bytes32(agreementId));
         _s.collectors[collector].providerSet.add(provider);
         _s.collectorSet.add(collector);
-        emit AgreementAdded(agreementId, collector, data.dataService, provider);
+        emit AgreementAdded(agreementId, collector, details.dataService, provider);
     }
 
     /**

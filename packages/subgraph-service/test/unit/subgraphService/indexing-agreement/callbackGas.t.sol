@@ -37,7 +37,7 @@ contract SubgraphServiceCallbackGasTest is SubgraphServiceIndexingAgreementShare
         // Payer submits offer to get a valid agreement in the collector
         vm.prank(rca.payer);
         bytes16 agreementId = recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0).agreementId;
-        bytes32 versionHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 versionHash = recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
 
         // Call acceptAgreement directly on SS, pranking as the collector,
         // to isolate the data-service callback gas.
@@ -73,7 +73,7 @@ contract SubgraphServiceCallbackGasTest is SubgraphServiceIndexingAgreementShare
         vm.prank(rca.payer);
         recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
 
-        bytes32 pendingHash = recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 pendingHash = recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
 
         // Build update metadata matching what the collector would pass
         IndexingAgreement.UpdateIndexingAgreementMetadata memory updateMeta = IndexingAgreement

@@ -45,7 +45,7 @@ contract RecurringCollectorEligibilityTest is RecurringCollectorSharedTest {
         agreementId = _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0).agreementId;
 
         // Service provider accepts with stored hash
-        bytes32 activeHash = _recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = _recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.prank(rca.serviceProvider);
         _recurringCollector.accept(agreementId, activeHash, bytes(""), 0);
     }
@@ -250,7 +250,7 @@ contract RecurringCollectorEligibilityTest is RecurringCollectorSharedTest {
         _setupValidProvision(rca.serviceProvider, rca.dataService);
 
         vm.prank(address(approver));
-        IRecurringCollector.OfferResult memory result = _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0);
+        IRecurringCollector.AgreementDetails memory result = _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0);
         assertTrue(result.agreementId != bytes16(0));
     }
 
@@ -280,7 +280,7 @@ contract RecurringCollectorEligibilityTest is RecurringCollectorSharedTest {
         _setupValidProvision(rca.serviceProvider, rca.dataService);
 
         vm.prank(address(approver));
-        IRecurringCollector.OfferResult memory result = _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0);
+        IRecurringCollector.AgreementDetails memory result = _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0);
         assertTrue(result.agreementId != bytes16(0));
     }
 

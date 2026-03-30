@@ -176,9 +176,11 @@ contract RecurringAgreementManagerOfferTest is RecurringAgreementManagerSharedTe
             3600,
             uint64(block.timestamp + 365 days)
         );
-        rca.payer = address(0xdead); // Wrong payer — collector rejects because msg.sender != rca.payer
+        rca.payer = address(0xdead); // Wrong payer — RAM rejects because details.payer != address(this)
 
-        vm.expectRevert("MockRecurringCollector: unauthorized payer");
+        vm.expectRevert(
+            abi.encodeWithSelector(IRecurringAgreementManagement.PayerMismatch.selector, address(0xdead))
+        );
         vm.prank(operator);
         agreementManager.offerAgreement(_collector(), OFFER_TYPE_NEW, abi.encode(rca));
     }

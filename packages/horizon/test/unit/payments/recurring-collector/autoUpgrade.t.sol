@@ -78,7 +78,7 @@ contract RecurringCollectorAutoUpgradeTest is RecurringCollectorSharedTest {
         vm.prank(address(_approver));
         agreementId = _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0).agreementId;
 
-        bytes32 activeHash = _recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = _recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.prank(rca.serviceProvider);
         _recurringCollector.accept(agreementId, activeHash, bytes(""), options);
     }
@@ -189,7 +189,7 @@ contract RecurringCollectorAutoUpgradeTest is RecurringCollectorSharedTest {
         _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
 
         // Accept update with options=0 (clear AUTO_UPDATE)
-        bytes32 pendingHash = _recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        bytes32 pendingHash = _recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
         vm.prank(rca.serviceProvider);
         _recurringCollector.accept(agreementId, pendingHash, bytes(""), 0);
 

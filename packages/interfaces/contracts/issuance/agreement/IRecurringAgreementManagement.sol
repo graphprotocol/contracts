@@ -99,6 +99,12 @@ interface IRecurringAgreementManagement {
      */
     error UnauthorizedCollector(address collector);
 
+    /**
+     * @notice Thrown when the collector returns a payer that does not match this contract
+     * @param payer The payer address returned by the collector
+     */
+    error PayerMismatch(address payer);
+
     // -- Functions --
 
     /**

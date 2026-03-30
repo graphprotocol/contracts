@@ -101,7 +101,7 @@ contract RecurringCollectorSharedTest is Test, Bounder {
         assertEq(actualAgreementId, expectedAgreementId);
 
         // Step 2: Service provider accepts the offer
-        bytes32 activeHash = _recurringCollector.getAgreementVersionAt(actualAgreementId, 0).versionHash;
+        bytes32 activeHash = _recurringCollector.getAgreementDetails(actualAgreementId, 0).versionHash;
         vm.expectEmit(address(_recurringCollector));
         emit IRecurringCollector.AgreementUpdated(expectedAgreementId, activeHash, REGISTERED | ACCEPTED);
         vm.prank(_rca.serviceProvider);
@@ -156,7 +156,7 @@ contract RecurringCollectorSharedTest is Test, Bounder {
         IRecurringCollector.RecurringCollectionAgreement memory _rca,
         bytes16 _agreementId
     ) internal {
-        bytes32 vHash = _recurringCollector.getAgreementVersionAt(_agreementId, 0).versionHash;
+        bytes32 vHash = _recurringCollector.getAgreementDetails(_agreementId, 0).versionHash;
         vm.expectEmit(address(_recurringCollector));
         emit IRecurringCollector.AgreementUpdated(_agreementId, vHash, REGISTERED | ACCEPTED | NOTICE_GIVEN | BY_PAYER);
         vm.prank(_rca.payer);
@@ -167,7 +167,7 @@ contract RecurringCollectorSharedTest is Test, Bounder {
         IRecurringCollector.RecurringCollectionAgreement memory _rca,
         bytes16 _agreementId
     ) internal {
-        bytes32 vHash = _recurringCollector.getAgreementVersionAt(_agreementId, 0).versionHash;
+        bytes32 vHash = _recurringCollector.getAgreementDetails(_agreementId, 0).versionHash;
         vm.expectEmit(address(_recurringCollector));
         emit IRecurringCollector.AgreementUpdated(
             _agreementId,

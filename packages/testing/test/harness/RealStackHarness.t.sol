@@ -197,7 +197,7 @@ abstract contract RealStackHarness is Test {
     /// @notice Offer and accept an agreement, returning the agreement ID
     function _offerAndAccept(IRecurringCollector.RecurringCollectionAgreement memory rca) internal returns (bytes16) {
         bytes16 agreementId = _offerAgreement(rca);
-        bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.prank(rca.serviceProvider);
         recurringCollector.accept(agreementId, activeHash, bytes(""), 0);
         return agreementId;

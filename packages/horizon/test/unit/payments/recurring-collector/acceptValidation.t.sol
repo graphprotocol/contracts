@@ -35,7 +35,7 @@ contract RecurringCollectorAcceptValidationTest is RecurringCollectorSharedTest 
         vm.prank(rca.payer);
         bytes16 agreementId = _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0).agreementId;
         // Step 2: Service provider accepts
-        bytes32 activeHash = _recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = _recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.prank(rca.serviceProvider);
         _recurringCollector.accept(agreementId, activeHash, bytes(""), 0);
     }
@@ -196,7 +196,7 @@ contract RecurringCollectorAcceptValidationTest is RecurringCollectorSharedTest 
         // Step 1: Payer submits offer
         vm.prank(rca.payer);
         bytes16 agreementId = _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0).agreementId;
-        bytes32 activeHash = _recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = _recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
 
         // Step 2: Wrong caller tries to accept - should revert
         address wrongCaller = makeAddr("wrongCaller");

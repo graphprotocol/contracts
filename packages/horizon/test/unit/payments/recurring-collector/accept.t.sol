@@ -30,7 +30,7 @@ contract RecurringCollectorAcceptTest is RecurringCollectorSharedTest {
         // Store an offer while deadline is still valid
         (, bytes16 agreementId) = _sensibleOffer(fuzzyTestAccept);
         IRecurringCollector.AgreementData memory agreement = _recurringCollector.getAgreementData(agreementId);
-        bytes32 activeHash = _recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        bytes32 activeHash = _recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
 
         // Decode the deadline from the active offer
         (, bytes memory offerData) = _recurringCollector.getAgreementOfferAt(agreementId, 0);
