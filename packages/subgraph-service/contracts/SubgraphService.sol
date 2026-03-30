@@ -21,7 +21,7 @@ import { DataService } from "@graphprotocol/horizon/contracts/data-service/DataS
 import { DataServiceFees } from "@graphprotocol/horizon/contracts/data-service/extensions/DataServiceFees.sol";
 import { Directory } from "./utilities/Directory.sol";
 import { AllocationManager } from "./utilities/AllocationManager.sol";
-import { SubgraphServiceV1Storage } from "./SubgraphServiceStorage.sol";
+import { SubgraphServiceV2Storage } from "./SubgraphServiceStorage.sol";
 
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
@@ -47,7 +47,7 @@ contract SubgraphService is
     AllocationManager,
     IRewardsIssuer,
     ISubgraphService,
-    SubgraphServiceV1Storage
+    SubgraphServiceV2Storage
 {
     using PPMMath for uint256;
     using Allocation for mapping(address => IAllocation.State);
@@ -229,7 +229,7 @@ contract SubgraphService is
     function stopService(address indexer, bytes calldata data) external override enforceService(indexer, REGISTERED) {
         address allocationId = abi.decode(data, (address));
         _checkAllocationOwnership(indexer, allocationId);
-        _onCloseAllocation(allocationId, false);
+        _onCloseAllocation(allocationId);
         _closeAllocation(allocationId, false);
         emit ServiceStopped(indexer, data);
     }
@@ -370,6 +370,19 @@ contract SubgraphService is
         require(PPMMath.isValidPPM(indexingFeesCut_), SubgraphServiceInvalidIndexingFeesCut(indexingFeesCut_));
         indexingFeesCut = indexingFeesCut_;
         emit IndexingFeesCutSet(indexingFeesCut_);
+    }
+
+    /// @inheritdoc ISubgraphService
+    function setBlockClosingAllocationWithActiveAgreement(bool enabled) external override onlyOwner {
+        if (blockClosingAllocationWithActiveAgreement == enabled) return;
+
+        blockClosingAllocationWithActiveAgreement = enabled;
+        emit BlockClosingAllocationWithActiveAgreementSet(enabled);
+    }
+
+    /// @inheritdoc ISubgraphService
+    function getBlockClosingAllocationWithActiveAgreement() external view override returns (bool enabled) {
+        enabled = blockClosingAllocationWithActiveAgreement;
     }
 
     /**
@@ -531,12 +544,15 @@ contract SubgraphService is
 
     /**
      * @notice Internal function to handle closing an allocation
-     * @dev This function is called when an allocation is closed, either by the indexer or by a third party
+     * @dev This function is called when an allocation is closed, either by the indexer or by a third party.
+     * Cancels any active indexing agreement on the allocation, or reverts if the close guard is enabled.
      * @param _allocationId The id of the allocation being closed
-     * @param _forceClosed Whether the allocation was force closed
      */
-    function _onCloseAllocation(address _allocationId, bool _forceClosed) internal {
-        IndexingAgreement._getStorageManager().onCloseAllocation(_allocationId, _forceClosed);
+    function _onCloseAllocation(address _allocationId) internal {
+        IndexingAgreement._getStorageManager().onCloseAllocation(
+            _allocationId,
+            blockClosingAllocationWithActiveAgreement
+        );
     }
 
     /**

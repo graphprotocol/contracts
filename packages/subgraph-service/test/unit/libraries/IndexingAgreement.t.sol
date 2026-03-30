@@ -4,6 +4,7 @@ pragma solidity ^0.8.27;
 import { Test } from "forge-std/Test.sol";
 
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
+import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
 import { IIndexingAgreement } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IIndexingAgreement.sol";
 import { IndexingAgreement } from "../../../contracts/libraries/IndexingAgreement.sol";
 import { Directory } from "../../../contracts/utilities/Directory.sol";
@@ -46,19 +47,23 @@ contract IndexingAgreementTest is Test {
         assertEq(wrapper.collectorAgreement.dataService, address(this));
     }
 
-    function test_IndexingAgreement_OnCloseAllocation(bytes16 agreementId, address allocationId, bool stale) public {
+    function test_IndexingAgreement_OnCloseAllocation_NoAgreement(address allocationId) public {
+        vm.assume(allocationId != address(0));
+        // No active agreement — returns early regardless of blockIfActive
+        IndexingAgreement.onCloseAllocation(_storageManager, allocationId, true);
+        IndexingAgreement.onCloseAllocation(_storageManager, allocationId, false);
+    }
+
+    function test_IndexingAgreement_OnCloseAllocation_InactiveAgreement(
+        bytes16 agreementId,
+        address allocationId
+    ) public {
         vm.assume(agreementId != bytes16(0));
         vm.assume(allocationId != address(0));
 
-        delete _storageManager;
-        vm.clearMockedCalls();
-
-        // No active agreement for allocation ID, returns early, no assertions needed
-        IndexingAgreement.onCloseAllocation(_storageManager, allocationId, stale);
-
-        // Active agreement for allocation ID, but collector agreement is not set, returns early, no assertions needed
         _storageManager.allocationToActiveAgreementId[allocationId] = agreementId;
 
+        // Collector agreement not active (default state = NotAccepted) — returns early
         IRecurringCollector.AgreementData memory collectorAgreement;
 
         vm.mockCall(
@@ -66,24 +71,76 @@ contract IndexingAgreementTest is Test {
             abi.encodeWithSelector(Directory.recurringCollector.selector),
             abi.encode(IRecurringCollector(_mockCollector))
         );
-
         vm.mockCall(
             _mockCollector,
             abi.encodeWithSelector(IRecurringCollector.getAgreement.selector, agreementId),
             abi.encode(collectorAgreement)
         );
 
-        IndexingAgreement.onCloseAllocation(_storageManager, allocationId, stale);
+        // Should not revert even with blockIfActive=true since agreement is not active
+        IndexingAgreement.onCloseAllocation(_storageManager, allocationId, true);
+    }
 
-        // Active agreement for allocation ID, collector agreement is set, should cancel the agreement
-        collectorAgreement.dataService = address(this);
-        collectorAgreement.state = IRecurringCollector.AgreementState.Accepted;
+    function test_IndexingAgreement_OnCloseAllocation_RevertsWhenActiveAndBlocked(
+        bytes16 agreementId,
+        address allocationId
+    ) public {
+        vm.assume(agreementId != bytes16(0));
+        vm.assume(allocationId != address(0));
 
+        _storageManager.allocationToActiveAgreementId[allocationId] = agreementId;
         _storageManager.agreements[agreementId] = IIndexingAgreement.State({
             allocationId: allocationId,
             version: IIndexingAgreement.IndexingAgreementVersion.V1
         });
 
+        IRecurringCollector.AgreementData memory collectorAgreement;
+        collectorAgreement.dataService = address(this);
+        collectorAgreement.state = IRecurringCollector.AgreementState.Accepted;
+
+        vm.mockCall(
+            address(this),
+            abi.encodeWithSelector(Directory.recurringCollector.selector),
+            abi.encode(IRecurringCollector(_mockCollector))
+        );
+        vm.mockCall(
+            _mockCollector,
+            abi.encodeWithSelector(IRecurringCollector.getAgreement.selector, agreementId),
+            abi.encode(collectorAgreement)
+        );
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISubgraphService.SubgraphServiceAllocationHasActiveAgreement.selector,
+                allocationId,
+                agreementId
+            )
+        );
+        IndexingAgreement.onCloseAllocation(_storageManager, allocationId, true);
+    }
+
+    function test_IndexingAgreement_OnCloseAllocation_CancelsWhenActiveAndNotBlocked(
+        bytes16 agreementId,
+        address allocationId
+    ) public {
+        vm.assume(agreementId != bytes16(0));
+        vm.assume(allocationId != address(0));
+
+        _storageManager.allocationToActiveAgreementId[allocationId] = agreementId;
+        _storageManager.agreements[agreementId] = IIndexingAgreement.State({
+            allocationId: allocationId,
+            version: IIndexingAgreement.IndexingAgreementVersion.V1
+        });
+
+        IRecurringCollector.AgreementData memory collectorAgreement;
+        collectorAgreement.dataService = address(this);
+        collectorAgreement.state = IRecurringCollector.AgreementState.Accepted;
+
+        vm.mockCall(
+            address(this),
+            abi.encodeWithSelector(Directory.recurringCollector.selector),
+            abi.encode(IRecurringCollector(_mockCollector))
+        );
         vm.mockCall(
             _mockCollector,
             abi.encodeWithSelector(IRecurringCollector.getAgreement.selector, agreementId),
@@ -91,8 +148,7 @@ contract IndexingAgreementTest is Test {
         );
 
         vm.expectCall(_mockCollector, abi.encodeWithSelector(IRecurringCollector.cancel.selector, agreementId));
-
-        IndexingAgreement.onCloseAllocation(_storageManager, allocationId, stale);
+        IndexingAgreement.onCloseAllocation(_storageManager, allocationId, false);
     }
 
     function test_IndexingAgreement_StorageManagerLocation() public pure {
