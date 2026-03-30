@@ -7,7 +7,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IRecurringAgreementHelper } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreementHelper.sol";
 import { IRecurringAgreementManagement } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreementManagement.sol";
 import { IRecurringAgreements } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreements.sol";
-import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 
 /**
  * @title RecurringAgreementHelper
@@ -79,9 +79,9 @@ contract RecurringAgreementHelper is IRecurringAgreementHelper {
             collector: collector,
             provider: provider,
             agreementCount: mgr.getPairAgreementCount(collector, provider),
-            sumMaxNextClaim: mgr.getSumMaxNextClaim(IRecurringCollector(collector), provider),
+            sumMaxNextClaim: mgr.getSumMaxNextClaim(IAgreementCollector(collector), provider),
             escrowSnap: mgr.getEscrowSnap(collector, provider),
-            escrow: mgr.getEscrowAccount(IRecurringCollector(collector), provider)
+            escrow: mgr.getEscrowAccount(IAgreementCollector(collector), provider)
         });
     }
 
@@ -160,7 +160,7 @@ contract RecurringAgreementHelper is IRecurringAgreementHelper {
         for (uint256 i = 0; i < count; ++i) {
             bytes16 id = mgr.getPairAgreementAt(collector, provider, i);
             uint256 cached = mgr.getAgreementMaxNextClaim(collector, id);
-            uint256 live = IRecurringCollector(collector).getMaxNextClaim(id);
+            uint256 live = IAgreementCollector(collector).getMaxNextClaim(id);
             staleAgreements[i] = AgreementStaleness({
                 agreementId: id,
                 cachedMaxNextClaim: cached,
@@ -170,7 +170,7 @@ contract RecurringAgreementHelper is IRecurringAgreementHelper {
         }
         escrowStale =
             mgr.getEscrowSnap(collector, provider) !=
-            mgr.getEscrowAccount(IRecurringCollector(collector), provider).balance;
+            mgr.getEscrowAccount(IAgreementCollector(collector), provider).balance;
     }
 
     // -- Reconciliation --
@@ -222,9 +222,9 @@ contract RecurringAgreementHelper is IRecurringAgreementHelper {
                 collector: collector,
                 provider: providers[i],
                 agreementCount: mgr.getPairAgreementCount(collector, providers[i]),
-                sumMaxNextClaim: mgr.getSumMaxNextClaim(IRecurringCollector(collector), providers[i]),
+                sumMaxNextClaim: mgr.getSumMaxNextClaim(IAgreementCollector(collector), providers[i]),
                 escrowSnap: mgr.getEscrowSnap(collector, providers[i]),
-                escrow: mgr.getEscrowAccount(IRecurringCollector(collector), providers[i])
+                escrow: mgr.getEscrowAccount(IAgreementCollector(collector), providers[i])
             });
         }
     }

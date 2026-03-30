@@ -68,6 +68,8 @@ uint16 constant IF_NOT_ACCEPTED = 2;
  * implementation concerns for concrete collectors.
  */
 interface IAgreementCollector is IPaymentsCollector {
+    // -- Structs --
+
     /**
      * @notice Snapshot of an agreement's version hash and state at a given index.
      * @param agreementId The agreement ID
@@ -79,6 +81,52 @@ interface IAgreementCollector is IPaymentsCollector {
         bytes32 versionHash;
         uint16 state;
     }
+
+    /**
+     * @notice Return value for opaque offer overloads.
+     * @param agreementId The deterministically generated agreement ID
+     * @param dataService The data service address from the decoded agreement
+     * @param serviceProvider The service provider address from the decoded agreement
+     * @param versionHash The EIP-712 hash of the terms that were stored
+     * @param state Agreement state flags, includes UPDATE when the version is pending
+     */
+    // solhint-disable-next-line gas-struct-packing
+    struct OfferResult {
+        bytes16 agreementId;
+        address dataService;
+        address serviceProvider;
+        bytes32 versionHash;
+        uint16 state;
+    }
+
+    // -- Enums --
+
+    /// @dev The stage of a payer callback
+    enum PayerCallbackStage {
+        EligibilityCheck,
+        BeforeCollection,
+        AfterCollection
+    }
+
+    // -- Methods --
+
+    /**
+     * @notice Offer a new agreement or update an existing one.
+     * @param offerType The type of offer (OFFER_TYPE_NEW or OFFER_TYPE_UPDATE)
+     * @param data ABI-encoded offer data
+     * @param options Bitmask of offer options (e.g. WITH_NOTICE)
+     * @return The offer result containing agreementId, dataService, and serviceProvider
+     */
+    function offer(uint8 offerType, bytes calldata data, uint16 options) external returns (OfferResult memory);
+
+    /**
+     * @notice Accept a previously offered agreement or pending update by its ID and hash.
+     * @param agreementId The ID of the agreement to accept
+     * @param agreementHash EIP-712 hash the service provider expects to accept
+     * @param extraData Opaque data forwarded to the data service callback
+     * @param options Bitmask of agreement options (e.g. AUTO_UPDATE)
+     */
+    function accept(bytes16 agreementId, bytes32 agreementHash, bytes calldata extraData, uint16 options) external;
 
     /**
      * @notice Cancel an agreement or revoke a pending update, determined by termsHash.
@@ -95,4 +143,40 @@ interface IAgreementCollector is IPaymentsCollector {
      * @return The AgreementVersion containing versionHash and state
      */
     function getAgreementVersionAt(bytes16 agreementId, uint256 index) external view returns (AgreementVersion memory);
+
+    /**
+     * @notice Get the number of term versions stored for an agreement.
+     * @param agreementId The ID of the agreement
+     * @return The number of stored term versions
+     */
+    function getAgreementVersionCount(bytes16 agreementId) external view returns (uint256);
+
+    /**
+     * @notice Get the maximum tokens collectable for an agreement, scoped by active and/or pending terms.
+     * @param agreementId The ID of the agreement
+     * @param claimScope Bitmask: 1 = active terms, 2 = pending terms, 3 = max of both
+     * @return The maximum tokens that could be collected under the requested scope
+     */
+    function getMaxNextClaim(bytes16 agreementId, uint8 claimScope) external view returns (uint256);
+
+    /**
+     * @notice Convenience overload: returns max of both active and pending terms.
+     * @param agreementId The ID of the agreement
+     * @return The maximum tokens that could be collected
+     */
+    function getMaxNextClaim(bytes16 agreementId) external view returns (uint256);
+
+    /**
+     * @notice Reconstruct the original offer for a given version, enabling independent hash verification.
+     * @dev Returns the offer type (OFFER_TYPE_NEW or OFFER_TYPE_UPDATE) and the ABI-encoded
+     * original struct. Callers can decode and hash to verify the stored version hash.
+     * @param agreementId The ID of the agreement
+     * @param index The zero-based version index
+     * @return offerType OFFER_TYPE_NEW (0) or OFFER_TYPE_UPDATE (1)
+     * @return offerData ABI-encoded original offer struct
+     */
+    function getAgreementOfferAt(
+        bytes16 agreementId,
+        uint256 index
+    ) external view returns (uint8 offerType, bytes memory offerData);
 }

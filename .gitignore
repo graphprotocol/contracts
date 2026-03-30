@@ -40,6 +40,7 @@ typechain-types/
 types-v5/
 wagmi/
 packages/contracts/types/
+packages/contracts/task/types/
 packages/contracts-test/types/
 packages/interfaces/types/
 packages/token-distribution/types/

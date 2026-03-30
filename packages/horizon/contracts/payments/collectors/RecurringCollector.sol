@@ -213,7 +213,7 @@ contract RecurringCollector is
         }
     }
 
-    /// @inheritdoc IRecurringCollector
+    /// @inheritdoc IAgreementCollector
     function offer(
         uint8 offerType,
         bytes calldata data,
@@ -236,7 +236,7 @@ contract RecurringCollector is
         }
     }
 
-    /// @inheritdoc IRecurringCollector
+    /// @inheritdoc IAgreementCollector
     function accept(
         bytes16 agreementId,
         bytes32 versionHash,
@@ -328,7 +328,7 @@ contract RecurringCollector is
         );
     }
 
-    /// @inheritdoc IRecurringCollector
+    /// @inheritdoc IAgreementCollector
     function getAgreementVersionCount(bytes16 agreementId) external view returns (uint256) {
         AgreementStorage storage agreement = _getAgreementStorage(agreementId);
         if (agreement.activeTerms.hash == bytes32(0)) return 0;
@@ -353,7 +353,7 @@ contract RecurringCollector is
     }
 
     /* solhint-disable function-max-lines */
-    /// @inheritdoc IRecurringCollector
+    /// @inheritdoc IAgreementCollector
     function getAgreementOfferAt(
         bytes16 agreementId,
         uint256 index
@@ -422,12 +422,12 @@ contract RecurringCollector is
     }
     /* solhint-enable function-max-lines */
 
-    /// @inheritdoc IRecurringCollector
+    /// @inheritdoc IAgreementCollector
     function getMaxNextClaim(bytes16 agreementId) external view returns (uint256) {
         return _getMaxNextClaim(agreementId, CLAIM_SCOPE_ACTIVE | CLAIM_SCOPE_PENDING);
     }
 
-    /// @inheritdoc IRecurringCollector
+    /// @inheritdoc IAgreementCollector
     function getMaxNextClaim(bytes16 agreementId, uint8 claimScope) external view returns (uint256) {
         return _getMaxNextClaim(agreementId, claimScope);
     }

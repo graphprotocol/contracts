@@ -2,7 +2,7 @@
 pragma solidity ^0.8.22;
 
 import { IPaymentsEscrow } from "../../horizon/IPaymentsEscrow.sol";
-import { IRecurringCollector } from "../../horizon/IRecurringCollector.sol";
+import { IAgreementCollector } from "../../horizon/IAgreementCollector.sol";
 import { IRecurringEscrowManagement } from "./IRecurringEscrowManagement.sol";
 
 /**
@@ -47,7 +47,7 @@ interface IRecurringAgreements {
      * @param provider The provider address
      * @return tokens The sum of max next claims
      */
-    function getSumMaxNextClaim(IRecurringCollector collector, address provider) external view returns (uint256 tokens);
+    function getSumMaxNextClaim(IAgreementCollector collector, address provider) external view returns (uint256 tokens);
 
     /**
      * @notice Get the escrow account for a (collector, provider) pair
@@ -56,7 +56,7 @@ interface IRecurringAgreements {
      * @return account The escrow account data
      */
     function getEscrowAccount(
-        IRecurringCollector collector,
+        IAgreementCollector collector,
         address provider
     ) external view returns (IPaymentsEscrow.EscrowAccount memory account);
 

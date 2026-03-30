@@ -15,6 +15,7 @@ import { IRecurringEscrowManagement } from "@graphprotocol/interfaces/contracts/
 import { IProviderEligibilityManagement } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IProviderEligibilityManagement.sol";
 import { IRecurringAgreements } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreements.sol";
 import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { IProviderEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IProviderEligibility.sol";
 import { IEmergencyRoleControl } from "@graphprotocol/interfaces/contracts/issuance/common/IEmergencyRoleControl.sol";
@@ -44,7 +45,7 @@ import { ReentrancyGuardTransient } from "@openzeppelin/contracts/utils/Reentran
  * @custom:design-coupling This contract is structurally coupled to RecurringCollector's
  * lifecycle semantics: AgreementState transitions, updateNonce progression, and the
  * RCA/RCAU struct shapes. Claim computation (pricing formula) is decoupled — delegated
- * to the collector via {IRecurringCollector.getMaxNextClaim}, so a collector with a
+ * to the collector via {IAgreementCollector.getMaxNextClaim}, so a collector with a
  * different pricing model can be used without changes to this contract. Lifecycle changes (new states,
  * different update mechanics) would require coordinated updates to both contracts.
  *
@@ -365,14 +366,14 @@ contract RecurringAgreementManager is
 
     /// @inheritdoc IRecurringAgreementManagement
     function offerAgreement(
-        IRecurringCollector collector,
+        IAgreementCollector collector,
         uint8 offerType,
         bytes calldata offerData
     ) external onlyRole(AGREEMENT_MANAGER_ROLE) nonReentrant returns (bytes16 agreementId) {
         require(hasRole(COLLECTOR_ROLE, address(collector)), UnauthorizedCollector(address(collector)));
 
         // Forward to collector — no callback to msg.sender, we reconcile after return
-        IRecurringCollector.OfferResult memory result = collector.offer(offerType, offerData, 0);
+        IAgreementCollector.OfferResult memory result = collector.offer(offerType, offerData, 0);
         agreementId = result.agreementId;
 
         require(result.serviceProvider != address(0), ServiceProviderZeroAddress());
@@ -389,7 +390,7 @@ contract RecurringAgreementManager is
         uint16 options
     ) external onlyRole(AGREEMENT_MANAGER_ROLE) nonReentrant {
         // Forward to collector — no callback to msg.sender, we reconcile after return
-        IRecurringCollector(collector).cancel(agreementId, versionHash, options);
+        IAgreementCollector(collector).cancel(agreementId, versionHash, options);
         _reconcileAgreement(_getStorage(), collector, agreementId);
     }
 
@@ -521,7 +522,7 @@ contract RecurringAgreementManager is
     // --- Escrow state ---
 
     /// @inheritdoc IRecurringAgreements
-    function getSumMaxNextClaim(IRecurringCollector collector, address provider) external view returns (uint256) {
+    function getSumMaxNextClaim(IAgreementCollector collector, address provider) external view returns (uint256) {
         return _getStorage().collectors[address(collector)].providers[provider].sumMaxNextClaim;
     }
 
@@ -537,7 +538,7 @@ contract RecurringAgreementManager is
 
     /// @inheritdoc IRecurringAgreements
     function getEscrowAccount(
-        IRecurringCollector collector,
+        IAgreementCollector collector,
         address provider
     ) external view returns (IPaymentsEscrow.EscrowAccount memory account) {
         return _fetchEscrowAccount(address(collector), provider);
@@ -629,7 +630,7 @@ contract RecurringAgreementManager is
         CollectorProviderData storage cpd = _s.collectors[collector].providers[provider];
 
         // Refresh cached maxNextClaim from collector
-        uint256 newMaxClaim = IRecurringCollector(collector).getMaxNextClaim(agreementId);
+        uint256 newMaxClaim = IAgreementCollector(collector).getMaxNextClaim(agreementId);
 
         // Update agreement + all derived totals (reads old value from storage)
         uint256 oldMaxClaim = _adjustMaxNextClaim(_s, cpd, agreement, newMaxClaim);

@@ -330,7 +330,7 @@ contract RecurringCollectorCoverageGapsTest is RecurringCollectorSharedTest {
         emit IRecurringCollector.PayerCallbackFailed(
             agreementId,
             address(payer),
-            IRecurringCollector.PayerCallbackStage.EligibilityCheck
+            IAgreementCollector.PayerCallbackStage.EligibilityCheck
         );
 
         vm.prank(rca.dataService);

@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import { OFFER_TYPE_NEW } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
+import {
+    OFFER_TYPE_NEW,
+    IAgreementCollector
+} from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 
@@ -126,7 +129,7 @@ contract RecurringCollectorAfterCollectionTest is RecurringCollectorSharedTest {
         emit IRecurringCollector.PayerCallbackFailed(
             agreementId,
             address(approver),
-            IRecurringCollector.PayerCallbackStage.AfterCollection
+            IAgreementCollector.PayerCallbackStage.AfterCollection
         );
 
         // Collection should still succeed despite callback reverting

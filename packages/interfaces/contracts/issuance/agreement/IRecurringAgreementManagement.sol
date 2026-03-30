@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.22;
 
-import { IRecurringCollector } from "../../horizon/IRecurringCollector.sol";
+import { IAgreementCollector } from "../../horizon/IAgreementCollector.sol";
 
 /**
  * @title Interface for agreement lifecycle operations on {RecurringAgreementManager}
@@ -123,7 +123,7 @@ interface IRecurringAgreementManagement {
      * @return agreementId The deterministic agreement ID
      */
     function offerAgreement(
-        IRecurringCollector collector,
+        IAgreementCollector collector,
         uint8 offerType,
         bytes calldata offerData
     ) external returns (bytes16 agreementId);
