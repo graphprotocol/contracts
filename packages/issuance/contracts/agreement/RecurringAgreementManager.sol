@@ -398,7 +398,6 @@ contract RecurringAgreementManager is
 
         CollectorProviderData storage cpd = _s.collectors[address(collector)].providers[provider];
 
-        _adjustMaxNextClaim(_s, cpd, agreement, 0);
         _removeAgreement(_s, cpd, address(collector), provider, agreementId);
     }
 
@@ -679,6 +678,16 @@ contract RecurringAgreementManager is
         emit AgreementAdded(agreementId, collector, data.dataService, provider);
     }
 
+    /**
+     * @notice Remove an agreement and reconcile the provider's escrow.
+     * @dev Zeroes the agreement's maxNextClaim contribution before deleting, so callers
+     * do not need to call {_adjustMaxNextClaim} themselves.
+     * @param _s The storage reference
+     * @param cpd The collector-provider data storage reference
+     * @param collector The collector contract address
+     * @param provider Service provider address
+     * @param agreementId The agreement ID to remove
+     */
     function _removeAgreement(
         RecurringAgreementManagerStorage storage _s,
         CollectorProviderData storage cpd,
@@ -686,6 +695,7 @@ contract RecurringAgreementManager is
         address provider,
         bytes16 agreementId
     ) private {
+        _adjustMaxNextClaim(_s, cpd, _s.collectors[collector].agreements[agreementId], 0);
         cpd.agreements.remove(bytes32(agreementId));
         delete _s.collectors[collector].agreements[agreementId];
         emit AgreementRemoved(agreementId);
@@ -760,10 +770,9 @@ contract RecurringAgreementManager is
 
         CollectorProviderData storage cpd = _s.collectors[collector].providers[provider];
 
-        // Sync snapshot before decisions: the escrow balance may have changed externally
-        // (e.g. RecurringCollector.collect drained it before calling afterCollection).
+        // Sync snapshot before decisions: the escrow balance may have changed externally.
         // Without this, totalEscrowDeficit is stale → spare is overstated → basis is inflated
-        // → deposit attempt for tokens we don't have → revert swallowed by try/catch → snap
+        // → deposit attempt for tokens we don't have → revert swallowed → snap
         // stays permanently stale.  Reading the fresh balance here makes the function
         // self-correcting regardless of prior callback failures.
         _setEscrowSnap(_s, cpd, collector, provider);
