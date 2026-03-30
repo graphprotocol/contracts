@@ -3,6 +3,7 @@ pragma solidity ^0.8.27;
 
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
 import { IIndexingAgreement } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IIndexingAgreement.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 
@@ -102,7 +103,7 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
         _sharedAssert(beforeCollect, afterCollect, expectedTokens, tokensCollected);
     }
 
-    function test_SubgraphService_CollectIndexingRewards_CancelsAgreementWhenOverAllocated_Integration(
+    function test_SubgraphService_CollectIndexingRewards_ResizesToZeroWhenOverAllocated_Integration(
         Seed memory seed
     ) public {
         // Setup context and indexer with active agreement
@@ -123,16 +124,21 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
         // Advance past allocation creation epoch so POI is not considered "too young"
         vm.roll(block.number + EPOCH_LENGTH);
 
-        // Collect indexing rewards - this should trigger allocation closure and agreement cancellation
+        // Collect indexing rewards - resizes allocation to zero (not close+cancel)
         bytes memory collectData = abi.encode(indexerState.allocationId, keccak256("poi"), bytes("metadata"));
         resetPrank(indexerState.addr);
         subgraphService.collect(indexerState.addr, IGraphPayments.PaymentTypes.IndexingRewards, collectData);
 
-        // Verify the indexing agreement was properly cancelled
+        // Allocation resized to zero but stays open; agreement remains active
+        IAllocation.State memory allocation = subgraphService.getAllocation(indexerState.allocationId);
+        assertEq(allocation.closedAt, 0, "allocation should still be open");
+        assertEq(allocation.tokens, 0, "allocation should be resized to zero");
+
         IIndexingAgreement.AgreementWrapper memory agreement = subgraphService.getIndexingAgreement(agreementId);
         assertEq(
             uint8(agreement.collectorAgreement.state),
-            uint8(IRecurringCollector.AgreementState.CanceledByServiceProvider)
+            uint8(IRecurringCollector.AgreementState.Accepted),
+            "agreement should remain active"
         );
     }
 

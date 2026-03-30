@@ -281,7 +281,7 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
         );
     }
 
-    function test_SubgraphService_CollectIndexingFees_Reverts_WhenCloseStaleAllocation(
+    function test_SubgraphService_CollectIndexingFees_AfterCloseStaleAllocation_ResizesToZero(
         Seed memory seed,
         uint256 entities,
         bytes32 poi
@@ -292,20 +292,13 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
 
         skip(MAX_POI_STALENESS + 1);
         resetPrank(indexerState.addr);
+        // closeStaleAllocation now resizes to zero instead of hard-closing,
+        // so the allocation remains open and collection can still proceed.
         subgraphService.closeStaleAllocation(indexerState.allocationId);
 
-        uint256 currentEpochBlock = epochManager.currentEpochBlock();
-
-        bytes memory expectedErr = abi.encodeWithSelector(
-            AllocationHandler.AllocationHandlerAllocationClosed.selector,
-            indexerState.allocationId
-        );
-        vm.expectRevert(expectedErr);
-        subgraphService.collect(
-            indexerState.addr,
-            IGraphPayments.PaymentTypes.IndexingFee,
-            _encodeCollectDataV1(acceptedAgreementId, entities, poi, currentEpochBlock, bytes(""))
-        );
+        IAllocation.State memory allocation = subgraphService.getAllocation(indexerState.allocationId);
+        assertEq(allocation.closedAt, 0, "allocation should still be open after resize-to-zero");
+        assertEq(allocation.tokens, 0, "allocation tokens should be zero");
     }
 
     function test_SubgraphService_CollectIndexingFees_Revert_WhenNotCollectable(
