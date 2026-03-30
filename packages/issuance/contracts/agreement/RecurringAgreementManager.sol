@@ -374,8 +374,8 @@ contract RecurringAgreementManager is
     function reconcileAgreement(
         IAgreementCollector collector,
         bytes16 agreementId
-    ) external whenNotPaused nonReentrant returns (bool exists) {
-        exists = !_reconcileAgreement(_getStorage(), address(collector), agreementId);
+    ) external whenNotPaused nonReentrant returns (bool tracked) {
+        tracked = _reconcileAgreement(_getStorage(), address(collector), agreementId);
     }
 
     /// @inheritdoc IRecurringAgreementManagement
@@ -602,15 +602,15 @@ contract RecurringAgreementManager is
      * @param _s The storage reference
      * @param collector The collector contract address
      * @param agreementId The agreement ID
-     * @return deleted True if the agreement was removed (or never registered)
+     * @return tracked True if the agreement is still tracked after this call
      */
     function _reconcileAgreement(
         RecurringAgreementManagerStorage storage _s,
         address collector,
         bytes16 agreementId
-    ) private returns (bool deleted) {
+    ) private returns (bool tracked) {
         address provider = _getAgreementProvider(_s, collector, agreementId);
-        if (provider == address(0)) return true;
+        if (provider == address(0)) return false;
 
         AgreementInfo storage agreement = _s.collectors[collector].agreements[agreementId];
         CollectorProviderData storage cpd = _s.collectors[collector].providers[provider];
@@ -622,8 +622,8 @@ contract RecurringAgreementManager is
         uint256 oldMaxClaim = _adjustMaxNextClaim(_s, cpd, agreement, newMaxClaim);
         if (oldMaxClaim != newMaxClaim) emit AgreementReconciled(agreementId, oldMaxClaim, newMaxClaim);
 
-        deleted = newMaxClaim == 0; // Delete if fully settled
-        if (deleted) _removeAgreement(_s, cpd, collector, provider, agreementId);
+        tracked = newMaxClaim != 0;
+        if (!tracked) _removeAgreement(_s, cpd, collector, provider, agreementId);
         else _reconcileProviderEscrow(_s, collector, provider);
     }
 

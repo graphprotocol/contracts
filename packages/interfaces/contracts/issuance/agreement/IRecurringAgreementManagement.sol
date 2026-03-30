@@ -139,15 +139,15 @@ interface IRecurringAgreementManagement {
      * @notice Reconcile a single agreement: re-read on-chain state, recalculate
      * max next claim, update escrow, and delete the agreement if fully settled.
      * @dev Permissionless. Handles all agreement states:
-     * - NotAccepted before deadline: keeps pre-offer estimate (returns true)
-     * - NotAccepted past deadline: zeroes and deletes (returns false)
+     * - NotAccepted before deadline: keeps pre-offer estimate (tracked = true)
+     * - NotAccepted past deadline: zeroes and deletes (tracked = false)
      * - Accepted/Canceled: reconciles maxNextClaim, deletes if zero
      * Should be called after collections, cancellations, or agreement updates.
      * @param collector The collector contract address for this agreement
      * @param agreementId The agreement ID to reconcile
-     * @return exists True if the agreement is still tracked after this call
+     * @return tracked True if the agreement is still tracked after this call
      */
-    function reconcileAgreement(IAgreementCollector collector, bytes16 agreementId) external returns (bool exists);
+    function reconcileAgreement(IAgreementCollector collector, bytes16 agreementId) external returns (bool tracked);
 
     /**
      * @notice Force-remove a tracked agreement whose collector is unresponsive.
