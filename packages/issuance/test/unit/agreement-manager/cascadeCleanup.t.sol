@@ -107,7 +107,7 @@ contract RecurringAgreementManagerCascadeCleanupTest is RecurringAgreementManage
         assertEq(address(agreementManager.getCollectorAt(0)), address(recurringCollector));
         assertEq(agreementManager.getProviderCount(IAgreementCollector(address(recurringCollector))), 1);
         assertEq(agreementManager.getProviderAt(IAgreementCollector(address(recurringCollector)), 0), indexer);
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
     }
 
     function test_Cascade_TwoAgreements_SamePair_CountIncrements() public {
@@ -120,7 +120,7 @@ contract RecurringAgreementManagerCascadeCleanupTest is RecurringAgreementManage
         // Sets still have one entry each, but pair count is 2
         assertEq(agreementManager.getCollectorCount(), 1);
         assertEq(agreementManager.getProviderCount(IAgreementCollector(address(recurringCollector))), 1);
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 2);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 2);
     }
 
     function test_Cascade_MultiCollector_BothTracked() public {
@@ -164,7 +164,7 @@ contract RecurringAgreementManagerCascadeCleanupTest is RecurringAgreementManage
         // Pair still tracked
         assertEq(agreementManager.getCollectorCount(), 1);
         assertEq(agreementManager.getProviderCount(IAgreementCollector(address(recurringCollector))), 1);
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
     }
 
     function test_Cascade_ReconcileLast_PairStaysWhileEscrowThawing() public {
@@ -175,7 +175,7 @@ contract RecurringAgreementManagerCascadeCleanupTest is RecurringAgreementManage
         agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), id);
 
         // Agreement removed, but pair stays tracked while escrow is thawing
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
         assertEq(agreementManager.getCollectorCount(), 1, "collector stays tracked during thaw");
         assertEq(
             agreementManager.getProviderCount(IAgreementCollector(address(recurringCollector))),
@@ -246,8 +246,8 @@ contract RecurringAgreementManagerCascadeCleanupTest is RecurringAgreementManage
             2,
             "both providers tracked during thaw"
         );
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer2), 1);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer2), 1);
 
         // After thaw period, reconcileProvider reconciles escrow and removes
         vm.warp(block.timestamp + paymentsEscrow.THAWING_PERIOD() + 1);
@@ -280,7 +280,7 @@ contract RecurringAgreementManagerCascadeCleanupTest is RecurringAgreementManage
 
         assertEq(agreementManager.getCollectorCount(), 1);
         assertEq(agreementManager.getProviderCount(IAgreementCollector(address(recurringCollector))), 1);
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
     }
 
     // -- Tests: Cancel also cascades --
@@ -294,7 +294,7 @@ contract RecurringAgreementManagerCascadeCleanupTest is RecurringAgreementManage
         _cancelAgreement(id);
 
         // Agreement gone, but pair stays tracked during escrow thaw
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
         assertEq(agreementManager.getCollectorCount(), 1, "stays tracked during thaw");
 
         // After thaw period, reconcileProvider reconciles escrow and removes
@@ -363,15 +363,15 @@ contract RecurringAgreementManagerCascadeCleanupTest is RecurringAgreementManage
         _setAgreementCanceledBySP(id, rca);
 
         // First call: reconciles agreement (deletes it), starts thaw, but pair stays
-        (uint256 removed, bool pairExists) = agreementHelper.reconcilePair(IAgreementCollector(address(recurringCollector)), indexer);
+        (uint256 removed, bool providerExists) = agreementHelper.reconcile(IAgreementCollector(address(recurringCollector)), indexer);
         assertEq(removed, 1);
-        assertTrue(pairExists, "pair stays during thaw");
+        assertTrue(providerExists, "pair stays during thaw");
 
         // Second call after thaw period: completes withdrawal and removes pair
         vm.warp(block.timestamp + paymentsEscrow.THAWING_PERIOD() + 1);
-        (removed, pairExists) = agreementHelper.reconcilePair(IAgreementCollector(address(recurringCollector)), indexer);
+        (removed, providerExists) = agreementHelper.reconcile(IAgreementCollector(address(recurringCollector)), indexer);
         assertEq(removed, 0, "no agreements left to reconcile");
-        assertFalse(pairExists, "pair gone after escrow recovered");
+        assertFalse(providerExists, "pair gone after escrow recovered");
     }
 
     function test_Helper_ReconcileCollector_TwoPhase() public {

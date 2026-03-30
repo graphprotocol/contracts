@@ -69,7 +69,7 @@ contract RecurringAgreementHelperTest is RecurringAgreementManagerSharedTest {
         // Fund for reconcile
         token.mint(address(agreementManager), 1_000_000 ether);
 
-        agreementHelper.reconcilePair(IAgreementCollector(address(recurringCollector)), indexer);
+        agreementHelper.reconcile(IAgreementCollector(address(recurringCollector)), indexer);
 
         // Agreement 1: CanceledBySP -> maxClaim = 0
         assertEq(agreementManager.getAgreementMaxNextClaim(IAgreementCollector(address(recurringCollector)), id1), 0);
@@ -85,7 +85,7 @@ contract RecurringAgreementHelperTest is RecurringAgreementManagerSharedTest {
     function test_Reconcile_EmptyProvider() public {
         // reconcile for a provider with no agreements — should be a no-op
         address unknown = makeAddr("unknown");
-        agreementHelper.reconcilePair(IAgreementCollector(address(recurringCollector)), unknown);
+        agreementHelper.reconcile(IAgreementCollector(address(recurringCollector)), unknown);
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), unknown), 0);
     }
 
@@ -103,7 +103,7 @@ contract RecurringAgreementHelperTest is RecurringAgreementManagerSharedTest {
         _setAgreementAccepted(agreementId, rca, uint64(block.timestamp));
 
         // First reconcile
-        agreementHelper.reconcilePair(IAgreementCollector(address(recurringCollector)), indexer);
+        agreementHelper.reconcile(IAgreementCollector(address(recurringCollector)), indexer);
         uint256 escrowAfterFirst = agreementManager.getSumMaxNextClaim(_collector(), indexer);
         uint256 maxClaimAfterFirst = agreementManager.getAgreementMaxNextClaim(
             IAgreementCollector(address(recurringCollector)),
@@ -112,7 +112,7 @@ contract RecurringAgreementHelperTest is RecurringAgreementManagerSharedTest {
 
         // Second reconcile should produce identical results (idempotent)
         vm.recordLogs();
-        agreementHelper.reconcilePair(IAgreementCollector(address(recurringCollector)), indexer);
+        agreementHelper.reconcile(IAgreementCollector(address(recurringCollector)), indexer);
 
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), escrowAfterFirst);
         assertEq(
@@ -174,7 +174,7 @@ contract RecurringAgreementHelperTest is RecurringAgreementManagerSharedTest {
         vm.warp(lastCollectionAt);
         token.mint(address(agreementManager), 1_000_000 ether);
 
-        agreementHelper.reconcilePair(IAgreementCollector(address(recurringCollector)), indexer);
+        agreementHelper.reconcile(IAgreementCollector(address(recurringCollector)), indexer);
 
         assertEq(agreementManager.getAgreementMaxNextClaim(IAgreementCollector(address(recurringCollector)), id1), 0);
         assertEq(

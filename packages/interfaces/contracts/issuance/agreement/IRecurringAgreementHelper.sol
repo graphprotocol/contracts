@@ -40,7 +40,7 @@ interface IRecurringAgreementHelper {
     }
 
     /**
-     * @notice Per-(collector, provider) pair financial summary
+     * @notice Per-(collector, provider) financial summary
      * @param collector The collector address
      * @param provider The provider address
      * @param agreementCount Number of agreements for this pair
@@ -48,7 +48,7 @@ interface IRecurringAgreementHelper {
      * @param escrowSnap Cached escrow balance (compare with escrow.balance to detect staleness)
      * @param escrow Escrow account state (balance, tokensThawing, thawEndTimestamp)
      */
-    struct PairAudit {
+    struct ProviderAudit {
         IAgreementCollector collector;
         address provider;
         uint256 agreementCount;
@@ -66,32 +66,35 @@ interface IRecurringAgreementHelper {
     function auditGlobal() external view returns (GlobalAudit memory audit);
 
     /**
-     * @notice All pair summaries for a specific collector
+     * @notice All provider summaries for a specific collector
      * @param collector The collector address
-     * @return pairs Array of pair audit structs
+     * @return providers Array of provider audit structs
      */
-    function auditPairs(IAgreementCollector collector) external view returns (PairAudit[] memory pairs);
+    function auditProviders(IAgreementCollector collector) external view returns (ProviderAudit[] memory providers);
 
     /**
-     * @notice Paginated pair summaries for a collector
+     * @notice Paginated provider summaries for a collector
      * @param collector The collector address
      * @param offset Index to start from
      * @param count Maximum number to return
-     * @return pairs Array of pair audit structs
+     * @return providers Array of provider audit structs
      */
-    function auditPairs(
+    function auditProviders(
         IAgreementCollector collector,
         uint256 offset,
         uint256 count
-    ) external view returns (PairAudit[] memory pairs);
+    ) external view returns (ProviderAudit[] memory providers);
 
     /**
-     * @notice Single pair summary
+     * @notice Single provider summary
      * @param collector The collector address
      * @param provider The provider address
-     * @return pair The pair audit struct
+     * @return providerAudit The provider audit struct
      */
-    function auditPair(IAgreementCollector collector, address provider) external view returns (PairAudit memory pair);
+    function auditProvider(
+        IAgreementCollector collector,
+        address provider
+    ) external view returns (ProviderAudit memory providerAudit);
 
     // -- Enumeration Views --
 
@@ -101,7 +104,7 @@ interface IRecurringAgreementHelper {
      * @param provider The provider address
      * @return agreementIds The array of agreement IDs
      */
-    function getPairAgreements(
+    function getAgreements(
         IAgreementCollector collector,
         address provider
     ) external view returns (bytes16[] memory agreementIds);
@@ -114,7 +117,7 @@ interface IRecurringAgreementHelper {
      * @param count Maximum number to return (clamped to available)
      * @return agreementIds The array of agreement IDs
      */
-    function getPairAgreements(
+    function getAgreements(
         IAgreementCollector collector,
         address provider,
         uint256 offset,
@@ -179,7 +182,7 @@ interface IRecurringAgreementHelper {
      * @return staleAgreements Array of staleness info per agreement
      * @return escrowStale True if escrowSnap differs from actual escrow balance
      */
-    function checkPairStaleness(
+    function checkStaleness(
         IAgreementCollector collector,
         address provider
     ) external view returns (AgreementStaleness[] memory staleAgreements, bool escrowStale);
@@ -193,12 +196,12 @@ interface IRecurringAgreementHelper {
      * @param collector The collector address
      * @param provider The provider address
      * @return removed Number of agreements removed
-     * @return pairExists True if the pair is still tracked
+     * @return providerExists True if the provider is still tracked
      */
-    function reconcilePair(
+    function reconcile(
         IAgreementCollector collector,
         address provider
-    ) external returns (uint256 removed, bool pairExists);
+    ) external returns (uint256 removed, bool providerExists);
 
     /**
      * @notice Reconcile all pairs for a collector, then attempt collector removal.

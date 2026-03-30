@@ -25,7 +25,7 @@ contract RecurringAgreementManagerCancelOfferedTest is RecurringAgreementManager
         );
 
         bytes16 agreementId = _offerAgreement(rca);
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
 
         uint256 maxClaim = 1 ether * 3600 + 100 ether;
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), maxClaim);
@@ -33,7 +33,7 @@ contract RecurringAgreementManagerCancelOfferedTest is RecurringAgreementManager
         bool gone = _cancelAgreement(agreementId);
         assertTrue(gone);
 
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), 0);
         assertEq(
             agreementManager.getAgreementMaxNextClaim(IAgreementCollector(address(recurringCollector)), agreementId),

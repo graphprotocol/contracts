@@ -87,7 +87,7 @@ contract RecurringAgreementManagerEscrowEdgeCasesTest is RecurringAgreementManag
         bytes16 agreementId = _offerAgreement(rca);
 
         // Tracked with non-zero maxNextClaim
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
         assertTrue(
             agreementManager
                 .getAgreementInfo(IAgreementCollector(address(recurringCollector)), agreementId)
@@ -98,7 +98,7 @@ contract RecurringAgreementManagerEscrowEdgeCasesTest is RecurringAgreementManag
         // Cancel without ever accepting — cleans up immediately
         _cancelAgreement(agreementId);
         assertEq(
-            agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer),
+            agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer),
             0,
             "canceled REGISTERED agreement should be removed"
         );
@@ -107,7 +107,7 @@ contract RecurringAgreementManagerEscrowEdgeCasesTest is RecurringAgreementManag
             0,
             "maxNextClaim should be 0 after cleanup"
         );
-        assertEq(agreementManager.getSumMaxNextClaimAll(), 0, "global maxNextClaim should be 0");
+        assertEq(agreementManager.getSumMaxNextClaim(), 0, "global maxNextClaim should be 0");
     }
 
     /// @notice After aging past endsAt, reconcile removes a REGISTERED agreement because
@@ -122,7 +122,7 @@ contract RecurringAgreementManagerEscrowEdgeCasesTest is RecurringAgreementManag
         );
 
         bytes16 agreementId = _offerAgreement(rca);
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
 
         // Warp past endsAt — collector reports maxNextClaim = 0
         vm.warp(block.timestamp + 31 days);
@@ -130,11 +130,11 @@ contract RecurringAgreementManagerEscrowEdgeCasesTest is RecurringAgreementManag
         // Reconcile removes the expired agreement automatically
         agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
         assertEq(
-            agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer),
+            agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer),
             0,
             "expired REGISTERED agreement should be auto-removed on reconcile"
         );
-        assertEq(agreementManager.getSumMaxNextClaimAll(), 0, "global sum should be 0");
+        assertEq(agreementManager.getSumMaxNextClaim(), 0, "global sum should be 0");
     }
 
     /// @notice REGISTERED-only agreement contributes to escrow tracking while alive
@@ -151,7 +151,7 @@ contract RecurringAgreementManagerEscrowEdgeCasesTest is RecurringAgreementManag
         uint256 expectedMaxClaim = 1 ether * 3600 + 100 ether;
 
         // In Full basis mode, the escrow should have been deposited
-        assertEq(agreementManager.getSumMaxNextClaimAll(), expectedMaxClaim, "global sum should include REGISTERED");
+        assertEq(agreementManager.getSumMaxNextClaim(), expectedMaxClaim, "global sum should include REGISTERED");
         assertEq(
             agreementManager.getSumMaxNextClaim(_collector(), indexer),
             expectedMaxClaim,
@@ -194,7 +194,7 @@ contract RecurringAgreementManagerEscrowEdgeCasesTest is RecurringAgreementManag
         bytes16 agreementId = agreementManager.offerAgreement(_collector(), OFFER_TYPE_NEW, abi.encode(rca));
 
         uint256 expectedMaxClaim = 10 ether * 3600 + 500 ether; // 36500 ether
-        assertEq(agreementManager.getSumMaxNextClaimAll(), expectedMaxClaim, "sum should reflect full maxNextClaim");
+        assertEq(agreementManager.getSumMaxNextClaim(), expectedMaxClaim, "sum should reflect full maxNextClaim");
 
         // RAM only had 100 ether. In Full mode, spare = balance - deficit.
         // Since deposit uses available balance, only partial deposit was possible.
@@ -280,7 +280,7 @@ contract RecurringAgreementManagerEscrowEdgeCasesTest is RecurringAgreementManag
         // Verify isolated sums
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), maxClaim1, "indexer1 sum");
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer2), maxClaim2, "indexer2 sum");
-        assertEq(agreementManager.getSumMaxNextClaimAll(), maxClaim1 + maxClaim2, "global sum");
+        assertEq(agreementManager.getSumMaxNextClaim(), maxClaim1 + maxClaim2, "global sum");
 
         // Verify isolated escrow deposits (Full mode)
         assertEq(_escrowBalance(address(recurringCollector), indexer), maxClaim1, "indexer1 escrow");
@@ -301,7 +301,7 @@ contract RecurringAgreementManagerEscrowEdgeCasesTest is RecurringAgreementManag
         );
 
         // Global sum reflects only indexer2
-        assertEq(agreementManager.getSumMaxNextClaimAll(), maxClaim2, "global sum after indexer1 cancel");
+        assertEq(agreementManager.getSumMaxNextClaim(), maxClaim2, "global sum after indexer1 cancel");
     }
 
     /// @notice One provider's thaw-in-progress does not affect another's escrow min/max
@@ -388,7 +388,7 @@ contract RecurringAgreementManagerEscrowEdgeCasesTest is RecurringAgreementManag
 
         // Agreement is still tracked (eligibility doesn't auto-remove)
         assertEq(
-            agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer),
+            agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer),
             1,
             "agreement should persist despite ineligibility"
         );

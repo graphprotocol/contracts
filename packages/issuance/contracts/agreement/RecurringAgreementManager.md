@@ -63,7 +63,7 @@ During the pending update window, both current and pending maxNextClaim are escr
 
 Collection flows through `SubgraphService → RecurringCollector → PaymentsEscrow`. RecurringCollector then calls `IAgreementOwner.afterCollection` on the payer, which triggers automatic reconciliation and escrow top-up in the same transaction. Manual reconcile is still available as a fallback.
 
-The manager exposes `reconcileAgreement` (gas-predictable, per-agreement) and `reconcileProvider` (pair-level escrow rebalancing). Batch convenience functions `reconcilePair`, `reconcileCollector`, and `reconcileAll` are in the stateless `RecurringAgreementHelper` contract, which iterates agreements and delegates each reconciliation back to the manager.
+The manager exposes `reconcileAgreement` (gas-predictable, per-agreement) and `reconcileProvider` (pair-level escrow rebalancing). Batch convenience functions `reconcile`, `reconcileCollector`, and `reconcileAll` are in the stateless `RecurringAgreementHelper` contract, which iterates agreements and delegates each reconciliation back to the manager.
 
 ### Cancel / Remove
 
@@ -138,7 +138,7 @@ The min gate is stricter (0.5x < 1.0625x), giving three effective states as `spa
 
 ### Reconciliation
 
-Per-agreement reconciliation (`reconcileAgreement`) re-reads agreement state from RecurringCollector and updates `sumMaxNextClaim`. Pair-level escrow rebalancing and cleanup is O(1) via `reconcileProvider(collector, provider)`. Batch helpers `reconcilePair`, `reconcileCollector`, and `reconcileAll` live in the separate `RecurringAgreementHelper` contract — they are stateless wrappers that call `reconcileAgreement` in a loop, then call `reconcileProvider` per pair.
+Per-agreement reconciliation (`reconcileAgreement`) re-reads agreement state from RecurringCollector and updates `sumMaxNextClaim`. Pair-level escrow rebalancing and cleanup is O(1) via `reconcileProvider(collector, provider)`. Batch helpers `reconcile`, `reconcileCollector`, and `reconcileAll` live in the separate `RecurringAgreementHelper` contract — they are stateless wrappers that call `reconcileAgreement` in a loop, then call `reconcileProvider` per pair.
 
 ### Global Tracking
 
@@ -164,7 +164,7 @@ Per-agreement reconciliation (`reconcileAgreement`) re-reads agreement state fro
   - **AGREEMENT_MANAGER_ROLE**: Offers agreements/updates, cancels agreements
 - **PAUSE_ROLE**: Pauses contract (reconcile remains available); `emergencyClearEligibilityOracle`
 - **Permissionless**: `reconcileAgreement`, `reconcileProvider`
-- **RecurringAgreementHelper** (permissionless): `reconcilePair`, `reconcileCollector`, `reconcileAll`
+- **RecurringAgreementHelper** (permissionless): `reconcile`, `reconcileCollector`, `reconcileAll`
 
 ## Deployment
 

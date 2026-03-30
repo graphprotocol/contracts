@@ -41,7 +41,7 @@ contract RecurringAgreementManagerUpdateEscrowTest is RecurringAgreementManagerS
 
         agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
 
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
 
         // balance should now be fully thawing
         IPaymentsEscrow.EscrowAccount memory account;

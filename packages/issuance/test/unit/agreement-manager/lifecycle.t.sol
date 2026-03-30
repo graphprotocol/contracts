@@ -116,7 +116,7 @@ contract RecurringAgreementLifecycleTest is RecurringAgreementManagerSharedTest 
         assertEq(g.sumMaxNextClaimAll, maxClaim);
         assertEq(g.collectorCount, 1);
 
-        IRecurringAgreementHelper.PairAudit memory p = agreementHelper.auditPair(IAgreementCollector(address(recurringCollector)), indexer);
+        IRecurringAgreementHelper.ProviderAudit memory p = agreementHelper.auditProvider(IAgreementCollector(address(recurringCollector)), indexer);
         assertEq(p.agreementCount, 1);
         assertEq(p.sumMaxNextClaim, maxClaim);
         assertEq(p.escrow.balance, maxClaim); // Full mode
@@ -129,7 +129,7 @@ contract RecurringAgreementLifecycleTest is RecurringAgreementManagerSharedTest 
         _setAgreementCollected(agreementId, rca, uint64(block.timestamp - 1800), uint64(block.timestamp));
 
         // 6. Reconcile — maxInitialTokens drops out after first collection
-        agreementHelper.reconcilePair(IAgreementCollector(address(recurringCollector)), indexer);
+        agreementHelper.reconcile(IAgreementCollector(address(recurringCollector)), indexer);
         uint256 reducedMaxClaim = 1 ether * 3600; // no more initial
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), reducedMaxClaim);
 
@@ -137,7 +137,7 @@ contract RecurringAgreementLifecycleTest is RecurringAgreementManagerSharedTest 
         _setAgreementCanceledBySP(agreementId, rca);
 
         // 8. Reconcile
-        (uint256 removed, ) = agreementHelper.reconcilePair(IAgreementCollector(address(recurringCollector)), indexer);
+        (uint256 removed, ) = agreementHelper.reconcile(IAgreementCollector(address(recurringCollector)), indexer);
         assertEq(removed, 1);
 
         // 9. Agreements gone, but escrow still thawing — collector stays tracked
@@ -146,19 +146,19 @@ contract RecurringAgreementLifecycleTest is RecurringAgreementManagerSharedTest 
         assertEq(g.collectorCount, 1); // still tracked — escrow not yet drained
 
         // 10. Escrow is thawing
-        p = agreementHelper.auditPair(IAgreementCollector(address(recurringCollector)), indexer);
+        p = agreementHelper.auditProvider(IAgreementCollector(address(recurringCollector)), indexer);
         assertTrue(0 < p.escrow.tokensThawing);
 
         // 11. Wait for thaw and withdraw
         vm.warp(block.timestamp + THAW_PERIOD + 1);
         agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
-        p = agreementHelper.auditPair(IAgreementCollector(address(recurringCollector)), indexer);
+        p = agreementHelper.auditProvider(IAgreementCollector(address(recurringCollector)), indexer);
         assertEq(p.escrow.balance, 0);
         assertEq(p.escrow.tokensThawing, 0);
 
-        // 12. Now that escrow is drained, reconcilePair removes tracking
-        agreementHelper.reconcilePair(IAgreementCollector(address(recurringCollector)), indexer);
+        // 12. Now that escrow is drained, reconcile removes tracking
+        agreementHelper.reconcile(IAgreementCollector(address(recurringCollector)), indexer);
 
         g = agreementHelper.auditGlobal();
         assertEq(g.collectorCount, 0); // fully cleaned up
@@ -180,7 +180,7 @@ contract RecurringAgreementLifecycleTest is RecurringAgreementManagerSharedTest 
         _setAgreementAccepted(agreementId, rca, uint64(block.timestamp));
         uint256 maxClaim = 1 ether * 3600 + 100 ether;
 
-        IRecurringAgreementHelper.PairAudit memory p = agreementHelper.auditPair(IAgreementCollector(address(recurringCollector)), indexer);
+        IRecurringAgreementHelper.ProviderAudit memory p = agreementHelper.auditProvider(IAgreementCollector(address(recurringCollector)), indexer);
         assertEq(p.escrow.balance, maxClaim);
         assertEq(p.escrow.tokensThawing, 0);
 
@@ -195,7 +195,7 @@ contract RecurringAgreementLifecycleTest is RecurringAgreementManagerSharedTest 
         // Balance == max so no thaw needed (balanced)
         agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
-        p = agreementHelper.auditPair(IAgreementCollector(address(recurringCollector)), indexer);
+        p = agreementHelper.auditProvider(IAgreementCollector(address(recurringCollector)), indexer);
         // In OnDemand with balance == max, no thaw
         assertEq(p.escrow.balance, maxClaim);
 
@@ -204,14 +204,14 @@ contract RecurringAgreementLifecycleTest is RecurringAgreementManagerSharedTest 
         agreementManager.setEscrowBasis(IRecurringEscrowManagement.EscrowBasis.JustInTime);
         agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
-        p = agreementHelper.auditPair(IAgreementCollector(address(recurringCollector)), indexer);
+        p = agreementHelper.auditProvider(IAgreementCollector(address(recurringCollector)), indexer);
         assertEq(p.escrow.tokensThawing, maxClaim); // thawing everything
 
         // Wait for thaw and withdraw
         vm.warp(block.timestamp + THAW_PERIOD + 1);
         agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
-        p = agreementHelper.auditPair(IAgreementCollector(address(recurringCollector)), indexer);
+        p = agreementHelper.auditProvider(IAgreementCollector(address(recurringCollector)), indexer);
         assertEq(p.escrow.balance, 0);
 
         // Switch back to Full — should deposit again
@@ -219,7 +219,7 @@ contract RecurringAgreementLifecycleTest is RecurringAgreementManagerSharedTest 
         agreementManager.setEscrowBasis(IRecurringEscrowManagement.EscrowBasis.Full);
         agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
-        p = agreementHelper.auditPair(IAgreementCollector(address(recurringCollector)), indexer);
+        p = agreementHelper.auditProvider(IAgreementCollector(address(recurringCollector)), indexer);
         assertEq(p.escrow.balance, maxClaim);
         assertEq(p.escrow.tokensThawing, 0);
     }
@@ -267,10 +267,10 @@ contract RecurringAgreementLifecycleTest is RecurringAgreementManagerSharedTest 
         assertEq(g.collectorCount, 2);
 
         // Audit pairs per collector
-        IRecurringAgreementHelper.PairAudit[] memory c1Pairs = agreementHelper.auditPairs(IAgreementCollector(address(recurringCollector)));
+        IRecurringAgreementHelper.ProviderAudit[] memory c1Pairs = agreementHelper.auditProviders(IAgreementCollector(address(recurringCollector)));
         assertEq(c1Pairs.length, 2);
 
-        IRecurringAgreementHelper.PairAudit[] memory c2Pairs = agreementHelper.auditPairs(IAgreementCollector(address(collector2)));
+        IRecurringAgreementHelper.ProviderAudit[] memory c2Pairs = agreementHelper.auditProviders(IAgreementCollector(address(collector2)));
         assertEq(c2Pairs.length, 1);
         assertEq(c2Pairs[0].sumMaxNextClaim, maxClaim3);
 
@@ -280,9 +280,9 @@ contract RecurringAgreementLifecycleTest is RecurringAgreementManagerSharedTest 
         _setAgreementCanceledBySP(id1, rca1);
 
         // Selective reconcile: only collector1+indexer — escrow still thawing
-        (uint256 removed, bool pairExists) = agreementHelper.reconcilePair(IAgreementCollector(address(recurringCollector)), indexer);
+        (uint256 removed, bool providerExists) = agreementHelper.reconcile(IAgreementCollector(address(recurringCollector)), indexer);
         assertEq(removed, 1);
-        assertTrue(pairExists); // escrow still thawing
+        assertTrue(providerExists); // escrow still thawing
 
         // collector1 still has indexer2 (+ c1+indexer pair tracked due to thawing escrow)
         assertEq(agreementManager.getProviderCount(IAgreementCollector(address(recurringCollector))), 2);
@@ -305,16 +305,16 @@ contract RecurringAgreementLifecycleTest is RecurringAgreementManagerSharedTest 
         assertEq(g.collectorCount, 2); // still tracked — escrow not yet drained
 
         // Escrows should be thawing for all pairs
-        IRecurringAgreementHelper.PairAudit memory p1 = agreementHelper.auditPair(IAgreementCollector(address(recurringCollector)), indexer);
+        IRecurringAgreementHelper.ProviderAudit memory p1 = agreementHelper.auditProvider(IAgreementCollector(address(recurringCollector)), indexer);
         assertTrue(0 < p1.escrow.tokensThawing, "c1+indexer should be thawing");
 
-        IRecurringAgreementHelper.PairAudit memory p2 = agreementHelper.auditPair(
+        IRecurringAgreementHelper.ProviderAudit memory p2 = agreementHelper.auditProvider(
             IAgreementCollector(address(recurringCollector)),
             indexer2
         );
         assertTrue(0 < p2.escrow.tokensThawing, "c1+indexer2 should be thawing");
 
-        IRecurringAgreementHelper.PairAudit memory p3 = agreementHelper.auditPair(IAgreementCollector(address(collector2)), indexer);
+        IRecurringAgreementHelper.ProviderAudit memory p3 = agreementHelper.auditProvider(IAgreementCollector(address(collector2)), indexer);
         assertTrue(0 < p3.escrow.tokensThawing, "c2+indexer should be thawing");
 
         // Wait for thaw, withdraw all
@@ -324,15 +324,15 @@ contract RecurringAgreementLifecycleTest is RecurringAgreementManagerSharedTest 
         agreementManager.reconcileProvider(IAgreementCollector(address(collector2)), indexer);
 
         // All escrows drained
-        p1 = agreementHelper.auditPair(IAgreementCollector(address(recurringCollector)), indexer);
+        p1 = agreementHelper.auditProvider(IAgreementCollector(address(recurringCollector)), indexer);
         assertEq(p1.escrow.balance, 0);
         assertEq(p1.escrow.tokensThawing, 0);
 
-        p2 = agreementHelper.auditPair(IAgreementCollector(address(recurringCollector)), indexer2);
+        p2 = agreementHelper.auditProvider(IAgreementCollector(address(recurringCollector)), indexer2);
         assertEq(p2.escrow.balance, 0);
         assertEq(p2.escrow.tokensThawing, 0);
 
-        p3 = agreementHelper.auditPair(IAgreementCollector(address(collector2)), indexer);
+        p3 = agreementHelper.auditProvider(IAgreementCollector(address(collector2)), indexer);
         assertEq(p3.escrow.balance, 0);
         assertEq(p3.escrow.tokensThawing, 0);
 
@@ -357,31 +357,31 @@ contract RecurringAgreementLifecycleTest is RecurringAgreementManagerSharedTest 
         _offerAgreement(rca);
 
         // Before deadline: not removable
-        (uint256 removed, ) = agreementHelper.reconcilePair(IAgreementCollector(address(recurringCollector)), indexer);
+        (uint256 removed, ) = agreementHelper.reconcile(IAgreementCollector(address(recurringCollector)), indexer);
         assertEq(removed, 0);
 
         // Warp past deadline
         vm.warp(rca.deadline + 1);
 
         // Now removable
-        (removed, ) = agreementHelper.reconcilePair(IAgreementCollector(address(recurringCollector)), indexer);
+        (removed, ) = agreementHelper.reconcile(IAgreementCollector(address(recurringCollector)), indexer);
         assertEq(removed, 1);
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
 
         // Escrow deposited in Full mode should now be thawing
-        IRecurringAgreementHelper.PairAudit memory p = agreementHelper.auditPair(IAgreementCollector(address(recurringCollector)), indexer);
+        IRecurringAgreementHelper.ProviderAudit memory p = agreementHelper.auditProvider(IAgreementCollector(address(recurringCollector)), indexer);
         assertTrue(0 < p.escrow.tokensThawing, "escrow should be thawing after expired offer removal");
 
         // Wait for thaw and withdraw
         vm.warp(block.timestamp + THAW_PERIOD + 1);
         agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
-        p = agreementHelper.auditPair(IAgreementCollector(address(recurringCollector)), indexer);
+        p = agreementHelper.auditProvider(IAgreementCollector(address(recurringCollector)), indexer);
         assertEq(p.escrow.balance, 0);
         assertEq(p.escrow.tokensThawing, 0);
     }
 
-    // -- Tests: reconcilePair Isolation --
+    // -- Tests: reconcile Isolation --
 
     function test_Lifecycle_ReconcilePair_IsolatesCollectors() public {
         // Both collectors have agreements with the same indexer
@@ -407,22 +407,22 @@ contract RecurringAgreementLifecycleTest is RecurringAgreementManagerSharedTest 
         _offerForCollector(collector2, rca2);
 
         // Reconcile only collector1's pair — escrow still thawing so pair still exists
-        (uint256 removed, bool pairExists) = agreementHelper.reconcilePair(IAgreementCollector(address(recurringCollector)), indexer);
+        (uint256 removed, bool providerExists) = agreementHelper.reconcile(IAgreementCollector(address(recurringCollector)), indexer);
         assertEq(removed, 1);
-        assertTrue(pairExists); // escrow still thawing, pair stays tracked
+        assertTrue(providerExists); // escrow still thawing, pair stays tracked
 
         // Collector2's agreement untouched
         uint256 maxClaim1 = 1 ether * 3600 + 100 ether;
         uint256 maxClaim2 = 2 ether * 7200 + 200 ether;
         assertEq(agreementManager.getSumMaxNextClaim(IRecurringCollector(address(collector2)), indexer), maxClaim2);
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(collector2)), indexer), 1);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(collector2)), indexer), 1);
 
         // Collector1's escrow should be thawing after reconcile
-        IRecurringAgreementHelper.PairAudit memory p1 = agreementHelper.auditPair(IAgreementCollector(address(recurringCollector)), indexer);
+        IRecurringAgreementHelper.ProviderAudit memory p1 = agreementHelper.auditProvider(IAgreementCollector(address(recurringCollector)), indexer);
         assertTrue(0 < p1.escrow.tokensThawing, "c1 escrow should be thawing after reconcile");
 
         // Collector2's escrow should still be fully deposited (not thawing)
-        IRecurringAgreementHelper.PairAudit memory p2 = agreementHelper.auditPair(IAgreementCollector(address(collector2)), indexer);
+        IRecurringAgreementHelper.ProviderAudit memory p2 = agreementHelper.auditProvider(IAgreementCollector(address(collector2)), indexer);
         assertEq(p2.escrow.balance, maxClaim2);
         assertEq(p2.escrow.tokensThawing, 0);
 
@@ -430,13 +430,13 @@ contract RecurringAgreementLifecycleTest is RecurringAgreementManagerSharedTest 
         vm.warp(block.timestamp + THAW_PERIOD + 1);
         agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
-        p1 = agreementHelper.auditPair(IAgreementCollector(address(recurringCollector)), indexer);
+        p1 = agreementHelper.auditProvider(IAgreementCollector(address(recurringCollector)), indexer);
         assertEq(p1.escrow.balance, 0);
         assertEq(p1.escrow.tokensThawing, 0);
 
         // Now pair can be fully removed
-        (, pairExists) = agreementHelper.reconcilePair(IAgreementCollector(address(recurringCollector)), indexer);
-        assertFalse(pairExists); // escrow drained, pair removed
+        (, providerExists) = agreementHelper.reconcile(IAgreementCollector(address(recurringCollector)), indexer);
+        assertFalse(providerExists); // escrow drained, pair removed
     }
 
     // -- Tests: Escrow Basis Mid-Lifecycle with Audit Verification --
@@ -458,7 +458,7 @@ contract RecurringAgreementLifecycleTest is RecurringAgreementManagerSharedTest 
         _offerAgreement(rca);
         uint256 maxClaim = 1 ether * 3600 + 100 ether;
 
-        IRecurringAgreementHelper.PairAudit memory p = agreementHelper.auditPair(IAgreementCollector(address(recurringCollector)), indexer);
+        IRecurringAgreementHelper.ProviderAudit memory p = agreementHelper.auditProvider(IAgreementCollector(address(recurringCollector)), indexer);
         assertEq(p.sumMaxNextClaim, maxClaim);
         // OnDemand: no deposit, but _updateEscrow in offerAgreement may have deposited
         // Actually in OnDemand min=0 so no deposit happens
@@ -469,7 +469,7 @@ contract RecurringAgreementLifecycleTest is RecurringAgreementManagerSharedTest 
         agreementManager.setEscrowBasis(IRecurringEscrowManagement.EscrowBasis.Full);
         agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
-        p = agreementHelper.auditPair(IAgreementCollector(address(recurringCollector)), indexer);
+        p = agreementHelper.auditProvider(IAgreementCollector(address(recurringCollector)), indexer);
         assertEq(p.escrow.balance, maxClaim); // Full deposits everything
     }
 

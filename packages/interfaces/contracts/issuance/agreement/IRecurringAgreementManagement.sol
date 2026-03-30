@@ -177,7 +177,7 @@ interface IRecurringAgreementManagement {
      * @notice Reconcile a (collector, provider) pair: rebalance escrow, withdraw
      * completed thaws, and remove tracking if fully drained.
      * @dev Permissionless. First updates escrow state (deposit deficit, thaw excess,
-     * withdraw completed thaws), then removes pair tracking when both pairAgreementCount
+     * withdraw completed thaws), then removes pair tracking when both agreementCount
      * and escrow balance are zero. Also serves as the permissionless "poke" to rebalance
      * escrow after {IRecurringEscrowManagement-setEscrowBasis} or threshold/margin
      * changes. Returns true if the pair still has agreements or escrow is still thawing.

@@ -135,7 +135,7 @@ contract RecurringAgreementManagerBranchCoverageTest is RecurringAgreementManage
         agreementManager.forceRemoveAgreement(IAgreementCollector(address(recurringCollector)), unknownId);
 
         // No state changes
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
     }
 
     /// @notice forceRemoveAgreement removes a tracked agreement.
@@ -150,7 +150,7 @@ contract RecurringAgreementManagerBranchCoverageTest is RecurringAgreementManage
         bytes16 agreementId = _offerAgreement(rca);
 
         // Verify tracked
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
         assertTrue(agreementManager.getSumMaxNextClaim(_collector(), indexer) > 0);
 
         // Force remove
@@ -158,9 +158,9 @@ contract RecurringAgreementManagerBranchCoverageTest is RecurringAgreementManage
         agreementManager.forceRemoveAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
 
         // Cleaned up
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), 0);
-        assertEq(agreementManager.getSumMaxNextClaimAll(), 0);
+        assertEq(agreementManager.getSumMaxNextClaim(), 0);
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -220,7 +220,7 @@ contract RecurringAgreementManagerBranchCoverageTest is RecurringAgreementManage
         agreementManager.afterAgreementStateChange(agreementId, bytes32(0), 0);
 
         // Agreement should still be tracked (reconcile updates maxNextClaim)
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
     }
 
     // ══════════════════════════════════════════════════════════════════════

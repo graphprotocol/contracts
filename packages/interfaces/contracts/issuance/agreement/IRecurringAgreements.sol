@@ -39,70 +39,13 @@ interface IRecurringAgreements {
         uint256 maxNextClaim;
     }
 
-    // -- View Functions --
-
-    /**
-     * @notice Get the sum of maxNextClaim for all managed agreements for a (collector, provider) pair
-     * @param collector The collector contract
-     * @param provider The provider address
-     * @return tokens The sum of max next claims
-     */
-    function getSumMaxNextClaim(IAgreementCollector collector, address provider) external view returns (uint256 tokens);
-
-    /**
-     * @notice Get the escrow account for a (collector, provider) pair
-     * @param collector The collector contract
-     * @param provider The provider address
-     * @return account The escrow account data
-     */
-    function getEscrowAccount(
-        IAgreementCollector collector,
-        address provider
-    ) external view returns (IPaymentsEscrow.EscrowAccount memory account);
-
-    /**
-     * @notice Get the max next claim for a specific agreement
-     * @param collector The collector contract address
-     * @param agreementId The agreement ID
-     * @return tokens The current max next claim stored for this agreement
-     */
-    function getAgreementMaxNextClaim(
-        IAgreementCollector collector,
-        bytes16 agreementId
-    ) external view returns (uint256 tokens);
-
-    /**
-     * @notice Get the full tracked state for a specific agreement
-     * @param collector The collector contract
-     * @param agreementId The agreement ID
-     * @return info The agreement info struct (all fields zero if not tracked)
-     */
-    function getAgreementInfo(
-        IAgreementCollector collector,
-        bytes16 agreementId
-    ) external view returns (AgreementInfo memory info);
+    // -- Global --
 
     /**
      * @notice Get the current escrow basis setting
      * @return basis The configured escrow basis
      */
     function getEscrowBasis() external view returns (IRecurringEscrowManagement.EscrowBasis basis);
-
-    /**
-     * @notice Get the sum of maxNextClaim across all (collector, provider) pairs
-     * @dev Populated lazily through normal operations.
-     * @return tokens The global sum of max next claims
-     */
-    function getSumMaxNextClaimAll() external view returns (uint256 tokens);
-
-    /**
-     * @notice Get the total undeposited escrow across all providers
-     * @dev Maintained incrementally: sum of max(0, sumMaxNextClaim[p] - deposited[p])
-     * for each provider p. Correctly accounts for per-provider deficits without
-     * allowing over-deposited providers to mask under-deposited ones.
-     * @return tokens The total unfunded amount
-     */
-    function getTotalEscrowDeficit() external view returns (uint256 tokens);
 
     /**
      * @notice Get the minimum spare balance threshold for OnDemand basis.
@@ -126,6 +69,24 @@ interface IRecurringAgreements {
     function getMinThawFraction() external view returns (uint8 fraction);
 
     /**
+     * @notice Get the sum of maxNextClaim across all (collector, provider) pairs
+     * @dev Populated lazily through normal operations.
+     * @return tokens The global sum of max next claims
+     */
+    function getSumMaxNextClaim() external view returns (uint256 tokens);
+
+    /**
+     * @notice Get the total undeposited escrow across all providers
+     * @dev Maintained incrementally: sum of max(0, sumMaxNextClaim[p] - deposited[p])
+     * for each provider p. Correctly accounts for per-provider deficits without
+     * allowing over-deposited providers to mask under-deposited ones.
+     * @return tokens The total unfunded amount
+     */
+    function getTotalEscrowDeficit() external view returns (uint256 tokens);
+
+    // -- Collector enumeration --
+
+    /**
      * @notice Get the number of collectors with active agreements
      * @return count The number of tracked collectors
      */
@@ -137,6 +98,8 @@ interface IRecurringAgreements {
      * @return collector The collector address
      */
     function getCollectorAt(uint256 index) external view returns (IAgreementCollector collector);
+
+    // -- Provider enumeration --
 
     /**
      * @notice Get the number of providers with active agreements for a collector
@@ -153,29 +116,26 @@ interface IRecurringAgreements {
      */
     function getProviderAt(IAgreementCollector collector, uint256 index) external view returns (address provider);
 
-    /**
-     * @notice Get the number of managed agreements for a (collector, provider) pair
-     * @param collector The collector contract
-     * @param provider The provider address
-     * @return count The pair agreement count
-     */
-    function getPairAgreementCount(
-        IAgreementCollector collector,
-        address provider
-    ) external view returns (uint256 count);
+    // -- Per-(collector, provider) --
 
     /**
-     * @notice Get a managed agreement ID by index for a (collector, provider) pair
+     * @notice Get the sum of maxNextClaim for all managed agreements for a (collector, provider) pair
      * @param collector The collector contract
      * @param provider The provider address
-     * @param index The index in the agreement set
-     * @return agreementId The agreement ID
+     * @return tokens The sum of max next claims
      */
-    function getPairAgreementAt(
+    function getSumMaxNextClaim(IAgreementCollector collector, address provider) external view returns (uint256 tokens);
+
+    /**
+     * @notice Get the escrow account for a (collector, provider) pair
+     * @param collector The collector contract
+     * @param provider The provider address
+     * @return account The escrow account data
+     */
+    function getEscrowAccount(
         IAgreementCollector collector,
-        address provider,
-        uint256 index
-    ) external view returns (bytes16 agreementId);
+        address provider
+    ) external view returns (IPaymentsEscrow.EscrowAccount memory account);
 
     /**
      * @notice Get the cached escrow balance for a (collector, provider) pair
@@ -185,4 +145,49 @@ interface IRecurringAgreements {
      * @return escrowSnap The last-known escrow balance
      */
     function getEscrowSnap(IAgreementCollector collector, address provider) external view returns (uint256 escrowSnap);
+
+    /**
+     * @notice Get the number of managed agreements for a (collector, provider) pair
+     * @param collector The collector contract
+     * @param provider The provider address
+     * @return count The pair agreement count
+     */
+    function getAgreementCount(IAgreementCollector collector, address provider) external view returns (uint256 count);
+
+    /**
+     * @notice Get a managed agreement ID by index for a (collector, provider) pair
+     * @param collector The collector contract
+     * @param provider The provider address
+     * @param index The index in the agreement set
+     * @return agreementId The agreement ID
+     */
+    function getAgreementAt(
+        IAgreementCollector collector,
+        address provider,
+        uint256 index
+    ) external view returns (bytes16 agreementId);
+
+    // -- Per-agreement --
+
+    /**
+     * @notice Get the full tracked state for a specific agreement
+     * @param collector The collector contract
+     * @param agreementId The agreement ID
+     * @return info The agreement info struct (all fields zero if not tracked)
+     */
+    function getAgreementInfo(
+        IAgreementCollector collector,
+        bytes16 agreementId
+    ) external view returns (AgreementInfo memory info);
+
+    /**
+     * @notice Get the max next claim for a specific agreement
+     * @param collector The collector contract address
+     * @param agreementId The agreement ID
+     * @return tokens The current max next claim stored for this agreement
+     */
+    function getAgreementMaxNextClaim(
+        IAgreementCollector collector,
+        bytes16 agreementId
+    ) external view returns (uint256 tokens);
 }

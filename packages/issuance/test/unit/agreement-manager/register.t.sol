@@ -33,7 +33,7 @@ contract RecurringAgreementManagerOfferTest is RecurringAgreementManagerSharedTe
             expectedMaxClaim
         );
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), expectedMaxClaim);
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
     }
 
     function test_Offer_FundsEscrow() public {
@@ -161,7 +161,7 @@ contract RecurringAgreementManagerOfferTest is RecurringAgreementManagerSharedTe
         bytes16 id2 = _offerAgreement(rca2);
 
         assertTrue(id1 != id2);
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 2);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 2);
 
         uint256 maxClaim1 = 1 ether * 3600 + 100 ether;
         uint256 maxClaim2 = 2 ether * 7200 + 200 ether;

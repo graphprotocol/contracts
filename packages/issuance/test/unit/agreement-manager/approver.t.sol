@@ -127,7 +127,7 @@ contract RecurringAgreementManagerApproverTest is RecurringAgreementManagerShare
 
     function test_GetIndexerAgreementCount_ZeroForUnknown() public {
         assertEq(
-            agreementManager.getPairAgreementCount(
+            agreementManager.getAgreementCount(
                 IAgreementCollector(address(recurringCollector)),
                 makeAddr("unknown")
             ),

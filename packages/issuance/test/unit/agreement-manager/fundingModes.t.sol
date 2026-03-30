@@ -87,10 +87,10 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
 
         _offerAgreement(rca1);
         uint256 maxClaim1 = 1 ether * 3600 + 100 ether;
-        assertEq(agreementManager.getSumMaxNextClaimAll(), maxClaim1);
+        assertEq(agreementManager.getSumMaxNextClaim(), maxClaim1);
         _offerAgreement(rca2);
         uint256 maxClaim2 = 2 ether * 7200 + 200 ether;
-        assertEq(agreementManager.getSumMaxNextClaimAll(), maxClaim1 + maxClaim2);
+        assertEq(agreementManager.getSumMaxNextClaim(), maxClaim1 + maxClaim2);
     }
 
     function test_GlobalTracking_TotalUndeposited() public {
@@ -138,10 +138,10 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
 
         bytes16 agreementId = _offerAgreement(rca);
         uint256 maxClaim = 1 ether * 3600 + 100 ether;
-        assertEq(agreementManager.getSumMaxNextClaimAll(), maxClaim);
+        assertEq(agreementManager.getSumMaxNextClaim(), maxClaim);
         _cancelAgreement(agreementId);
 
-        assertEq(agreementManager.getSumMaxNextClaimAll(), 0);
+        assertEq(agreementManager.getSumMaxNextClaim(), 0);
     }
 
     function test_GlobalTracking_RemoveDecrementsCountAndRequired() public {
@@ -157,7 +157,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         _setAgreementCanceledBySP(agreementId, rca);
         agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
 
-        assertEq(agreementManager.getSumMaxNextClaimAll(), 0);
+        assertEq(agreementManager.getSumMaxNextClaim(), 0);
     }
 
     function test_GlobalTracking_ReconcileUpdatesRequired() public {
@@ -171,13 +171,13 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
 
         bytes16 agreementId = _offerAgreement(rca);
         uint256 maxClaim = 1 ether * 3600 + 100 ether;
-        assertEq(agreementManager.getSumMaxNextClaimAll(), maxClaim);
+        assertEq(agreementManager.getSumMaxNextClaim(), maxClaim);
 
         // SP cancels — reconcile sets maxNextClaim to 0
         _setAgreementCanceledBySP(agreementId, rca);
         agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
 
-        assertEq(agreementManager.getSumMaxNextClaimAll(), 0);
+        assertEq(agreementManager.getSumMaxNextClaim(), 0);
     }
 
     function test_GlobalTracking_TotalUndeposited_MultiProvider() public {
@@ -586,7 +586,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             agreementManager.getAgreementMaxNextClaim(IAgreementCollector(address(recurringCollector)), agreementId),
             maxClaim
         );
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
     }
 
     function test_ModeSwitch_UpdateEscrowAppliesNewMode() public {
@@ -692,7 +692,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         bytes16 agreementId = _offerAgreement(rca);
         uint256 maxClaim = 1 ether * 3600 + 100 ether;
 
-        assertEq(agreementManager.getSumMaxNextClaimAll(), maxClaim);
+        assertEq(agreementManager.getSumMaxNextClaim(), maxClaim);
 
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _makeRCAU(
             agreementId,
@@ -707,7 +707,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
 
         // max(current, pending) = max(3700, 14600) = 14600
         uint256 pendingMaxClaim = 14600 ether;
-        assertEq(agreementManager.getSumMaxNextClaimAll(), pendingMaxClaim);
+        assertEq(agreementManager.getSumMaxNextClaim(), pendingMaxClaim);
     }
 
     function test_GlobalTracking_ReplacePendingUpdate() public {
@@ -734,7 +734,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
 
         // max(current, pending) = max(3700, 14600) = 14600
         uint256 pendingMaxClaim1 = 14600 ether;
-        assertEq(agreementManager.getSumMaxNextClaimAll(), pendingMaxClaim1);
+        assertEq(agreementManager.getSumMaxNextClaim(), pendingMaxClaim1);
 
         // Revoke first update, then offer replacement with next valid nonce
         _cancelPendingUpdate(agreementId);
@@ -751,7 +751,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         _offerAgreementUpdate(rcau2);
 
         // max(current, pending) = max(3700, 950) = 3700 (current dominates)
-        assertEq(agreementManager.getSumMaxNextClaimAll(), maxClaim);
+        assertEq(agreementManager.getSumMaxNextClaim(), maxClaim);
     }
 
     // ==================== Upward Transitions ====================
@@ -950,7 +950,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             1
         );
         _offerAgreement(rca);
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
         uint256 pairSmnc = agreementManager.getSumMaxNextClaim(_collector(), indexer);
 
         // spare > smnca * 1.0625 -- both gates pass -> Full
@@ -974,7 +974,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             1
         );
         _offerAgreement(rca);
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
         uint256 pairSmnc = agreementManager.getSumMaxNextClaim(_collector(), indexer);
 
         // spare = smnca * 272/256 exactly -- min gate fails (not strictly greater)
@@ -1006,7 +1006,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             1
         );
         _offerAgreement(rca);
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
         uint256 pairSmnc = agreementManager.getSumMaxNextClaim(_collector(), indexer);
         uint256 minGateThreshold = (smnca * (256 + 16)) / 256;
 
@@ -1034,7 +1034,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             1
         );
         _offerAgreement(rca);
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
 
         // spare = smnca * 128/256 exactly -- max gate fails -> JIT-like (both 0)
         uint256 maxGateThreshold = (smnca * 128) / 256;
@@ -1054,7 +1054,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             1
         );
         _offerAgreement(rca);
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
         uint256 maxGateThreshold = (smnca * 128) / 256;
 
         // At max gate boundary: JIT-like
@@ -1091,7 +1091,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             1
         );
         _offerAgreement(rca);
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
         uint256 pairSmnc = agreementManager.getSumMaxNextClaim(_collector(), indexer);
 
         // Fund to middle of OnDemand band: 0.5x < spare < 1.0625x
@@ -1121,7 +1121,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             1
         );
         _offerAgreement(rca);
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
 
         // Drain to JIT, complete thaw to clear escrow
         _drainSAM();
@@ -1156,7 +1156,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             1
         );
         _offerAgreement(rca);
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
 
         // OnDemand: only max gate matters (min is always 0 because basis != Full)
         // max gate: smnca * threshold/256 < spare
@@ -1179,7 +1179,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             1
         );
         _offerAgreement(rca);
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
 
         // Max gate fails -> max=0 -> thaw everything
         _fundToSpare((smnca * 128) / 256);
@@ -1202,7 +1202,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             1
         );
         _offerAgreement(rca);
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
 
         // Drain to zero, complete thaw
         _drainSAM();
@@ -1254,7 +1254,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             1
         );
         _offerAgreement(rca);
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
 
         // Drain to JIT, complete thaw
         _drainSAM();
@@ -1282,7 +1282,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             1
         );
         _offerAgreement(rca);
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
         uint256 pairSmnc = agreementManager.getSumMaxNextClaim(_collector(), indexer);
 
         // Drain to JIT, complete thaw
@@ -1351,7 +1351,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         );
         _offerAgreement(rca2);
 
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
         uint256 pairSmnc1 = agreementManager.getSumMaxNextClaim(_collector(), indexer);
         uint256 pairSmnc2 = agreementManager.getSumMaxNextClaim(_collector(), indexer2);
 
@@ -1395,7 +1395,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
 
         // Fund to just above min gate for current smnca
         _drainSAM();
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
         uint256 deficit = agreementManager.getTotalEscrowDeficit();
         token.mint(address(agreementManager), deficit + (smnca * (256 + 16)) / 256 + 1);
 
@@ -1452,7 +1452,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             "Basis: still Full after degradation"
         );
 
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
         vm.warp(block.timestamp + 2 days);
         agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
         _fundToSpare((smnca * (256 + 16)) / 256 + 1);
@@ -1488,7 +1488,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             1
         );
         _offerAgreement(rca);
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
         uint256 pairSmnc = agreementManager.getSumMaxNextClaim(_collector(), indexer);
 
         // spare = smnca * 1.2 -- above max gate (0.5) but below min gate (1.5)
@@ -1522,7 +1522,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             1
         );
         _offerAgreement(rca);
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
 
         // spare = smnca * 0.6 -- below new max gate (0.78) -> JIT-like
         _fundToSpare((smnca * 154) / 256); // ~0.6x

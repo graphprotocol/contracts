@@ -533,7 +533,7 @@ contract RecurringAgreementManager is
     }
 
     /// @inheritdoc IRecurringAgreements
-    function getSumMaxNextClaimAll() external view returns (uint256) {
+    function getSumMaxNextClaim() external view returns (uint256) {
         return _getStorage().sumMaxNextClaimAll;
     }
 
@@ -600,12 +600,12 @@ contract RecurringAgreementManager is
     }
 
     /// @inheritdoc IRecurringAgreements
-    function getPairAgreementCount(IAgreementCollector collector, address provider) external view returns (uint256) {
+    function getAgreementCount(IAgreementCollector collector, address provider) external view returns (uint256) {
         return _getStorage().collectors[address(collector)].providers[provider].agreements.length();
     }
 
     /// @inheritdoc IRecurringAgreements
-    function getPairAgreementAt(
+    function getAgreementAt(
         IAgreementCollector collector,
         address provider,
         uint256 index

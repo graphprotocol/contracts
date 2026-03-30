@@ -163,7 +163,7 @@ contract RecurringAgreementManagerFuzzTest is RecurringAgreementManagerSharedTes
         _cancelAgreement(agreementId);
 
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), 0);
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
     }
 
     function testFuzz_Remove_AfterSPCancel_ClearsState(uint64 maxInitial, uint64 maxOngoing, uint32 maxSec) public {
@@ -183,7 +183,7 @@ contract RecurringAgreementManagerFuzzTest is RecurringAgreementManagerSharedTes
         agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
 
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), 0);
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
         assertEq(
             agreementManager.getAgreementMaxNextClaim(IAgreementCollector(address(recurringCollector)), agreementId),
             0
@@ -303,7 +303,7 @@ contract RecurringAgreementManagerFuzzTest is RecurringAgreementManagerSharedTes
 
         // After deadline: should succeed
         agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
     }
 
     // -- getEscrowAccount --

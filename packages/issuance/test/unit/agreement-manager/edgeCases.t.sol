@@ -36,13 +36,13 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
     // -- Helpers --
 
     function _getProviderAgreements(address provider) internal view returns (bytes16[] memory result) {
-        uint256 count = agreementManager.getPairAgreementCount(
+        uint256 count = agreementManager.getAgreementCount(
             IAgreementCollector(address(recurringCollector)),
             provider
         );
         result = new bytes16[](count);
         for (uint256 i = 0; i < count; ++i)
-            result[i] = agreementManager.getPairAgreementAt(
+            result[i] = agreementManager.getAgreementAt(
                 IAgreementCollector(address(recurringCollector)),
                 provider,
                 i
@@ -79,12 +79,12 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         bytes16 agreementId = _offerAgreement(rca);
 
         // Agreement is tracked
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
 
         _cancelAgreement(agreementId);
 
         // Agreement is cleaned up
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), 0);
     }
 
@@ -113,7 +113,7 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         _cancelAgreement(agreementId);
 
         // Agreement and pending update fully cleaned up
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), 0);
     }
 
@@ -133,7 +133,7 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
 
         // Agreement is fully cleaned up
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), 0);
     }
 
@@ -164,7 +164,7 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
 
         // Agreement and pending update fully cleaned up
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), 0);
     }
 
@@ -331,7 +331,7 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
             0
         );
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), 0);
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
     }
 
     // ==================== Deadline Boundary Tests ====================
@@ -356,7 +356,7 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         // so this should still be claimable
         bool exists = agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
         assertTrue(exists);
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
     }
 
     function test_Remove_OneSecondAfterDeadline_NotAccepted() public {
@@ -377,7 +377,7 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         // Now removable (deadline < block.timestamp → getMaxNextClaim returns 0)
         bool exists = agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
         assertFalse(exists);
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
     }
 
     // ==================== Reconcile Edge Cases ====================
@@ -674,19 +674,19 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         bytes16 agreementId = _offerAgreement(rca);
         uint256 maxClaim = 1 ether * 3600 + 100 ether;
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), maxClaim);
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
 
         // 2. SP cancels and remove
         _setAgreementCanceledBySP(agreementId, rca);
         agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), 0);
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
 
         // 3. Re-offer the same agreement (same parameters, same agreementId)
         bytes16 reofferedId = _offerAgreement(rca);
         assertEq(reofferedId, agreementId);
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), maxClaim);
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
 
         // 4. Verify the re-offered agreement is fully functional
         IRecurringAgreements.AgreementInfo memory info = agreementManager.getAgreementInfo(
@@ -729,7 +729,7 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
 
         uint256 maxClaim2 = 2 ether * 7200 + 200 ether;
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), maxClaim2);
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
     }
 
     // ==================== Input Validation ====================
@@ -908,15 +908,15 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         bytes16 id2 = _offerAgreement(rca2);
 
         // Count returns total
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 2);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 2);
 
         // Individual access by index
         assertEq(
-            agreementManager.getPairAgreementAt(IAgreementCollector(address(recurringCollector)), indexer, 0),
+            agreementManager.getAgreementAt(IAgreementCollector(address(recurringCollector)), indexer, 0),
             id1
         );
         assertEq(
-            agreementManager.getPairAgreementAt(IAgreementCollector(address(recurringCollector)), indexer, 1),
+            agreementManager.getAgreementAt(IAgreementCollector(address(recurringCollector)), indexer, 1),
             id2
         );
     }

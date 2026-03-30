@@ -79,7 +79,7 @@ contract RecurringAgreementManagerReconcileTest is RecurringAgreementManagerShar
             0
         );
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), 0);
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
     }
 
     function test_ReconcileAgreement_CanceledByPayer_WindowOpen() public {
@@ -138,7 +138,7 @@ contract RecurringAgreementManagerReconcileTest is RecurringAgreementManagerShar
             agreementManager.getAgreementMaxNextClaim(IAgreementCollector(address(recurringCollector)), agreementId),
             0
         );
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
     }
 
     function test_ReconcileAgreement_SkipsNotAccepted() public {
@@ -249,7 +249,7 @@ contract RecurringAgreementManagerReconcileTest is RecurringAgreementManagerShar
             agreementManager.getAgreementMaxNextClaim(IAgreementCollector(address(recurringCollector)), agreementId),
             0
         );
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
     }
 
     function test_ReconcileAgreement_ClearsPendingUpdate() public {
@@ -393,7 +393,7 @@ contract RecurringAgreementManagerReconcileTest is RecurringAgreementManagerShar
 
         bool exists = agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
         assertTrue(exists);
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
     }
 
     function test_ReconcileAgreement_DeletesExpiredOffer() public {
@@ -413,7 +413,7 @@ contract RecurringAgreementManagerReconcileTest is RecurringAgreementManagerShar
         bool exists = agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
 
         assertFalse(exists);
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), 0);
     }
 
@@ -430,7 +430,7 @@ contract RecurringAgreementManagerReconcileTest is RecurringAgreementManagerShar
         // Not accepted yet, before deadline - still potentially claimable
         bool exists = agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
         assertTrue(exists);
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
     }
 
     function test_ReconcileAgreement_ReturnsTrue_WhenCanceledByPayer_WindowStillOpen() public {
@@ -452,7 +452,7 @@ contract RecurringAgreementManagerReconcileTest is RecurringAgreementManagerShar
         // Still claimable: window = collectableUntil - acceptedAt = 7200s, capped at 3600s
         bool exists = agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
         assertTrue(exists);
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
     }
 
     function test_ReconcileAgreement_ReducesRequiredEscrow_WithMultipleAgreements() public {
@@ -488,7 +488,7 @@ contract RecurringAgreementManagerReconcileTest is RecurringAgreementManagerShar
 
         // Only agreement 2's original maxClaim remains
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), maxClaim2);
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
 
         // Agreement 2 still tracked
         assertEq(
@@ -516,7 +516,7 @@ contract RecurringAgreementManagerReconcileTest is RecurringAgreementManagerShar
         bool exists = agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
         assertFalse(exists);
 
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
     }
 
     function test_ReconcileAgreement_ClearsPendingUpdate_WhenCanceled() public {
@@ -554,7 +554,7 @@ contract RecurringAgreementManagerReconcileTest is RecurringAgreementManagerShar
 
         // Both original and pending should be cleared from sumMaxNextClaim
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), 0);
-        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
     }
 
     /* solhint-enable graph/func-name-mixedcase */

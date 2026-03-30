@@ -114,7 +114,7 @@ contract RecurringAgreementManagerEnsureDistributedTest is RecurringAgreementMan
 
         // Configure allocator to mint enough to cover the deficit plus 50% of sumMaxNextClaimAll reserve
         uint256 deficit = 500 ether;
-        uint256 reserve = agreementManager.getSumMaxNextClaimAll(); // >= 50% threshold
+        uint256 reserve = agreementManager.getSumMaxNextClaim(); // >= 50% threshold
         mockAllocator.setMintPerDistribution(deficit + reserve);
 
         // Advance block so distribution actually mints
