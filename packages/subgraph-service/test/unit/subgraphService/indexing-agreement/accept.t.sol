@@ -133,6 +133,7 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
         address incorrectDataService
     ) public {
         vm.assume(incorrectDataService != address(subgraphService));
+        vm.assume(incorrectDataService != address(0));
 
         Context storage ctx = _newCtx(seed);
         IndexerState memory indexerState = _withIndexer(ctx);
@@ -176,6 +177,8 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
         Seed memory seed,
         address invalidAllocationId
     ) public {
+        vm.assume(invalidAllocationId != address(0));
+
         Context storage ctx = _newCtx(seed);
         IndexerState memory indexerState = _withIndexer(ctx);
         IRecurringCollector.RecurringCollectionAgreement memory acceptableRca = _generateAcceptableRCA(
