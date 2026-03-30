@@ -30,83 +30,58 @@ import { ReentrancyGuardTransient } from "@openzeppelin/contracts/utils/Reentran
 /**
  * @title RecurringAgreementManager
  * @author Edge & Node
- * @notice Manages escrow for RCAs (Recurring Collection Agreements) using
- * issuance-allocated tokens. This contract:
+ * @notice Manages escrow for RCAs (Recurring Collection Agreements) using issuance-allocated
+ * tokens. This contract:
  *
- * 1. Receives minted GRT from IssuanceAllocator (implements IIssuanceTarget)
- * 2. Authorizes RCA acceptance via contract callback (implements IAgreementOwner)
- * 3. Tracks max-next-claim per agreement, deposits into PaymentsEscrow to cover maximums
+ * 1. Receives minted GRT from IssuanceAllocator ({IIssuanceTarget})
+ * 2. Offers and cancels agreements by calling collectors directly (AGREEMENT_MANAGER_ROLE-gated)
+ * 3. Handles collection callbacks — JIT escrow top-up and post-collection reconciliation
+ *    ({IAgreementOwner})
+ * 4. Tracks max-next-claim per agreement, deposits into PaymentsEscrow to cover maximums
  *
- * One escrow per (this contract, collector, provider) covers all managed
- * RCAs for that (collector, provider) pair. Agreements are namespaced under
- * their collector to prevent cross-collector ID collisions.
- * Other participants can independently use RCAs via the standard ECDSA-signed flow.
+ * One escrow per (this contract, collector, provider) covers all managed RCAs for that
+ * (collector, provider) pair. Agreements are namespaced under their collector to prevent
+ * cross-collector ID collisions.
  *
- * @custom:design-coupling This contract is structurally coupled to RecurringCollector's
- * lifecycle semantics: AgreementState transitions, updateNonce progression, and the
- * RCA/RCAU struct shapes. Claim computation (pricing formula) is decoupled — delegated
- * to the collector via {IAgreementCollector.getMaxNextClaim}, so a collector with a
- * different pricing model can be used without changes to this contract. Lifecycle changes (new states,
- * different update mechanics) would require coordinated updates to both contracts.
+ * @custom:design-coupling Structurally coupled to RecurringCollector's lifecycle semantics:
+ * AgreementState transitions, updateNonce progression, and the RCA/RCAU struct shapes.
+ * Claim computation is decoupled — delegated to the collector via
+ * {IAgreementCollector.getMaxNextClaim}. Lifecycle changes (new states, different update
+ * mechanics) would require coordinated updates to both contracts.
  *
- * @custom:security CEI — State-mutating calls target trusted protocol contracts (PaymentsEscrow,
- * GRT) and {_ensureIncomingDistributionToCurrentBlock}'s call to the issuance allocator,
- * which is governance-gated.
+ * @custom:security CEI — external calls target trusted protocol contracts (PaymentsEscrow,
+ * GRT, issuance allocator) which are governance-gated.
  *
- * Collector trust: this contract places significant trust in collector contracts. Collectors
- * are COLLECTOR_ROLE-gated (governor-managed). {offerAgreement} and {cancelAgreement} call
- * collectors directly. Discovery calls `getAgreement`; reconciliation calls `getMaxNextClaim`
- * — these return values drive escrow accounting. A broken or malicious collector can cause
- * reconciliation to revert; use {forceRemoveAgreement} as an operator escape hatch.
- * Once an agreement is tracked, reconciliation proceeds even if COLLECTOR_ROLE is later
- * revoked, ensuring orderly settlement.
+ * Collector trust: collectors are COLLECTOR_ROLE-gated (governor-managed). {offerAgreement}
+ * and {cancelAgreement} call collectors directly. Discovery calls `getAgreementData`;
+ * reconciliation calls `getMaxNextClaim` — these return values drive escrow accounting.
+ * A broken or malicious collector can cause reconciliation to revert; use
+ * {forceRemoveAgreement} as an operator escape hatch. Once tracked, reconciliation proceeds
+ * even if COLLECTOR_ROLE is later revoked, ensuring orderly settlement.
  *
- * {offerAgreement} and {cancelAgreement} pass through to the collector and then reconcile
- * locally. The collector does not callback to `msg.sender` (see RecurringCollector callback
- * model), so these methods own the full call sequence: forward to collector, then reconcile.
- * This allows them to hold the reentrancy lock for the entire operation.
+ * {offerAgreement} and {cancelAgreement} forward to the collector then reconcile locally.
+ * The collector does not callback to `msg.sender`, so these methods own the full call
+ * sequence and hold the reentrancy lock for the entire operation.
  *
- * All entry points that mutate state ({offerAgreement}, {cancelAgreement}, {beforeCollection},
- * {afterCollection}, {afterAgreementStateChange}, {reconcileAgreement}, {reconcileProvider},
- * {forceRemoveAgreement}) are {nonReentrant}.
+ * All state-mutating entry points are {nonReentrant}.
  *
  * @custom:security-pause This contract and RecurringCollector are independently pausable.
- * Pausing is an emergency measure for when something is seriously broken (e.g. a vulnerability
- * being exploited) and needs to be halted to allow time for investigation and possible
- * contract upgrade. Components are independently pausable so that a problem in one does
- * not require halting the entire protocol.
  *
- * When this contract is paused, all permissionless state-changing operations are blocked:
- * agreement lifecycle callbacks ({beforeCollection}, {afterCollection},
- * {afterAgreementStateChange}), permissionless reconciliation ({reconcileAgreement},
- * {reconcileProvider}), and agreement management ({offerAgreement}, {cancelAgreement}).
+ * When paused, all permissionless state-changing operations are blocked: collection callbacks,
+ * reconciliation, and agreement management. Operator-gated functions ({forceRemoveAgreement},
+ * configuration setters) remain callable during pause.
  *
- * Operator-gated functions ({forceRemoveAgreement}, configuration setters) remain callable
- * during pause. The operator is trusted and may need to act during emergencies.
+ * Cross-contract: when this contract is paused but RecurringCollector is not, providers can
+ * still collect. The collector proceeds but payer callbacks revert (low-level calls, so
+ * collection succeeds without JIT top-up). Escrow accounting drifts until unpaused and
+ * {reconcileAgreement} is called. To fully halt collections, pause RecurringCollector too.
  *
- * Cross-contract interaction: when this contract is paused but RecurringCollector is not,
- * providers can still call {IRecurringCollector.collect}. The collector will proceed but
- * the {beforeCollection} and {afterCollection} callbacks to this contract will revert.
- * Because the collector uses low-level calls for payer callbacks, collection succeeds
- * without JIT escrow top-up or reconciliation. Escrow accounting will drift until this
- * contract is unpaused and {reconcileAgreement} is called. To fully halt collections,
- * pause RecurringCollector as well.
- *
- * Emergency response tools available to PAUSE_ROLE holders:
- * - {emergencyRevokeRole}: surgically disable a specific actor (operator, collector, etc.)
- * - {emergencyClearEligibilityOracle}: fail-open if oracle is broken/wrongly blocking collections
- * - {pause}: halt all permissionless operations on this contract
- *
- * Note: {emergencyRevokeRole} can revoke PAUSE_ROLE itself. This allows one pause guardian
- * to disable a compromised guardian. The risk is that a compromised guardian could revoke
- * all other guardians; the governor backstop can re-grant roles to recover.
- *
- * Escalation ladder (from targeted to full stop):
- * 1. Revoke a specific role via {emergencyRevokeRole} (e.g. disable one operator or collector)
- * 2. Clear the eligibility oracle via {emergencyClearEligibilityOracle} (unblock collections)
- * 3. Pause this contract (stops all permissionless escrow management)
- * 4. Pause RecurringCollector (stops all collections and agreement state changes)
- * 5. Pause both (full halt)
+ * Escalation ladder (targeted → full stop):
+ * 1. {emergencyRevokeRole} — disable a specific actor (operator, collector, guardian)
+ * 2. {emergencyClearEligibilityOracle} — fail-open if oracle blocks collections
+ * 3. Pause this contract — stops all permissionless escrow management
+ * 4. Pause RecurringCollector — stops all collections and state changes
+ * 5. Pause both — full halt
  *
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
@@ -376,6 +351,7 @@ contract RecurringAgreementManager is
         IAgreementCollector.OfferResult memory result = collector.offer(offerType, offerData, 0);
         agreementId = result.agreementId;
 
+        require(agreementId != bytes16(0), AgreementIdZero());
         require(result.serviceProvider != address(0), ServiceProviderZeroAddress());
         require(hasRole(DATA_SERVICE_ROLE, result.dataService), UnauthorizedDataService(result.dataService));
 

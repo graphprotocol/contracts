@@ -81,6 +81,9 @@ interface IRecurringAgreementManagement {
 
     // -- Errors --
 
+    /// @notice Thrown when the collector returns a zero agreement ID
+    error AgreementIdZero();
+
     /// @notice Thrown when the RCA service provider is the zero address
     error ServiceProviderZeroAddress();
 
