@@ -18,6 +18,7 @@ import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPa
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { IDataServiceAgreements } from "@graphprotocol/interfaces/contracts/data-service/IDataServiceAgreements.sol";
 import { IProviderEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IProviderEligibility.sol";
+import { IEmergencyRoleControl } from "@graphprotocol/interfaces/contracts/issuance/common/IEmergencyRoleControl.sol";
 
 import { EnumerableSetUtil } from "../common/EnumerableSetUtil.sol";
 import { BaseUpgradeable } from "../common/BaseUpgradeable.sol";
@@ -60,7 +61,8 @@ contract RecurringAgreementManager is
     IRecurringEscrowManagement,
     IProviderEligibilityManagement,
     IRecurringAgreements,
-    IProviderEligibility
+    IProviderEligibility,
+    IEmergencyRoleControl
 {
     using EnumerableSet for EnumerableSet.Bytes32Set;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -72,6 +74,9 @@ contract RecurringAgreementManager is
 
     /// @notice Thrown when the issuance allocator does not support IIssuanceAllocationDistribution
     error InvalidIssuanceAllocator(address allocator);
+
+    /// @notice Thrown when attempting to emergency-revoke the governor role
+    error CannotRevokeGovernorRole();
 
     using EnumerableSetUtil for EnumerableSet.Bytes32Set;
 
@@ -201,6 +206,7 @@ contract RecurringAgreementManager is
             interfaceId == type(IProviderEligibilityManagement).interfaceId ||
             interfaceId == type(IRecurringAgreements).interfaceId ||
             interfaceId == type(IProviderEligibility).interfaceId ||
+            interfaceId == type(IEmergencyRoleControl).interfaceId ||
             super.supportsInterface(interfaceId);
     }
 
@@ -232,6 +238,15 @@ contract RecurringAgreementManager is
 
         emit IssuanceAllocatorSet(address($.issuanceAllocator), newIssuanceAllocator);
         $.issuanceAllocator = IIssuanceAllocationDistribution(newIssuanceAllocator);
+    }
+
+    // -- IEmergencyRoleControl --
+
+    /// @inheritdoc IEmergencyRoleControl
+    /// @dev Governor role is excluded to prevent a pause guardian from locking out governance.
+    function emergencyRevokeRole(bytes32 role, address account) external override onlyRole(PAUSE_ROLE) {
+        require(role != GOVERNOR_ROLE, CannotRevokeGovernorRole());
+        _revokeRole(role, account);
     }
 
     // -- IAgreementOwner --
