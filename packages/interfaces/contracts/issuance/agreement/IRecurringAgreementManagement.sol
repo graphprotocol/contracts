@@ -81,19 +81,6 @@ interface IRecurringAgreementManagement {
 
     // -- Errors --
 
-    /**
-     * @notice Thrown when re-offering an agreement with a different service provider
-     * @param agreementId The agreement ID
-     */
-    error ServiceProviderMismatch(bytes16 agreementId);
-
-    /**
-     * @notice Thrown when the RCA payer is not this contract
-     * @param payer The payer address in the RCA
-     * @param expected The expected payer (this contract)
-     */
-    error PayerMustBeManager(address payer, address expected);
-
     /// @notice Thrown when the RCA service provider is the zero address
     error ServiceProviderZeroAddress();
 

@@ -186,13 +186,6 @@ library IndexingAgreement {
     error IndexingAgreementInvalidVersion(IIndexingAgreement.IndexingAgreementVersion version);
 
     /**
-     * @notice Thrown when an agreement is not for the subgraph data service
-     * @param expectedDataService The expected data service address
-     * @param wrongDataService The wrong data service address
-     */
-    error IndexingAgreementWrongDataService(address expectedDataService, address wrongDataService);
-
-    /**
      * @notice Thrown when the caller is not the collector that owns the agreement
      * @param agreementId The agreement ID
      * @param expectedCollector The collector that owns the agreement

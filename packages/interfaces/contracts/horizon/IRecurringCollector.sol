@@ -270,14 +270,6 @@ interface IRecurringCollector is IAgreementCollector {
     // -- RCA-specific errors --
 
     /**
-     * @notice Thrown when calling collect() with a zero collection seconds
-     * @param agreementId The agreement ID
-     * @param currentTimestamp The current timestamp
-     * @param lastCollectionAt The timestamp when the last collection was done
-     */
-    error ZeroCollectionSeconds(bytes16 agreementId, uint256 currentTimestamp, uint64 lastCollectionAt);
-
-    /**
      * @notice Thrown when calling collect() too soon
      * @param agreementId The agreement ID
      * @param secondsSinceLast Seconds since last collection
@@ -299,12 +291,6 @@ interface IRecurringCollector is IAgreementCollector {
      * @param serviceProvider The service provider that is not eligible
      */
     error CollectionNotEligible(bytes16 agreementId, address serviceProvider);
-
-    /**
-     * @notice Thrown when the contract approver is not a contract
-     * @param approver The address that is not a contract
-     */
-    error ApproverNotContract(address approver);
 
     /**
      * @notice Thrown when notice does not satisfy minSecondsPayerCancellationNotice
