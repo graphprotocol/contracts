@@ -142,13 +142,13 @@ interface ISubgraphService is IDataServiceAgreements, IDataServiceFees {
     error SubgraphServiceInvalidRAV(address ravIndexer, address allocationIndexer);
 
     /**
-     * @notice Thrown when trying to force close an allocation that is not stale and the indexer is not over-allocated
+     * @notice Thrown when trying to resize a stale allocation but it is not stale
      * @param allocationId The id of the allocation
      */
     error SubgraphServiceCannotForceCloseAllocation(address allocationId);
 
     /**
-     * @notice Thrown when trying to force close an altruistic allocation
+     * @notice Thrown when trying to resize a stale allocation that is already altruistic (0 tokens)
      * @param allocationId The id of the allocation
      */
     error SubgraphServiceAllocationIsAltruistic(address allocationId);
@@ -181,16 +181,21 @@ interface ISubgraphService is IDataServiceAgreements, IDataServiceFees {
     ) external;
 
     /**
-     * @notice Force close a stale allocation
+     * @notice Resize a stale allocation to zero tokens
      * @dev This function can be permissionlessly called when the allocation is stale. This
      * ensures that rewards for other allocations are not diluted by an inactive allocation.
+     *
+     * The allocation stays open as a stakeless allocation (0 tokens) rather than being closed.
+     * Allocations are long-lived and track agreement bindings, so force-closing would
+     * inadvertently cancel the associated agreement. Any bound indexing agreement remains
+     * active.
      *
      * Requirements:
      * - Allocation must exist and be open
      * - Allocation must be stale
-     * - Allocation cannot be altruistic
+     * - Allocation cannot already be stakeless
      *
-     * Emits a {AllocationClosed} event.
+     * Emits a {AllocationResized} event.
      *
      * @param allocationId The id of the allocation
      */
