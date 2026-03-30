@@ -2,11 +2,17 @@
 pragma solidity ^0.8.27;
 
 import { IRecurringAgreementManagement } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreementManagement.sol";
+import {
+    REGISTERED,
+    ACCEPTED,
+    OFFER_TYPE_NEW,
+    OFFER_TYPE_UPDATE
+} from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
-import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 
 import { RecurringAgreementManagerSharedTest } from "./shared.t.sol";
+import { MockRecurringCollector } from "./mocks/MockRecurringCollector.sol";
 
 contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSharedTest {
     /* solhint-disable graph/func-name-mixedcase */
@@ -33,21 +39,21 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
 
         _offerAgreementUpdate(rcau);
 
-        // pendingMaxNextClaim = 2e18 * 7200 + 200e18 = 14600e18
-        uint256 expectedPendingMaxClaim = 2 ether * 7200 + 200 ether;
         // Original maxNextClaim = 1e18 * 3600 + 100e18 = 3700e18
         uint256 originalMaxClaim = 1 ether * 3600 + 100 ether;
+        // Pending = ongoing + initialExtra = 2e18 * 7200 + 200e18 = 14600e18
+        uint256 pendingTotal = 2 ether * 7200 + 200 ether;
 
-        // Required escrow should include both
+        // Contribution = max(pending, current) since only one set of terms is active at a time
         assertEq(
             agreementManager.getSumMaxNextClaim(_collector(), indexer),
-            originalMaxClaim + expectedPendingMaxClaim
+            pendingTotal // max(3700, 14600) = 14600
         );
-        // Original maxNextClaim unchanged
-        assertEq(agreementManager.getAgreementMaxNextClaim(agreementId), originalMaxClaim);
+        // maxNextClaim now stores max(active, pending)
+        assertEq(agreementManager.getAgreementMaxNextClaim(address(recurringCollector), agreementId), pendingTotal);
     }
 
-    function test_OfferUpdate_AuthorizesHash() public {
+    function test_OfferUpdate_StoresOnCollector() public {
         (IRecurringCollector.RecurringCollectionAgreement memory rca, ) = _makeRCAWithId(
             100 ether,
             1 ether,
@@ -69,10 +75,9 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
 
         _offerAgreementUpdate(rcau);
 
-        // The update hash should be authorized for the IAgreementOwner callback
-        bytes32 updateHash = recurringCollector.hashRCAU(rcau);
-        bytes4 result = agreementManager.approveAgreement(updateHash);
-        assertEq(result, agreementManager.approveAgreement.selector);
+        // The update is stored on the collector (not via hash authorization)
+        bytes32 pendingHash = recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        assertTrue(pendingHash != bytes32(0), "Pending update should be stored");
     }
 
     function test_OfferUpdate_FundsEscrow() public {
@@ -85,15 +90,17 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
         );
 
         uint256 originalMaxClaim = 1 ether * 3600 + 100 ether;
-        uint256 pendingMaxClaim = 2 ether * 7200 + 200 ether;
-        uint256 sumMaxNextClaim = originalMaxClaim + pendingMaxClaim;
+        // Pending = ongoing + initialExtra = 2e18 * 7200 + 200e18 = 14600e18
+        uint256 pendingTotal = 2 ether * 7200 + 200 ether;
+        // Contribution = max(pendingTotal, originalMaxClaim) = 14600 (only one agreement)
+        uint256 sumMaxNextClaim = pendingTotal;
 
         // Fund generously so Full mode stays active through both offers.
         // After both offers, smnca = sumMaxNextClaim, deficit = sumMaxNextClaim.
-        // spare = balance - deficit. Full requires spare > smnca * 272 / 256.
+        // spare = balance - deficit. Full requires smnca * 272 / 256 < spare.
         token.mint(address(agreementManager), sumMaxNextClaim + (sumMaxNextClaim * 272) / 256 + 1);
         vm.prank(operator);
-        bytes16 agreementId = agreementManager.offerAgreement(rca, _collector());
+        bytes16 agreementId = agreementManager.offerAgreement(_collector(), OFFER_TYPE_NEW, abi.encode(rca));
 
         // Offer update (should fund the deficit)
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _makeRCAU(
@@ -106,7 +113,7 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
             1
         );
         vm.prank(operator);
-        agreementManager.offerAgreementUpdate(rcau);
+        agreementManager.offerAgreement(_collector(), OFFER_TYPE_UPDATE, abi.encode(rcau));
 
         // Verify escrow was funded for both
         (uint256 escrowBalance, , ) = paymentsEscrow.escrowAccounts(
@@ -129,7 +136,7 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
 
         uint256 originalMaxClaim = 1 ether * 3600 + 100 ether;
 
-        // First pending update
+        // First pending update (nonce=1)
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau1 = _makeRCAU(
             agreementId,
             200 ether,
@@ -141,10 +148,14 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
         );
         _offerAgreementUpdate(rcau1);
 
-        uint256 pendingMaxClaim1 = 2 ether * 7200 + 200 ether;
-        assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), originalMaxClaim + pendingMaxClaim1);
+        // Pending1 = ongoing + initialExtra = 2e18 * 7200 + 200e18 = 14600e18
+        // Contribution = max(14600, 3700) = 14600
+        uint256 pendingTotal1 = 2 ether * 7200 + 200 ether;
+        assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), pendingTotal1);
 
-        // Second pending update (replaces first — same nonce since first was never accepted)
+        // Revoke first, then offer second (nonce=2, since collector incremented to 1)
+        _cancelPendingUpdate(agreementId);
+
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau2 = _makeRCAU(
             agreementId,
             50 ether,
@@ -152,13 +163,13 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
             60,
             1800,
             uint64(block.timestamp + 180 days),
-            1
+            2
         );
         _offerAgreementUpdate(rcau2);
 
-        uint256 pendingMaxClaim2 = 0.5 ether * 1800 + 50 ether;
-        // Old pending removed, new pending added
-        assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), originalMaxClaim + pendingMaxClaim2);
+        // Pending2 = ongoing + initialExtra = 0.5e18 * 1800 + 50e18 = 950e18
+        // Contribution = max(950, 3700) = 3700 (original dominates)
+        assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), originalMaxClaim);
     }
 
     function test_OfferUpdate_EmitsEvent() public {
@@ -181,13 +192,16 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
             1
         );
 
-        uint256 pendingMaxClaim = 2 ether * 7200 + 200 ether;
+        // Pending maxNextClaim = ongoing + initialExtra = 2e18 * 7200 + 200e18 = 14600e18
+        uint256 pendingTotal = 2 ether * 7200 + 200 ether;
+        uint256 originalMaxClaim = 1 ether * 3600 + 100 ether;
 
+        // The callback fires during offer, emitting AgreementReconciled
         vm.expectEmit(address(agreementManager));
-        emit IRecurringAgreementManagement.AgreementUpdateOffered(agreementId, pendingMaxClaim, 1);
+        emit IRecurringAgreementManagement.AgreementReconciled(agreementId, originalMaxClaim, pendingTotal);
 
         vm.prank(operator);
-        agreementManager.offerAgreementUpdate(rcau);
+        agreementManager.offerAgreement(_collector(), OFFER_TYPE_UPDATE, abi.encode(rcau));
     }
 
     function test_OfferUpdate_Revert_WhenNotOffered() public {
@@ -202,9 +216,9 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
             1
         );
 
-        vm.expectRevert(abi.encodeWithSelector(IRecurringAgreementManagement.AgreementNotOffered.selector, fakeId));
+        vm.expectRevert(abi.encodeWithSelector(IRecurringAgreementManagement.ServiceProviderZeroAddress.selector));
         vm.prank(operator);
-        agreementManager.offerAgreementUpdate(rcau);
+        agreementManager.offerAgreement(_collector(), OFFER_TYPE_UPDATE, abi.encode(rcau));
     }
 
     function test_OfferUpdate_Revert_WhenNotOperator() public {
@@ -236,38 +250,7 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
             )
         );
         vm.prank(nonOperator);
-        agreementManager.offerAgreementUpdate(rcau);
-    }
-
-    function test_OfferUpdate_Revert_WhenPaused() public {
-        (IRecurringCollector.RecurringCollectionAgreement memory rca, ) = _makeRCAWithId(
-            100 ether,
-            1 ether,
-            3600,
-            uint64(block.timestamp + 365 days)
-        );
-
-        bytes16 agreementId = _offerAgreement(rca);
-
-        IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _makeRCAU(
-            agreementId,
-            200 ether,
-            2 ether,
-            60,
-            7200,
-            uint64(block.timestamp + 730 days),
-            1
-        );
-
-        // Grant pause role and pause
-        vm.startPrank(governor);
-        agreementManager.grantRole(keccak256("PAUSE_ROLE"), governor);
-        agreementManager.pause();
-        vm.stopPrank();
-
-        vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
-        vm.prank(operator);
-        agreementManager.offerAgreementUpdate(rcau);
+        agreementManager.offerAgreement(_collector(), OFFER_TYPE_UPDATE, abi.encode(rcau));
     }
 
     function test_OfferUpdate_Revert_WhenNonceWrong() public {
@@ -291,11 +274,10 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
             2
         );
 
-        vm.expectRevert(
-            abi.encodeWithSelector(IRecurringAgreementManagement.InvalidUpdateNonce.selector, agreementId, 1, 2)
-        );
+        // Nonce validation is now done by the collector
+        vm.expectRevert("MockRecurringCollector: invalid nonce");
         vm.prank(operator);
-        agreementManager.offerAgreementUpdate(rcau);
+        agreementManager.offerAgreement(_collector(), OFFER_TYPE_UPDATE, abi.encode(rcau));
     }
 
     function test_OfferUpdate_Nonce2_AfterFirstAccepted() public {
@@ -322,24 +304,17 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
         _offerAgreementUpdate(rcau1);
 
         // Simulate: agreement accepted with update nonce=1 applied
-        recurringCollector.setAgreement(
-            agreementId,
-            IRecurringCollector.AgreementData({
-                dataService: rca.dataService,
-                payer: rca.payer,
-                serviceProvider: rca.serviceProvider,
-                acceptedAt: uint64(block.timestamp),
-                lastCollectionAt: 0,
-                endsAt: uint64(block.timestamp + 730 days),
-                maxInitialTokens: 200 ether,
-                maxOngoingTokensPerSecond: 2 ether,
-                minSecondsPerCollection: 60,
-                maxSecondsPerCollection: 7200,
-                updateNonce: 1,
-                canceledAt: 0,
-                state: IRecurringCollector.AgreementState.Accepted
-            })
+        IRecurringCollector.RecurringCollectionAgreement memory updatedRca = _makeRCA(
+            200 ether, 2 ether, 60, 7200, uint64(block.timestamp + 730 days)
         );
+        updatedRca.payer = rca.payer;
+        updatedRca.dataService = rca.dataService;
+        updatedRca.serviceProvider = rca.serviceProvider;
+        MockRecurringCollector.AgreementStorage memory data = _buildAgreementStorage(
+            updatedRca, REGISTERED | ACCEPTED, uint64(block.timestamp), 0, 0
+        );
+        data.updateNonce = 1;
+        recurringCollector.setAgreement(agreementId, data);
 
         // Offer second update (nonce=2) — should succeed because collector's updateNonce=1
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau2 = _makeRCAU(
@@ -353,10 +328,11 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
         );
         _offerAgreementUpdate(rcau2);
 
-        // Verify pending state was set
-        IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau2Check = rcau2;
-        bytes32 updateHash = recurringCollector.hashRCAU(rcau2Check);
-        assertEq(agreementManager.approveAgreement(updateHash), agreementManager.approveAgreement.selector);
+        // Verify pending state was set on the collector
+        bytes32 pendingHash = recurringCollector.getAgreementVersionAt(agreementId, 1).versionHash;
+        assertTrue(pendingHash != bytes32(0), "Second pending update should be stored");
+        IRecurringCollector.AgreementData memory result = recurringCollector.getAgreementData(agreementId);
+        assertEq(result.updateNonce, 2);
     }
 
     function test_OfferUpdate_Revert_Nonce1_AfterFirstAccepted() public {
@@ -383,24 +359,17 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
         _offerAgreementUpdate(rcau1);
 
         // Simulate: agreement accepted with update nonce=1 applied
-        recurringCollector.setAgreement(
-            agreementId,
-            IRecurringCollector.AgreementData({
-                dataService: rca.dataService,
-                payer: rca.payer,
-                serviceProvider: rca.serviceProvider,
-                acceptedAt: uint64(block.timestamp),
-                lastCollectionAt: 0,
-                endsAt: uint64(block.timestamp + 730 days),
-                maxInitialTokens: 200 ether,
-                maxOngoingTokensPerSecond: 2 ether,
-                minSecondsPerCollection: 60,
-                maxSecondsPerCollection: 7200,
-                updateNonce: 1,
-                canceledAt: 0,
-                state: IRecurringCollector.AgreementState.Accepted
-            })
+        IRecurringCollector.RecurringCollectionAgreement memory updatedRca = _makeRCA(
+            200 ether, 2 ether, 60, 7200, uint64(block.timestamp + 730 days)
         );
+        updatedRca.payer = rca.payer;
+        updatedRca.dataService = rca.dataService;
+        updatedRca.serviceProvider = rca.serviceProvider;
+        MockRecurringCollector.AgreementStorage memory data = _buildAgreementStorage(
+            updatedRca, REGISTERED | ACCEPTED, uint64(block.timestamp), 0, 0
+        );
+        data.updateNonce = 1;
+        recurringCollector.setAgreement(agreementId, data);
 
         // Try nonce=1 again — should fail because collector already at updateNonce=1
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau2 = _makeRCAU(
@@ -413,11 +382,10 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
             1
         );
 
-        vm.expectRevert(
-            abi.encodeWithSelector(IRecurringAgreementManagement.InvalidUpdateNonce.selector, agreementId, 2, 1)
-        );
+        // Nonce validation is now done by the collector
+        vm.expectRevert("MockRecurringCollector: invalid nonce");
         vm.prank(operator);
-        agreementManager.offerAgreementUpdate(rcau2);
+        agreementManager.offerAgreement(_collector(), OFFER_TYPE_UPDATE, abi.encode(rcau2));
     }
 
     function test_OfferUpdate_ReconcilesDuringOffer() public {
@@ -458,6 +426,37 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
         // Post-reconcile base should be less than the pre-offer estimate
         // (collection happened, so remaining window is smaller)
         assertTrue(postOfferMax < preOfferMax + pendingMaxClaim);
+    }
+
+    function test_OfferUpdate_Succeeds_WhenPaused() public {
+        (IRecurringCollector.RecurringCollectionAgreement memory rca, ) = _makeRCAWithId(
+            100 ether,
+            1 ether,
+            3600,
+            uint64(block.timestamp + 365 days)
+        );
+
+        bytes16 agreementId = _offerAgreement(rca);
+
+        IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _makeRCAU(
+            agreementId,
+            200 ether,
+            2 ether,
+            60,
+            7200,
+            uint64(block.timestamp + 730 days),
+            1
+        );
+
+        // Grant pause role and pause
+        vm.startPrank(governor);
+        agreementManager.grantRole(keccak256("PAUSE_ROLE"), governor);
+        agreementManager.pause();
+        vm.stopPrank();
+
+        // Role-gated functions should succeed even when paused
+        vm.prank(operator);
+        agreementManager.offerAgreement(_collector(), OFFER_TYPE_UPDATE, abi.encode(rcau));
     }
 
     /* solhint-enable graph/func-name-mixedcase */

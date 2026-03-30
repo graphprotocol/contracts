@@ -15,6 +15,7 @@ import { IGraphToken as IssuanceIGraphToken } from "issuance/common/IGraphToken.
 
 // Interfaces
 import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
+import { OFFER_TYPE_NEW } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
 import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
@@ -23,6 +24,7 @@ import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/trans
 import { ControllerStub } from "../mocks/ControllerStub.sol";
 import { HorizonStakingStub } from "../mocks/HorizonStakingStub.sol";
 import { GraphTokenMock } from "../mocks/GraphTokenMock.sol";
+import { MockDataService } from "../mocks/MockDataService.sol";
 
 /// @notice Deploys the real contract stack that participates in RAM callback gas:
 ///   - PaymentsEscrow (real) — RAM calls deposit/adjustThaw/withdraw/escrowAccounts
@@ -50,6 +52,7 @@ abstract contract RealStackHarness is Test {
     address internal governor;
     address internal operator;
     address internal indexer;
+    MockDataService internal dataServiceMock;
     address internal dataService;
 
     // -- Role constants --
@@ -63,7 +66,8 @@ abstract contract RealStackHarness is Test {
         governor = makeAddr("governor");
         operator = makeAddr("operator");
         indexer = makeAddr("indexer");
-        dataService = makeAddr("dataService");
+        dataServiceMock = new MockDataService();
+        dataService = address(dataServiceMock);
 
         // 1. Deploy stubs
         token = new GraphTokenMock();
@@ -85,13 +89,15 @@ abstract contract RealStackHarness is Test {
         controller.register("PaymentsEscrow", address(paymentsEscrow));
 
         // 4. Deploy real RecurringCollector behind proxy
-        RecurringCollector rcImpl = new RecurringCollector(address(controller), 1);
-        TransparentUpgradeableProxy rcProxy = new TransparentUpgradeableProxy(
-            address(rcImpl),
-            address(this),
-            abi.encodeCall(RecurringCollector.initialize, ("RecurringCollector", "1"))
-        );
-        recurringCollector = RecurringCollector(address(rcProxy));
+        {
+            RecurringCollector rcImpl = new RecurringCollector(address(controller));
+            TransparentUpgradeableProxy rcProxy = new TransparentUpgradeableProxy(
+                address(rcImpl),
+                address(this),
+                abi.encodeCall(RecurringCollector.initialize, ())
+            );
+            recurringCollector = RecurringCollector(address(rcProxy));
+        }
 
         // 5. Deploy real IssuanceAllocator behind proxy
         IssuanceAllocator allocatorImpl = new IssuanceAllocator(IssuanceIGraphToken(address(token)));
@@ -174,6 +180,8 @@ abstract contract RealStackHarness is Test {
                 maxOngoingTokensPerSecond: maxOngoingTokensPerSecond,
                 minSecondsPerCollection: 60,
                 maxSecondsPerCollection: maxSecondsPerCollection,
+                conditions: 0,
+                minSecondsPayerCancellationNotice: 0,
                 nonce: 1,
                 metadata: ""
             });
@@ -183,6 +191,15 @@ abstract contract RealStackHarness is Test {
     function _offerAgreement(IRecurringCollector.RecurringCollectionAgreement memory rca) internal returns (bytes16) {
         token.mint(address(ram), 1_000_000 ether);
         vm.prank(operator);
-        return ram.offerAgreement(rca, IRecurringCollector(address(recurringCollector)));
+        return ram.offerAgreement(IRecurringCollector(address(recurringCollector)), OFFER_TYPE_NEW, abi.encode(rca));
+    }
+
+    /// @notice Offer and accept an agreement, returning the agreement ID
+    function _offerAndAccept(IRecurringCollector.RecurringCollectionAgreement memory rca) internal returns (bytes16) {
+        bytes16 agreementId = _offerAgreement(rca);
+        bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        vm.prank(rca.serviceProvider);
+        recurringCollector.accept(agreementId, activeHash, bytes(""), 0);
+        return agreementId;
     }
 }

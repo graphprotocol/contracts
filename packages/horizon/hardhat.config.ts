@@ -24,6 +24,7 @@ const config: HardhatUserConfig = {
         enabled: true,
         runs: 20,
       },
+      evmVersion: 'cancun',
     },
   },
   etherscan: {

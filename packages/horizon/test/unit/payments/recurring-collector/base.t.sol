@@ -12,32 +12,10 @@ contract RecurringCollectorBaseTest is RecurringCollectorSharedTest {
 
     /* solhint-disable graph/func-name-mixedcase */
 
-    function test_RecoverRCASigner(FuzzyTestAccept memory fuzzyTestAccept) public view {
-        uint256 signerKey = boundKey(fuzzyTestAccept.unboundedSignerKey);
-        (
-            IRecurringCollector.RecurringCollectionAgreement memory rca,
-            bytes memory signature
-        ) = _recurringCollectorHelper.generateSignedRCA(fuzzyTestAccept.rca, signerKey);
-
-        assertEq(
-            _recurringCollector.recoverRCASigner(rca, signature),
-            vm.addr(signerKey),
-            "Recovered RCA signer does not match"
-        );
-    }
-
-    function test_RecoverRCAUSigner(FuzzyTestUpdate memory fuzzyTestUpdate) public view {
-        uint256 signerKey = boundKey(fuzzyTestUpdate.fuzzyTestAccept.unboundedSignerKey);
-        (
-            IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau,
-            bytes memory signature
-        ) = _recurringCollectorHelper.generateSignedRCAU(fuzzyTestUpdate.rcau, signerKey);
-
-        assertEq(
-            _recurringCollector.recoverRCAUSigner(rcau, signature),
-            vm.addr(signerKey),
-            "Recovered RCAU signer does not match"
-        );
+    function test_TypeHashes() public view {
+        // Verify the typehash constants are set
+        assertTrue(_recurringCollector.RCA_TYPEHASH() != bytes32(0), "RCA typehash should be non-zero");
+        assertTrue(_recurringCollector.RCAU_TYPEHASH() != bytes32(0), "RCAU typehash should be non-zero");
     }
 
     /* solhint-enable graph/func-name-mixedcase */

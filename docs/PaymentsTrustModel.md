@@ -68,7 +68,7 @@ RecurringCollector adds payer callbacks when the payer is a contract:
 <───┘
 ```
 
-- **`isEligible`**: hard `require` — contract payer can block collection for ineligible receivers. Only called when `0 < tokensToCollect`.
+- **`isEligible`**: fail-open gate — only an explicit return of `0` blocks collection; call failures (reverts, malformed data) are ignored to prevent a buggy payer from griefing the receiver. Only called when `0 < tokensToCollect`.
 - **`beforeCollection`**: try-catch — allows payer to top up escrow (RAM uses this for JIT deposits), but cannot block (though a malicious contract payer could consume excessive gas). Only called when `0 < tokensToCollect`.
 - **`afterCollection`**: try-catch — allows payer to reconcile state post-collection, cannot block (same gas exhaustion caveat). Called even when `tokensToCollect == 0` (zero-token collections still trigger reconciliation).
 
@@ -99,7 +99,7 @@ RecurringCollector adds payer callbacks when the payer is a contract:
 Caveats on effective escrow (contract payers introduce additional trust requirements — see caveat 3):
 
 1. **Thawing reduces effective balance** — a payer can initiate a thaw; once the thaw period completes, those tokens are withdrawable. The receiver should account for the thawing period and any in-progress thaws when assessing available escrow.
-2. **Cancellation freezes the collection window** at `canceledAt` — the receiver can still collect for the period up to cancellation (with `minSecondsPerCollection` bypassed), but no further.
+2. **Cancellation freezes the collection window** at `collectableUntil` — the receiver can still collect for the period up to cancellation; `minSecondsPerCollection` is enforced during the notice period and bypassed only after `collectableUntil` is reached.
 3. **Contract payers can block** — if the payer is a contract that implements `IProviderEligibility`, it can deny collection via `isEligible` (see [RecurringCollector Extensions](#recurringcollector-extensions)).
 
 **Mitigation**: The thawing period provides a window for the receiver to collect before funds are withdrawn. The escrow balance and thaw state are publicly visible on-chain.

@@ -25,4 +25,4 @@ TBD
 
 ---
 
-Now refreshing the cached `escrowSnap` at the start of `_updateEscrow()` so that `_escrowMinMax()` uses updated `totalEscrowDeficit`.
+Now refreshing the cached `escrowSnap` at the start of `_reconcileProviderEscrow()` so that `_escrowMinMax()` uses updated `totalEscrowDeficit`.

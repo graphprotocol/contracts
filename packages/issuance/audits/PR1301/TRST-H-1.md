@@ -20,3 +20,7 @@ Enforce a minimum gas reservation before each callback. Before calling `beforeCo
 ## Team Response
 
 TBD
+
+---
+
+`_shouldCallback()` reverts with `InsufficientCallbackGas` when `gasleft() < (MAX_CALLBACK_GAS * 64) / 63`, accounting for the 63/64 forwarding rule. All payer callbacks (`isEligible`, `beforeCollection`, `afterCollection`) use `{gas: MAX_CALLBACK_GAS}` (1,500,000) to cap execution. Cross-package gas measurements with real contracts confirm sufficient headroom.

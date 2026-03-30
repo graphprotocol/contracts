@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
+import {
+    REGISTERED,
+    ACCEPTED,
+    OFFER_TYPE_NEW
+} from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 
 import { RecurringCollectorSharedTest } from "./shared.t.sol";
@@ -13,54 +18,57 @@ contract RecurringCollectorAcceptTest is RecurringCollectorSharedTest {
     /* solhint-disable graph/func-name-mixedcase */
 
     function test_Accept(FuzzyTestAccept calldata fuzzyTestAccept) public {
-        _sensibleAuthorizeAndAccept(fuzzyTestAccept);
+        (, bytes16 agreementId) = _sensibleAccept(fuzzyTestAccept);
+        IRecurringCollector.AgreementData memory agreement = _recurringCollector.getAgreementData(agreementId);
+        assertEq(agreement.state, REGISTERED | ACCEPTED);
     }
 
     function test_Accept_Revert_WhenAcceptanceDeadlineElapsed(
-        IRecurringCollector.RecurringCollectionAgreement memory fuzzyRCA,
-        bytes memory fuzzySignature,
+        FuzzyTestAccept calldata fuzzyTestAccept,
         uint256 unboundedSkip
     ) public {
-        // Ensure non-empty signature so the signed path is taken (which checks deadline first)
-        vm.assume(fuzzySignature.length > 0);
-        // Generate deterministic agreement ID for validation
-        bytes16 agreementId = _recurringCollector.generateAgreementId(
-            fuzzyRCA.payer,
-            fuzzyRCA.dataService,
-            fuzzyRCA.serviceProvider,
-            fuzzyRCA.deadline,
-            fuzzyRCA.nonce
+        // Store an offer while deadline is still valid
+        (, bytes16 agreementId) = _sensibleOffer(fuzzyTestAccept);
+        IRecurringCollector.AgreementData memory agreement = _recurringCollector.getAgreementData(agreementId);
+        bytes32 activeHash = _recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+
+        // Decode the deadline from the active offer
+        (, bytes memory offerData) = _recurringCollector.getAgreementOfferAt(agreementId, 0);
+        IRecurringCollector.RecurringCollectionAgreement memory rca = abi.decode(
+            offerData,
+            (IRecurringCollector.RecurringCollectionAgreement)
         );
-        vm.assume(agreementId != bytes16(0));
+        uint64 deadline = rca.deadline;
+
+        // Skip time past the deadline
         skip(boundSkip(unboundedSkip, 1, type(uint64).max - block.timestamp));
-        fuzzyRCA = _recurringCollectorHelper.withElapsedAcceptDeadline(fuzzyRCA);
+        vm.assume(block.timestamp > deadline);
 
         bytes memory expectedErr = abi.encodeWithSelector(
-            IRecurringCollector.RecurringCollectorAgreementDeadlineElapsed.selector,
+            IRecurringCollector.AgreementDeadlineElapsed.selector,
             block.timestamp,
-            fuzzyRCA.deadline
+            deadline
         );
         vm.expectRevert(expectedErr);
-        vm.prank(fuzzyRCA.dataService);
-        _recurringCollector.accept(fuzzyRCA, fuzzySignature);
+        vm.prank(agreement.serviceProvider);
+        _recurringCollector.accept(agreementId, activeHash, bytes(""), 0);
     }
 
     function test_Accept_Revert_WhenAlreadyAccepted(FuzzyTestAccept calldata fuzzyTestAccept) public {
-        (
-            IRecurringCollector.RecurringCollectionAgreement memory acceptedRca,
-            bytes memory signature,
-            ,
-            bytes16 agreementId
-        ) = _sensibleAuthorizeAndAccept(fuzzyTestAccept);
+        (IRecurringCollector.RecurringCollectionAgreement memory acceptedRca, bytes16 agreementId) = _sensibleAccept(
+            fuzzyTestAccept
+        );
 
+        // Re-offering the same RCA should fail in offer() because the agreement
+        // is already in Accepted state (not NotAccepted)
         bytes memory expectedErr = abi.encodeWithSelector(
-            IRecurringCollector.RecurringCollectorAgreementIncorrectState.selector,
+            IRecurringCollector.AgreementIncorrectState.selector,
             agreementId,
-            IRecurringCollector.AgreementState.Accepted
+            REGISTERED | ACCEPTED
         );
         vm.expectRevert(expectedErr);
-        vm.prank(acceptedRca.dataService);
-        _recurringCollector.accept(acceptedRca, signature);
+        vm.prank(acceptedRca.payer);
+        _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(acceptedRca), 0);
     }
 
     /* solhint-enable graph/func-name-mixedcase */

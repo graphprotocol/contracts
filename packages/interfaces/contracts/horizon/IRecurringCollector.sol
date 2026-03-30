@@ -1,140 +1,24 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.22;
 
-import { IPaymentsCollector } from "./IPaymentsCollector.sol";
+import { IAgreementCollector } from "./IAgreementCollector.sol";
 import { IGraphPayments } from "./IGraphPayments.sol";
-import { IAuthorizable } from "./IAuthorizable.sol";
 
 /**
  * @title Interface for the {RecurringCollector} contract
  * @author Edge & Node
- * @dev Implements the {IPaymentCollector} interface as defined by the Graph
- * Horizon payments protocol.
+ * @dev Extends {IAgreementCollector} with Recurring Collection Agreement (RCA) specific
+ * structures, methods, and validation rules.
  * @notice Implements a payments collector contract that can be used to collect
- * recurrent payments.
+ * recurrent payments based on time-windowed pricing terms.
  */
-interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
-    /// @notice The state of an agreement
-    enum AgreementState {
-        NotAccepted,
-        Accepted,
-        CanceledByServiceProvider,
-        CanceledByPayer
-    }
-
-    /// @notice The party that can cancel an agreement
-    enum CancelAgreementBy {
-        ServiceProvider,
-        Payer,
-        ThirdParty
-    }
-
-    /// @notice Reasons why an agreement is not collectable
-    enum AgreementNotCollectableReason {
-        None,
-        InvalidAgreementState,
-        ZeroCollectionSeconds,
-        InvalidTemporalWindow
-    }
-
-    /**
-     * @notice The Recurring Collection Agreement (RCA)
-     * @param deadline The deadline for accepting the RCA
-     * @param endsAt The timestamp when the agreement ends
-     * @param payer The address of the payer the RCA was issued by
-     * @param dataService The address of the data service the RCA was issued to
-     * @param serviceProvider The address of the service provider the RCA was issued to
-     * @param maxInitialTokens The maximum amount of tokens that can be collected in the first collection
-     * on top of the amount allowed for subsequent collections
-     * @param maxOngoingTokensPerSecond The maximum amount of tokens that can be collected per second
-     * except for the first collection
-     * @param minSecondsPerCollection The minimum amount of seconds that must pass between collections
-     * @param maxSecondsPerCollection The maximum seconds of service that can be collected in a single collection
-     * @param nonce A unique nonce for preventing collisions (user-chosen)
-     * @param metadata Arbitrary metadata to extend functionality if a data service requires it
-     *
-     */
-    // solhint-disable-next-line gas-struct-packing
-    struct RecurringCollectionAgreement {
-        uint64 deadline;
-        uint64 endsAt;
-        address payer;
-        address dataService;
-        address serviceProvider;
-        uint256 maxInitialTokens;
-        uint256 maxOngoingTokensPerSecond;
-        uint32 minSecondsPerCollection;
-        uint32 maxSecondsPerCollection;
-        uint256 nonce;
-        bytes metadata;
-    }
-
-    /**
-     * @notice The Recurring Collection Agreement Update (RCAU)
-     * @param agreementId The agreement ID of the RCAU
-     * @param deadline The deadline for upgrading the RCA
-     * @param endsAt The timestamp when the agreement ends
-     * @param maxInitialTokens The maximum amount of tokens that can be collected in the first collection
-     * on top of the amount allowed for subsequent collections
-     * @param maxOngoingTokensPerSecond The maximum amount of tokens that can be collected per second
-     * except for the first collection
-     * @param minSecondsPerCollection The minimum amount of seconds that must pass between collections
-     * @param maxSecondsPerCollection The maximum seconds of service that can be collected in a single collection
-     * @param nonce The nonce for preventing replay attacks (must be current nonce + 1)
-     * @param metadata Arbitrary metadata to extend functionality if a data service requires it
-     */
-    // solhint-disable-next-line gas-struct-packing
-    struct RecurringCollectionAgreementUpdate {
-        bytes16 agreementId;
-        uint64 deadline;
-        uint64 endsAt;
-        uint256 maxInitialTokens;
-        uint256 maxOngoingTokensPerSecond;
-        uint32 minSecondsPerCollection;
-        uint32 maxSecondsPerCollection;
-        uint32 nonce;
-        bytes metadata;
-    }
-
-    /**
-     * @notice The data for an agreement
-     * @dev This struct is used to store the data of an agreement in the contract
-     * @param dataService The address of the data service
-     * @param payer The address of the payer
-     * @param serviceProvider The address of the service provider
-     * @param acceptedAt The timestamp when the agreement was accepted
-     * @param lastCollectionAt The timestamp when the agreement was last collected at
-     * @param endsAt The timestamp when the agreement ends
-     * @param maxInitialTokens The maximum amount of tokens that can be collected in the first collection
-     * on top of the amount allowed for subsequent collections
-     * @param maxOngoingTokensPerSecond The maximum amount of tokens that can be collected per second
-     * except for the first collection
-     * @param minSecondsPerCollection The minimum amount of seconds that must pass between collections
-     * @param maxSecondsPerCollection The maximum seconds of service that can be collected in a single collection
-     * @param updateNonce The current nonce for updates (prevents replay attacks)
-     * @param canceledAt The timestamp when the agreement was canceled
-     * @param state The state of the agreement
-     */
-    struct AgreementData {
-        address dataService;
-        address payer;
-        address serviceProvider;
-        uint64 acceptedAt;
-        uint64 lastCollectionAt;
-        uint64 endsAt;
-        uint256 maxInitialTokens;
-        uint256 maxOngoingTokensPerSecond;
-        uint32 minSecondsPerCollection;
-        uint32 maxSecondsPerCollection;
-        uint32 updateNonce;
-        uint64 canceledAt;
-        AgreementState state;
-    }
+interface IRecurringCollector is IAgreementCollector {
+    // -- Structs (shared) --
 
     /**
      * @notice The params for collecting an agreement
-     * @param agreementId The agreement ID of the RCA
-     * @param collectionId The collection ID of the RCA
+     * @param agreementId The agreement ID
+     * @param collectionId The collection ID
      * @param tokens The amount of tokens to collect
      * @param dataServiceCut The data service cut in parts per million
      * @param receiverDestination The address where the collected fees should be sent
@@ -150,200 +34,279 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     }
 
     /**
-     * @notice Emitted when an agreement is accepted
-     * @param dataService The address of the data service
-     * @param payer The address of the payer
-     * @param serviceProvider The address of the service provider
-     * @param agreementId The agreement ID
-     * @param acceptedAt The timestamp when the agreement was accepted
-     * @param endsAt The timestamp when the agreement ends
-     * @param maxInitialTokens The maximum amount of tokens that can be collected in the first collection
-     * @param maxOngoingTokensPerSecond The maximum amount of tokens that can be collected per second
-     * @param minSecondsPerCollection The minimum amount of seconds that must pass between collections
-     * @param maxSecondsPerCollection The maximum seconds of service that can be collected in a single collection
+     * @notice Return value for opaque offer overloads.
+     * @param agreementId The deterministically generated agreement ID
+     * @param dataService The data service address from the decoded agreement
+     * @param serviceProvider The service provider address from the decoded agreement
+     * @param versionHash The EIP-712 hash of the terms that were stored
+     * @param state Agreement state flags, includes UPDATE when the version is pending
      */
-    event AgreementAccepted(
-        address indexed dataService,
-        address indexed payer,
-        address indexed serviceProvider,
-        bytes16 agreementId,
-        uint64 acceptedAt,
-        uint64 endsAt,
-        uint256 maxInitialTokens,
-        uint256 maxOngoingTokensPerSecond,
+    // solhint-disable-next-line gas-struct-packing
+    struct OfferResult {
+        bytes16 agreementId;
+        address dataService;
+        address serviceProvider;
+        bytes32 versionHash;
+        uint16 state;
+    }
+
+    // -- Enums --
+
+    /// @dev The stage of a payer callback
+    enum PayerCallbackStage {
+        EligibilityCheck,
+        BeforeCollection,
+        AfterCollection
+    }
+
+    /// @dev Reasons why an agreement is not collectable
+    enum AgreementNotCollectableReason {
+        None,
+        InvalidAgreementState,
+        ZeroCollectionSeconds,
+        InvalidTemporalWindow
+    }
+
+    /// @dev Reasons why a collection window is invalid
+    enum InvalidCollectionWindowReason {
+        None,
+        ElapsedEndsAt,
+        InvalidWindow,
+        InsufficientDuration
+    }
+
+    // -- Events --
+
+    /**
+     * @notice Emitted on every agreement lifecycle change.
+     * @param agreementId The agreement ID
+     * @param versionHash The hash of the agreement terms version
+     * @param state The agreement state flags after the change
+     */
+    event AgreementUpdated(bytes16 indexed agreementId, bytes32 versionHash, uint16 state);
+    // solhint-disable-previous-line gas-indexed-events
+
+    /**
+     * @notice Emitted when a payer callback reverts.
+     * @param agreementId The agreement ID
+     * @param payer The payer address
+     * @param stage The callback stage at which the failure occurred
+     */
+    event PayerCallbackFailed(bytes16 indexed agreementId, address indexed payer, PayerCallbackStage stage);
+
+    /**
+     * @notice Emitted when an auto-update is attempted during the final collect.
+     * @param agreementId The agreement ID
+     * @param success Whether the auto-update succeeded
+     */
+    event AutoUpdateAttempted(bytes16 indexed agreementId, bool success);
+    // solhint-disable-previous-line gas-indexed-events
+
+    /**
+     * @notice Emitted when a pause guardian is set.
+     * @param account The pause guardian address
+     * @param allowed Whether the account is allowed as a pause guardian
+     */
+    event PauseGuardianSet(address indexed account, bool allowed);
+    // solhint-disable-previous-line gas-indexed-events
+
+    // -- Generic errors --
+
+    error AgreementIdZero();
+    error DataServiceNotAuthorized(bytes16 agreementId, address unauthorizedDataService);
+    error UnauthorizedDataService(address dataService);
+    error AgreementDeadlineElapsed(uint256 currentTimestamp, uint64 deadline);
+    error UnauthorizedCaller(address unauthorizedCaller, address dataService);
+    error InvalidCollectData(bytes invalidData);
+    error AgreementIncorrectState(bytes16 agreementId, uint16 incorrectState);
+    error AgreementNotCollectable(bytes16 agreementId, AgreementNotCollectableReason reason);
+    error AgreementAddressNotSet();
+    error AgreementInvalidCollectionWindow(
+        InvalidCollectionWindowReason reason,
         uint32 minSecondsPerCollection,
         uint32 maxSecondsPerCollection
     );
+    error AgreementHashMismatch(bytes16 agreementId, bytes32 expected, bytes32 provided);
+    error AgreementTermsEmpty(bytes16 agreementId);
+    error UnauthorizedPayer(address caller, address payer);
+    error UnauthorizedServiceProvider(address caller, address serviceProvider);
+    error InsufficientCallbackGas();
+    error NotGovernor(address account);
+    error NotPauseGuardian(address account);
+    error InvalidOfferType(uint8 offerType);
+    error ExcessiveSlippage(uint256 requested, uint256 actual, uint256 maxSlippage);
+
+    // -- Pause guardian methods (pause/unpause/paused implemented via IPausableControl) --
 
     /**
-     * @notice Emitted when an agreement is canceled
-     * @param dataService The address of the data service
-     * @param payer The address of the payer
-     * @param serviceProvider The address of the service provider
-     * @param agreementId The agreement ID
-     * @param canceledAt The timestamp when the agreement was canceled
-     * @param canceledBy The party that canceled the agreement
+     * @notice Check whether an account is a pause guardian.
+     * @param pauseGuardian The address to check
+     * @return Whether the account is a pause guardian
      */
-    event AgreementCanceled(
-        address indexed dataService,
-        address indexed payer,
-        address indexed serviceProvider,
-        bytes16 agreementId,
-        uint64 canceledAt,
-        CancelAgreementBy canceledBy
-    );
+    function isPauseGuardian(address pauseGuardian) external view returns (bool);
+
+    // -- RCA-specific structures --
 
     /**
-     * @notice Emitted when an agreement is updated
-     * @param dataService The address of the data service
-     * @param payer The address of the payer
-     * @param serviceProvider The address of the service provider
-     * @param agreementId The agreement ID
-     * @param updatedAt The timestamp when the agreement was updated
+     * @notice The Recurring Collection Agreement (RCA)
+     * @param deadline The deadline for accepting the RCA
      * @param endsAt The timestamp when the agreement ends
+     * @param payer The address of the payer the RCA was issued by
+     * @param dataService The address of the data service the RCA was issued to
+     * @param serviceProvider The address of the service provider the RCA was issued to
      * @param maxInitialTokens The maximum amount of tokens that can be collected in the first collection
+     * on top of the amount allowed for subsequent collections
      * @param maxOngoingTokensPerSecond The maximum amount of tokens that can be collected per second
+     * except for the first collection
      * @param minSecondsPerCollection The minimum amount of seconds that must pass between collections
      * @param maxSecondsPerCollection The maximum seconds of service that can be collected in a single collection
+     * @param conditions Bitfield of agreement conditions (e.g. CONDITION_ELIGIBILITY_CHECK)
+     * @param minSecondsPayerCancellationNotice Minimum seconds of notice the payer must give before
+     * cancellation takes effect (enforced on cancel and OFFER_TYPE_UPDATE with WITH_NOTICE)
+     * @param nonce A unique nonce for preventing collisions (user-chosen)
+     * @param metadata Arbitrary metadata to extend functionality if a data service requires it
+     *
      */
-    event AgreementUpdated(
-        address indexed dataService,
-        address indexed payer,
-        address indexed serviceProvider,
-        bytes16 agreementId,
-        uint64 updatedAt,
-        uint64 endsAt,
-        uint256 maxInitialTokens,
-        uint256 maxOngoingTokensPerSecond,
-        uint32 minSecondsPerCollection,
-        uint32 maxSecondsPerCollection
-    );
+    // solhint-disable-next-line gas-struct-packing
+    struct RecurringCollectionAgreement {
+        uint64 deadline;
+        uint64 endsAt;
+        address payer;
+        address dataService;
+        address serviceProvider;
+        uint256 maxInitialTokens;
+        uint256 maxOngoingTokensPerSecond;
+        uint32 minSecondsPerCollection;
+        uint32 maxSecondsPerCollection;
+        uint16 conditions;
+        uint32 minSecondsPayerCancellationNotice;
+        uint256 nonce;
+        bytes metadata;
+    }
 
     /**
-     * @notice Emitted when an RCA is collected
-     * @param dataService The address of the data service
+     * @notice The Recurring Collection Agreement Update (RCAU)
+     * @param agreementId The agreement ID of the RCAU
+     * @param deadline The deadline for upgrading the RCA
+     * @param endsAt The timestamp when the agreement ends
+     * @param maxInitialTokens The maximum amount of tokens that can be collected in the first collection
+     * on top of the amount allowed for subsequent collections
+     * @param maxOngoingTokensPerSecond The maximum amount of tokens that can be collected per second
+     * except for the first collection
+     * @param minSecondsPerCollection The minimum amount of seconds that must pass between collections
+     * @param maxSecondsPerCollection The maximum seconds of service that can be collected in a single collection
+     * @param conditions Bitfield of agreement conditions (e.g. CONDITION_ELIGIBILITY_CHECK)
+     * @param minSecondsPayerCancellationNotice Minimum seconds of notice the payer must give before
+     * cancellation takes effect (enforced on cancel and OFFER_TYPE_UPDATE with WITH_NOTICE)
+     * @param nonce The nonce for preventing replay attacks (must be current nonce + 1)
+     * @param metadata Arbitrary metadata to extend functionality if a data service requires it
+     */
+    // solhint-disable-next-line gas-struct-packing
+    struct RecurringCollectionAgreementUpdate {
+        bytes16 agreementId;
+        uint64 deadline;
+        uint64 endsAt;
+        uint256 maxInitialTokens;
+        uint256 maxOngoingTokensPerSecond;
+        uint32 minSecondsPerCollection;
+        uint32 maxSecondsPerCollection;
+        uint16 conditions;
+        uint32 minSecondsPayerCancellationNotice;
+        uint32 nonce;
+        bytes metadata;
+    }
+
+    /**
+     * @notice The pricing and window terms for an agreement
+     * @dev Shared between active and pending update terms in AgreementStorage.
+     * Packed layout (4 fixed slots + dynamic):
+     *   slot 0: deadline(8) + endsAt(8) + minSecondsPerCollection(4) + maxSecondsPerCollection(4) + conditions(2) + minSecondsPayerCancellationNotice(4) = 30B
+     *   slot 1: maxInitialTokens(32)
+     *   slot 2: maxOngoingTokensPerSecond(32)
+     *   slot 3: hash(32)
+     *   slot 4+: metadata (dynamic)
+     * @param deadline The deadline for accepting these terms
+     * @param endsAt The timestamp when the agreement ends
+     * @param minSecondsPerCollection The minimum amount of seconds that must pass between collections
+     * @param maxSecondsPerCollection The maximum seconds of service that can be collected in a single collection
+     * @param conditions Bitfield of agreement conditions (e.g. CONDITION_ELIGIBILITY_CHECK)
+     * @param minSecondsPayerCancellationNotice Minimum seconds of notice the payer must give before
+     * cancellation takes effect (enforced on cancel and OFFER_TYPE_UPDATE with WITH_NOTICE)
+     * @param maxInitialTokens The maximum amount of tokens that can be collected in the first collection
+     * @param maxOngoingTokensPerSecond The maximum amount of tokens that can be collected per second
+     * @param hash Precomputed EIP-712 hash of the RCA or RCAU that produced these terms
+     * @param metadata Arbitrary metadata to extend functionality if a data service requires it
+     */
+    struct AgreementTerms {
+        uint64 deadline;
+        uint64 endsAt;
+        uint32 minSecondsPerCollection;
+        uint32 maxSecondsPerCollection;
+        uint16 conditions;
+        uint32 minSecondsPayerCancellationNotice;
+        uint256 maxInitialTokens;
+        uint256 maxOngoingTokensPerSecond;
+        bytes32 hash;
+        bytes metadata;
+    }
+
+    /**
+     * @notice View of agreement identity, parties, state, temporal info, and collectability.
+     * @dev Decouples the public interface from internal storage layout so that storage
+     * refactors do not constitute breaking interface changes.
+     * @param agreementId The agreement ID
      * @param payer The address of the payer
      * @param serviceProvider The address of the service provider
+     * @param dataService The address of the data service
+     * @param acceptedAt The timestamp when the agreement was accepted (zero if not yet accepted)
+     * @param lastCollectionAt The timestamp of the last collection (zero if never collected)
+     * @param collectableUntil The timestamp after which the agreement is no longer collectable
+     * @param updateNonce The current nonce for updates (prevents replay attacks)
+     * @param state Bitflag state of the agreement (see IAgreementCollector state flags)
+     * @param isCollectable Whether the agreement allows collection attempts right now
+     * @param collectionSeconds The valid collection duration in seconds (capped at maxSecondsPerCollection)
+     */
+    struct AgreementData {
+        bytes16 agreementId;
+        address payer;
+        address serviceProvider;
+        address dataService;
+        uint64 acceptedAt;
+        uint64 lastCollectionAt;
+        uint64 collectableUntil;
+        uint32 updateNonce;
+        uint16 state;
+        bool isCollectable;
+        uint256 collectionSeconds;
+    }
+
+    // -- RCA-specific events --
+
+    /**
+     * @notice Emitted when an RCA is collected. Links the collection to the agreement.
+     * @dev Token amounts and payment breakdown are in GraphPaymentCollected from GraphPayments.
      * @param agreementId The agreement ID
      * @param collectionId The collection ID
-     * @param tokens The amount of tokens collected
-     * @param dataServiceCut The tokens cut for the data service
+     * @param state The agreement state after collection
      */
-    event RCACollected(
-        address indexed dataService,
-        address indexed payer,
-        address indexed serviceProvider,
-        bytes16 agreementId,
-        bytes32 collectionId,
-        uint256 tokens,
-        uint256 dataServiceCut
-    );
+    event RCACollected(bytes16 indexed agreementId, bytes32 collectionId, uint16 state);
+    // solhint-disable-previous-line gas-indexed-events
 
-    /**
-     * @notice Thrown when accepting an agreement with a zero ID
-     */
-    error RecurringCollectorAgreementIdZero();
-
-    /**
-     * @notice Thrown when interacting with an agreement not owned by the message sender
-     * @param agreementId The agreement ID
-     * @param unauthorizedDataService The address of the unauthorized data service
-     */
-    error RecurringCollectorDataServiceNotAuthorized(bytes16 agreementId, address unauthorizedDataService);
-    /**
-     * @notice Thrown when the data service is not authorized for the service provider
-     * @param dataService The address of the unauthorized data service
-     */
-    error RecurringCollectorUnauthorizedDataService(address dataService);
-
-    /**
-     * @notice Thrown when interacting with an agreement with an elapsed deadline
-     * @param currentTimestamp The current timestamp
-     * @param deadline The elapsed deadline timestamp
-     */
-    error RecurringCollectorAgreementDeadlineElapsed(uint256 currentTimestamp, uint64 deadline);
-
-    /**
-     * @notice Thrown when the signer is invalid
-     */
-    error RecurringCollectorInvalidSigner();
+    // -- RCA-specific errors --
 
     /**
      * @notice Thrown when the payment type is not IndexingFee
      * @param invalidPaymentType The invalid payment type
      */
-    error RecurringCollectorInvalidPaymentType(IGraphPayments.PaymentTypes invalidPaymentType);
-
-    /**
-     * @notice Thrown when the caller is not the data service the RCA was issued to
-     * @param unauthorizedCaller The address of the caller
-     * @param dataService The address of the data service
-     */
-    error RecurringCollectorUnauthorizedCaller(address unauthorizedCaller, address dataService);
-
-    /**
-     * @notice Thrown when calling collect() with invalid data
-     * @param invalidData The invalid data
-     */
-    error RecurringCollectorInvalidCollectData(bytes invalidData);
-
-    /**
-     * @notice Thrown when interacting with an agreement that has an incorrect state
-     * @param agreementId The agreement ID
-     * @param incorrectState The incorrect state
-     */
-    error RecurringCollectorAgreementIncorrectState(bytes16 agreementId, AgreementState incorrectState);
-
-    /**
-     * @notice Thrown when an agreement is not collectable
-     * @param agreementId The agreement ID
-     * @param reason The reason why the agreement is not collectable
-     */
-    error RecurringCollectorAgreementNotCollectable(bytes16 agreementId, AgreementNotCollectableReason reason);
-
-    /**
-     * @notice Thrown when accepting an agreement with an address that is not set
-     */
-    error RecurringCollectorAgreementAddressNotSet();
-
-    /**
-     * @notice Thrown when accepting or upgrading an agreement with an elapsed endsAt
-     * @param currentTimestamp The current timestamp
-     * @param endsAt The agreement end timestamp
-     */
-    error RecurringCollectorAgreementElapsedEndsAt(uint256 currentTimestamp, uint64 endsAt);
-
-    /**
-     * @notice Thrown when accepting or upgrading an agreement with an elapsed endsAt
-     * @param allowedMinCollectionWindow The allowed minimum collection window
-     * @param minSecondsPerCollection The minimum seconds per collection
-     * @param maxSecondsPerCollection The maximum seconds per collection
-     */
-    error RecurringCollectorAgreementInvalidCollectionWindow(
-        uint32 allowedMinCollectionWindow,
-        uint32 minSecondsPerCollection,
-        uint32 maxSecondsPerCollection
-    );
-
-    /**
-     * @notice Thrown when accepting or upgrading an agreement with an invalid duration
-     * @param requiredMinDuration The required minimum duration
-     * @param invalidDuration The invalid duration
-     */
-    error RecurringCollectorAgreementInvalidDuration(uint32 requiredMinDuration, uint256 invalidDuration);
+    error InvalidPaymentType(IGraphPayments.PaymentTypes invalidPaymentType);
 
     /**
      * @notice Thrown when calling collect() with a zero collection seconds
      * @param agreementId The agreement ID
      * @param currentTimestamp The current timestamp
      * @param lastCollectionAt The timestamp when the last collection was done
-     *
      */
-    error RecurringCollectorZeroCollectionSeconds(
-        bytes16 agreementId,
-        uint256 currentTimestamp,
-        uint64 lastCollectionAt
-    );
+    error ZeroCollectionSeconds(bytes16 agreementId, uint256 currentTimestamp, uint64 lastCollectionAt);
 
     /**
      * @notice Thrown when calling collect() too soon
@@ -351,7 +314,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @param secondsSinceLast Seconds since last collection
      * @param minSeconds Minimum seconds between collections
      */
-    error RecurringCollectorCollectionTooSoon(bytes16 agreementId, uint32 secondsSinceLast, uint32 minSeconds);
+    error CollectionTooSoon(bytes16 agreementId, uint32 secondsSinceLast, uint32 minSeconds);
 
     /**
      * @notice Thrown when calling update() with an invalid nonce
@@ -359,126 +322,99 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @param expected The expected nonce
      * @param provided The provided nonce
      */
-    error RecurringCollectorInvalidUpdateNonce(bytes16 agreementId, uint32 expected, uint32 provided);
-
-    /**
-     * @notice Thrown when collected tokens are less than requested beyond the allowed slippage
-     * @param requested The amount of tokens requested to collect
-     * @param actual The actual amount that would be collected
-     * @param maxSlippage The maximum allowed slippage
-     */
-    error RecurringCollectorExcessiveSlippage(uint256 requested, uint256 actual, uint256 maxSlippage);
+    error InvalidUpdateNonce(bytes16 agreementId, uint32 expected, uint32 provided);
 
     /**
      * @notice Thrown when a contract payer's eligibility oracle denies the service provider
      * @param agreementId The agreement ID
      * @param serviceProvider The service provider that is not eligible
      */
-    error RecurringCollectorCollectionNotEligible(bytes16 agreementId, address serviceProvider);
+    error CollectionNotEligible(bytes16 agreementId, address serviceProvider);
 
     /**
      * @notice Thrown when the contract approver is not a contract
      * @param approver The address that is not a contract
      */
-    error RecurringCollectorApproverNotContract(address approver);
+    error ApproverNotContract(address approver);
 
     /**
-     * @notice Accept a Recurring Collection Agreement.
-     * @dev Caller must be the data service the RCA was issued to.
-     * If `signature` is non-empty: checks `rca.deadline >= block.timestamp` and verifies the ECDSA signature.
-     * If `signature` is empty: the payer must be a contract implementing {IAgreementOwner.approveAgreement}
-     * and must return the magic value for the RCA's EIP712 hash.
-     * @param rca The Recurring Collection Agreement to accept
-     * @param signature ECDSA signature bytes, or empty for contract-approved agreements
-     * @return agreementId The deterministically generated agreement ID
+     * @notice Thrown when notice does not satisfy minSecondsPayerCancellationNotice
+     * @param agreementId The agreement ID
+     * @param minSecondsPayerCancellationNotice The required minimum notice period
+     * @param actualSeconds The actual seconds of notice provided
      */
-    function accept(
-        RecurringCollectionAgreement calldata rca,
-        bytes calldata signature
-    ) external returns (bytes16 agreementId);
+    error InsufficientNotice(bytes16 agreementId, uint32 minSecondsPayerCancellationNotice, uint256 actualSeconds);
 
     /**
-     * @notice Cancel an indexing agreement.
-     * @param agreementId The agreement's ID.
-     * @param by The party that is canceling the agreement.
+     * @notice Thrown when CONDITION_ELIGIBILITY_CHECK is set but the payer does not
+     * advertise IProviderEligibility support via ERC-165.
+     * @param payer The payer address that does not support IProviderEligibility
      */
-    function cancel(bytes16 agreementId, CancelAgreementBy by) external;
+    error EligibilityConditionNotSupported(address payer);
+
+    // -- RCA-specific methods --
 
     /**
-     * @notice Update a Recurring Collection Agreement.
-     * @dev Caller must be the data service for the agreement.
-     * If `signature` is non-empty: checks `rcau.deadline >= block.timestamp` and verifies the ECDSA signature.
-     * If `signature` is empty: the payer (stored in the agreement) must be a contract implementing
-     * {IAgreementOwner.approveAgreement} and must return the magic value for the RCAU's EIP712 hash.
-     * @param rcau The Recurring Collection Agreement Update to apply
-     * @param signature ECDSA signature bytes, or empty for contract-approved updates
+     * @notice Offer a new agreement or update an existing one.
+     * @param offerType The type of offer (OFFER_TYPE_NEW or OFFER_TYPE_UPDATE)
+     * @param data ABI-encoded offer data
+     * @param options Bitmask of offer options (e.g. WITH_NOTICE)
+     * @return The offer result containing agreementId, dataService, and serviceProvider
      */
-    function update(RecurringCollectionAgreementUpdate calldata rcau, bytes calldata signature) external;
+    function offer(uint8 offerType, bytes calldata data, uint16 options) external returns (OfferResult memory);
 
     /**
-     * @notice Computes the hash of a RecurringCollectionAgreement (RCA).
-     * @param rca The RCA for which to compute the hash.
-     * @return The hash of the RCA.
+     * @notice Accept a previously offered agreement or pending update by its ID and hash.
+     * @param agreementId The ID of the agreement to accept
+     * @param agreementHash EIP-712 hash the service provider expects to accept
+     * @param extraData Opaque data forwarded to the data service callback
+     * @param options Bitmask of agreement options (e.g. AUTO_UPDATE)
      */
-    function hashRCA(RecurringCollectionAgreement calldata rca) external view returns (bytes32);
+    function accept(bytes16 agreementId, bytes32 agreementHash, bytes calldata extraData, uint16 options) external;
 
     /**
-     * @notice Computes the hash of a RecurringCollectionAgreementUpdate (RCAU).
-     * @param rcau The RCAU for which to compute the hash.
-     * @return The hash of the RCAU.
-     */
-    function hashRCAU(RecurringCollectionAgreementUpdate calldata rcau) external view returns (bytes32);
-
-    /**
-     * @notice Recovers the signer address of a signed RecurringCollectionAgreement (RCA).
-     * @param rca The RCA whose hash was signed.
-     * @param signature The ECDSA signature bytes.
-     * @return The address of the signer.
-     */
-    function recoverRCASigner(
-        RecurringCollectionAgreement calldata rca,
-        bytes calldata signature
-    ) external view returns (address);
-
-    /**
-     * @notice Recovers the signer address of a signed RecurringCollectionAgreementUpdate (RCAU).
-     * @param rcau The RCAU whose hash was signed.
-     * @param signature The ECDSA signature bytes.
-     * @return The address of the signer.
-     */
-    function recoverRCAUSigner(
-        RecurringCollectionAgreementUpdate calldata rcau,
-        bytes calldata signature
-    ) external view returns (address);
-
-    /**
-     * @notice Gets an agreement.
+     * @notice Get agreement data for a given agreement ID.
      * @param agreementId The ID of the agreement to retrieve.
-     * @return The AgreementData struct containing the agreement's data.
+     * @return The AgreementData struct containing identity, parties, state, and collectability.
      */
-    function getAgreement(bytes16 agreementId) external view returns (AgreementData memory);
+    function getAgreementData(bytes16 agreementId) external view returns (AgreementData memory);
 
     /**
-     * @notice Get the maximum tokens collectable in the next collection for an agreement.
-     * @dev Computes the worst-case (maximum possible) claim amount based on current on-chain
-     * agreement state. For active agreements, uses `endsAt` as the upper bound (not block.timestamp).
-     * Returns 0 for NotAccepted, CanceledByServiceProvider, or fully expired agreements.
+     * @notice Get the maximum tokens collectable for an agreement, scoped by active and/or pending terms.
      * @param agreementId The ID of the agreement
-     * @return The maximum tokens that could be collected in the next collection
+     * @param claimScope Bitmask: 1 = active terms, 2 = pending terms, 3 = max of both
+     * @return The maximum tokens that could be collected under the requested scope
+     */
+    function getMaxNextClaim(bytes16 agreementId, uint8 claimScope) external view returns (uint256);
+
+    /**
+     * @notice Convenience overload: returns max of both active and pending terms.
+     * @param agreementId The ID of the agreement
+     * @return The maximum tokens that could be collected
      */
     function getMaxNextClaim(bytes16 agreementId) external view returns (uint256);
 
     /**
-     * @notice Get collection info for an agreement
-     * @param agreement The agreement data
-     * @return isCollectable Whether the agreement is in a valid state that allows collection attempts,
-     * not that there are necessarily funds available to collect.
-     * @return collectionSeconds The valid collection duration in seconds (0 if not collectable)
-     * @return reason The reason why the agreement is not collectable (None if collectable)
+     * @notice Get the number of term versions stored for an agreement.
+     * @param agreementId The ID of the agreement
+     * @return The number of stored term versions
      */
-    function getCollectionInfo(
-        AgreementData calldata agreement
-    ) external view returns (bool isCollectable, uint256 collectionSeconds, AgreementNotCollectableReason reason);
+    function getAgreementVersionCount(bytes16 agreementId) external view returns (uint256);
+
+    /**
+     * @notice Reconstruct the original offer for a given version, enabling independent hash verification.
+     * @dev Returns the offer type (OFFER_TYPE_NEW or OFFER_TYPE_UPDATE) and the ABI-encoded
+     * original struct (RecurringCollectionAgreement or RecurringCollectionAgreementUpdate).
+     * Callers can decode and pass to hashRCA/hashRCAU to verify the stored version hash.
+     * @param agreementId The ID of the agreement
+     * @param index The zero-based version index
+     * @return offerType OFFER_TYPE_NEW (0) or OFFER_TYPE_UPDATE (1)
+     * @return offerData ABI-encoded RecurringCollectionAgreement or RecurringCollectionAgreementUpdate
+     */
+    function getAgreementOfferAt(
+        bytes16 agreementId,
+        uint256 index
+    ) external view returns (uint8 offerType, bytes memory offerData);
 
     /**
      * @notice Generate a deterministic agreement ID from agreement parameters

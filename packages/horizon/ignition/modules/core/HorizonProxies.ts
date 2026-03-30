@@ -3,6 +3,7 @@ import { ethers } from 'ethers'
 
 import GraphPaymentsArtifact from '../../../build/contracts/contracts/payments/GraphPayments.sol/GraphPayments.json'
 import PaymentsEscrowArtifact from '../../../build/contracts/contracts/payments/PaymentsEscrow.sol/PaymentsEscrow.json'
+import RecurringCollectorArtifact from '../../../build/contracts/contracts/payments/collectors/RecurringCollector.sol/RecurringCollector.json'
 import { MigrateControllerGovernorModule } from '../periphery/Controller'
 import GraphPeripheryModule from '../periphery/periphery'
 import { deployGraphProxy } from '../proxy/GraphProxy'
@@ -40,12 +41,21 @@ export default buildModule('HorizonProxies', (m) => {
     { id: 'setContractProxy_PaymentsEscrow' },
   )
 
+  // Deploy RecurringCollector proxy (not registered in Controller — RC reads from Controller but is not looked up by others)
+  const { Proxy: RecurringCollectorProxy, ProxyAdmin: RecurringCollectorProxyAdmin } =
+    deployTransparentUpgradeableProxy(m, {
+      name: 'RecurringCollector',
+      artifact: RecurringCollectorArtifact,
+    })
+
   return {
     HorizonStakingProxy,
     GraphPaymentsProxy,
     PaymentsEscrowProxy,
+    RecurringCollectorProxy,
     GraphPaymentsProxyAdmin,
     PaymentsEscrowProxyAdmin,
+    RecurringCollectorProxyAdmin,
   }
 })
 
@@ -62,7 +72,21 @@ export const MigrateHorizonProxiesDeployerModule = buildModule('HorizonProxiesDe
     artifact: PaymentsEscrowArtifact,
   })
 
-  return { GraphPaymentsProxy, PaymentsEscrowProxy, GraphPaymentsProxyAdmin, PaymentsEscrowProxyAdmin }
+  // Deploy RecurringCollector proxy
+  const { Proxy: RecurringCollectorProxy, ProxyAdmin: RecurringCollectorProxyAdmin } =
+    deployTransparentUpgradeableProxy(m, {
+      name: 'RecurringCollector',
+      artifact: RecurringCollectorArtifact,
+    })
+
+  return {
+    GraphPaymentsProxy,
+    PaymentsEscrowProxy,
+    RecurringCollectorProxy,
+    GraphPaymentsProxyAdmin,
+    PaymentsEscrowProxyAdmin,
+    RecurringCollectorProxyAdmin,
+  }
 })
 
 export const MigrateHorizonProxiesGovernorModule = buildModule('HorizonProxiesGovernor', (m) => {

@@ -4,16 +4,27 @@ pragma solidity ^0.8.27;
 import { Test } from "forge-std/Test.sol";
 
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
-import { IPaymentsCollector } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsCollector.sol";
+import {
+    REGISTERED,
+    ACCEPTED,
+    NOTICE_GIVEN,
+    SETTLED,
+    BY_PAYER,
+    BY_PROVIDER,
+    OFFER_TYPE_NEW
+} from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
 import { RecurringCollector } from "../../../../contracts/payments/collectors/RecurringCollector.sol";
+import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import { ERC1967Utils } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils.sol";
 
 import { Bounder } from "../../../unit/utils/Bounder.t.sol";
 import { PartialControllerMock } from "../../mocks/PartialControllerMock.t.sol";
 import { HorizonStakingMock } from "../../mocks/HorizonStakingMock.t.sol";
 import { PaymentsEscrowMock } from "./PaymentsEscrowMock.t.sol";
 import { RecurringCollectorHelper } from "./RecurringCollectorHelper.t.sol";
+import { MockAcceptCallback } from "./MockAcceptCallback.t.sol";
 
 contract RecurringCollectorSharedTest is Test, Bounder {
     struct FuzzyTestCollect {
@@ -24,7 +35,6 @@ contract RecurringCollectorSharedTest is Test, Bounder {
 
     struct FuzzyTestAccept {
         IRecurringCollector.RecurringCollectionAgreement rca;
-        uint256 unboundedSignerKey;
     }
 
     struct FuzzyTestUpdate {
@@ -36,64 +46,41 @@ contract RecurringCollectorSharedTest is Test, Bounder {
     PaymentsEscrowMock internal _paymentsEscrow;
     HorizonStakingMock internal _horizonStaking;
     RecurringCollectorHelper internal _recurringCollectorHelper;
+    address internal _proxyAdmin;
+    bytes internal _mockAcceptCallbackCode;
 
-    function setUp() public {
+    function setUp() public virtual {
         _paymentsEscrow = new PaymentsEscrowMock();
         _horizonStaking = new HorizonStakingMock();
         PartialControllerMock.Entry[] memory entries = new PartialControllerMock.Entry[](2);
         entries[0] = PartialControllerMock.Entry({ name: "PaymentsEscrow", addr: address(_paymentsEscrow) });
         entries[1] = PartialControllerMock.Entry({ name: "Staking", addr: address(_horizonStaking) });
-        _recurringCollector = new RecurringCollector(
-            "RecurringCollector",
-            "1",
-            address(new PartialControllerMock(entries)),
-            1
+        address controller = address(new PartialControllerMock(entries));
+        RecurringCollector implementation = new RecurringCollector(controller);
+        address proxyAdminOwner = makeAddr("proxyAdminOwner");
+        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
+            address(implementation),
+            proxyAdminOwner,
+            abi.encodeCall(RecurringCollector.initialize, ())
         );
-        _recurringCollectorHelper = new RecurringCollectorHelper(_recurringCollector);
+        _recurringCollector = RecurringCollector(address(proxy));
+        // Store the actual ProxyAdmin contract address to exclude from fuzz inputs
+        _proxyAdmin = address(uint160(uint256(vm.load(address(proxy), ERC1967Utils.ADMIN_SLOT))));
+        _recurringCollectorHelper = new RecurringCollectorHelper(_recurringCollector, _proxyAdmin);
+        _mockAcceptCallbackCode = address(new MockAcceptCallback()).code;
     }
 
-    function _sensibleAuthorizeAndAccept(
+    function _sensibleAccept(
         FuzzyTestAccept calldata _fuzzyTestAccept
-    )
-        internal
-        returns (
-            IRecurringCollector.RecurringCollectionAgreement memory,
-            bytes memory signature,
-            uint256 key,
-            bytes16 agreementId
-        )
-    {
+    ) internal returns (IRecurringCollector.RecurringCollectionAgreement memory, bytes16 agreementId) {
         IRecurringCollector.RecurringCollectionAgreement memory rca = _recurringCollectorHelper.sensibleRCA(
             _fuzzyTestAccept.rca
         );
-        key = boundKey(_fuzzyTestAccept.unboundedSignerKey);
-        (
-            IRecurringCollector.RecurringCollectionAgreement memory acceptedRca,
-            bytes memory sig,
-            bytes16 id
-        ) = _authorizeAndAccept(rca, key);
-        return (acceptedRca, sig, key, id);
+        agreementId = _accept(rca);
+        return (rca, agreementId);
     }
 
-    // authorizes signer, signs the RCA, and accepts it
-    function _authorizeAndAccept(
-        IRecurringCollector.RecurringCollectionAgreement memory _rca,
-        uint256 _signerKey
-    ) internal returns (IRecurringCollector.RecurringCollectionAgreement memory, bytes memory, bytes16 agreementId) {
-        _recurringCollectorHelper.authorizeSignerWithChecks(_rca.payer, _signerKey);
-        (
-            IRecurringCollector.RecurringCollectionAgreement memory rca,
-            bytes memory signature
-        ) = _recurringCollectorHelper.generateSignedRCA(_rca, _signerKey);
-
-        agreementId = _accept(rca, signature);
-        return (rca, signature, agreementId);
-    }
-
-    function _accept(
-        IRecurringCollector.RecurringCollectionAgreement memory _rca,
-        bytes memory _signature
-    ) internal returns (bytes16) {
+    function _accept(IRecurringCollector.RecurringCollectionAgreement memory _rca) internal returns (bytes16) {
         // Set up valid staking provision by default to allow collections to succeed
         _setupValidProvision(_rca.serviceProvider, _rca.dataService);
 
@@ -106,28 +93,47 @@ contract RecurringCollectorSharedTest is Test, Bounder {
             _rca.nonce
         );
 
-        vm.expectEmit(address(_recurringCollector));
-        emit IRecurringCollector.AgreementAccepted(
-            _rca.dataService,
-            _rca.payer,
-            _rca.serviceProvider,
-            expectedAgreementId,
-            uint64(block.timestamp),
-            _rca.endsAt,
-            _rca.maxInitialTokens,
-            _rca.maxOngoingTokensPerSecond,
-            _rca.minSecondsPerCollection,
-            _rca.maxSecondsPerCollection
-        );
-        vm.prank(_rca.dataService);
-        bytes16 actualAgreementId = _recurringCollector.accept(_rca, _signature);
+        // Step 1: Payer submits offer
+        vm.prank(_rca.payer);
+        bytes16 actualAgreementId = _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(_rca), 0).agreementId;
 
         // Verify the agreement ID matches expectation
         assertEq(actualAgreementId, expectedAgreementId);
+
+        // Step 2: Service provider accepts the offer
+        bytes32 activeHash = _recurringCollector.getAgreementVersionAt(actualAgreementId, 0).versionHash;
+        vm.expectEmit(address(_recurringCollector));
+        emit IRecurringCollector.AgreementUpdated(expectedAgreementId, activeHash, REGISTERED | ACCEPTED);
+        vm.prank(_rca.serviceProvider);
+        _recurringCollector.accept(actualAgreementId, activeHash, bytes(""), 0);
+
         return actualAgreementId;
     }
 
+    function _offer(IRecurringCollector.RecurringCollectionAgreement memory _rca) internal returns (bytes16) {
+        _setupValidProvision(_rca.serviceProvider, _rca.dataService);
+        vm.prank(_rca.payer);
+        return _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(_rca), 0).agreementId;
+    }
+
+    function _sensibleOffer(
+        FuzzyTestAccept calldata _fuzzyTestAccept
+    ) internal returns (IRecurringCollector.RecurringCollectionAgreement memory, bytes16 agreementId) {
+        IRecurringCollector.RecurringCollectionAgreement memory rca = _recurringCollectorHelper.sensibleRCA(
+            _fuzzyTestAccept.rca
+        );
+        agreementId = _offer(rca);
+        return (rca, agreementId);
+    }
+
     function _setupValidProvision(address _serviceProvider, address _dataService) internal {
+        // In RC unit tests, dataService must be a fresh address so we can etch mock callback code.
+        // Reject fuzz inputs that collide with deployed test infrastructure.
+        vm.assume(_dataService.code.length == 0);
+        // Etch mock IDataServiceAgreements code so accept/acceptUpdate callbacks succeed.
+        if (uint160(_dataService) > 0xFF) {
+            vm.etch(_dataService, _mockAcceptCallbackCode);
+        }
         _horizonStaking.setProvision(
             _serviceProvider,
             _dataService,
@@ -146,22 +152,30 @@ contract RecurringCollectorSharedTest is Test, Bounder {
         );
     }
 
-    function _cancel(
+    function _cancelByPayer(
         IRecurringCollector.RecurringCollectionAgreement memory _rca,
-        bytes16 _agreementId,
-        IRecurringCollector.CancelAgreementBy _by
+        bytes16 _agreementId
     ) internal {
+        bytes32 vHash = _recurringCollector.getAgreementVersionAt(_agreementId, 0).versionHash;
         vm.expectEmit(address(_recurringCollector));
-        emit IRecurringCollector.AgreementCanceled(
-            _rca.dataService,
-            _rca.payer,
-            _rca.serviceProvider,
+        emit IRecurringCollector.AgreementUpdated(_agreementId, vHash, REGISTERED | ACCEPTED | NOTICE_GIVEN | BY_PAYER);
+        vm.prank(_rca.payer);
+        _recurringCollector.cancel(_agreementId, vHash, 0);
+    }
+
+    function _cancelByProvider(
+        IRecurringCollector.RecurringCollectionAgreement memory _rca,
+        bytes16 _agreementId
+    ) internal {
+        bytes32 vHash = _recurringCollector.getAgreementVersionAt(_agreementId, 0).versionHash;
+        vm.expectEmit(address(_recurringCollector));
+        emit IRecurringCollector.AgreementUpdated(
             _agreementId,
-            uint64(block.timestamp),
-            _by
+            vHash,
+            REGISTERED | ACCEPTED | NOTICE_GIVEN | BY_PROVIDER
         );
-        vm.prank(_rca.dataService);
-        _recurringCollector.cancel(_agreementId, _by);
+        vm.prank(_rca.serviceProvider);
+        _recurringCollector.cancel(_agreementId, vHash, 0);
     }
 
     function _expectCollectCallAndEmit(
@@ -186,26 +200,9 @@ contract RecurringCollectorSharedTest is Test, Bounder {
                 )
             )
         );
-        vm.expectEmit(address(_recurringCollector));
-        emit IPaymentsCollector.PaymentCollected(
-            __paymentType,
-            _fuzzyParams.collectionId,
-            _rca.payer,
-            _rca.serviceProvider,
-            _rca.dataService,
-            _tokens
-        );
 
         vm.expectEmit(address(_recurringCollector));
-        emit IRecurringCollector.RCACollected(
-            _rca.dataService,
-            _rca.payer,
-            _rca.serviceProvider,
-            _agreementId,
-            _fuzzyParams.collectionId,
-            _tokens,
-            _fuzzyParams.dataServiceCut
-        );
+        emit IRecurringCollector.RCACollected(_agreementId, _fuzzyParams.collectionId, REGISTERED | ACCEPTED);
     }
 
     function _generateValidCollection(
@@ -261,11 +258,8 @@ contract RecurringCollectorSharedTest is Test, Bounder {
         return abi.encode(_params);
     }
 
-    function _fuzzyCancelAgreementBy(uint8 _seed) internal pure returns (IRecurringCollector.CancelAgreementBy) {
-        return
-            IRecurringCollector.CancelAgreementBy(
-                bound(_seed, 0, uint256(IRecurringCollector.CancelAgreementBy.Payer))
-            );
+    function _fuzzyCancelByPayer(uint8 _seed) internal pure returns (bool) {
+        return bound(_seed, 0, 1) == 1;
     }
 
     function _paymentType(uint8 _unboundedPaymentType) internal pure returns (IGraphPayments.PaymentTypes) {

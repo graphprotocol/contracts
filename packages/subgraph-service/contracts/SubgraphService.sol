@@ -6,12 +6,10 @@ import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token
 import { IGraphTallyCollector } from "@graphprotocol/interfaces/contracts/horizon/IGraphTallyCollector.sol";
 import { IRewardsIssuer } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsIssuer.sol";
 import { IDataService } from "@graphprotocol/interfaces/contracts/data-service/IDataService.sol";
-import { IDataServiceAgreements } from "@graphprotocol/interfaces/contracts/data-service/IDataServiceAgreements.sol";
 import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
 import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
 import { IIndexingAgreement } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IIndexingAgreement.sol";
 import { ILegacyAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/ILegacyAllocation.sol";
-import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { MulticallUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
@@ -19,6 +17,7 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/I
 import { DataServicePausableUpgradeable } from "@graphprotocol/horizon/contracts/data-service/extensions/DataServicePausableUpgradeable.sol";
 import { DataService } from "@graphprotocol/horizon/contracts/data-service/DataService.sol";
 import { DataServiceFees } from "@graphprotocol/horizon/contracts/data-service/extensions/DataServiceFees.sol";
+import { ReentrancyGuardTransient } from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import { Directory } from "./utilities/Directory.sol";
 import { AllocationManager } from "./utilities/AllocationManager.sol";
 import { SubgraphServiceV2Storage } from "./SubgraphServiceStorage.sol";
@@ -40,6 +39,7 @@ contract SubgraphService is
     Initializable,
     OwnableUpgradeable,
     MulticallUpgradeable,
+    ReentrancyGuardTransient,
     DataService,
     DataServicePausableUpgradeable,
     DataServiceFees,
@@ -80,18 +80,13 @@ contract SubgraphService is
      * @param disputeManager The address of the DisputeManager contract
      * @param graphTallyCollector The address of the GraphTallyCollector contract
      * @param curation The address of the Curation contract
-     * @param recurringCollector The address of the RecurringCollector contract
      */
     constructor(
         address graphController,
         address disputeManager,
         address graphTallyCollector,
-        address curation,
-        address recurringCollector
-    )
-        DataService(graphController)
-        Directory(address(this), disputeManager, graphTallyCollector, curation, recurringCollector)
-    {
+        address curation
+    ) DataService(graphController) Directory(address(this), disputeManager, graphTallyCollector, curation) {
         _disableInitializers();
     }
 
@@ -114,7 +109,7 @@ contract SubgraphService is
     }
 
     /**
-     * @notice
+     * @notice Register an indexer to the subgraph service
      * @dev Implements {IDataService.register}
      *
      * Requirements:
@@ -275,7 +270,7 @@ contract SubgraphService is
         address indexer,
         IGraphPayments.PaymentTypes paymentType,
         bytes calldata data
-    ) external override enforceService(indexer, VALID_PROVISION | REGISTERED) returns (uint256) {
+    ) external override nonReentrant enforceService(indexer, VALID_PROVISION | REGISTERED) returns (uint256) {
         uint256 paymentCollected = 0;
 
         if (paymentType == IGraphPayments.PaymentTypes.QueryFee) {
@@ -373,6 +368,20 @@ contract SubgraphService is
     }
 
     /// @inheritdoc ISubgraphService
+    function setAuthorizedCollector(address collector, bool authorized) external override onlyOwner {
+        require(collector != address(0), SubgraphServiceNotCollector(address(0)));
+        if (authorizedCollectors[collector] == authorized) return;
+
+        authorizedCollectors[collector] = authorized;
+        emit AuthorizedCollectorSet(collector, authorized);
+    }
+
+    /// @inheritdoc ISubgraphService
+    function isAuthorizedCollector(address collector) external view override returns (bool) {
+        return authorizedCollectors[collector];
+    }
+
+    /// @inheritdoc ISubgraphService
     function setBlockClosingAllocationWithActiveAgreement(bool enabled) external override onlyOwner {
         if (blockClosingAllocationWithActiveAgreement == enabled) return;
 
@@ -380,105 +389,51 @@ contract SubgraphService is
         emit BlockClosingAllocationWithActiveAgreementSet(enabled);
     }
 
-    /// @inheritdoc ISubgraphService
-    function getBlockClosingAllocationWithActiveAgreement() external view override returns (bool enabled) {
-        enabled = blockClosingAllocationWithActiveAgreement;
+    /**
+     * @notice Callback from a collector when a service provider accepts an agreement (initial or update).
+     * @dev Reverting — rejects the acceptance if validation fails.
+     * Only callable by an authorized collector.
+     * For initial acceptance: validates indexer registration and provision, decodes allocationId from extraData.
+     * For updates: delegates directly to the library for term validation.
+     * @param agreementId The agreement ID
+     * @param payer The payer address
+     * @param serviceProvider The service provider address
+     * @param metadata The agreement metadata
+     * @param extraData Extra data for the agreement (e.g. encoded allocationId for initial accept)
+     */
+    // solhint-disable-next-line use-natspec
+    function acceptAgreement(
+        bytes16 agreementId,
+        bytes32 /* versionHash */,
+        address payer,
+        address serviceProvider,
+        bytes calldata metadata,
+        bytes calldata extraData
+    ) external {
+        _requireCollectorCaller();
+
+        IndexingAgreement.StorageManager storage sm = IndexingAgreement._getStorageManager();
+        if (sm.agreements[agreementId].collector == address(0)) {
+            // Initial accept — validate indexer and provision
+            require(
+                bytes(indexers[serviceProvider].url).length > 0,
+                SubgraphServiceIndexerNotRegistered(serviceProvider)
+            );
+            _requireValidProvision(serviceProvider);
+        }
+        // Collector identity (initial: store, update: enforce match) handled by library
+        sm.onAcceptCallback(_allocations, agreementId, payer, serviceProvider, metadata, extraData, msg.sender);
     }
 
     /**
-     * @inheritdoc ISubgraphService
-     * @notice Accept an indexing agreement.
-     *
-     * See {ISubgraphService.acceptIndexingAgreement}.
-     *
-     * Requirements:
-     * - The agreement's indexer must be registered
-     * - The caller must be authorized by the agreement's indexer
-     * - The provision must be valid according to the subgraph service rules
-     * - Allocation must belong to the indexer and be open
-     * - Agreement must be for this data service
-     * - Agreement's subgraph deployment must match the allocation's subgraph deployment
-     * - Agreement must not have been accepted before
-     * - Allocation must not have an agreement already
-     *
-     * @dev rca.metadata is an encoding of {IndexingAgreement.AcceptIndexingAgreementMetadata}
-     *
-     * Emits {IndexingAgreement.IndexingAgreementAccepted} event
-     *
-     * @param allocationId The id of the allocation
-     * @param rca The Recurring Collection Agreement
-     * @param signature ECDSA signature bytes, or empty for contract-approved agreements
-     * @return agreementId The ID of the accepted indexing agreement
+     * @notice Callback from a collector on agreement lifecycle events.
+     * @dev No-op — agreement state is checked on-demand (e.g. in {onCloseAllocation} and {collect}).
+     * The collector already emits events for all state transitions; duplicating them here
+     * would add gas cost without on-chain benefit.
+     * Required by {IAgreementStateChangeCallback} interface.
      */
-    function acceptIndexingAgreement(
-        address allocationId,
-        IRecurringCollector.RecurringCollectionAgreement calldata rca,
-        bytes calldata signature
-    ) external enforceService(rca.serviceProvider, VALID_PROVISION | REGISTERED) returns (bytes16) {
-        return IndexingAgreement._getStorageManager().accept(_allocations, allocationId, rca, signature);
-    }
-
-    /**
-     * @inheritdoc ISubgraphService
-     * @notice Update an indexing agreement.
-     *
-     * See {IndexingAgreement.update}.
-     *
-     * Requirements:
-     * - The contract must not be paused
-     * - The indexer must be valid
-     *
-     * @param indexer The indexer address
-     * @param rcau The Recurring Collection Agreement Update
-     * @param signature ECDSA signature bytes, or empty for contract-approved updates
-     */
-    function updateIndexingAgreement(
-        address indexer,
-        IRecurringCollector.RecurringCollectionAgreementUpdate calldata rcau,
-        bytes calldata signature
-    ) external enforceService(indexer, VALID_PROVISION | REGISTERED) {
-        IndexingAgreement._getStorageManager().update(indexer, rcau, signature);
-    }
-
-    /**
-     * @inheritdoc ISubgraphService
-     * @notice Cancel an indexing agreement by indexer / operator.
-     *
-     * See {IndexingAgreement.cancel}.
-     *
-     * @dev Can only be canceled on behalf of a valid indexer.
-     *
-     * Requirements:
-     * - The contract must not be paused
-     * - The indexer must be valid
-     *
-     * @param indexer The indexer address
-     * @param agreementId The id of the agreement
-     */
-    function cancelIndexingAgreement(
-        address indexer,
-        bytes16 agreementId
-    ) external enforceService(indexer, VALID_PROVISION | REGISTERED) {
-        IndexingAgreement._getStorageManager().cancel(indexer, agreementId);
-    }
-
-    /**
-     * @inheritdoc IDataServiceAgreements
-     * @notice Cancel an indexing agreement by payer / signer.
-     *
-     * See {IDataServiceAgreements.cancelIndexingAgreementByPayer}.
-     *
-     * Requirements:
-     * - The caller must be authorized by the payer
-     * - The agreement must be active
-     *
-     * Emits {IndexingAgreementCanceled} event
-     *
-     * @param agreementId The id of the agreement
-     */
-    function cancelIndexingAgreementByPayer(bytes16 agreementId) external whenNotPaused {
-        IndexingAgreement._getStorageManager().cancelByPayer(agreementId);
-    }
+    // solhint-disable-next-line use-natspec,no-empty-blocks
+    function afterAgreementStateChange(bytes16, bytes32, uint16) external {}
 
     /// @inheritdoc ISubgraphService
     function getIndexingAgreement(
@@ -505,6 +460,11 @@ contract SubgraphService is
             allo.accRewardsPerAllocatedToken,
             allo.accRewardsPending
         );
+    }
+
+    /// @inheritdoc ISubgraphService
+    function getBlockClosingAllocationWithActiveAgreement() external view override returns (bool enabled) {
+        enabled = blockClosingAllocationWithActiveAgreement;
     }
 
     /// @inheritdoc IRewardsIssuer
@@ -545,7 +505,7 @@ contract SubgraphService is
     /**
      * @notice Internal function to handle closing an allocation
      * @dev This function is called when an allocation is closed, either by the indexer or by a third party.
-     * Cancels any active indexing agreement on the allocation, or reverts if the close guard is enabled.
+     * Cancels any active indexing agreement on the allocation.
      * @param _allocationId The id of the allocation being closed
      */
     function _onCloseAllocation(address _allocationId) internal {
@@ -586,6 +546,10 @@ contract SubgraphService is
      */
     function _getVerifierCutRange() internal view override returns (uint32, uint32) {
         return (_disputeManager().getFishermanRewardCut(), DEFAULT_MAX_VERIFIER_CUT);
+    }
+
+    function _requireCollectorCaller() private view {
+        require(authorizedCollectors[msg.sender], SubgraphServiceNotCollector(msg.sender));
     }
 
     /**
@@ -757,7 +721,7 @@ contract SubgraphService is
      * This could lead to an out of gas error if there are too many expired claims. In that case, the indexer will need to
      * manually release the claims, see {IDataServiceFees-releaseStake}, before attempting to collect again.
      *
-     * @dev Uses the {RecurringCollector} to collect payment from Graph Horizon payments protocol.
+     * @dev Uses the agreement's collector to collect payment from Graph Horizon payments protocol.
      * Fees are distributed to service provider and delegators by {GraphPayments}
      *
      * Requirements:

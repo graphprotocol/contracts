@@ -33,7 +33,7 @@ abstract contract SubgraphServiceV1Storage is ISubgraphService {
 /**
  * @title SubgraphServiceV2Storage
  * @author Edge & Node
- * @notice Adds authorized collectors and allocation close guard.
+ * @notice Adds authorized collectors.
  */
 abstract contract SubgraphServiceV2Storage is SubgraphServiceV1Storage {
     /// @notice Authorized collectors that can call agreement callbacks

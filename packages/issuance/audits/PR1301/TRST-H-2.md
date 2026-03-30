@@ -20,3 +20,7 @@ Avoid receiving and decoding values from untrusted contract calls. This can be d
 ## Team Response
 
 TBD
+
+---
+
+Replaced the `supportsInterface` → `isEligible` two-step with a single direct `isEligible` low-level `staticcall` with gas cap. Returndata is validated for length (>= 32 bytes) and decoded as `uint256`. Only an explicit return of `0` blocks collection; reverts, short returndata, and malformed responses are treated as "no opinion" (collection proceeds), with a `PayerCallbackFailed` event emitted for observability.

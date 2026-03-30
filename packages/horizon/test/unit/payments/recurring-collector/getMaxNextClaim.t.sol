@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
+import { OFFER_TYPE_NEW } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 
 import { RecurringCollectorSharedTest } from "./shared.t.sol";
@@ -18,14 +19,9 @@ contract RecurringCollectorGetMaxNextClaimTest is RecurringCollectorSharedTest {
     // -- Test 2: CanceledByServiceProvider agreement returns 0 --
 
     function test_GetMaxNextClaim_CanceledByServiceProvider(FuzzyTestAccept calldata fuzzy) public {
-        (
-            IRecurringCollector.RecurringCollectionAgreement memory rca,
-            ,
-            ,
-            bytes16 agreementId
-        ) = _sensibleAuthorizeAndAccept(fuzzy);
+        (IRecurringCollector.RecurringCollectionAgreement memory rca, bytes16 agreementId) = _sensibleAccept(fuzzy);
 
-        _cancel(rca, agreementId, IRecurringCollector.CancelAgreementBy.ServiceProvider);
+        _cancelByProvider(rca, agreementId);
 
         assertEq(_recurringCollector.getMaxNextClaim(agreementId), 0, "CanceledByServiceProvider should return 0");
     }
@@ -34,12 +30,7 @@ contract RecurringCollectorGetMaxNextClaimTest is RecurringCollectorSharedTest {
     // Returns maxOngoingTokensPerSecond * min(windowSeconds, maxSecondsPerCollection) + maxInitialTokens
 
     function test_GetMaxNextClaim_Accepted_NeverCollected(FuzzyTestAccept calldata fuzzy) public {
-        (
-            IRecurringCollector.RecurringCollectionAgreement memory rca,
-            ,
-            ,
-            bytes16 agreementId
-        ) = _sensibleAuthorizeAndAccept(fuzzy);
+        (IRecurringCollector.RecurringCollectionAgreement memory rca, bytes16 agreementId) = _sensibleAccept(fuzzy);
 
         uint256 maxClaim = _recurringCollector.getMaxNextClaim(agreementId);
 
@@ -55,12 +46,7 @@ contract RecurringCollectorGetMaxNextClaimTest is RecurringCollectorSharedTest {
     // Returns maxOngoingTokensPerSecond * min(windowSeconds, maxSecondsPerCollection) (no initial bonus)
 
     function test_GetMaxNextClaim_Accepted_AfterCollection(FuzzyTestAccept calldata fuzzy) public {
-        (
-            IRecurringCollector.RecurringCollectionAgreement memory rca,
-            ,
-            ,
-            bytes16 agreementId
-        ) = _sensibleAuthorizeAndAccept(fuzzy);
+        (IRecurringCollector.RecurringCollectionAgreement memory rca, bytes16 agreementId) = _sensibleAccept(fuzzy);
 
         // Perform a first collection so lastCollectionAt is set
         skip(rca.minSecondsPerCollection);
@@ -79,43 +65,38 @@ contract RecurringCollectorGetMaxNextClaimTest is RecurringCollectorSharedTest {
 
     // -- Test 5: CanceledByPayer agreement --
 
-    // 5a: Canceled in the same block as accepted (window = 0)
+    // 5a: Canceled in the same block as accepted — with min notice, collectableUntil is in the future
     function test_GetMaxNextClaim_CanceledByPayer_SameBlock(FuzzyTestAccept calldata fuzzy) public {
-        (
-            IRecurringCollector.RecurringCollectionAgreement memory rca,
-            ,
-            ,
-            bytes16 agreementId
-        ) = _sensibleAuthorizeAndAccept(fuzzy);
+        (IRecurringCollector.RecurringCollectionAgreement memory rca, bytes16 agreementId) = _sensibleAccept(fuzzy);
 
-        _cancel(rca, agreementId, IRecurringCollector.CancelAgreementBy.Payer);
+        _cancelByPayer(rca, agreementId);
 
         uint256 maxClaim = _recurringCollector.getMaxNextClaim(agreementId);
 
-        // canceledAt == acceptedAt (same block), so window = 0, maxClaim = 0
-        assertEq(maxClaim, 0, "CanceledByPayer in same block should return 0");
+        if (rca.minSecondsPayerCancellationNotice > 0) {
+            // With notice: collectableUntil > acceptedAt, so there IS a claimable window
+            assertTrue(maxClaim > 0, "CanceledByPayer with notice should have claimable window");
+        } else {
+            // Zero notice: collectableUntil == acceptedAt, window = 0
+            assertEq(maxClaim, 0, "CanceledByPayer with zero notice should return 0");
+        }
     }
 
-    // 5b: Canceled after time has elapsed (canceledAt < endsAt)
+    // 5b: Canceled after time has elapsed (collectableUntil < endsAt)
     function test_GetMaxNextClaim_CanceledByPayer_WithWindow(FuzzyTestAccept calldata fuzzy) public {
-        (
-            IRecurringCollector.RecurringCollectionAgreement memory rca,
-            ,
-            ,
-            bytes16 agreementId
-        ) = _sensibleAuthorizeAndAccept(fuzzy);
+        (IRecurringCollector.RecurringCollectionAgreement memory rca, bytes16 agreementId) = _sensibleAccept(fuzzy);
 
         // Advance time, then cancel (still before endsAt due to sensible bounds)
         skip(rca.minSecondsPerCollection + 100);
 
-        _cancel(rca, agreementId, IRecurringCollector.CancelAgreementBy.Payer);
+        _cancelByPayer(rca, agreementId);
 
         uint256 maxClaim = _recurringCollector.getMaxNextClaim(agreementId);
 
-        // collectionEnd = min(canceledAt, endsAt) = canceledAt (since canceledAt < endsAt)
+        // collectionEnd = min(collectableUntil, endsAt) = collectableUntil (since collectableUntil < endsAt)
         // collectionStart = acceptedAt (never collected)
-        IRecurringCollector.AgreementData memory agreement = _recurringCollector.getAgreement(agreementId);
-        uint256 windowSeconds = agreement.canceledAt - agreement.acceptedAt;
+        IRecurringCollector.AgreementData memory agreement = _recurringCollector.getAgreementData(agreementId);
+        uint256 windowSeconds = agreement.collectableUntil - agreement.acceptedAt;
         uint256 maxSeconds = windowSeconds < rca.maxSecondsPerCollection ? windowSeconds : rca.maxSecondsPerCollection;
         uint256 expected = rca.maxOngoingTokensPerSecond * maxSeconds + rca.maxInitialTokens;
         assertEq(maxClaim, expected, "CanceledByPayer with elapsed time mismatch");
@@ -123,12 +104,7 @@ contract RecurringCollectorGetMaxNextClaimTest is RecurringCollectorSharedTest {
 
     // 5c: CanceledByPayer after a collection (no initial tokens)
     function test_GetMaxNextClaim_CanceledByPayer_AfterCollection(FuzzyTestAccept calldata fuzzy) public {
-        (
-            IRecurringCollector.RecurringCollectionAgreement memory rca,
-            ,
-            ,
-            bytes16 agreementId
-        ) = _sensibleAuthorizeAndAccept(fuzzy);
+        (IRecurringCollector.RecurringCollectionAgreement memory rca, bytes16 agreementId) = _sensibleAccept(fuzzy);
 
         // Perform a first collection
         skip(rca.minSecondsPerCollection);
@@ -138,13 +114,13 @@ contract RecurringCollectorGetMaxNextClaimTest is RecurringCollectorSharedTest {
 
         // Advance more time, then cancel
         skip(rca.minSecondsPerCollection + 100);
-        _cancel(rca, agreementId, IRecurringCollector.CancelAgreementBy.Payer);
+        _cancelByPayer(rca, agreementId);
 
         uint256 maxClaim = _recurringCollector.getMaxNextClaim(agreementId);
 
         // lastCollectionAt is set, so no initial bonus
-        IRecurringCollector.AgreementData memory agreement = _recurringCollector.getAgreement(agreementId);
-        uint256 windowSeconds = agreement.canceledAt - agreement.lastCollectionAt;
+        IRecurringCollector.AgreementData memory agreement = _recurringCollector.getAgreementData(agreementId);
+        uint256 windowSeconds = agreement.collectableUntil - agreement.lastCollectionAt;
         uint256 maxSeconds = windowSeconds < rca.maxSecondsPerCollection ? windowSeconds : rca.maxSecondsPerCollection;
         uint256 expected = rca.maxOngoingTokensPerSecond * maxSeconds;
         assertEq(maxClaim, expected, "CanceledByPayer post-collection should exclude initial tokens");
@@ -155,12 +131,7 @@ contract RecurringCollectorGetMaxNextClaimTest is RecurringCollectorSharedTest {
     // is capped at endsAt, so returns maxOngoingTokensPerSecond * min(remaining, maxSecondsPerCollection)
 
     function test_GetMaxNextClaim_Accepted_PastEndsAt(FuzzyTestAccept calldata fuzzy) public {
-        (
-            IRecurringCollector.RecurringCollectionAgreement memory rca,
-            ,
-            ,
-            bytes16 agreementId
-        ) = _sensibleAuthorizeAndAccept(fuzzy);
+        (IRecurringCollector.RecurringCollectionAgreement memory rca, bytes16 agreementId) = _sensibleAccept(fuzzy);
 
         // Perform a first collection so we have a lastCollectionAt
         skip(rca.minSecondsPerCollection);
@@ -185,12 +156,7 @@ contract RecurringCollectorGetMaxNextClaimTest is RecurringCollectorSharedTest {
 
     // Also test past endsAt when never collected (includes initial tokens)
     function test_GetMaxNextClaim_Accepted_PastEndsAt_NeverCollected(FuzzyTestAccept calldata fuzzy) public {
-        (
-            IRecurringCollector.RecurringCollectionAgreement memory rca,
-            ,
-            ,
-            bytes16 agreementId
-        ) = _sensibleAuthorizeAndAccept(fuzzy);
+        (IRecurringCollector.RecurringCollectionAgreement memory rca, bytes16 agreementId) = _sensibleAccept(fuzzy);
 
         uint256 acceptedAt = block.timestamp;
 
@@ -212,7 +178,6 @@ contract RecurringCollectorGetMaxNextClaimTest is RecurringCollectorSharedTest {
 
     function test_GetMaxNextClaim_MaxSecondsPerCollectionCaps() public {
         // Use deterministic values to precisely verify the cap behavior
-        uint256 signerKey = 0xBEEF;
         address payer = address(0x1111);
         address dataService = address(0x2222);
         address serviceProvider = address(0x3333);
@@ -233,16 +198,19 @@ contract RecurringCollectorGetMaxNextClaimTest is RecurringCollectorSharedTest {
             maxOngoingTokensPerSecond: maxOngoingTokensPerSecond,
             minSecondsPerCollection: minSecondsPerCollection,
             maxSecondsPerCollection: maxSecondsPerCollection,
+            conditions: 0,
+            minSecondsPayerCancellationNotice: 0,
             nonce: 1,
             metadata: ""
         });
 
-        // Authorize signer and accept
-        _recurringCollectorHelper.authorizeSignerWithChecks(payer, signerKey);
-        (, bytes memory signature) = _recurringCollectorHelper.generateSignedRCA(rca, signerKey);
+        // Offer and accept
         _setupValidProvision(serviceProvider, dataService);
-        vm.prank(dataService);
-        bytes16 agreementId = _recurringCollector.accept(rca, signature);
+        vm.prank(payer);
+        bytes16 agreementId = _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0).agreementId;
+        bytes32 activeHash = _recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        vm.prank(serviceProvider);
+        _recurringCollector.accept(agreementId, activeHash, bytes(""), 0);
 
         // Window = endsAt - acceptedAt = 100_000 seconds, which is > maxSecondsPerCollection (3600)
         // So the window should be capped at maxSecondsPerCollection
@@ -260,7 +228,6 @@ contract RecurringCollectorGetMaxNextClaimTest is RecurringCollectorSharedTest {
 
     function test_GetMaxNextClaim_WindowSmallerThanMaxSecondsPerCollection() public {
         // Test the case where the window is smaller than maxSecondsPerCollection (no cap)
-        uint256 signerKey = 0xBEEF;
         address payer = address(0x1111);
         address dataService = address(0x2222);
         address serviceProvider = address(0x3333);
@@ -283,15 +250,18 @@ contract RecurringCollectorGetMaxNextClaimTest is RecurringCollectorSharedTest {
             maxOngoingTokensPerSecond: maxOngoingTokensPerSecond,
             minSecondsPerCollection: minSecondsPerCollection,
             maxSecondsPerCollection: maxSecondsPerCollection,
+            conditions: 0,
+            minSecondsPayerCancellationNotice: 0,
             nonce: 1,
             metadata: ""
         });
 
-        _recurringCollectorHelper.authorizeSignerWithChecks(payer, signerKey);
-        (, bytes memory signature) = _recurringCollectorHelper.generateSignedRCA(rca, signerKey);
         _setupValidProvision(serviceProvider, dataService);
-        vm.prank(dataService);
-        bytes16 agreementId = _recurringCollector.accept(rca, signature);
+        vm.prank(payer);
+        bytes16 agreementId = _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0).agreementId;
+        bytes32 activeHash = _recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        vm.prank(serviceProvider);
+        _recurringCollector.accept(agreementId, activeHash, bytes(""), 0);
 
         uint256 maxClaim = _recurringCollector.getMaxNextClaim(agreementId);
 

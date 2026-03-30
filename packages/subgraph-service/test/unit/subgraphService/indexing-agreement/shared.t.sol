@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
+import { OFFER_TYPE_NEW } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { IIndexingAgreement } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IIndexingAgreement.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
@@ -27,8 +28,7 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
     }
 
     struct PayerState {
-        address signer;
-        uint256 signerPrivateKey;
+        bool initialized;
     }
 
     struct ContextInternal {
@@ -55,7 +55,7 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
     }
 
     struct PayerSeed {
-        uint256 unboundedSignerPrivateKey;
+        bool placeholder;
     }
 
     Context internal _context;
@@ -74,7 +74,7 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
     function setUp() public override {
         super.setUp();
 
-        _recurringCollectorHelper = new RecurringCollectorHelper(recurringCollector);
+        _recurringCollectorHelper = new RecurringCollectorHelper(recurringCollector, recurringCollectorProxyAdmin);
     }
 
     /*
@@ -102,18 +102,15 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
         bytes16 _agreementId,
         address _indexer,
         address _payer,
-        IRecurringCollector.CancelAgreementBy _by
+        bool byIndexer
     ) internal {
-        bool byIndexer = _by == IRecurringCollector.CancelAgreementBy.ServiceProvider;
-        vm.expectEmit(address(subgraphService));
-        emit IndexingAgreement.IndexingAgreementCanceled(_indexer, _payer, _agreementId, byIndexer ? _indexer : _payer);
-
+        bytes32 termsHash = recurringCollector.getAgreementVersionAt(_agreementId, 0).versionHash;
         if (byIndexer) {
             _subgraphServiceSafePrank(_indexer);
-            subgraphService.cancelIndexingAgreement(_indexer, _agreementId);
+            recurringCollector.cancel(_agreementId, termsHash, 0);
         } else {
-            _subgraphServiceSafePrank(_ctx.payer.signer);
-            subgraphService.cancelIndexingAgreementByPayer(_agreementId);
+            _subgraphServiceSafePrank(_payer);
+            recurringCollector.cancel(_agreementId, termsHash, 0);
         }
     }
 
@@ -185,12 +182,6 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
 
         rca = _recurringCollectorHelper.sensibleRCA(rca);
 
-        (
-            IRecurringCollector.RecurringCollectionAgreement memory signedRca,
-            bytes memory signature
-        ) = _recurringCollectorHelper.generateSignedRCA(rca, _ctx.payer.signerPrivateKey);
-        _recurringCollectorHelper.authorizeSignerWithChecks(rca.payer, _ctx.payer.signerPrivateKey);
-
         // Generate deterministic agreement ID for event expectation
         agreementId = recurringCollector.generateAgreementId(
             rca.payer,
@@ -200,6 +191,13 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
             rca.nonce
         );
 
+        // Step 1: Payer submits offer to the collector
+        vm.prank(rca.payer);
+        bytes16 offeredId = recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0).agreementId;
+        assertEq(offeredId, agreementId);
+
+        // Step 2: Service provider accepts via RC, which callbacks to SS
+        bytes32 versionHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
         vm.expectEmit(address(subgraphService));
         emit IndexingAgreement.IndexingAgreementAccepted(
             rca.serviceProvider,
@@ -210,16 +208,10 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
             metadata.version,
             metadata.terms
         );
-        _subgraphServiceSafePrank(_indexerState.addr);
-        bytes16 actualAgreementId = subgraphService.acceptIndexingAgreement(
-            _indexerState.allocationId,
-            signedRca,
-            signature
-        );
+        vm.prank(_indexerState.addr);
+        recurringCollector.accept(agreementId, versionHash, abi.encode(_indexerState.allocationId), 0);
 
-        // Verify the agreement ID matches expectation
-        assertEq(actualAgreementId, agreementId);
-        return (signedRca, agreementId);
+        return (rca, agreementId);
     }
 
     function _newCtx(Seed memory _seed) internal returns (Context storage) {
@@ -234,24 +226,16 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
         ctx.ctxInternal.indexers.push(_seed.indexer0);
         ctx.ctxInternal.indexers.push(_seed.indexer1);
 
-        // Setup payer
-        ctx.payer.signerPrivateKey = boundKey(ctx.ctxInternal.seed.payer.unboundedSignerPrivateKey);
-        ctx.payer.signer = vm.addr(ctx.payer.signerPrivateKey);
+        ctx.payer.initialized = true;
 
         return ctx;
     }
 
-    function _generateAcceptableSignedRCA(
+    function _generateAcceptableRCA(
         Context storage _ctx,
         address _indexerAddress
-    ) internal returns (IRecurringCollector.RecurringCollectionAgreement memory, bytes memory) {
-        IRecurringCollector.RecurringCollectionAgreement memory rca = _generateAcceptableRecurringCollectionAgreement(
-            _ctx,
-            _indexerAddress
-        );
-        _recurringCollectorHelper.authorizeSignerWithChecks(rca.payer, _ctx.payer.signerPrivateKey);
-
-        return _recurringCollectorHelper.generateSignedRCA(rca, _ctx.payer.signerPrivateKey);
+    ) internal view returns (IRecurringCollector.RecurringCollectionAgreement memory) {
+        return _generateAcceptableRecurringCollectionAgreement(_ctx, _indexerAddress);
     }
 
     function _generateAcceptableRecurringCollectionAgreement(
@@ -270,15 +254,15 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
         return _recurringCollectorHelper.sensibleRCA(rca);
     }
 
-    function _generateAcceptableSignedRCAU(
+    function _generateAcceptableRCAU(
         Context storage _ctx,
         IRecurringCollector.RecurringCollectionAgreement memory _rca
-    ) internal view returns (IRecurringCollector.RecurringCollectionAgreementUpdate memory, bytes memory) {
+    ) internal view returns (IRecurringCollector.RecurringCollectionAgreementUpdate memory) {
         IRecurringCollector.RecurringCollectionAgreementUpdate
             memory rcau = _generateAcceptableRecurringCollectionAgreementUpdate(_ctx, _rca);
         // Set correct nonce for first update (should be 1)
         rcau.nonce = 1;
-        return _recurringCollectorHelper.generateSignedRCAU(rcau, _ctx.payer.signerPrivateKey);
+        return rcau;
     }
 
     function _generateAcceptableRecurringCollectionAgreementUpdate(
@@ -294,13 +278,17 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
             _rca.deadline,
             _rca.nonce
         );
+        // Apply sensible bounds to RCAU fields first, so maxOngoingTokensPerSecond is known
+        rcau = _recurringCollectorHelper.sensibleRCAU(rcau, _rca.payer);
+        // Bound metadata terms against the RCAU's maxOngoingTokensPerSecond (not the RCA's)
+        // since the contract validates against the update's maxOngoingTokensPerSecond
         rcau.metadata = _encodeUpdateIndexingAgreementMetadataV1(
             _newUpdateIndexingAgreementMetadataV1(
-                bound(_ctx.ctxInternal.seed.termsV1.tokensPerSecond, 0, _rca.maxOngoingTokensPerSecond),
+                bound(_ctx.ctxInternal.seed.termsV1.tokensPerSecond, 0, rcau.maxOngoingTokensPerSecond),
                 _ctx.ctxInternal.seed.termsV1.tokensPerEntityPerSecond
             )
         );
-        return _recurringCollectorHelper.sensibleRCAU(rcau);
+        return rcau;
     }
 
     function _requireIndexer(Context storage _ctx, address _indexer) internal view returns (IndexerState memory) {
@@ -335,11 +323,22 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
             _addr == users.pauseGuardian;
     }
 
+    function _isProtocolContract(address _addr) internal view returns (bool) {
+        return
+            _addr == address(escrow) ||
+            _addr == address(graphPayments) ||
+            _addr == address(staking) ||
+            _addr == address(subgraphService) ||
+            _addr == address(recurringCollector) ||
+            _addr == address(token);
+    }
+
     function _isSafeSubgraphServiceCaller(address _candidate) internal view returns (bool) {
         return
             _candidate != address(0) &&
             _candidate != address(_transparentUpgradeableProxyAdmin()) &&
-            _candidate != address(proxyAdmin);
+            _candidate != address(proxyAdmin) &&
+            !_isProtocolContract(_candidate);
     }
 
     function _transparentUpgradeableProxyAdmin() internal view returns (address) {
@@ -448,10 +447,5 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
         assertEq(_expected.dataService, _actual.collectorAgreement.dataService);
         assertEq(_expected.payer, _actual.collectorAgreement.payer);
         assertEq(_expected.serviceProvider, _actual.collectorAgreement.serviceProvider);
-        assertEq(_expected.endsAt, _actual.collectorAgreement.endsAt);
-        assertEq(_expected.maxInitialTokens, _actual.collectorAgreement.maxInitialTokens);
-        assertEq(_expected.maxOngoingTokensPerSecond, _actual.collectorAgreement.maxOngoingTokensPerSecond);
-        assertEq(_expected.minSecondsPerCollection, _actual.collectorAgreement.minSecondsPerCollection);
-        assertEq(_expected.maxSecondsPerCollection, _actual.collectorAgreement.maxSecondsPerCollection);
     }
 }

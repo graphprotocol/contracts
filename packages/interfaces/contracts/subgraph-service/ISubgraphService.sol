@@ -4,9 +4,6 @@ pragma solidity ^0.8.22;
 import { IDataServiceAgreements } from "../data-service/IDataServiceAgreements.sol";
 import { IDataServiceFees } from "../data-service/IDataServiceFees.sol";
 import { IGraphPayments } from "../horizon/IGraphPayments.sol";
-
-import { IRecurringCollector } from "../horizon/IRecurringCollector.sol";
-
 import { IAllocation } from "./internal/IAllocation.sol";
 import { IIndexingAgreement } from "./internal/IIndexingAgreement.sol";
 import { ILegacyAllocation } from "./internal/ILegacyAllocation.sol";
@@ -77,6 +74,14 @@ interface ISubgraphService is IDataServiceAgreements, IDataServiceFees {
      * @param indexingFeesCut The indexing fees cut
      */
     event IndexingFeesCutSet(uint256 indexingFeesCut);
+    // solhint-disable-previous-line gas-indexed-events
+
+    /**
+     * @notice Emitted when an authorized collector is set or unset
+     * @param collector The collector address
+     * @param authorized Whether the collector is authorized
+     */
+    event AuthorizedCollectorSet(address indexed collector, bool authorized);
     // solhint-disable-previous-line gas-indexed-events
 
     /**
@@ -170,6 +175,12 @@ interface ISubgraphService is IDataServiceAgreements, IDataServiceFees {
      * @param collectionId The collectionId
      */
     error SubgraphServiceInvalidCollectionId(bytes32 collectionId);
+
+    /**
+     * @notice Thrown when a callback is called by an address that is not an authorized collector
+     * @param caller The unauthorized caller
+     */
+    error SubgraphServiceNotCollector(address caller);
 
     /**
      * @notice Thrown when trying to close an allocation that has an active indexing agreement
@@ -268,7 +279,7 @@ interface ISubgraphService is IDataServiceAgreements, IDataServiceFees {
 
     /**
      * @notice Sets the curators payment cut for query fees
-     * @dev Emits a {CuratorCutSet} event
+     * @dev Emits a {CurationCutSet} event
      * @param curationCut The curation cut for the payment type
      */
     function setCurationCut(uint256 curationCut) external;
@@ -288,6 +299,13 @@ interface ISubgraphService is IDataServiceAgreements, IDataServiceFees {
     function setPaymentsDestination(address newPaymentsDestination) external;
 
     /**
+     * @notice Sets an authorized collector
+     * @param collector The collector address
+     * @param authorized Whether the collector is authorized
+     */
+    function setAuthorizedCollector(address collector, bool authorized) external;
+
+    /**
      * @notice Enables or disables blocking allocation closure when an active agreement exists.
      * When enabled, closing an allocation that has an active indexing agreement will revert.
      * @param enabled True to enable, false to disable
@@ -301,40 +319,11 @@ interface ISubgraphService is IDataServiceAgreements, IDataServiceFees {
     function getBlockClosingAllocationWithActiveAgreement() external view returns (bool enabled);
 
     /**
-     * @notice Accept an indexing agreement.
-     * @dev If `signature` is non-empty it is treated as an ECDSA signature; if empty the payer
-     * must be a contract implementing {IAgreementOwner}.
-     * @param allocationId The id of the allocation
-     * @param rca The recurring collection agreement parameters
-     * @param signature ECDSA signature bytes, or empty for contract-approved agreements
-     * @return agreementId The ID of the accepted indexing agreement
+     * @notice Checks if a collector is authorized
+     * @param collector The collector address
+     * @return Whether the collector is authorized
      */
-    function acceptIndexingAgreement(
-        address allocationId,
-        IRecurringCollector.RecurringCollectionAgreement calldata rca,
-        bytes calldata signature
-    ) external returns (bytes16);
-
-    /**
-     * @notice Update an indexing agreement.
-     * @dev If `signature` is non-empty it is treated as an ECDSA signature; if empty the payer
-     * must be a contract implementing {IAgreementOwner}.
-     * @param indexer The address of the indexer
-     * @param rcau The recurring collector agreement update to apply
-     * @param signature ECDSA signature bytes, or empty for contract-approved updates
-     */
-    function updateIndexingAgreement(
-        address indexer,
-        IRecurringCollector.RecurringCollectionAgreementUpdate calldata rcau,
-        bytes calldata signature
-    ) external;
-
-    /**
-     * @notice Cancel an indexing agreement by indexer / operator.
-     * @param indexer The address of the indexer
-     * @param agreementId The id of the indexing agreement
-     */
-    function cancelIndexingAgreement(address indexer, bytes16 agreementId) external;
+    function isAuthorizedCollector(address collector) external view returns (bool);
 
     /**
      * @notice Get the indexing agreement for a given agreement ID.

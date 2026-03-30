@@ -2,13 +2,13 @@
 pragma solidity ^0.8.27;
 
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { SETTLED, IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
 import { IIndexingAgreement } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IIndexingAgreement.sol";
 import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
 
 import { AllocationHandler } from "../libraries/AllocationHandler.sol";
-import { Directory } from "../utilities/Directory.sol";
 import { Allocation } from "./Allocation.sol";
 import { IndexingAgreementDecoder } from "./IndexingAgreementDecoder.sol";
 
@@ -142,20 +142,6 @@ library IndexingAgreement {
     );
 
     /**
-     * @notice Emitted when an indexing agreement is canceled
-     * @param indexer The address of the indexer
-     * @param payer The address of the payer
-     * @param agreementId The id of the agreement
-     * @param canceledOnBehalfOf The address of the entity that canceled the agreement
-     */
-    event IndexingAgreementCanceled(
-        address indexed indexer,
-        address indexed payer,
-        bytes16 indexed agreementId,
-        address canceledOnBehalfOf
-    );
-
-    /**
      * @notice Emitted when an indexing agreement is accepted
      * @param indexer The address of the indexer
      * @param payer The address of the payer
@@ -207,6 +193,14 @@ library IndexingAgreement {
     error IndexingAgreementWrongDataService(address expectedDataService, address wrongDataService);
 
     /**
+     * @notice Thrown when the caller is not the collector that owns the agreement
+     * @param agreementId The agreement ID
+     * @param expectedCollector The collector that owns the agreement
+     * @param actualCollector The caller
+     */
+    error IndexingAgreementCollectorMismatch(bytes16 agreementId, address expectedCollector, address actualCollector);
+
+    /**
      * @notice Thrown when an agreement and the allocation correspond to different deployment IDs
      * @param agreementDeploymentId The agreement's deployment ID
      * @param allocationId The allocation ID
@@ -231,11 +225,11 @@ library IndexingAgreement {
     error AllocationAlreadyHasIndexingAgreement(address allocationId);
 
     /**
-     * @notice Thrown when caller or proxy can not cancel an agreement
-     * @param owner The address of the owner of the agreement
-     * @param unauthorized The unauthorized caller
+     * @notice Emitted when an allocation is unbound from an indexing agreement
+     * @param agreementId The agreement ID
+     * @param allocationId The allocation ID that was unbound
      */
-    error IndexingAgreementNonCancelableBy(address owner, address unauthorized);
+    event IndexingAgreementAllocationUnbound(bytes16 indexed agreementId, address indexed allocationId);
 
     /**
      * @notice Thrown when the agreement is not active
@@ -256,251 +250,147 @@ library IndexingAgreement {
      */
     error IndexingAgreementNotAuthorized(bytes16 agreementId, address unauthorizedIndexer);
 
-    /**
-     * @notice Thrown when indexing agreement terms are invalid
-     * @param tokensPerSecond The indexing agreement tokens per second
-     * @param maxOngoingTokensPerSecond The RCA maximum tokens per second
-     */
-    error IndexingAgreementInvalidTerms(uint256 tokensPerSecond, uint256 maxOngoingTokensPerSecond);
-
     /* solhint-disable function-max-lines */
     /**
-     * @notice Accept an indexing agreement.
+     * @notice Handle acceptance of an agreement (initial or update).
+     * @dev Called by SubgraphService.acceptAgreement for both initial accepts and updates.
+     * On initial accept (collector not yet set): validates allocation binding, deployment
+     * match against payer-signed metadata, stores collector and deployment ID.
+     * On update (collector already set): validates collector identity, optionally rebinds
+     * allocation, updates terms.
      *
      * Requirements:
-     * - Allocation must belong to the indexer and be open
-     * - Agreement must be for this data service
-     * - Agreement's subgraph deployment must match the allocation's subgraph deployment
-     * - Agreement must not have been accepted before
-     * - Allocation must not have an agreement already
+     * - Initial: allocation must belong to the indexer and be open, deployment must match
+     *   metadata, agreement must not have been accepted before, allocation must not be bound
+     * - Update: caller must be the collector that owns the agreement, version must be V1
+     * - If rebinding (extraData contains new allocationId): new allocation must be open,
+     *   owned by indexer, on the same deployment, and not already bound
      *
-     * @dev rca.metadata is an encoding of {IndexingAgreement.AcceptIndexingAgreementMetadata}.
-     * If `authData` is non-empty it is treated as an ECDSA signature; if empty the payer
-     * must be a contract implementing {IAgreementOwner}.
-     *
-     * Emits {IndexingAgreementAccepted} event
+     * Emits {IndexingAgreementAccepted} on initial accept
+     * Emits {IndexingAgreementUpdated} on update
      *
      * @param self The indexing agreement storage manager
      * @param allocations The mapping of allocation IDs to their states
-     * @param allocationId The id of the allocation
-     * @param rca The Recurring Collection Agreement
-     * @param authData ECDSA signature bytes, or empty for contract-approved agreements
-     * @return The agreement ID assigned to the accepted indexing agreement
+     * @param agreementId The ID of the agreement being accepted
+     * @param payer The address of the payer
+     * @param serviceProvider The address of the service provider (indexer)
+     * @param metadata The agreement metadata (encoded Accept or Update metadata)
+     * @param extraData Encoded allocationId — required for initial, optional for update
+     * @param collector The collector contract address (msg.sender from the callback)
      */
-    function accept(
+    function onAcceptCallback(
         StorageManager storage self,
         mapping(address allocationId => IAllocation.State allocation) storage allocations,
-        address allocationId,
-        IRecurringCollector.RecurringCollectionAgreement calldata rca,
-        bytes calldata authData
-    ) external returns (bytes16) {
-        IAllocation.State memory allocation = _requireValidAllocation(allocations, allocationId, rca.serviceProvider);
-
-        require(rca.dataService == address(this), IndexingAgreementWrongDataService(address(this), rca.dataService));
-
-        AcceptIndexingAgreementMetadata memory metadata = IndexingAgreementDecoder.decodeRCAMetadata(rca.metadata);
-
-        bytes16 agreementId = _directory().recurringCollector().generateAgreementId(
-            rca.payer,
-            rca.dataService,
-            rca.serviceProvider,
-            rca.deadline,
-            rca.nonce
-        );
-
+        bytes16 agreementId,
+        address payer,
+        address serviceProvider,
+        bytes calldata metadata,
+        bytes calldata extraData,
+        address collector
+    ) external {
         IIndexingAgreement.State storage agreement = self.agreements[agreementId];
+        bool isInitial = agreement.collector == address(0);
 
-        require(agreement.allocationId == address(0), IndexingAgreementAlreadyAccepted(agreementId));
+        // ── 1. Collector identity ──
+        if (isInitial) {
+            agreement.collector = collector;
+        } else {
+            require(
+                agreement.collector == collector,
+                IndexingAgreementCollectorMismatch(agreementId, agreement.collector, collector)
+            );
+        }
 
-        require(
-            allocation.subgraphDeploymentId == metadata.subgraphDeploymentId,
-            IndexingAgreementDeploymentIdMismatch(
-                metadata.subgraphDeploymentId,
-                allocationId,
-                allocation.subgraphDeploymentId
-            )
-        );
+        // ── 2. Decode metadata (different structs, same outputs) ──
+        IIndexingAgreement.IndexingAgreementVersion version;
+        bytes memory terms;
 
-        // Ensure that an allocation can only have one active indexing agreement
-        require(
-            self.allocationToActiveAgreementId[allocationId] == bytes16(0),
-            AllocationAlreadyHasIndexingAgreement(allocationId)
-        );
-        self.allocationToActiveAgreementId[allocationId] = agreementId;
+        if (isInitial) {
+            require(agreement.allocationId == address(0), IndexingAgreementAlreadyAccepted(agreementId));
 
-        agreement.version = metadata.version;
-        agreement.allocationId = allocationId;
+            AcceptIndexingAgreementMetadata memory meta = IndexingAgreementDecoder.decodeRCAMetadata(metadata);
+            version = meta.version;
+            terms = meta.terms;
 
-        require(
-            metadata.version == IIndexingAgreement.IndexingAgreementVersion.V1,
-            IndexingAgreementInvalidVersion(metadata.version)
-        );
-        _setTermsV1(self, agreementId, metadata.terms, rca.maxOngoingTokensPerSecond);
+            agreement.subgraphDeploymentId = meta.subgraphDeploymentId;
+        } else {
+            UpdateIndexingAgreementMetadata memory meta = IndexingAgreementDecoder.decodeRCAUMetadata(metadata);
+            version = meta.version;
+            terms = meta.terms;
+        }
 
-        emit IndexingAgreementAccepted(
-            rca.serviceProvider,
-            rca.payer,
-            agreementId,
-            allocationId,
-            metadata.subgraphDeploymentId,
-            metadata.version,
-            metadata.terms
-        );
+        // ── 3. Allocation binding ──
+        _bindAllocation(self, allocations, agreement, agreementId, serviceProvider, extraData);
 
-        require(
-            _directory().recurringCollector().accept(rca, authData) == agreementId,
-            "internal: agreement ID mismatch"
-        );
-        return agreementId;
+        // ── 5. Version + terms ──
+        require(version == IIndexingAgreement.IndexingAgreementVersion.V1, IndexingAgreementInvalidVersion(version));
+        agreement.version = version;
+        _setTermsV1(self, agreementId, terms);
+
+        // ── 6. Events ──
+        if (isInitial) {
+            emit IndexingAgreementAccepted(
+                serviceProvider,
+                payer,
+                agreementId,
+                agreement.allocationId,
+                agreement.subgraphDeploymentId,
+                version,
+                terms
+            );
+        } else {
+            emit IndexingAgreementUpdated({
+                indexer: serviceProvider,
+                payer: payer,
+                agreementId: agreementId,
+                allocationId: agreement.allocationId,
+                version: version,
+                versionTerms: terms
+            });
+        }
     }
     /* solhint-enable function-max-lines */
-
-    /**
-     * @notice Update an indexing agreement.
-     *
-     * Requirements:
-     * - Agreement must be active
-     * - The indexer must be the service provider of the agreement
-     *
-     * @dev rcau.metadata is an encoding of {IndexingAgreement.UpdateIndexingAgreementMetadata}.
-     * If `authData` is non-empty it is treated as an ECDSA signature; if empty the payer
-     * must be a contract implementing {IAgreementOwner}.
-     *
-     * Emits {IndexingAgreementUpdated} event
-     *
-     * @param self The indexing agreement storage manager
-     * @param indexer The indexer address
-     * @param rcau The Recurring Collection Agreement Update
-     * @param authData ECDSA signature bytes, or empty for contract-approved updates
-     */
-    function update(
-        StorageManager storage self,
-        address indexer,
-        IRecurringCollector.RecurringCollectionAgreementUpdate calldata rcau,
-        bytes calldata authData
-    ) external {
-        IIndexingAgreement.AgreementWrapper memory wrapper = _get(self, rcau.agreementId);
-        require(_isActive(wrapper), IndexingAgreementNotActive(rcau.agreementId));
-        require(
-            wrapper.collectorAgreement.serviceProvider == indexer,
-            IndexingAgreementNotAuthorized(rcau.agreementId, indexer)
-        );
-
-        UpdateIndexingAgreementMetadata memory metadata = IndexingAgreementDecoder.decodeRCAUMetadata(rcau.metadata);
-
-        require(
-            wrapper.agreement.version == IIndexingAgreement.IndexingAgreementVersion.V1,
-            "internal: invalid version"
-        );
-        require(
-            metadata.version == IIndexingAgreement.IndexingAgreementVersion.V1,
-            IndexingAgreementInvalidVersion(metadata.version)
-        );
-        _setTermsV1(self, rcau.agreementId, metadata.terms, wrapper.collectorAgreement.maxOngoingTokensPerSecond);
-
-        emit IndexingAgreementUpdated({
-            indexer: wrapper.collectorAgreement.serviceProvider,
-            payer: wrapper.collectorAgreement.payer,
-            agreementId: rcau.agreementId,
-            allocationId: wrapper.agreement.allocationId,
-            version: metadata.version,
-            versionTerms: metadata.terms
-        });
-
-        _directory().recurringCollector().update(rcau, authData);
-    }
-
-    /**
-     * @notice Cancel an indexing agreement.
-     *
-     * @dev This function allows the indexer to cancel an indexing agreement.
-     *
-     * Requirements:
-     * - Agreement must be active
-     * - The indexer must be the service provider of the agreement
-     *
-     * Emits {IndexingAgreementCanceled} event
-     *
-     * @param self The indexing agreement storage manager
-     * @param indexer The indexer address
-     * @param agreementId The id of the agreement to cancel
-     */
-    function cancel(StorageManager storage self, address indexer, bytes16 agreementId) external {
-        IIndexingAgreement.AgreementWrapper memory wrapper = _get(self, agreementId);
-        require(_isActive(wrapper), IndexingAgreementNotActive(agreementId));
-        require(
-            wrapper.collectorAgreement.serviceProvider == indexer,
-            IndexingAgreementNonCancelableBy(wrapper.collectorAgreement.serviceProvider, indexer)
-        );
-        _cancel(
-            self,
-            agreementId,
-            wrapper.agreement,
-            wrapper.collectorAgreement,
-            IRecurringCollector.CancelAgreementBy.ServiceProvider
-        );
-    }
 
     /**
      * @notice Handle an allocation's indexing agreement when the allocation is closed.
      *
      * @dev Called by the data service when an allocation is closed.
-     * When `_blockIfActive` is true, reverts if the agreement is still active.
-     * When false, cancels any active agreement as ServiceProvider.
+     * When `_blockIfActive` is true, reverts if the agreement is not SETTLED.
+     * When false, clears the mapping regardless of settlement state.
+     *
+     * DoS note: the external call to `getAgreementVersionAt` is unguarded. If the
+     * collector reverts (broken upgrade, corrupt storage), allocation closure is blocked.
+     * Mitigations: (1) governor can disable `blockClosingAllocationWithActiveAgreement`,
+     * (2) indexer can self-cancel via collector to set SETTLED then close,
+     * (3) `getAgreementVersionAt` is a view with no pause guard, so collector pause
+     * does not block it.
+     *
+     * Escape hatch: BY_PROVIDER cancel sets SETTLED immediately, so the indexer can
+     * always self-cancel then close.
+     * Clears both sides of the bidirectional mapping atomically.
      *
      * @param self The indexing agreement storage manager
      * @param _allocationId The allocation ID
-     * @param _blockIfActive Whether to revert if the agreement is active
+     * @param _blockIfActive Whether to revert if the agreement is not settled
      */
     function onCloseAllocation(StorageManager storage self, address _allocationId, bool _blockIfActive) external {
         bytes16 agreementId = self.allocationToActiveAgreementId[_allocationId];
         if (agreementId == bytes16(0)) return;
 
-        IIndexingAgreement.AgreementWrapper memory wrapper = _get(self, agreementId);
-        if (!_isActive(wrapper)) return;
-
         if (_blockIfActive) {
-            revert ISubgraphService.SubgraphServiceAllocationHasActiveAgreement(_allocationId, agreementId);
+            // Check SETTLED on-demand via the collector
+            IAgreementCollector.AgreementVersion memory version = IAgreementCollector(
+                self.agreements[agreementId].collector
+            ).getAgreementVersionAt(agreementId, 0);
+
+            if (version.state & SETTLED == 0)
+                revert ISubgraphService.SubgraphServiceAllocationHasActiveAgreement(_allocationId, agreementId);
         }
 
-        _cancel(
-            self,
-            agreementId,
-            wrapper.agreement,
-            wrapper.collectorAgreement,
-            IRecurringCollector.CancelAgreementBy.ServiceProvider
-        );
-    }
-
-    /**
-     * @notice Cancel an indexing agreement by the payer.
-     *
-     * @dev This function allows the payer to cancel an indexing agreement.
-     *
-     * Requirements:
-     * - Agreement must be active
-     * - The caller must be authorized to cancel the agreement in the collector on the payer's behalf
-     *
-     * Emits {IndexingAgreementCanceled} event
-     *
-     * @param self The indexing agreement storage manager
-     * @param agreementId The id of the agreement to cancel
-     */
-    function cancelByPayer(StorageManager storage self, bytes16 agreementId) external {
-        IIndexingAgreement.AgreementWrapper memory wrapper = _get(self, agreementId);
-        require(_isActive(wrapper), IndexingAgreementNotActive(agreementId));
-        require(
-            msg.sender == wrapper.collectorAgreement.payer ||
-                _directory().recurringCollector().isAuthorized(wrapper.collectorAgreement.payer, msg.sender),
-            IndexingAgreementNonCancelableBy(wrapper.collectorAgreement.payer, msg.sender)
-        );
-        _cancel(
-            self,
-            agreementId,
-            wrapper.agreement,
-            wrapper.collectorAgreement,
-            IRecurringCollector.CancelAgreementBy.Payer
-        );
+        // Clear both sides of the bidirectional mapping atomically
+        delete self.allocationToActiveAgreementId[_allocationId];
+        self.agreements[agreementId].allocationId = address(0);
+        emit IndexingAgreementAllocationUnbound(agreementId, _allocationId);
     }
 
     /* solhint-disable function-max-lines */
@@ -508,7 +398,7 @@ library IndexingAgreement {
      * @notice Collect indexing fees for an agreement.
      * @dev Computes a requested token amount from indexing agreement terms
      * (`collectionSeconds * (tokensPerSecond + tokensPerEntityPerSecond * entities)`) and passes
-     * it to {RecurringCollector}, which caps it against the RCA payer's limits. The actual payout
+     * it to the collector, which caps it against the payer's limits. The actual payout
      * is the minimum of the two. Every POI submitted is disputable — no exception for zero POI.
      *
      * Requirements:
@@ -540,11 +430,13 @@ library IndexingAgreement {
             allocation.indexer == params.indexer,
             IndexingAgreementNotAuthorized(params.agreementId, params.indexer)
         );
-        // Get collection info from RecurringCollector (single source of truth for temporal logic)
-        (bool isCollectable, uint256 collectionSeconds, ) = _directory().recurringCollector().getCollectionInfo(
-            wrapper.collectorAgreement
+        IRecurringCollector rc = IRecurringCollector(wrapper.agreement.collector);
+
+        // Collection info comes from the collector (single source of truth for temporal logic)
+        require(
+            _isValid(wrapper) && wrapper.collectorAgreement.isCollectable,
+            IndexingAgreementNotCollectable(params.agreementId)
         );
-        require(_isValid(wrapper) && isCollectable, IndexingAgreementNotCollectable(params.agreementId));
 
         require(
             wrapper.agreement.version == IIndexingAgreement.IndexingAgreementVersion.V1,
@@ -553,11 +445,20 @@ library IndexingAgreement {
 
         CollectIndexingFeeDataV1 memory data = IndexingAgreementDecoder.decodeCollectIndexingFeeDataV1(params.data);
 
-        uint256 expectedTokens = _tokensToCollect(self, params.agreementId, data.entities, collectionSeconds);
+        uint256 expectedTokens = _tokensToCollect(
+            self,
+            params.agreementId,
+            data.entities,
+            wrapper.collectorAgreement.collectionSeconds
+        );
 
-        // `tokensCollected` <= `expectedTokens` because the recurring collector will further narrow
-        // down the tokens allowed, based on the RCA terms.
-        uint256 tokensCollected = _directory().recurringCollector().collect(
+        // Trust boundary: the collector is owner-authorized and controls the actual token
+        // transfer (via PaymentsEscrow.collect). It is trusted for both the amount moved and
+        // the return value. A return-value sanity check would not limit a buggy collector's
+        // ability to move tokens, only catch a misreported return value. The downstream effect
+        // of an inflated return is over-locking indexer stake (tokensCollected * stakeToFeesRatio).
+        // Mitigation is governance-level: only the contract owner can authorize collectors.
+        uint256 tokensCollected = rc.collect(
             IGraphPayments.PaymentTypes.IndexingFee,
             abi.encode(
                 IRecurringCollector.CollectParams({
@@ -624,54 +525,11 @@ library IndexingAgreement {
      * @param _manager The indexing agreement storage manager
      * @param _agreementId The id of the agreement to update
      * @param _data The encoded terms data
-     * @param maxOngoingTokensPerSecond The RCA maximum tokens per second limit for validation
      */
-    function _setTermsV1(
-        StorageManager storage _manager,
-        bytes16 _agreementId,
-        bytes memory _data,
-        uint256 maxOngoingTokensPerSecond
-    ) private {
+    function _setTermsV1(StorageManager storage _manager, bytes16 _agreementId, bytes memory _data) private {
         IndexingAgreementTermsV1 memory newTerms = IndexingAgreementDecoder.decodeIndexingAgreementTermsV1(_data);
-        _validateTermsAgainstRCA(newTerms, maxOngoingTokensPerSecond);
         _manager.termsV1[_agreementId].tokensPerSecond = newTerms.tokensPerSecond;
         _manager.termsV1[_agreementId].tokensPerEntityPerSecond = newTerms.tokensPerEntityPerSecond;
-    }
-
-    /**
-     * @notice Cancel an indexing agreement.
-     *
-     * @dev This function does the actual agreement cancelation.
-     *
-     * Emits {IndexingAgreementCanceled} event
-     *
-     * @param _manager The indexing agreement storage manager
-     * @param _agreementId The id of the agreement to cancel
-     * @param _agreement The indexing agreement state
-     * @param _collectorAgreement The collector agreement data
-     * @param _cancelBy The entity that is canceling the agreement
-     */
-    function _cancel(
-        StorageManager storage _manager,
-        bytes16 _agreementId,
-        IIndexingAgreement.State memory _agreement,
-        IRecurringCollector.AgreementData memory _collectorAgreement,
-        IRecurringCollector.CancelAgreementBy _cancelBy
-    ) private {
-        // Delete the allocation to active agreement link, so that the allocation
-        // can be assigned a new indexing agreement in the future.
-        delete _manager.allocationToActiveAgreementId[_agreement.allocationId];
-
-        emit IndexingAgreementCanceled(
-            _collectorAgreement.serviceProvider,
-            _collectorAgreement.payer,
-            _agreementId,
-            _cancelBy == IRecurringCollector.CancelAgreementBy.Payer
-                ? _collectorAgreement.payer
-                : _collectorAgreement.serviceProvider
-        );
-
-        _directory().recurringCollector().cancel(_agreementId, _cancelBy);
     }
 
     /**
@@ -702,14 +560,74 @@ library IndexingAgreement {
     }
 
     /**
+     * @notice Bind or rebind an agreement to an allocation.
+     * @dev If `_extraData` contains a new allocationId, validates it and updates
+     * the bidirectional mapping. After binding, requires the agreement has a valid,
+     * open allocation owned by the indexer.
+     *
+     * @param _manager The storage manager
+     * @param _allocations The allocation state mapping
+     * @param _agreement The agreement state (storage ref)
+     * @param _agreementId The agreement ID
+     * @param _serviceProvider The indexer address
+     * @param _extraData Encoded allocationId — required for initial, optional for update
+     */
+    function _bindAllocation(
+        StorageManager storage _manager,
+        mapping(address => IAllocation.State) storage _allocations,
+        IIndexingAgreement.State storage _agreement,
+        bytes16 _agreementId,
+        address _serviceProvider,
+        bytes calldata _extraData
+    ) private {
+        if (0 < _extraData.length) {
+            address newAllocationId = abi.decode(_extraData, (address));
+            address oldAllocationId = _agreement.allocationId;
+
+            if (newAllocationId != oldAllocationId) {
+                IAllocation.State memory newAllocation = _requireValidAllocation(
+                    _allocations,
+                    newAllocationId,
+                    _serviceProvider
+                );
+
+                require(
+                    newAllocation.subgraphDeploymentId == _agreement.subgraphDeploymentId,
+                    IndexingAgreementDeploymentIdMismatch(
+                        _agreement.subgraphDeploymentId,
+                        newAllocationId,
+                        newAllocation.subgraphDeploymentId
+                    )
+                );
+
+                if (oldAllocationId != address(0)) {
+                    delete _manager.allocationToActiveAgreementId[oldAllocationId];
+                    emit IndexingAgreementAllocationUnbound(_agreementId, oldAllocationId);
+                }
+
+                require(
+                    _manager.allocationToActiveAgreementId[newAllocationId] == bytes16(0),
+                    AllocationAlreadyHasIndexingAgreement(newAllocationId)
+                );
+
+                _manager.allocationToActiveAgreementId[newAllocationId] = _agreementId;
+                _agreement.allocationId = newAllocationId;
+            }
+        }
+
+        require(_agreement.allocationId != address(0), IndexingAgreementNotActive(_agreementId));
+        _requireValidAllocation(_allocations, _agreement.allocationId, _serviceProvider);
+    }
+
+    /**
      * @notice Calculate the data service's requested token amount for a collection.
      * @dev This is an upper bound based on indexing agreement terms, not a guaranteed payout.
-     * The RecurringCollector further caps the actual payout against the RCA payer's limits.
+     * The collector further caps the actual payout against the payer's limits.
      * @param _manager The storage manager
      * @param _agreementId The agreement ID
      * @param _entities The number of entities indexed
      * @param _collectionSeconds Collection duration, already capped at maxSecondsPerCollection
-     * @return The requested token amount (may be narrowed by RecurringCollector)
+     * @return The requested token amount (may be narrowed by the collector)
      */
     function _tokensToCollect(
         StorageManager storage _manager,
@@ -719,18 +637,6 @@ library IndexingAgreement {
     ) private view returns (uint256) {
         IndexingAgreementTermsV1 memory termsV1 = _manager.termsV1[_agreementId];
         return _collectionSeconds * (termsV1.tokensPerSecond + termsV1.tokensPerEntityPerSecond * _entities);
-    }
-
-    /**
-     * @notice Checks if the agreement is active
-     * Requirements:
-     * - The indexing agreement is valid
-     * - The underlying collector agreement has been accepted
-     * @param wrapper The agreement wrapper containing the indexing agreement and collector agreement data
-     * @return True if the agreement is active, false otherwise
-     **/
-    function _isActive(IIndexingAgreement.AgreementWrapper memory wrapper) private view returns (bool) {
-        return _isValid(wrapper) && wrapper.collectorAgreement.state == IRecurringCollector.AgreementState.Accepted;
     }
 
     /**
@@ -746,44 +652,19 @@ library IndexingAgreement {
     }
 
     /**
-     * @notice Gets the Directory
-     * @return The Directory contract
-     */
-    function _directory() private view returns (Directory) {
-        return Directory(address(this));
-    }
-
-    /**
      * @notice Gets the indexing agreement wrapper for a given agreement ID.
      * @dev This function retrieves the indexing agreement wrapper containing the agreement state and collector agreement data.
      * @param self The indexing agreement storage manager
      * @param agreementId The id of the indexing agreement
-     * @return The indexing agreement wrapper containing the agreement state and collector agreement data
+     * @return wrapper The indexing agreement wrapper containing the agreement state and collector agreement data
      */
     function _get(
         StorageManager storage self,
         bytes16 agreementId
-    ) private view returns (IIndexingAgreement.AgreementWrapper memory) {
-        return
-            IIndexingAgreement.AgreementWrapper({
-                agreement: self.agreements[agreementId],
-                collectorAgreement: _directory().recurringCollector().getAgreement(agreementId)
-            });
-    }
-
-    /**
-     * @notice Validates indexing agreement terms against RCA limits
-     * @param terms The indexing agreement terms to validate
-     * @param maxOngoingTokensPerSecond The RCA maximum tokens per second limit
-     */
-    function _validateTermsAgainstRCA(
-        IndexingAgreementTermsV1 memory terms,
-        uint256 maxOngoingTokensPerSecond
-    ) private pure {
-        require(
-            // solhint-disable-next-line gas-strict-inequalities
-            terms.tokensPerSecond <= maxOngoingTokensPerSecond,
-            IndexingAgreementInvalidTerms(terms.tokensPerSecond, maxOngoingTokensPerSecond)
-        );
+    ) private view returns (IIndexingAgreement.AgreementWrapper memory wrapper) {
+        wrapper.agreement = self.agreements[agreementId];
+        if (wrapper.agreement.collector != address(0)) {
+            wrapper.collectorAgreement = IRecurringCollector(wrapper.agreement.collector).getAgreementData(agreementId);
+        }
     }
 }

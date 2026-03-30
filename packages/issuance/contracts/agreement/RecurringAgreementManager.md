@@ -7,7 +7,7 @@ It implements seven interfaces:
 - **`IIssuanceTarget`** — receives minted GRT from IssuanceAllocator
 - **`IAgreementOwner`** — authorizes RCA acceptance and updates via callback (replaces ECDSA signature)
 - **`IRecurringAgreementManagement`** — agreement lifecycle: offer, update, revoke, cancel, remove, reconcile
-- **`IRecurringEscrowManagement`** — escrow configuration: setEscrowBasis, setTempJit
+- **`IRecurringEscrowManagement`** — escrow configuration: setEscrowBasis, limit thresholds, thaw fraction
 - **`IProviderEligibilityManagement`** — eligibility oracle configuration: setProviderEligibilityOracle
 - **`IRecurringAgreements`** — read-only queries: agreement info, escrow state, global tracking
 - **`IProviderEligibility`** — delegates payment eligibility checks to an optional oracle
@@ -16,7 +16,7 @@ It implements seven interfaces:
 
 RAM pulls minted GRT from IssuanceAllocator via `_ensureIncomingDistributionToCurrentBlock()` before any balance-dependent decision. This ensures `balanceOf(address(this))` reflects all available tokens before escrow deposits or JIT calculations.
 
-**Trigger points**: `beforeCollection` (JIT path, when escrow is insufficient) and `_updateEscrow` (all escrow rebalancing). Both may fire in the same transaction, so a per-block deduplication guard (`ensuredIncomingDistributedToBlock`) skips redundant allocator calls.
+**Trigger points**: `beforeCollection` (JIT path, when escrow is insufficient) and `_reconcileProviderEscrow` (all escrow rebalancing). Both may fire in the same transaction, so a per-block deduplication guard (`ensuredIncomingDistributedToBlock`) skips redundant allocator calls.
 
 **Failure tolerance**: Allocator reverts are caught via try-catch — collection continues and a `DistributeIssuanceFailed` event is emitted for monitoring. This prevents a malfunctioning allocator from blocking payments.
 
@@ -27,14 +27,10 @@ RAM pulls minted GRT from IssuanceAllocator via `_ensureIncomingDistributionToCu
 One escrow account per (RecurringAgreementManager, collector, provider) tuple covers **all** managed RCAs for that (collector, provider) pair. Multiple agreements for the same pair share a single escrow balance:
 
 ```
-sum(maxNextClaim + pendingUpdateMaxNextClaim for all active agreements for that provider) <= PaymentsEscrow.escrowAccounts[RecurringAgreementManager][RecurringCollector][provider]
+sum(maxNextClaim for all active agreements for that provider) <= PaymentsEscrow.escrowAccounts[RecurringAgreementManager][RecurringCollector][provider]
 ```
 
 Deposits never revert — `_escrowMinMax` degrades the mode when balance is insufficient, ensuring the deposit amount is always affordable. The `getEscrowAccount` view exposes the underlying escrow account for monitoring.
-
-## Hash Authorization
-
-The `authorizedHashes` mapping stores `hash → agreementId` rather than `hash → bool`. Hashes are automatically invalidated when agreements are deleted, preventing reuse without explicit cleanup.
 
 ## Max Next Claim
 
@@ -44,22 +40,22 @@ For accepted agreements, delegated to `RecurringCollector.getMaxNextClaim(agreem
 maxNextClaim = maxOngoingTokensPerSecond * maxSecondsPerCollection + maxInitialTokens
 ```
 
-| Agreement State             | maxNextClaim                                                   |
-| --------------------------- | -------------------------------------------------------------- |
-| NotAccepted (pre-offered)   | Stored estimate from `offerAgreement`                          |
-| NotAccepted (past deadline) | 0 (expired offer, removable)                                   |
-| Accepted, never collected   | Calculated by RecurringCollector (includes initial + ongoing)  |
-| Accepted, after collect     | Calculated by RecurringCollector (ongoing only)                |
-| CanceledByPayer             | Calculated by RecurringCollector (window frozen at canceledAt) |
-| CanceledByServiceProvider   | 0                                                              |
-| Fully expired               | 0                                                              |
+| Agreement State             | maxNextClaim                                                         |
+| --------------------------- | -------------------------------------------------------------------- |
+| NotAccepted (pre-offered)   | Stored estimate from `offerAgreement`                                |
+| NotAccepted (past deadline) | 0 (expired offer, removable)                                         |
+| Accepted, never collected   | Calculated by RecurringCollector (includes initial + ongoing)        |
+| Accepted, after collect     | Calculated by RecurringCollector (ongoing only)                      |
+| CanceledByPayer             | Calculated by RecurringCollector (window capped at collectableUntil) |
+| CanceledByServiceProvider   | 0                                                                    |
+| Fully expired               | 0                                                                    |
 
 ## Lifecycle
 
 ### Offer → Accept (two-step)
 
-1. **Agreement manager** calls `offerAgreement(rca, collector)` — stores hash, calculates conservative maxNextClaim, deposits into escrow
-2. **Service provider operator** calls `SubgraphService.acceptUnsignedIndexingAgreement(allocationId, rca)` — SubgraphService → RecurringCollector → `approveAgreement(hash)` callback to RecurringAgreementManager
+1. **Agreement manager** calls `offerAgreement(collector, offerType, offerData)` — forwards opaque offer to collector (new or update), tracks agreement, calculates conservative maxNextClaim, deposits into escrow
+2. **Service provider operator** calls `RecurringCollector.accept(agreementId, termsHash, signature)` — RecurringCollector validates and calls `IAgreementAcceptCallback.onAcceptAgreement()` on the data service (e.g. SubgraphService) for domain-specific validation
 
 During the pending update window, both current and pending maxNextClaim are escrowed simultaneously (conservative).
 
@@ -67,15 +63,16 @@ During the pending update window, both current and pending maxNextClaim are escr
 
 Collection flows through `SubgraphService → RecurringCollector → PaymentsEscrow`. RecurringCollector then calls `IAgreementOwner.afterCollection` on the payer, which triggers automatic reconciliation and escrow top-up in the same transaction. Manual reconcile is still available as a fallback.
 
-The manager exposes `reconcileAgreement` (gas-predictable, per-agreement). Batch convenience functions `reconcileBatch` (caller-selected list) and `reconcile(provider)` (iterates all agreements) are in the stateless `RecurringAgreementHelper` contract, which delegates each reconciliation back to the manager.
+The manager exposes `reconcileAgreement` (gas-predictable, per-agreement) and `reconcileProvider` (pair-level escrow rebalancing). Batch convenience functions `reconcilePair`, `reconcileCollector`, and `reconcileAll` are in the stateless `RecurringAgreementHelper` contract, which iterates agreements and delegates each reconciliation back to the manager.
 
-### Revoke / Cancel / Remove
+### Cancel / Remove
 
-- **`revokeOffer`** — withdraws an un-accepted offer
-- **`cancelAgreement`** — for accepted agreements, routes cancellation through the data service then reconciles; idempotent for already-canceled agreements
-- **`removeAgreement`** (permissionless) — cleans up agreements with maxNextClaim = 0
+- **`cancelAgreement`** — routes cancellation through the collector's `cancel` function (passing the terms hash), then reconciles locally. Cancels un-accepted offers, accepted agreements, or pending updates depending on the `versionHash` provided. Requires AGREEMENT_MANAGER_ROLE.
+- **`forceRemoveAgreement`** — operator escape hatch for agreements whose collector is unresponsive (broken upgrade, permanent pause). Zeroes the agreement's maxNextClaim, removes it from pair tracking, and triggers pair reconciliation. Requires OPERATOR_ROLE.
 
-| State                     | Removable when                        |
+Cleanup is automatic: `reconcileAgreement` deletes agreements whose `maxNextClaim` is 0.
+
+| State                     | Deleted by reconcile when             |
 | ------------------------- | ------------------------------------- |
 | CanceledByServiceProvider | Immediately (maxNextClaim = 0)        |
 | CanceledByPayer           | After collection window expires       |
@@ -106,7 +103,7 @@ Ordered low-to-high:
 
 ### Min/Max Model
 
-`_updateEscrow` uses two numbers from `_escrowMinMax` instead of a single `sumMaxNextClaim`:
+`_reconcileProviderEscrow` uses two numbers from `_escrowMinMax` instead of a single `sumMaxNextClaim`:
 
 - **min**: deposit floor — deposit if effective balance is below this
 - **max**: thaw ceiling — thaw effective balance above this (never resetting an active thaw timer)
@@ -128,11 +125,11 @@ The min gate is stricter (0.5x < 1.0625x), giving three effective states as `spa
 2. **OnDemand** (`smnca × 0.5 < spare ≤ smnca × 1.0625`): min gate fails, max holds — min = 0, max = `sumMaxNextClaim` (no new deposits, but existing escrow up to max is held)
 3. **JIT** (`spare ≤ smnca × 0.5`): both gates fail — min = max = 0 (thaw everything)
 
-**Operator caution — new agreements can trigger instant degradation.** `offerAgreement()` and `offerAgreementUpdate()` increase `sumMaxNextClaim` (and therefore `totalEscrowDeficit`) without checking whether the RAM has sufficient balance to maintain the current escrow mode. A single offer can push `spare` below the threshold, instantly degrading escrow mode for **all** (collector, provider) pairs — not just the new agreement. Existing providers who had fully-escrowed agreements silently lose their proactive deposits. The operator (AGREEMENT_MANAGER_ROLE holder) should verify escrow headroom before offering agreements. An on-chain guard was considered but excluded due to contract size constraints (Spurious Dragon 24576-byte limit).
+**Operator caution — new agreements can trigger instant degradation.** `offerAgreement()` (both new and update) increases `sumMaxNextClaim` (and therefore `totalEscrowDeficit`) without checking whether the RAM has sufficient balance to maintain the current escrow mode. A single offer can push `spare` below the threshold, instantly degrading escrow mode for **all** (collector, provider) pairs — not just the new agreement. Existing providers who had fully-escrowed agreements silently lose their proactive deposits. The operator (AGREEMENT_MANAGER_ROLE holder) should verify escrow headroom before offering agreements. An on-chain guard was considered but excluded due to contract size constraints (Spurious Dragon 24576-byte limit).
 
-### `_updateEscrow` Flow
+### `_reconcileProviderEscrow` Flow
 
-`_updateEscrow(collector, provider)` normalizes escrow state in four steps using (min, max) from `_escrowMinMax`. Steps 3 and 4 are mutually exclusive (min <= max); the thaw timer is never reset.
+`_reconcileProviderEscrow(collector, provider)` normalizes escrow state in four steps using (min, max) from `_escrowMinMax`. Steps 3 and 4 are mutually exclusive (min <= max); the thaw timer is never reset.
 
 1. **Adjust thaw target** — cancel/reduce thawing to keep min <= effective balance, or increase toward max (without timer reset)
 2. **Withdraw completed thaw** — always withdrawn, even if within [min, max]
@@ -141,32 +138,33 @@ The min gate is stricter (0.5x < 1.0625x), giving three effective states as `spa
 
 ### Reconciliation
 
-Per-agreement reconciliation (`reconcileAgreement`) re-reads agreement state from RecurringCollector and updates `sumMaxNextClaim`. Pair-level escrow rebalancing and cleanup is O(1) via `reconcileCollectorProvider(collector, provider)`. Batch helpers `reconcileBatch` and `reconcile(provider)` live in the separate `RecurringAgreementHelper` contract — they are stateless wrappers that call `reconcileAgreement` in a loop.
+Per-agreement reconciliation (`reconcileAgreement`) re-reads agreement state from RecurringCollector and updates `sumMaxNextClaim`. Pair-level escrow rebalancing and cleanup is O(1) via `reconcileProvider(collector, provider)`. Batch helpers `reconcilePair`, `reconcileCollector`, and `reconcileAll` live in the separate `RecurringAgreementHelper` contract — they are stateless wrappers that call `reconcileAgreement` in a loop, then call `reconcileProvider` per pair.
 
 ### Global Tracking
 
-| Storage field                       | Type    | Updated at                                                           |
-| ----------------------------------- | ------- | -------------------------------------------------------------------- |
-| `escrowBasis`                       | enum    | `setEscrowBasis()`                                                   |
-| `sumMaxNextClaimAll`                | uint256 | Every `sumMaxNextClaim[c][p]` mutation                               |
-| `totalEscrowDeficit`                | uint256 | Every `sumMaxNextClaim[c][p]` or `escrowSnap[c][p]` mutation         |
-| `totalAgreementCount`               | uint256 | `offerAgreement` (+1), `revokeOffer` (-1), `reconcileAgreement` (-1) |
-| `escrowSnap[c][p]`                  | mapping | End of `_updateEscrow` via snapshot diff                             |
-| `minOnDemandBasisThreshold`         | uint8   | `setMinOnDemandBasisThreshold()` (operator)                          |
-| `minFullBasisMargin`                | uint8   | `setMinFullBasisMargin()` (operator)                                 |
-| `issuanceAllocator`                 | address | `setIssuanceAllocator()` (governor)                                  |
-| `ensuredIncomingDistributedToBlock` | uint64  | `_ensureIncomingDistributionToCurrentBlock()` (per-block dedup)      |
+| Storage field                       | Type    | Updated at                                                                                    |
+| ----------------------------------- | ------- | --------------------------------------------------------------------------------------------- |
+| `escrowBasis`                       | enum    | `setEscrowBasis()`                                                                            |
+| `sumMaxNextClaimAll`                | uint256 | Every `sumMaxNextClaim[c][p]` mutation                                                        |
+| `totalEscrowDeficit`                | uint256 | Every `sumMaxNextClaim[c][p]` or `escrowSnap[c][p]` mutation                                  |
+| `providerEligibilityOracle`         | address | `setProviderEligibilityOracle()` (governor), `emergencyClearEligibilityOracle()` (pause role) |
+| `escrowSnap[c][p]`                  | mapping | End of `_reconcileProviderEscrow` via snapshot diff                                           |
+| `minOnDemandBasisThreshold`         | uint8   | `setMinOnDemandBasisThreshold()` (operator)                                                   |
+| `minFullBasisMargin`                | uint8   | `setMinFullBasisMargin()` (operator)                                                          |
+| `minThawFraction`                   | uint8   | `setMinThawFraction()` (operator)                                                             |
+| `issuanceAllocator`                 | address | `setIssuanceAllocator()` (governor)                                                           |
+| `ensuredIncomingDistributedToBlock` | uint32  | `_ensureIncomingDistributionToCurrentBlock()` (per-block dedup)                               |
 
 **`totalEscrowDeficit`** is maintained incrementally as `Σ max(0, sumMaxNextClaim[c][p] - escrowSnap[c][p])` per (collector, provider). Over-deposited pairs cannot mask another pair's deficit. At each mutation point, the pair's deficit is recomputed before and after.
 
 ## Roles
 
 - **GOVERNOR_ROLE**: Sets issuance allocator, eligibility oracle; grants `DATA_SERVICE_ROLE`, `COLLECTOR_ROLE`, and other roles; admin of `OPERATOR_ROLE`
-- **OPERATOR_ROLE**: Sets escrow basis and threshold/margin parameters; admin of `AGREEMENT_MANAGER_ROLE`
-  - **AGREEMENT_MANAGER_ROLE**: Offers agreements/updates, revokes offers, cancels agreements
-- **PAUSE_ROLE**: Pauses contract (reconcile remains available)
-- **Permissionless**: `reconcileAgreement`, `reconcileCollectorProvider`
-- **RecurringAgreementHelper** (permissionless): `reconcile(provider)`, `reconcileBatch(ids[])`
+- **OPERATOR_ROLE**: Sets escrow basis, threshold/margin, and thaw-fraction parameters; `forceRemoveAgreement`; admin of `AGREEMENT_MANAGER_ROLE`
+  - **AGREEMENT_MANAGER_ROLE**: Offers agreements/updates, cancels agreements
+- **PAUSE_ROLE**: Pauses contract (reconcile remains available); `emergencyClearEligibilityOracle`
+- **Permissionless**: `reconcileAgreement`, `reconcileProvider`
+- **RecurringAgreementHelper** (permissionless): `reconcilePair`, `reconcileCollector`, `reconcileAll`
 
 ## Deployment
 

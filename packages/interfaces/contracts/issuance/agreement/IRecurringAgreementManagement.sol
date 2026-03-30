@@ -17,33 +17,41 @@ interface IRecurringAgreementManagement {
     // solhint-disable gas-indexed-events
 
     /**
-     * @notice Emitted when an agreement is offered for escrow management
+     * @notice Emitted when an agreement is discovered and registered for escrow management.
      * @param agreementId The deterministic agreement ID
+     * @param collector The collector contract address
+     * @param dataService The data service address
      * @param provider The service provider for this agreement
-     * @param maxNextClaim The calculated maximum next claim amount
      */
-    event AgreementOffered(bytes16 indexed agreementId, address indexed provider, uint256 maxNextClaim);
+    event AgreementAdded(
+        bytes16 indexed agreementId,
+        address indexed collector,
+        address dataService,
+        address indexed provider
+    );
 
     /**
-     * @notice Emitted when an agreement offer is revoked before acceptance
+     * @notice Emitted when an agreement callback is ignored because it does not belong to this manager.
+     * @dev Useful for debugging missed agreements.
      * @param agreementId The agreement ID
-     * @param provider The provider whose sumMaxNextClaim was reduced
+     * @param collector The collector that sent the callback
+     * @param reason The rejection reason
      */
-    event OfferRevoked(bytes16 indexed agreementId, address indexed provider);
+    event AgreementRejected(bytes16 indexed agreementId, address indexed collector, AgreementRejectionReason reason);
 
-    /**
-     * @notice Emitted when an agreement is canceled via the data service
-     * @param agreementId The agreement ID
-     * @param provider The provider for this agreement
-     */
-    event AgreementCanceled(bytes16 indexed agreementId, address indexed provider);
+    /// @notice Why an agreement was not tracked by this manager.
+    enum AgreementRejectionReason {
+        UnauthorizedCollector,
+        UnknownAgreement,
+        PayerMismatch,
+        UnauthorizedDataService
+    }
 
     /**
      * @notice Emitted when an agreement is removed from escrow management
      * @param agreementId The agreement ID being removed
-     * @param provider The provider whose sumMaxNextClaim was reduced
      */
-    event AgreementRemoved(bytes16 indexed agreementId, address indexed provider);
+    event AgreementRemoved(bytes16 indexed agreementId);
 
     /**
      * @notice Emitted when an agreement's max next claim is recalculated
@@ -54,29 +62,13 @@ interface IRecurringAgreementManagement {
     event AgreementReconciled(bytes16 indexed agreementId, uint256 oldMaxNextClaim, uint256 newMaxNextClaim);
 
     /**
-     * @notice Emitted when a pending agreement update is offered
-     * @param agreementId The agreement ID
-     * @param pendingMaxNextClaim The max next claim for the pending update
-     * @param updateNonce The RCAU nonce for the pending update
-     */
-    event AgreementUpdateOffered(bytes16 indexed agreementId, uint256 pendingMaxNextClaim, uint32 updateNonce);
-
-    /**
-     * @notice Emitted when a pending agreement update is revoked
-     * @param agreementId The agreement ID
-     * @param pendingMaxNextClaim The escrow that was freed
-     * @param updateNonce The RCAU nonce that was revoked
-     */
-    event AgreementUpdateRevoked(bytes16 indexed agreementId, uint256 pendingMaxNextClaim, uint32 updateNonce);
-
-    /**
      * @notice Emitted when a (collector, provider) pair is removed from tracking
      * @dev Emitted when the pair has no agreements AND escrow is fully recovered (balance zero).
-     * May cascade inline from agreement deletion or be triggered by {reconcileCollectorProvider}.
+     * May cascade inline from agreement deletion or be triggered by {reconcileProvider}.
      * @param collector The collector address
      * @param provider The provider address
      */
-    event CollectorProviderRemoved(address indexed collector, address indexed provider);
+    event ProviderRemoved(address indexed collector, address indexed provider);
 
     /**
      * @notice Emitted when a collector is removed from the global tracking set
@@ -90,16 +82,10 @@ interface IRecurringAgreementManagement {
     // -- Errors --
 
     /**
-     * @notice Thrown when trying to offer an agreement that is already offered
+     * @notice Thrown when re-offering an agreement with a different service provider
      * @param agreementId The agreement ID
      */
-    error AgreementAlreadyOffered(bytes16 agreementId);
-
-    /**
-     * @notice Thrown when trying to operate on an agreement that is not offered
-     * @param agreementId The agreement ID
-     */
-    error AgreementNotOffered(bytes16 agreementId);
+    error ServiceProviderMismatch(bytes16 agreementId);
 
     /**
      * @notice Thrown when the RCA payer is not this contract
@@ -107,24 +93,6 @@ interface IRecurringAgreementManagement {
      * @param expected The expected payer (this contract)
      */
     error PayerMustBeManager(address payer, address expected);
-
-    /**
-     * @notice Thrown when trying to revoke an agreement that is already accepted
-     * @param agreementId The agreement ID
-     */
-    error AgreementAlreadyAccepted(bytes16 agreementId);
-
-    /**
-     * @notice Thrown when trying to cancel an agreement that has not been accepted yet
-     * @param agreementId The agreement ID
-     */
-    error AgreementNotAccepted(bytes16 agreementId);
-
-    /**
-     * @notice Thrown when the data service address has no deployed code
-     * @param dataService The address that was expected to be a contract
-     */
-    error InvalidDataService(address dataService);
 
     /// @notice Thrown when the RCA service provider is the zero address
     error ServiceProviderZeroAddress();
@@ -135,17 +103,6 @@ interface IRecurringAgreementManagement {
      */
     error UnauthorizedDataService(address dataService);
 
-    /// @notice Thrown when a collection callback is called by an address other than the agreement's collector
-    error OnlyAgreementCollector();
-
-    /**
-     * @notice Thrown when the RCAU nonce does not match the expected next update nonce
-     * @param agreementId The agreement ID
-     * @param expectedNonce The expected nonce (collector's updateNonce + 1)
-     * @param actualNonce The nonce provided in the RCAU
-     */
-    error InvalidUpdateNonce(bytes16 agreementId, uint32 expectedNonce, uint32 actualNonce);
-
     /**
      * @notice Thrown when the collector address does not have COLLECTOR_ROLE
      * @param collector The unauthorized collector address
@@ -155,80 +112,33 @@ interface IRecurringAgreementManagement {
     // -- Functions --
 
     /**
-     * @notice Offer an RCA for escrow management. Must be called before
-     * the data service accepts the agreement (with empty authData).
-     * @dev Calculates max next claim from RCA parameters, stores the authorized hash
-     * for the {IAgreementOwner} callback, and deposits into escrow.
+     * @notice Offer an RCA for escrow management.
+     * @dev Forwards opaque offer data to the collector, which decodes and validates it,
+     * then reconciles agreement tracking and escrow locally after the call returns.
+     * The collector does not callback to `msg.sender` — see RecurringCollector callback model.
      * Requires AGREEMENT_MANAGER_ROLE.
-     *
-     * WARNING: increases `sumMaxNextClaim` (and `totalEscrowDeficit`) without checking escrow
-     * headroom. A single offer can push `spare` below the degradation threshold, instantly
-     * degrading the escrow mode for ALL (collector, provider) pairs. The caller should verify
-     * sufficient balance before calling. See RecurringAgreementManager.md, Automatic Degradation.
-     * @param rca The Recurring Collection Agreement parameters
      * @param collector The RecurringCollector contract to use for this agreement
+     * @param offerType The offer type (OFFER_TYPE_NEW or OFFER_TYPE_UPDATE)
+     * @param offerData Opaque ABI-encoded agreement data forwarded to the collector
      * @return agreementId The deterministic agreement ID
      */
     function offerAgreement(
-        IRecurringCollector.RecurringCollectionAgreement calldata rca,
-        IRecurringCollector collector
+        IRecurringCollector collector,
+        uint8 offerType,
+        bytes calldata offerData
     ) external returns (bytes16 agreementId);
 
     /**
-     * @notice Offer a pending agreement update for escrow management. Must be called
-     * before the data service applies the update (with empty authData).
-     * @dev Stores the authorized RCAU hash for the {IAgreementOwner} callback and
-     * adds the pending update's max next claim to sumMaxNextClaim. Treats the
-     * pending update as a separate escrow entry alongside the current agreement.
-     * If a previous pending update exists, it is replaced.
-     * Requires AGREEMENT_MANAGER_ROLE.
-     *
-     * WARNING: potentially increases `sumMaxNextClaim` (and `totalEscrowDeficit`), without
-     * checking escrow headroom. A single update can push `spare` below the degradation threshold,
-     * instantly degrading the escrow mode for ALL (collector, provider) pairs. The caller should
-     * verify sufficient balance before calling.
-     * See RecurringAgreementManager.md, Automatic Degradation.
-     * @param rcau The Recurring Collection Agreement Update parameters
-     * @return agreementId The agreement ID from the RCAU
-     */
-    function offerAgreementUpdate(
-        IRecurringCollector.RecurringCollectionAgreementUpdate calldata rcau
-    ) external returns (bytes16 agreementId);
-
-    /**
-     * @notice Revoke a pending agreement update, freeing its reserved escrow.
-     * @dev Requires AGREEMENT_MANAGER_ROLE. Reconciles the agreement first to
-     * detect if the update was already applied. If the pending update is still
-     * outstanding after reconciliation, clears it and frees the escrow.
-     * No-op (returns false) if no pending update exists after reconciliation.
-     * @param agreementId The agreement ID whose pending update to revoke
-     * @return revoked True if a pending update was cleared by this call
-     */
-    function revokeAgreementUpdate(bytes16 agreementId) external returns (bool revoked);
-
-    /**
-     * @notice Revoke an un-accepted agreement offer. Only for agreements not yet
-     * accepted in RecurringCollector.
-     * @dev Requires AGREEMENT_MANAGER_ROLE. Clears the agreement tracking and authorized hashes,
-     * freeing the reserved escrow. Any pending update is also cleared.
-     * No-op (returns true) if the agreement is not tracked.
-     * @param agreementId The agreement ID to revoke
-     * @return gone True if the agreement is not tracked (whether revoked by this call or already absent)
-     */
-    function revokeOffer(bytes16 agreementId) external returns (bool gone);
-
-    /**
-     * @notice Cancel an accepted agreement by routing through the data service.
-     * @dev Requires AGREEMENT_MANAGER_ROLE. Reads agreement state from RecurringCollector:
-     * - NotAccepted: reverts (use {revokeOffer} instead)
-     * - Accepted: cancels via the data service, then reconciles and updates escrow
-     * - Already canceled: idempotent — reconciles and updates escrow without re-canceling
-     * After cancellation, call {reconcileAgreement} once the collection window closes.
+     * @notice Cancel an agreement or pending update by routing through the collector.
+     * @dev Requires AGREEMENT_MANAGER_ROLE. Forwards the terms hash to the collector's
+     * cancel function, then reconciles locally after the call returns. The collector does
+     * not callback to `msg.sender` — see RecurringCollector callback model.
+     * @param collector The collector contract address for this agreement
      * @param agreementId The agreement ID to cancel
-     * @return gone True if the agreement is not tracked (already absent); false when
-     * the agreement is still tracked (caller should eventually call {reconcileAgreement})
+     * @param versionHash The terms hash to cancel (activeTerms.hash or pendingTerms.hash)
+     * @param options Bitmask — IF_NOT_ACCEPTED reverts if the targeted version was already accepted.
      */
-    function cancelAgreement(bytes16 agreementId) external returns (bool gone);
+    function cancelAgreement(address collector, bytes16 agreementId, bytes32 versionHash, uint16 options) external;
 
     /**
      * @notice Reconcile a single agreement: re-read on-chain state, recalculate
@@ -238,10 +148,25 @@ interface IRecurringAgreementManagement {
      * - NotAccepted past deadline: zeroes and deletes (returns false)
      * - Accepted/Canceled: reconciles maxNextClaim, deletes if zero
      * Should be called after collections, cancellations, or agreement updates.
+     * @param collector The collector contract address for this agreement
      * @param agreementId The agreement ID to reconcile
      * @return exists True if the agreement is still tracked after this call
      */
-    function reconcileAgreement(bytes16 agreementId) external returns (bool exists);
+    function reconcileAgreement(address collector, bytes16 agreementId) external returns (bool exists);
+
+    /**
+     * @notice Force-remove a tracked agreement whose collector is unresponsive.
+     * @dev Operator escape hatch for when a collector contract reverts on all calls
+     * (broken upgrade, self-destruct, permanent pause), making normal reconciliation
+     * impossible. Zeroes the agreement's maxNextClaim, removes it from pair tracking,
+     * and triggers pair reconciliation to thaw/withdraw the freed escrow.
+     *
+     * Requires OPERATOR_ROLE. Only use when the collector cannot be fixed.
+     *
+     * @param collector The collector contract address
+     * @param agreementId The agreement ID to force-remove
+     */
+    function forceRemoveAgreement(address collector, bytes16 agreementId) external;
 
     /**
      * @notice Reconcile a (collector, provider) pair: rebalance escrow, withdraw
@@ -253,7 +178,15 @@ interface IRecurringAgreementManagement {
      * changes. Returns true if the pair still has agreements or escrow is still thawing.
      * @param collector The collector address
      * @param provider The provider address
-     * @return exists True if the pair is still tracked after this call
+     * @return tracked True if the pair is still tracked after this call
      */
-    function reconcileCollectorProvider(address collector, address provider) external returns (bool exists);
+    function reconcileProvider(address collector, address provider) external returns (bool tracked);
+
+    /**
+     * @notice Emergency: clear the eligibility oracle so all providers become eligible.
+     * @dev Callable by PAUSE_ROLE holders. Use when the oracle is broken or compromised
+     * and is wrongly blocking collections. The governor can later set a replacement oracle
+     * via {IProviderEligibilityManagement.setProviderEligibilityOracle}.
+     */
+    function emergencyClearEligibilityOracle() external;
 }

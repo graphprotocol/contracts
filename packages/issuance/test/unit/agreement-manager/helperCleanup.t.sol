@@ -1,6 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
+import {
+    REGISTERED,
+    ACCEPTED,
+    NOTICE_GIVEN,
+    SETTLED,
+    BY_PROVIDER,
+    OFFER_TYPE_NEW
+} from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 
 import { RecurringAgreementManagerSharedTest } from "./shared.t.sol";
@@ -39,7 +47,8 @@ contract RecurringAgreementHelperCleanupTest is RecurringAgreementManagerSharedT
     ) internal returns (bytes16) {
         token.mint(address(agreementManager), 1_000_000 ether);
         vm.prank(operator);
-        return agreementManager.offerAgreement(rca, IRecurringCollector(address(collector)));
+        return
+            agreementManager.offerAgreement(IRecurringCollector(address(collector)), OFFER_TYPE_NEW, abi.encode(rca));
     }
 
     function _setCanceledBySPOnCollector(
@@ -49,21 +58,13 @@ contract RecurringAgreementHelperCleanupTest is RecurringAgreementManagerSharedT
     ) internal {
         collector.setAgreement(
             agreementId,
-            IRecurringCollector.AgreementData({
-                dataService: rca.dataService,
-                payer: rca.payer,
-                serviceProvider: rca.serviceProvider,
-                acceptedAt: uint64(block.timestamp),
-                lastCollectionAt: 0,
-                endsAt: rca.endsAt,
-                maxInitialTokens: rca.maxInitialTokens,
-                maxOngoingTokensPerSecond: rca.maxOngoingTokensPerSecond,
-                minSecondsPerCollection: rca.minSecondsPerCollection,
-                maxSecondsPerCollection: rca.maxSecondsPerCollection,
-                updateNonce: 0,
-                canceledAt: uint64(block.timestamp),
-                state: IRecurringCollector.AgreementState.CanceledByServiceProvider
-            })
+            _buildAgreementStorage(
+                rca,
+                REGISTERED | ACCEPTED | NOTICE_GIVEN | SETTLED | BY_PROVIDER,
+                uint64(block.timestamp),
+                uint64(block.timestamp),
+                0
+            )
         );
     }
 
@@ -74,9 +75,9 @@ contract RecurringAgreementHelperCleanupTest is RecurringAgreementManagerSharedT
         bytes16 id = _offerAgreement(rca);
         _setAgreementCanceledBySP(id, rca);
 
-        uint256 removed = agreementHelper.reconcile(indexer);
+        (uint256 removed, ) = agreementHelper.reconcilePair(address(recurringCollector), indexer);
         assertEq(removed, 1);
-        assertEq(agreementManager.getProviderAgreementCount(indexer), 0);
+        assertEq(agreementManager.getPairAgreementCount(address(recurringCollector), indexer), 0);
     }
 
     function test_Reconcile_SkipsStillClaimable() public {
@@ -84,9 +85,9 @@ contract RecurringAgreementHelperCleanupTest is RecurringAgreementManagerSharedT
         bytes16 id = _offerAgreement(rca);
         _setAgreementAccepted(id, rca, uint64(block.timestamp));
 
-        uint256 removed = agreementHelper.reconcile(indexer);
+        (uint256 removed, ) = agreementHelper.reconcilePair(address(recurringCollector), indexer);
         assertEq(removed, 0);
-        assertEq(agreementManager.getProviderAgreementCount(indexer), 1);
+        assertEq(agreementManager.getPairAgreementCount(address(recurringCollector), indexer), 1);
     }
 
     function test_Reconcile_MixedStates() public {
@@ -100,13 +101,13 @@ contract RecurringAgreementHelperCleanupTest is RecurringAgreementManagerSharedT
         bytes16 id2 = _offerAgreement(rca2);
         _setAgreementAccepted(id2, rca2, uint64(block.timestamp));
 
-        uint256 removed = agreementHelper.reconcile(indexer);
+        (uint256 removed, ) = agreementHelper.reconcilePair(address(recurringCollector), indexer);
         assertEq(removed, 1);
-        assertEq(agreementManager.getProviderAgreementCount(indexer), 1);
+        assertEq(agreementManager.getPairAgreementCount(address(recurringCollector), indexer), 1);
     }
 
     function test_Reconcile_EmptyProvider() public {
-        uint256 removed = agreementHelper.reconcile(indexer);
+        (uint256 removed, ) = agreementHelper.reconcilePair(address(recurringCollector), indexer);
         assertEq(removed, 0);
     }
 
@@ -117,9 +118,9 @@ contract RecurringAgreementHelperCleanupTest is RecurringAgreementManagerSharedT
         // Warp past deadline
         vm.warp(rca.deadline + 1);
 
-        uint256 removed = agreementHelper.reconcile(indexer);
+        (uint256 removed, ) = agreementHelper.reconcilePair(address(recurringCollector), indexer);
         assertEq(removed, 1);
-        assertEq(agreementManager.getProviderAgreementCount(indexer), 0);
+        assertEq(agreementManager.getPairAgreementCount(address(recurringCollector), indexer), 0);
     }
 
     function test_Reconcile_Permissionless() public {
@@ -129,7 +130,7 @@ contract RecurringAgreementHelperCleanupTest is RecurringAgreementManagerSharedT
 
         address anyone = makeAddr("anyone");
         vm.prank(anyone);
-        uint256 removed = agreementHelper.reconcile(indexer);
+        (uint256 removed, ) = agreementHelper.reconcilePair(address(recurringCollector), indexer);
         assertEq(removed, 1);
     }
 
@@ -146,11 +147,11 @@ contract RecurringAgreementHelperCleanupTest is RecurringAgreementManagerSharedT
 
         // Drain escrow, then pair can be removed
         vm.warp(block.timestamp + 1 days + 1);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(address(_collector()), indexer);
 
         (, pairExists) = agreementHelper.reconcilePair(address(recurringCollector), indexer);
         assertFalse(pairExists);
-        assertEq(agreementManager.getCollectorProviderCount(address(recurringCollector)), 0);
+        assertEq(agreementManager.getProviderCount(address(recurringCollector)), 0);
     }
 
     function test_ReconcilePair_PairExistsWhenAgreementsRemain() public {
@@ -205,8 +206,8 @@ contract RecurringAgreementHelperCleanupTest is RecurringAgreementManagerSharedT
 
         // Drain escrows, then collector can be removed
         vm.warp(block.timestamp + 1 days + 1);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer2);
+        agreementManager.reconcileProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(address(_collector()), indexer2);
 
         (, collectorExists) = agreementHelper.reconcileCollector(address(recurringCollector));
         assertFalse(collectorExists);
@@ -243,13 +244,12 @@ contract RecurringAgreementHelperCleanupTest is RecurringAgreementManagerSharedT
 
         uint256 removed = agreementHelper.reconcileAll();
         assertEq(removed, 2);
-        assertEq(agreementManager.getTotalAgreementCount(), 0);
         assertEq(agreementManager.getCollectorCount(), 2); // escrow still thawing
 
         // Drain escrows, then collectors can be removed
         vm.warp(block.timestamp + 1 days + 1);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
-        agreementManager.reconcileCollectorProvider(address(collector2), indexer);
+        agreementManager.reconcileProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(address(collector2), indexer);
 
         agreementHelper.reconcileAll();
         assertEq(agreementManager.getCollectorCount(), 0);
@@ -273,7 +273,6 @@ contract RecurringAgreementHelperCleanupTest is RecurringAgreementManagerSharedT
 
         uint256 removed = agreementHelper.reconcileAll();
         assertEq(removed, 1);
-        assertEq(agreementManager.getTotalAgreementCount(), 1);
     }
 
     // -- Tests: reconcilePair (value reconciliation + cleanup) --
@@ -330,9 +329,9 @@ contract RecurringAgreementHelperCleanupTest is RecurringAgreementManagerSharedT
         // Set as CanceledBySP — after reconcile, maxNextClaim=0, then removable
         _setAgreementCanceledBySP(id, rca);
 
-        uint256 removed = agreementHelper.reconcile(indexer);
+        (uint256 removed, ) = agreementHelper.reconcilePair(address(recurringCollector), indexer);
         assertEq(removed, 1);
-        assertEq(agreementManager.getProviderAgreementCount(indexer), 0);
+        assertEq(agreementManager.getPairAgreementCount(address(recurringCollector), indexer), 0);
     }
 
     function test_Reconcile_NoopWhenAllActive() public {
@@ -340,9 +339,9 @@ contract RecurringAgreementHelperCleanupTest is RecurringAgreementManagerSharedT
         bytes16 id = _offerAgreement(rca);
         _setAgreementAccepted(id, rca, uint64(block.timestamp));
 
-        uint256 removed = agreementHelper.reconcile(indexer);
+        (uint256 removed, ) = agreementHelper.reconcilePair(address(recurringCollector), indexer);
         assertEq(removed, 0);
-        assertEq(agreementManager.getProviderAgreementCount(indexer), 1);
+        assertEq(agreementManager.getPairAgreementCount(address(recurringCollector), indexer), 1);
     }
 
     // -- Tests: reconcilePair does reconcile+cleanup+pair removal --
@@ -358,7 +357,7 @@ contract RecurringAgreementHelperCleanupTest is RecurringAgreementManagerSharedT
 
         // Drain escrow, then pair can be removed
         vm.warp(block.timestamp + 1 days + 1);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(address(_collector()), indexer);
 
         (, pairExists) = agreementHelper.reconcilePair(address(recurringCollector), indexer);
         assertFalse(pairExists);

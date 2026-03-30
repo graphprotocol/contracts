@@ -23,9 +23,9 @@ contract SubgraphServiceGettersTest is SubgraphServiceTest {
         assertEq(result, address(curation));
     }
 
-    function test_GetRecurringCollector() public view {
-        address result = address(subgraphService.recurringCollector());
-        assertEq(result, address(recurringCollector));
+    function test_IsAuthorizedCollector() public view {
+        assertTrue(subgraphService.isAuthorizedCollector(address(recurringCollector)));
+        assertFalse(subgraphService.isAuthorizedCollector(address(0xdead)));
     }
 
     function test_GetAllocationData(uint256 tokens) public useIndexer useAllocation(tokens) {

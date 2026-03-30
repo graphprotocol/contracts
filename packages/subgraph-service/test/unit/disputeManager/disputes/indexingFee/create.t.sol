@@ -66,11 +66,13 @@ contract DisputeManagerIndexingFeeCreateDisputeTest is SubgraphServiceIndexingAg
 
         // The collect mock prevented the real RecurringCollector from updating lastCollectionAt.
         // Mock getAgreement to return lastCollectionAt > 0 so the dispute can be created.
-        IRecurringCollector.AgreementData memory agreementData = recurringCollector.getAgreement(acceptedAgreementId);
+        IRecurringCollector.AgreementData memory agreementData = recurringCollector.getAgreementData(
+            acceptedAgreementId
+        );
         agreementData.lastCollectionAt = uint64(block.timestamp);
         vm.mockCall(
             address(recurringCollector),
-            abi.encodeWithSelector(recurringCollector.getAgreement.selector, acceptedAgreementId),
+            abi.encodeWithSelector(recurringCollector.getAgreementData.selector, acceptedAgreementId),
             abi.encode(agreementData)
         );
     }
@@ -146,7 +148,7 @@ contract DisputeManagerIndexingFeeCreateDisputeTest is SubgraphServiceIndexingAg
         );
 
         // Read the payer from the (mocked) agreement data
-        IRecurringCollector.AgreementData memory agreementData = recurringCollector.getAgreement(agreementId);
+        IRecurringCollector.AgreementData memory agreementData = recurringCollector.getAgreementData(agreementId);
 
         resetPrank(users.fisherman);
         uint256 deposit = disputeManager.disputeDeposit();

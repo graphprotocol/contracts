@@ -20,3 +20,7 @@ The `pendingMaxNextClaim` should be computed as stated above, then reduced by th
 ## Team Response
 
 TBD
+
+---
+
+The RC now owns the `maxNextClaim` calculation. RAM calls `IRecurringCollector.getMaxNextClaim(agreementId)` which returns `max(activeTermsClaim, pendingTermsClaim)` — only the larger of current or pending terms is reserved, not both additively.

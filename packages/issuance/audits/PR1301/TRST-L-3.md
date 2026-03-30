@@ -20,3 +20,9 @@ Add a pause check to `approveAgreement()` that returns `bytes4(0)` when the cont
 ## Team Response
 
 TBD
+
+---
+
+1. **RAM**: The `approveAgreement` callback no longer exists — agreement lifecycle moved to the offer/accept flow on RC. `offerAgreement` is gated by `AGREEMENT_MANAGER_ROLE`.
+
+2. **RecurringCollector**: `offer`, `accept`, `collect`, and `cancel` are now all gated by `whenNotPaused`. Pause guardians managed by governor via `setPauseGuardian`.

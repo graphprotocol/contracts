@@ -1,17 +1,27 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
+import {
+    REGISTERED,
+    ACCEPTED,
+    NOTICE_GIVEN,
+    OFFER_TYPE_NEW
+} from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { IIndexingAgreement } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IIndexingAgreement.sol";
+import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
+import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 
 import { IndexingAgreement } from "../../../../contracts/libraries/IndexingAgreement.sol";
+import { Allocation } from "../../../../contracts/libraries/Allocation.sol";
 
 import { SubgraphServiceIndexingAgreementSharedTest } from "./shared.t.sol";
 
 contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndexingAgreementSharedTest {
     using PPMMath for uint256;
+    using Allocation for IAllocation.State;
 
     struct TestState {
         uint256 escrowBalance;
@@ -76,16 +86,14 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
         IRecurringCollector.RecurringCollectionAgreement memory rca = _recurringCollectorHelper.sensibleRCA(
             ctx.ctxInternal.seed.rca
         );
+        // Payer must differ from indexer, otherwise cancel resolves as BY_PROVIDER (forfeit → settled)
+        vm.assume(rca.payer != indexerState.addr);
         bytes16 acceptedAgreementId = _sharedSetup(ctx, rca, indexerState, expectedTokens);
 
-        // Cancel the indexing agreement by the payer
-        resetPrank(ctx.payer.signer);
-        subgraphService.cancelIndexingAgreementByPayer(acceptedAgreementId);
-
+        // Collect the funded tokens first
+        resetPrank(indexerState.addr);
         TestState memory beforeCollect = _getState(rca.payer, indexerState.addr);
 
-        // Collect
-        resetPrank(indexerState.addr);
         uint256 tokensCollected = subgraphService.collect(
             indexerState.addr,
             IGraphPayments.PaymentTypes.IndexingFee,
@@ -100,9 +108,20 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
 
         TestState memory afterCollect = _getState(rca.payer, indexerState.addr);
         _sharedAssert(beforeCollect, afterCollect, expectedTokens, tokensCollected);
+
+        // Cancel the indexing agreement by the payer (directly on collector).
+        // Payer cancel enforces minSecondsPayerCancellationNotice — agreement enters
+        // NOTICE_GIVEN | BY_PAYER state with collectableUntil in the future.
+        resetPrank(rca.payer);
+        bytes32 activeHash = recurringCollector.getAgreementVersionAt(acceptedAgreementId, 0).versionHash;
+        recurringCollector.cancel(acceptedAgreementId, activeHash, 0);
+
+        // Verify agreement is in NOTICE_GIVEN state
+        IRecurringCollector.AgreementData memory agreement = recurringCollector.getAgreementData(acceptedAgreementId);
+        assertTrue(agreement.state & NOTICE_GIVEN != 0, "should be in NOTICE_GIVEN state after payer cancel");
     }
 
-    function test_SubgraphService_CollectIndexingRewards_CancelsAgreementWhenOverAllocated_Integration(
+    function test_SubgraphService_CollectIndexingRewards_ResizesAllocationWhenOverAllocated_Integration(
         Seed memory seed
     ) public {
         // Setup context and indexer with active agreement
@@ -123,17 +142,44 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
         // Advance past allocation creation epoch so POI is not considered "too young"
         vm.roll(block.number + EPOCH_LENGTH);
 
-        // Collect indexing rewards - this should trigger allocation closure and agreement cancellation
+        // Collect indexing rewards - this should trigger allocation downsize (not closure)
         bytes memory collectData = abi.encode(indexerState.allocationId, keccak256("poi"), bytes("metadata"));
         resetPrank(indexerState.addr);
+
         subgraphService.collect(indexerState.addr, IGraphPayments.PaymentTypes.IndexingRewards, collectData);
 
-        // Verify the indexing agreement was properly cancelled
+        // Verify the allocation is still open but resized to zero
+        IAllocation.State memory allocation = subgraphService.getAllocation(indexerState.allocationId);
+        assertTrue(allocation.isOpen());
+        assertEq(allocation.tokens, 0);
+
+        // Verify the indexing agreement was NOT cancelled — it stays active
         IIndexingAgreement.AgreementWrapper memory agreement = subgraphService.getIndexingAgreement(agreementId);
-        assertEq(
-            uint8(agreement.collectorAgreement.state),
-            uint8(IRecurringCollector.AgreementState.CanceledByServiceProvider)
+        assertEq(agreement.collectorAgreement.state, REGISTERED | ACCEPTED);
+    }
+
+    function test_SubgraphService_StopService_RevertsWhenGuardEnabledAndActiveAgreement_Integration(
+        Seed memory seed
+    ) public {
+        // Setup context and indexer with active agreement
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+        (, bytes16 agreementId) = _withAcceptedIndexingAgreement(ctx, indexerState);
+
+        // Enable the close allocation guard
+        resetPrank(users.governor);
+        subgraphService.setBlockClosingAllocationWithActiveAgreement(true);
+
+        // Attempt to close the allocation — should revert because of active agreement
+        resetPrank(indexerState.addr);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISubgraphService.SubgraphServiceAllocationHasActiveAgreement.selector,
+                indexerState.allocationId,
+                agreementId
+            )
         );
+        subgraphService.stopService(indexerState.addr, abi.encode(indexerState.allocationId));
     }
 
     /* solhint-enable graph/func-name-mixedcase */
@@ -144,6 +190,10 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
         IndexerState memory _indexerState,
         ExpectedTokens memory _expectedTokens
     ) internal returns (bytes16) {
+        // Exclude payer addresses that collide with protocol contracts to prevent
+        // token routing issues (e.g., receiverDestination == escrow)
+        vm.assume(!_isProtocolContract(_rca.payer));
+        vm.assume(!_isTestUser(_rca.payer));
         _addTokensToProvision(_indexerState, _expectedTokens.expectedTokensLocked);
 
         IndexingAgreement.IndexingAgreementTermsV1 memory terms = IndexingAgreement.IndexingAgreementTermsV1({
@@ -160,23 +210,22 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
         _rca.dataService = address(subgraphService); // data service is the subgraph service
         _rca.metadata = _encodeAcceptIndexingAgreementMetadataV1(_indexerState.subgraphDeploymentId, terms);
 
-        _setupPayerWithEscrow(
-            _rca.payer,
-            _ctx.payer.signerPrivateKey,
-            _indexerState.addr,
-            _expectedTokens.expectedTotalTokensCollected
-        );
+        _setupPayerWithEscrow(_rca.payer, _indexerState.addr, _expectedTokens.expectedTotalTokensCollected);
 
         resetPrank(_indexerState.addr);
         // Set the payments destination to the indexer address
         subgraphService.setPaymentsDestination(_indexerState.addr);
+        vm.stopPrank();
 
-        // Accept the Indexing Agreement
-        (
-            IRecurringCollector.RecurringCollectionAgreement memory signedRca,
-            bytes memory signature
-        ) = _recurringCollectorHelper.generateSignedRCA(_rca, _ctx.payer.signerPrivateKey);
-        bytes16 agreementId = subgraphService.acceptIndexingAgreement(_indexerState.allocationId, signedRca, signature);
+        // Accept the Indexing Agreement via RC offer->accept flow
+        // Step 1: Submit offer to RC
+        vm.prank(_rca.payer);
+        bytes16 agreementId = recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(_rca), 0).agreementId;
+
+        // Step 2: Service provider accepts via RC, which callbacks to SS
+        bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
+        vm.prank(_indexerState.addr);
+        recurringCollector.accept(agreementId, activeHash, abi.encode(_indexerState.allocationId), 0);
 
         // Skip ahead to collection point
         skip(_expectedTokens.expectedTotalTokensCollected / terms.tokensPerSecond);
@@ -245,14 +294,7 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
         vm.stopPrank();
     }
 
-    function _setupPayerWithEscrow(
-        address _payer,
-        uint256 _signerPrivateKey,
-        address _indexer,
-        uint256 _escrowTokens
-    ) private {
-        _recurringCollectorHelper.authorizeSignerWithChecks(_payer, _signerPrivateKey);
-
+    function _setupPayerWithEscrow(address _payer, address _indexer, uint256 _escrowTokens) private {
         deal({ token: address(token), to: _payer, give: _escrowTokens });
         vm.startPrank(_payer);
         _escrow(_escrowTokens, _indexer);

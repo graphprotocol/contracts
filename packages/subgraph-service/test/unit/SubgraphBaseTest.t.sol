@@ -11,6 +11,8 @@ import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPa
 import { GraphTallyCollector } from "@graphprotocol/horizon/contracts/payments/collectors/GraphTallyCollector.sol";
 import { RecurringCollector } from "@graphprotocol/horizon/contracts/payments/collectors/RecurringCollector.sol";
 import { PaymentsEscrow } from "@graphprotocol/horizon/contracts/payments/PaymentsEscrow.sol";
+import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import { ERC1967Utils } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils.sol";
 import { UnsafeUpgrades } from "@openzeppelin/foundry-upgrades/src/Upgrades.sol";
 
 import { Constants } from "./utils/Constants.sol";
@@ -40,6 +42,7 @@ abstract contract SubgraphBaseTest is Utils, Constants {
     IPaymentsEscrow escrow;
     GraphTallyCollector graphTallyCollector;
     RecurringCollector recurringCollector;
+    address recurringCollectorProxyAdmin;
 
     HorizonStaking private stakingBase;
 
@@ -152,20 +155,25 @@ abstract contract SubgraphBaseTest is Utils, Constants {
             address(controller),
             REVOKE_SIGNER_THAWING_PERIOD
         );
-        recurringCollector = new RecurringCollector(
-            "RecurringCollector",
-            "1",
-            address(controller),
-            REVOKE_SIGNER_THAWING_PERIOD
-        );
+        {
+            RecurringCollector rcImpl = new RecurringCollector(address(controller));
+            TransparentUpgradeableProxy rcProxy = new TransparentUpgradeableProxy(
+                address(rcImpl),
+                users.governor,
+                abi.encodeCall(RecurringCollector.initialize, ())
+            );
+            recurringCollector = RecurringCollector(address(rcProxy));
+            recurringCollectorProxyAdmin = address(
+                uint160(uint256(vm.load(address(rcProxy), ERC1967Utils.ADMIN_SLOT)))
+            );
+        }
 
         address subgraphServiceImplementation = address(
             new SubgraphService(
                 address(controller),
                 address(disputeManager),
                 address(graphTallyCollector),
-                address(curation),
-                address(recurringCollector)
+                address(curation)
             )
         );
         address subgraphServiceProxy = UnsafeUpgrades.deployTransparentProxy(
@@ -198,6 +206,7 @@ abstract contract SubgraphBaseTest is Utils, Constants {
         epochManager.setEpochLength(EPOCH_LENGTH);
         subgraphService.setMaxPOIStaleness(MAX_POI_STALENESS);
         subgraphService.setCurationCut(CURATION_CUT);
+        subgraphService.setAuthorizedCollector(address(recurringCollector), true);
         subgraphService.setPauseGuardian(users.pauseGuardian, true);
     }
 

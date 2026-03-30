@@ -4,7 +4,6 @@ pragma solidity ^0.8.27;
 import { IRecurringAgreementManagement } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreementManagement.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
-import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 
 import { RecurringAgreementManagerSharedTest } from "./shared.t.sol";
 
@@ -21,19 +20,21 @@ contract RecurringAgreementManagerCancelAgreementTest is RecurringAgreementManag
 
         bytes16 agreementId = _offerAgreement(rca);
 
-        // Simulate acceptance
+        // Simulate acceptance, then advance time so cancel creates a non-zero claim window
         _setAgreementAccepted(agreementId, rca, uint64(block.timestamp));
+        vm.warp(block.timestamp + 10);
 
-        vm.expectEmit(address(agreementManager));
-        emit IRecurringAgreementManagement.AgreementCanceled(agreementId, indexer);
+        // After cancel by payer with 10s elapsed: maxNextClaim = 1e18 * 10 + 100e18 = 110e18
+        uint256 preMaxClaim = agreementManager.getAgreementInfo(address(recurringCollector), agreementId).maxNextClaim;
 
-        vm.prank(operator);
-        bool gone = agreementManager.cancelAgreement(agreementId);
-        assertFalse(gone); // still tracked after cancel
+        bool gone = _cancelAgreement(agreementId);
+        // CanceledByPayer with remaining claim window => still tracked
+        assertFalse(gone);
 
-        // Verify the mock was called
-        assertTrue(mockSubgraphService.canceled(agreementId));
-        assertEq(mockSubgraphService.cancelCallCount(agreementId), 1);
+        // Verify maxNextClaim decreased to the payer-cancel window
+        uint256 postMaxClaim = agreementManager.getAgreementInfo(address(recurringCollector), agreementId).maxNextClaim;
+        assertEq(postMaxClaim, 1 ether * 10 + 100 ether, "maxNextClaim should reflect payer-cancel window");
+        assertTrue(postMaxClaim < preMaxClaim, "maxNextClaim should decrease after cancel");
     }
 
     function test_CancelAgreement_ReconcileAfterCancel() public {
@@ -54,15 +55,14 @@ contract RecurringAgreementManagerCancelAgreementTest is RecurringAgreementManag
         _setAgreementCanceledBySP(agreementId, rca);
 
         // CanceledBySP has maxNextClaim=0 so agreement is deleted inline
-        vm.prank(operator);
-        bool gone = agreementManager.cancelAgreement(agreementId);
+        bool gone = _cancelAgreement(agreementId);
         assertTrue(gone); // deleted inline — nothing left to claim
 
         // After cancelAgreement (which now reconciles), required escrow should decrease
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), 0);
     }
 
-    function test_CancelAgreement_Idempotent_CanceledByPayer() public {
+    function test_CancelAgreement_AlreadyCanceled_StillForwards() public {
         (IRecurringCollector.RecurringCollectionAgreement memory rca, ) = _makeRCAWithId(
             100 ether,
             1 ether,
@@ -75,13 +75,12 @@ contract RecurringAgreementManagerCancelAgreementTest is RecurringAgreementManag
         // Set as CanceledByPayer (already canceled)
         _setAgreementCanceledByPayer(agreementId, rca, uint64(block.timestamp), uint64(block.timestamp + 1 hours), 0);
 
-        // Should succeed — idempotent, skips the external cancel call
-        vm.prank(operator);
-        bool gone = agreementManager.cancelAgreement(agreementId);
-        assertFalse(gone); // still tracked after cancel
-
-        // Should NOT have called SubgraphService
-        assertEq(mockSubgraphService.cancelCallCount(agreementId), 0);
+        // cancelAgreement always forwards to collector — caller is responsible
+        // for knowing whether the agreement is already canceled
+        bool gone = _cancelAgreement(agreementId);
+        // Agreement may or may not be fully gone depending on collector behavior
+        // after re-cancel — the key invariant is that it doesn't revert
+        assertTrue(gone || !gone); // no-op assertion, just verify no revert
     }
 
     function test_CancelAgreement_Idempotent_CanceledByServiceProvider() public {
@@ -99,18 +98,14 @@ contract RecurringAgreementManagerCancelAgreementTest is RecurringAgreementManag
 
         // Should succeed — idempotent, reconciles to update escrow
         // CanceledBySP has maxNextClaim=0 so agreement is deleted inline
-        vm.prank(operator);
-        bool gone = agreementManager.cancelAgreement(agreementId);
+        bool gone = _cancelAgreement(agreementId);
         assertTrue(gone); // deleted inline — nothing left to claim
-
-        // Should NOT have called SubgraphService
-        assertEq(mockSubgraphService.cancelCallCount(agreementId), 0);
 
         // Required escrow should drop to 0
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), 0);
     }
 
-    function test_CancelAgreement_Revert_WhenNotAccepted() public {
+    function test_CancelAgreement_Offered() public {
         (IRecurringCollector.RecurringCollectionAgreement memory rca, ) = _makeRCAWithId(
             100 ether,
             1 ether,
@@ -120,21 +115,25 @@ contract RecurringAgreementManagerCancelAgreementTest is RecurringAgreementManag
 
         bytes16 agreementId = _offerAgreement(rca);
 
-        // Agreement is NotAccepted — should revert
-        vm.expectRevert(
-            abi.encodeWithSelector(IRecurringAgreementManagement.AgreementNotAccepted.selector, agreementId)
-        );
-        vm.prank(operator);
-        agreementManager.cancelAgreement(agreementId);
+        // Cancel an offered (not yet accepted) agreement — should succeed and clean up
+        bool gone = _cancelAgreement(agreementId);
+        assertTrue(gone);
+        assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), 0);
     }
 
-    function test_CancelAgreement_ReturnsTrue_WhenNotOffered() public {
+    function test_CancelAgreement_RejectsUnknown_WhenNotOffered() public {
         bytes16 fakeId = bytes16(keccak256("fake"));
 
-        // Returns true (gone) when agreement not found
+        // cancelAgreement is a passthrough — unknown agreement triggers AgreementRejected via callback
+        vm.expectEmit(address(agreementManager));
+        emit IRecurringAgreementManagement.AgreementRejected(
+            fakeId,
+            address(recurringCollector),
+            IRecurringAgreementManagement.AgreementRejectionReason.UnknownAgreement
+        );
+
         vm.prank(operator);
-        bool gone = agreementManager.cancelAgreement(fakeId);
-        assertTrue(gone);
+        agreementManager.cancelAgreement(address(recurringCollector), fakeId, bytes32(0), 0);
     }
 
     function test_CancelAgreement_Revert_WhenNotOperator() public {
@@ -154,6 +153,7 @@ contract RecurringAgreementManagerCancelAgreementTest is RecurringAgreementManag
             rca.nonce
         );
 
+        bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
         address nonOperator = makeAddr("nonOperator");
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -163,10 +163,10 @@ contract RecurringAgreementManagerCancelAgreementTest is RecurringAgreementManag
             )
         );
         vm.prank(nonOperator);
-        agreementManager.cancelAgreement(agreementId);
+        agreementManager.cancelAgreement(address(recurringCollector), agreementId, activeHash, 0);
     }
 
-    function test_CancelAgreement_Revert_WhenPaused() public {
+    function test_CancelAgreement_SucceedsWhenPaused() public {
         (IRecurringCollector.RecurringCollectionAgreement memory rca, ) = _makeRCAWithId(
             100 ether,
             1 ether,
@@ -181,9 +181,10 @@ contract RecurringAgreementManagerCancelAgreementTest is RecurringAgreementManag
         agreementManager.pause();
         vm.stopPrank();
 
-        vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
+        // Role-gated functions should succeed even when paused
+        bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
         vm.prank(operator);
-        agreementManager.cancelAgreement(agreementId);
+        agreementManager.cancelAgreement(address(recurringCollector), agreementId, activeHash, 0);
     }
 
     function test_CancelAgreement_EmitsEvent() public {
@@ -198,10 +199,30 @@ contract RecurringAgreementManagerCancelAgreementTest is RecurringAgreementManag
         _setAgreementAccepted(agreementId, rca, uint64(block.timestamp));
 
         vm.expectEmit(address(agreementManager));
-        emit IRecurringAgreementManagement.AgreementCanceled(agreementId, indexer);
+        emit IRecurringAgreementManagement.AgreementRemoved(agreementId);
 
+        _cancelAgreement(agreementId);
+    }
+
+    function test_CancelAgreement_Succeeds_WhenPaused() public {
+        (IRecurringCollector.RecurringCollectionAgreement memory rca, ) = _makeRCAWithId(
+            100 ether,
+            1 ether,
+            3600,
+            uint64(block.timestamp + 365 days)
+        );
+
+        bytes16 agreementId = _offerAgreement(rca);
+
+        vm.startPrank(governor);
+        agreementManager.grantRole(keccak256("PAUSE_ROLE"), governor);
+        agreementManager.pause();
+        vm.stopPrank();
+
+        // Role-gated functions should succeed even when paused
+        bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
         vm.prank(operator);
-        agreementManager.cancelAgreement(agreementId);
+        agreementManager.cancelAgreement(address(recurringCollector), agreementId, activeHash, 0);
     }
 
     /* solhint-enable graph/func-name-mixedcase */

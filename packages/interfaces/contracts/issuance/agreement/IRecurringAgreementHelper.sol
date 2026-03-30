@@ -23,7 +23,6 @@ interface IRecurringAgreementHelper {
      * @param tokenBalance GRT balance available to the manager
      * @param sumMaxNextClaimAll Global sum of maxNextClaim across all (collector, provider) pairs
      * @param totalEscrowDeficit Total unfunded escrow across all pairs
-     * @param totalAgreementCount Total number of tracked agreements
      * @param escrowBasis Configured escrow level (Full / OnDemand / JustInTime)
      * @param minOnDemandBasisThreshold Threshold for OnDemand basis (numerator over 256)
      * @param minFullBasisMargin Margin for Full basis (added to 256)
@@ -33,7 +32,6 @@ interface IRecurringAgreementHelper {
         uint256 tokenBalance;
         uint256 sumMaxNextClaimAll;
         uint256 totalEscrowDeficit;
-        uint256 totalAgreementCount;
         IRecurringEscrowManagement.EscrowBasis escrowBasis;
         uint8 minOnDemandBasisThreshold;
         uint8 minFullBasisMargin;
@@ -46,6 +44,7 @@ interface IRecurringAgreementHelper {
      * @param provider The provider address
      * @param agreementCount Number of agreements for this pair
      * @param sumMaxNextClaim Sum of maxNextClaim for this pair
+     * @param escrowSnap Cached escrow balance (compare with escrow.balance to detect staleness)
      * @param escrow Escrow account state (balance, tokensThawing, thawEndTimestamp)
      */
     struct PairAudit {
@@ -53,6 +52,7 @@ interface IRecurringAgreementHelper {
         address provider;
         uint256 agreementCount;
         uint256 sumMaxNextClaim;
+        uint256 escrowSnap;
         IPaymentsEscrow.EscrowAccount escrow;
     }
 
@@ -92,23 +92,98 @@ interface IRecurringAgreementHelper {
      */
     function auditPair(address collector, address provider) external view returns (PairAudit memory pair);
 
+    // -- Enumeration Views --
+
+    /**
+     * @notice Get all managed agreement IDs for a (collector, provider) pair
+     * @param collector The collector address
+     * @param provider The provider address
+     * @return agreementIds The array of agreement IDs
+     */
+    function getPairAgreements(
+        address collector,
+        address provider
+    ) external view returns (bytes16[] memory agreementIds);
+
+    /**
+     * @notice Get a paginated slice of managed agreement IDs for a (collector, provider) pair
+     * @param collector The collector address
+     * @param provider The provider address
+     * @param offset The index to start from
+     * @param count Maximum number to return (clamped to available)
+     * @return agreementIds The array of agreement IDs
+     */
+    function getPairAgreements(
+        address collector,
+        address provider,
+        uint256 offset,
+        uint256 count
+    ) external view returns (bytes16[] memory agreementIds);
+
+    /**
+     * @notice Get all collector addresses with active agreements
+     * @return result Array of collector addresses
+     */
+    function getCollectors() external view returns (address[] memory result);
+
+    /**
+     * @notice Get a paginated slice of collector addresses
+     * @param offset The index to start from
+     * @param count Maximum number to return (clamped to available)
+     * @return result Array of collector addresses
+     */
+    function getCollectors(uint256 offset, uint256 count) external view returns (address[] memory result);
+
+    /**
+     * @notice Get all provider addresses with active agreements for a collector
+     * @param collector The collector address
+     * @return result Array of provider addresses
+     */
+    function getProviders(address collector) external view returns (address[] memory result);
+
+    /**
+     * @notice Get a paginated slice of provider addresses for a collector
+     * @param collector The collector address
+     * @param offset The index to start from
+     * @param count Maximum number to return (clamped to available)
+     * @return result Array of provider addresses
+     */
+    function getProviders(
+        address collector,
+        uint256 offset,
+        uint256 count
+    ) external view returns (address[] memory result);
+
+    // -- Reconciliation Discovery --
+
+    /**
+     * @notice Per-agreement staleness info for reconciliation discovery
+     * @param agreementId The agreement ID
+     * @param cachedMaxNextClaim The RAM's cached maxNextClaim
+     * @param liveMaxNextClaim The collector's current maxNextClaim
+     * @param stale True if cached != live (reconciliation needed)
+     */
+    struct AgreementStaleness {
+        bytes16 agreementId;
+        uint256 cachedMaxNextClaim;
+        uint256 liveMaxNextClaim;
+        bool stale;
+    }
+
+    /**
+     * @notice Check which agreements in a (collector, provider) pair need reconciliation
+     * @dev Compares cached maxNextClaim against live collector values.
+     * @param collector The collector address
+     * @param provider The provider address
+     * @return staleAgreements Array of staleness info per agreement
+     * @return escrowStale True if escrowSnap differs from actual escrow balance
+     */
+    function checkPairStaleness(
+        address collector,
+        address provider
+    ) external view returns (AgreementStaleness[] memory staleAgreements, bool escrowStale);
+
     // -- Reconciliation --
-
-    /**
-     * @notice Reconcile all agreements for a provider, cleaning up fully settled ones.
-     * @dev Permissionless. O(n) gas — may hit gas limits with many agreements.
-     * @param provider The provider to reconcile
-     * @return removed Number of agreements removed during reconciliation
-     */
-    function reconcile(address provider) external returns (uint256 removed);
-
-    /**
-     * @notice Reconcile a batch of specific agreement IDs, cleaning up fully settled ones.
-     * @dev Permissionless. Skips non-existent agreements.
-     * @param agreementIds The agreement IDs to reconcile
-     * @return removed Number of agreements removed during reconciliation
-     */
-    function reconcileBatch(bytes16[] calldata agreementIds) external returns (uint256 removed);
 
     /**
      * @notice Reconcile all agreements for a (collector, provider) pair, then

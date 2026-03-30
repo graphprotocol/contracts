@@ -20,3 +20,7 @@ Enforce a minimum gas forwarding requirement for the `afterCollection()` callbac
 ## Team Response
 
 TBD
+
+---
+
+`_shouldCallback()` is called before every payer callback (including `afterCollection`). It reverts the entire `collect` call with `InsufficientCallbackGas` when insufficient gas remains, ensuring the callback cannot be starved. Callback failures from other causes are detected and logged via `PayerCallbackFailed` event.

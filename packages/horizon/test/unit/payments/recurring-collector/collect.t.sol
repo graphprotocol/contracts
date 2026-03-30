@@ -15,10 +15,8 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
     /* solhint-disable graph/func-name-mixedcase */
 
     function test_Collect_Revert_WhenInvalidData(address caller, uint8 unboundedPaymentType, bytes memory data) public {
-        bytes memory expectedErr = abi.encodeWithSelector(
-            IRecurringCollector.RecurringCollectorInvalidCollectData.selector,
-            data
-        );
+        vm.assume(caller != _proxyAdmin);
+        bytes memory expectedErr = abi.encodeWithSelector(IRecurringCollector.InvalidCollectData.selector, data);
         vm.expectRevert(expectedErr);
         vm.prank(caller);
         _recurringCollector.collect(_paymentType(unboundedPaymentType), data);
@@ -29,8 +27,9 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         address notDataService
     ) public {
         vm.assume(fuzzy.fuzzyTestAccept.rca.dataService != notDataService);
+        vm.assume(notDataService != _proxyAdmin);
 
-        (, , , bytes16 agreementId) = _sensibleAuthorizeAndAccept(fuzzy.fuzzyTestAccept);
+        (, bytes16 agreementId) = _sensibleAccept(fuzzy.fuzzyTestAccept);
         IRecurringCollector.CollectParams memory collectParams = fuzzy.collectParams;
 
         skip(1);
@@ -38,7 +37,7 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         bytes memory data = _generateCollectData(collectParams);
 
         bytes memory expectedErr = abi.encodeWithSelector(
-            IRecurringCollector.RecurringCollectorDataServiceNotAuthorized.selector,
+            IRecurringCollector.DataServiceNotAuthorized.selector,
             collectParams.agreementId,
             notDataService
         );
@@ -48,12 +47,9 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
     }
 
     function test_Collect_Revert_WhenUnauthorizedDataService(FuzzyTestCollect calldata fuzzy) public {
-        (
-            IRecurringCollector.RecurringCollectionAgreement memory acceptedRca,
-            ,
-            ,
-            bytes16 agreementId
-        ) = _sensibleAuthorizeAndAccept(fuzzy.fuzzyTestAccept);
+        (IRecurringCollector.RecurringCollectionAgreement memory acceptedRca, bytes16 agreementId) = _sensibleAccept(
+            fuzzy.fuzzyTestAccept
+        );
         IRecurringCollector.CollectParams memory collectParams = fuzzy.collectParams;
         collectParams.agreementId = agreementId;
         collectParams.tokens = bound(collectParams.tokens, 1, type(uint256).max);
@@ -81,7 +77,7 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         );
 
         bytes memory expectedErr = abi.encodeWithSelector(
-            IRecurringCollector.RecurringCollectorUnauthorizedDataService.selector,
+            IRecurringCollector.UnauthorizedDataService.selector,
             acceptedRca.dataService
         );
         vm.expectRevert(expectedErr);
@@ -93,7 +89,7 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         bytes memory data = _generateCollectData(fuzzy.collectParams);
 
         bytes memory expectedErr = abi.encodeWithSelector(
-            IRecurringCollector.RecurringCollectorAgreementNotCollectable.selector,
+            IRecurringCollector.AgreementNotCollectable.selector,
             fuzzy.collectParams.agreementId,
             IRecurringCollector.AgreementNotCollectableReason.InvalidAgreementState
         );
@@ -102,14 +98,14 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         _recurringCollector.collect(_paymentType(fuzzy.unboundedPaymentType), data);
     }
 
-    function test_Collect_Revert_WhenCanceledAgreementByServiceProvider(FuzzyTestCollect calldata fuzzy) public {
-        (
-            IRecurringCollector.RecurringCollectionAgreement memory acceptedRca,
-            ,
-            ,
-            bytes16 agreementId
-        ) = _sensibleAuthorizeAndAccept(fuzzy.fuzzyTestAccept);
-        _cancel(acceptedRca, agreementId, IRecurringCollector.CancelAgreementBy.ServiceProvider);
+    function test_Collect_Revert_WhenCanceledAgreementByServiceProvider_NoElapsedTime(
+        FuzzyTestCollect calldata fuzzy
+    ) public {
+        (IRecurringCollector.RecurringCollectionAgreement memory acceptedRca, bytes16 agreementId) = _sensibleAccept(
+            fuzzy.fuzzyTestAccept
+        );
+        // Provider cancels in the same block as accept — no collectable seconds
+        _cancelByProvider(acceptedRca, agreementId);
         IRecurringCollector.CollectParams memory collectData = fuzzy.collectParams;
         collectData.tokens = bound(collectData.tokens, 1, type(uint256).max);
         IRecurringCollector.CollectParams memory collectParams = _generateCollectParams(
@@ -122,9 +118,9 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         bytes memory data = _generateCollectData(collectParams);
 
         bytes memory expectedErr = abi.encodeWithSelector(
-            IRecurringCollector.RecurringCollectorAgreementNotCollectable.selector,
+            IRecurringCollector.AgreementNotCollectable.selector,
             collectParams.agreementId,
-            IRecurringCollector.AgreementNotCollectableReason.InvalidAgreementState
+            IRecurringCollector.AgreementNotCollectableReason.ZeroCollectionSeconds
         );
         vm.expectRevert(expectedErr);
         vm.prank(acceptedRca.dataService);
@@ -135,12 +131,9 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         FuzzyTestCollect calldata fuzzy,
         uint256 unboundedCollectionSeconds
     ) public {
-        (
-            IRecurringCollector.RecurringCollectionAgreement memory acceptedRca,
-            ,
-            ,
-            bytes16 agreementId
-        ) = _sensibleAuthorizeAndAccept(fuzzy.fuzzyTestAccept);
+        (IRecurringCollector.RecurringCollectionAgreement memory acceptedRca, bytes16 agreementId) = _sensibleAccept(
+            fuzzy.fuzzyTestAccept
+        );
 
         skip(acceptedRca.minSecondsPerCollection);
         bytes memory data = _generateCollectData(
@@ -167,7 +160,7 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         );
         data = _generateCollectData(collectParams);
         bytes memory expectedErr = abi.encodeWithSelector(
-            IRecurringCollector.RecurringCollectorCollectionTooSoon.selector,
+            IRecurringCollector.CollectionTooSoon.selector,
             collectParams.agreementId,
             collectionSeconds,
             acceptedRca.minSecondsPerCollection
@@ -182,12 +175,9 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         uint256 unboundedFirstCollectionSeconds,
         uint256 unboundedSecondCollectionSeconds
     ) public {
-        (
-            IRecurringCollector.RecurringCollectionAgreement memory acceptedRca,
-            ,
-            ,
-            bytes16 agreementId
-        ) = _sensibleAuthorizeAndAccept(fuzzy.fuzzyTestAccept);
+        (IRecurringCollector.RecurringCollectionAgreement memory acceptedRca, bytes16 agreementId) = _sensibleAccept(
+            fuzzy.fuzzyTestAccept
+        );
 
         // First valid collection to establish lastCollectionAt
         skip(
@@ -250,12 +240,9 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         uint256 unboundedTokens,
         bool testInitialCollection
     ) public {
-        (
-            IRecurringCollector.RecurringCollectionAgreement memory acceptedRca,
-            ,
-            ,
-            bytes16 agreementId
-        ) = _sensibleAuthorizeAndAccept(fuzzy.fuzzyTestAccept);
+        (IRecurringCollector.RecurringCollectionAgreement memory acceptedRca, bytes16 agreementId) = _sensibleAccept(
+            fuzzy.fuzzyTestAccept
+        );
 
         if (!testInitialCollection) {
             // skip to collectable time
@@ -307,12 +294,9 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         uint256 unboundedCollectionSeconds,
         uint256 unboundedTokens
     ) public {
-        (
-            IRecurringCollector.RecurringCollectionAgreement memory acceptedRca,
-            ,
-            ,
-            bytes16 agreementId
-        ) = _sensibleAuthorizeAndAccept(fuzzy.fuzzyTestAccept);
+        (IRecurringCollector.RecurringCollectionAgreement memory acceptedRca, bytes16 agreementId) = _sensibleAccept(
+            fuzzy.fuzzyTestAccept
+        );
 
         (bytes memory data, uint256 collectionSeconds, uint256 tokens) = _generateValidCollection(
             acceptedRca,
@@ -350,9 +334,7 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         rca.metadata = "";
 
         // Accept the agreement
-        _recurringCollectorHelper.authorizeSignerWithChecks(rca.payer, 1);
-        (, bytes memory signature) = _recurringCollectorHelper.generateSignedRCA(rca, 1);
-        bytes16 agreementId = _accept(rca, signature);
+        bytes16 agreementId = _accept(rca);
 
         // Do a first collection to use up initial tokens allowance
         skip(rca.minSecondsPerCollection);
@@ -390,12 +372,7 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
 
         // Expect revert due to excessive slippage (50 > 49)
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IRecurringCollector.RecurringCollectorExcessiveSlippage.selector,
-                requested,
-                maxAllowed,
-                maxSlippage
-            )
+            abi.encodeWithSelector(IRecurringCollector.ExcessiveSlippage.selector, requested, maxAllowed, maxSlippage)
         );
         vm.prank(rca.dataService);
         _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
@@ -417,9 +394,7 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         rca.metadata = "";
 
         // Accept the agreement
-        _recurringCollectorHelper.authorizeSignerWithChecks(rca.payer, 1);
-        (, bytes memory signature) = _recurringCollectorHelper.generateSignedRCA(rca, 1);
-        bytes16 agreementId = _accept(rca, signature);
+        bytes16 agreementId = _accept(rca);
 
         // Do a first collection to use up initial tokens allowance
         skip(rca.minSecondsPerCollection);
@@ -467,12 +442,9 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         assertEq(collected, maxAllowed);
     }
     function test_Collect_Revert_WhenZeroTokensBypassesTemporalValidation(FuzzyTestCollect calldata fuzzy) public {
-        (
-            IRecurringCollector.RecurringCollectionAgreement memory acceptedRca,
-            ,
-            ,
-            bytes16 agreementId
-        ) = _sensibleAuthorizeAndAccept(fuzzy.fuzzyTestAccept);
+        (IRecurringCollector.RecurringCollectionAgreement memory acceptedRca, bytes16 agreementId) = _sensibleAccept(
+            fuzzy.fuzzyTestAccept
+        );
 
         // First valid collection to establish lastCollectionAt
         skip(acceptedRca.minSecondsPerCollection);
@@ -503,7 +475,7 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                IRecurringCollector.RecurringCollectorCollectionTooSoon.selector,
+                IRecurringCollector.CollectionTooSoon.selector,
                 agreementId,
                 uint32(1), // only 1 second elapsed
                 acceptedRca.minSecondsPerCollection

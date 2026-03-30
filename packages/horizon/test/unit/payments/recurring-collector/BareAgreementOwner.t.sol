@@ -13,12 +13,9 @@ contract BareAgreementOwner is IAgreementOwner {
         authorizedHashes[agreementHash] = true;
     }
 
-    function approveAgreement(bytes32 agreementHash) external view override returns (bytes4) {
-        if (!authorizedHashes[agreementHash]) return bytes4(0);
-        return IAgreementOwner.approveAgreement.selector;
-    }
-
     function beforeCollection(bytes16, uint256) external override {}
 
     function afterCollection(bytes16, uint256) external override {}
+
+    function afterAgreementStateChange(bytes16, bytes32, uint16) external override {}
 }

@@ -22,3 +22,7 @@ Record whether the payer had code at agreement acceptance time by adding a bool 
 ## Team Response
 
 TBD
+
+---
+
+Eligibility checks are now opt-in via the `CONDITION_ELIGIBILITY_CHECK` flag, set explicitly in the agreement terms. Providers agree to eligibility gating by accepting an agreement that includes this condition. When the flag is set, the payer must pass an ERC-165 `supportsInterface` check for `IProviderEligibility` at offer time. An EOA cannot pass this check, so an EOA cannot create an agreement with eligibility gating enabled.

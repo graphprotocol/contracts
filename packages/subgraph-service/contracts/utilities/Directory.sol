@@ -1,14 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.27;
 
-// TODO: Re-enable and fix issues when publishing a new version
-// solhint-disable gas-indexed-events
 // forge-lint: disable-start(unwrapped-modifier-logic)
 
 import { IDisputeManager } from "@graphprotocol/interfaces/contracts/subgraph-service/IDisputeManager.sol";
 import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
 import { IGraphTallyCollector } from "@graphprotocol/interfaces/contracts/horizon/IGraphTallyCollector.sol";
-import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { ICuration } from "@graphprotocol/interfaces/contracts/contracts/curation/ICuration.sol";
 
 /**
@@ -31,29 +28,25 @@ abstract contract Directory {
     /// @dev Required to collect payments via Graph Horizon payments protocol
     IGraphTallyCollector private immutable GRAPH_TALLY_COLLECTOR;
 
-    /// @notice The Recurring Collector contract address
-    /// @dev Required to collect indexing agreement payments via Graph Horizon payments protocol
-    IRecurringCollector private immutable RECURRING_COLLECTOR;
-
     /// @notice The Curation contract address
     /// @dev Required for curation fees distribution
     ICuration private immutable CURATION;
 
+    /* solhint-disable gas-indexed-events */
     /**
      * @notice Emitted when the Directory is initialized
      * @param subgraphService The Subgraph Service contract address
      * @param disputeManager The Dispute Manager contract address
      * @param graphTallyCollector The Graph Tally Collector contract address
      * @param curation The Curation contract address
-     * @param recurringCollector The Recurring Collector contract address
      */
     event SubgraphServiceDirectoryInitialized(
         address subgraphService,
         address disputeManager,
         address graphTallyCollector,
-        address curation,
-        address recurringCollector
+        address curation
     );
+    /* solhint-enable gas-indexed-events */
 
     /**
      * @notice Thrown when the caller is not the Dispute Manager
@@ -79,36 +72,14 @@ abstract contract Directory {
      * @param disputeManager The Dispute Manager contract address
      * @param graphTallyCollector The Graph Tally Collector contract address
      * @param curation The Curation contract address
-     * @param recurringCollector_ The Recurring Collector contract address
      */
-    constructor(
-        address subgraphService,
-        address disputeManager,
-        address graphTallyCollector,
-        address curation,
-        address recurringCollector_
-    ) {
+    constructor(address subgraphService, address disputeManager, address graphTallyCollector, address curation) {
         SUBGRAPH_SERVICE = ISubgraphService(subgraphService);
         DISPUTE_MANAGER = IDisputeManager(disputeManager);
         GRAPH_TALLY_COLLECTOR = IGraphTallyCollector(graphTallyCollector);
         CURATION = ICuration(curation);
-        RECURRING_COLLECTOR = IRecurringCollector(recurringCollector_);
 
-        emit SubgraphServiceDirectoryInitialized(
-            subgraphService,
-            disputeManager,
-            graphTallyCollector,
-            curation,
-            recurringCollector_
-        );
-    }
-
-    /**
-     * @notice Returns the Recurring Collector contract address
-     * @return The Recurring Collector contract
-     */
-    function recurringCollector() external view returns (IRecurringCollector) {
-        return RECURRING_COLLECTOR;
+        emit SubgraphServiceDirectoryInitialized(subgraphService, disputeManager, graphTallyCollector, curation);
     }
 
     /**

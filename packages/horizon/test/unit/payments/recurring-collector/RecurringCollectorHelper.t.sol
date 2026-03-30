@@ -2,83 +2,18 @@
 pragma solidity ^0.8.27;
 
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
+import { IProviderEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IProviderEligibility.sol";
 import { RecurringCollector } from "../../../../contracts/payments/collectors/RecurringCollector.sol";
-import { AuthorizableHelper } from "../../../unit/utilities/Authorizable.t.sol";
 import { Bounder } from "../../../unit/utils/Bounder.t.sol";
+import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 
-contract RecurringCollectorHelper is AuthorizableHelper, Bounder {
+contract RecurringCollectorHelper is Bounder {
     RecurringCollector public collector;
+    address public proxyAdmin;
 
-    constructor(
-        RecurringCollector collector_
-    ) AuthorizableHelper(collector_, collector_.REVOKE_AUTHORIZATION_THAWING_PERIOD()) {
+    constructor(RecurringCollector collector_, address proxyAdmin_) {
         collector = collector_;
-    }
-
-    function generateSignedRCA(
-        IRecurringCollector.RecurringCollectionAgreement memory rca,
-        uint256 signerPrivateKey
-    ) public view returns (IRecurringCollector.RecurringCollectionAgreement memory, bytes memory) {
-        bytes32 messageHash = collector.hashRCA(rca);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, messageHash);
-        bytes memory signature = abi.encodePacked(r, s, v);
-
-        return (rca, signature);
-    }
-
-    function generateSignedRCAU(
-        IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau,
-        uint256 signerPrivateKey
-    ) public view returns (IRecurringCollector.RecurringCollectionAgreementUpdate memory, bytes memory) {
-        bytes32 messageHash = collector.hashRCAU(rcau);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, messageHash);
-        bytes memory signature = abi.encodePacked(r, s, v);
-
-        return (rcau, signature);
-    }
-
-    function generateSignedRCAUForAgreement(
-        bytes16 agreementId,
-        IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau,
-        uint256 signerPrivateKey
-    ) public view returns (IRecurringCollector.RecurringCollectionAgreementUpdate memory, bytes memory) {
-        // Automatically set the correct nonce based on current agreement state
-        IRecurringCollector.AgreementData memory agreement = collector.getAgreement(agreementId);
-        rcau.nonce = agreement.updateNonce + 1;
-
-        return generateSignedRCAU(rcau, signerPrivateKey);
-    }
-
-    function generateSignedRCAUWithCorrectNonce(
-        IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau,
-        uint256 signerPrivateKey
-    ) public view returns (IRecurringCollector.RecurringCollectionAgreementUpdate memory, bytes memory) {
-        // This is kept for backwards compatibility but should not be used with new interface
-        // since we can't determine agreementId without it being passed separately
-        return generateSignedRCAU(rcau, signerPrivateKey);
-    }
-
-    function generateSignedRCAWithCalculatedId(
-        IRecurringCollector.RecurringCollectionAgreement memory rca,
-        uint256 signerPrivateKey
-    ) public view returns (IRecurringCollector.RecurringCollectionAgreement memory, bytes memory, bytes16) {
-        // Ensure we have sensible values
-        rca = sensibleRCA(rca);
-
-        // Calculate the agreement ID
-        bytes16 agreementId = collector.generateAgreementId(
-            rca.payer,
-            rca.dataService,
-            rca.serviceProvider,
-            rca.deadline,
-            rca.nonce
-        );
-
-        (IRecurringCollector.RecurringCollectionAgreement memory signedRca, bytes memory signature) = generateSignedRCA(
-            rca,
-            signerPrivateKey
-        );
-        return (signedRca, signature, agreementId);
+        proxyAdmin = proxyAdmin_;
     }
 
     function withElapsedAcceptDeadline(
@@ -101,9 +36,17 @@ contract RecurringCollectorHelper is AuthorizableHelper, Bounder {
     function sensibleRCA(
         IRecurringCollector.RecurringCollectionAgreement memory rca
     ) public view returns (IRecurringCollector.RecurringCollectionAgreement memory) {
-        vm.assume(rca.dataService != address(0));
-        vm.assume(rca.payer != address(0));
-        vm.assume(rca.serviceProvider != address(0));
+        vm.assume(uint160(rca.dataService) > 0xFF);
+        vm.assume(uint160(rca.payer) > 0xFF);
+        vm.assume(uint160(rca.serviceProvider) > 0xFF);
+        // Exclude ProxyAdmin address — TransparentProxy routes admin calls to ProxyAdmin, not implementation
+        vm.assume(rca.dataService != proxyAdmin);
+        vm.assume(rca.payer != proxyAdmin);
+        vm.assume(rca.serviceProvider != proxyAdmin);
+        // Prevent role collisions — cancel() resolves role by address priority
+        vm.assume(rca.payer != rca.serviceProvider);
+        vm.assume(rca.payer != rca.dataService);
+        vm.assume(rca.serviceProvider != rca.dataService);
 
         // Ensure we have a nonce if it's zero
         if (rca.nonce == 0) {
@@ -122,11 +65,24 @@ contract RecurringCollectorHelper is AuthorizableHelper, Bounder {
         rca.maxInitialTokens = _sensibleMaxInitialTokens(rca.maxInitialTokens);
         rca.maxOngoingTokensPerSecond = _sensibleMaxOngoingTokensPerSecond(rca.maxOngoingTokensPerSecond);
 
+        // CONDITION_ELIGIBILITY_CHECK requires payer to support IProviderEligibility via ERC-165.
+        // Mask it out in fuzz-generated offers when the payer can't satisfy the check.
+        if (!ERC165Checker.supportsInterface(rca.payer, type(IProviderEligibility).interfaceId)) {
+            rca.conditions = rca.conditions & ~uint16(collector.CONDITION_ELIGIBILITY_CHECK());
+        }
+
         return rca;
     }
 
     function sensibleRCAU(
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau
+    ) public view returns (IRecurringCollector.RecurringCollectionAgreementUpdate memory) {
+        return sensibleRCAU(rcau, address(0));
+    }
+
+    function sensibleRCAU(
+        IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau,
+        address payer
     ) public view returns (IRecurringCollector.RecurringCollectionAgreementUpdate memory) {
         rcau.minSecondsPerCollection = _sensibleMinSecondsPerCollection(rcau.minSecondsPerCollection);
         rcau.maxSecondsPerCollection = _sensibleMaxSecondsPerCollection(
@@ -138,6 +94,12 @@ contract RecurringCollectorHelper is AuthorizableHelper, Bounder {
         rcau.endsAt = _sensibleEndsAt(rcau.endsAt, rcau.maxSecondsPerCollection);
         rcau.maxInitialTokens = _sensibleMaxInitialTokens(rcau.maxInitialTokens);
         rcau.maxOngoingTokensPerSecond = _sensibleMaxOngoingTokensPerSecond(rcau.maxOngoingTokensPerSecond);
+
+        // CONDITION_ELIGIBILITY_CHECK requires payer to support IProviderEligibility via ERC-165.
+        // Mask it out in fuzz-generated updates when the payer can't satisfy the check.
+        if (payer != address(0) && !ERC165Checker.supportsInterface(payer, type(IProviderEligibility).interfaceId)) {
+            rcau.conditions = rcau.conditions & ~uint16(collector.CONDITION_ELIGIBILITY_CHECK());
+        }
 
         return rcau;
     }

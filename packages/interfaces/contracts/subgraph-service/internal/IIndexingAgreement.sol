@@ -20,11 +20,15 @@ interface IIndexingAgreement {
     /**
      * @notice Indexer Agreement Data
      * @param allocationId The allocation ID
+     * @param collector The collector contract this agreement belongs to
      * @param version The indexing agreement version
+     * @param subgraphDeploymentId The subgraph deployment ID locked at initial accept
      */
     struct State {
         address allocationId;
+        address collector;
         IndexingAgreementVersion version;
+        bytes32 subgraphDeploymentId;
     }
 
     /**

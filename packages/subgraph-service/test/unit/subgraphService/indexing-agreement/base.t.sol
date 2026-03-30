@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { IIndexingAgreement } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IIndexingAgreement.sol";
 
@@ -38,15 +37,6 @@ contract SubgraphServiceIndexingAgreementBaseTest is SubgraphServiceIndexingAgre
         ) = _withAcceptedIndexingAgreement(ctx, indexerState);
         IIndexingAgreement.AgreementWrapper memory agreement = subgraphService.getIndexingAgreement(agreementId);
         _assertEqualAgreement(acceptedRca, agreement);
-    }
-
-    function test_SubgraphService_Revert_WhenUnsafeAddress_WhenProxyAdmin(address indexer, bytes16 agreementId) public {
-        address operator = _transparentUpgradeableProxyAdmin();
-        assertFalse(_isSafeSubgraphServiceCaller(operator));
-
-        vm.expectRevert(TransparentUpgradeableProxy.ProxyDeniedAdminAccess.selector);
-        resetPrank(address(operator));
-        subgraphService.cancelIndexingAgreement(indexer, agreementId);
     }
 
     function test_SubgraphService_Revert_WhenUnsafeAddress_WhenGraphProxyAdmin(uint256 unboundedTokens) public {

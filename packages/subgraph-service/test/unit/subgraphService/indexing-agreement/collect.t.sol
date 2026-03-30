@@ -9,6 +9,7 @@ import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/
 
 import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
 import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
+import { Allocation } from "../../../../contracts/libraries/Allocation.sol";
 import { AllocationHandler } from "../../../../contracts/libraries/AllocationHandler.sol";
 import { IndexingAgreement } from "../../../../contracts/libraries/IndexingAgreement.sol";
 import { IndexingAgreementDecoder } from "../../../../contracts/libraries/IndexingAgreementDecoder.sol";
@@ -16,6 +17,8 @@ import { IndexingAgreementDecoder } from "../../../../contracts/libraries/Indexi
 import { SubgraphServiceIndexingAgreementSharedTest } from "./shared.t.sol";
 
 contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingAgreementSharedTest {
+    using Allocation for IAllocation.State;
+
     /*
      * TESTS
      */
@@ -262,17 +265,24 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
     ) public {
         Context storage ctx = _newCtx(seed);
         IndexerState memory indexerState = _withIndexer(ctx);
-        (, bytes16 acceptedAgreementId) = _withAcceptedIndexingAgreement(ctx, indexerState);
+        (
+            IRecurringCollector.RecurringCollectionAgreement memory rca,
+            bytes16 acceptedAgreementId
+        ) = _withAcceptedIndexingAgreement(ctx, indexerState);
+
+        // BY_PROVIDER cancel sets SETTLED immediately — required before closing the allocation
+        bytes32 activeHash = recurringCollector.getAgreementVersionAt(acceptedAgreementId, 0).versionHash;
+        resetPrank(rca.serviceProvider);
+        recurringCollector.cancel(acceptedAgreementId, activeHash, 0);
 
         resetPrank(indexerState.addr);
         subgraphService.stopService(indexerState.addr, abi.encode(indexerState.allocationId));
 
         uint256 currentEpochBlock = epochManager.currentEpochBlock();
 
-        bytes memory expectedErr = abi.encodeWithSelector(
-            AllocationHandler.AllocationHandlerAllocationClosed.selector,
-            indexerState.allocationId
-        );
+        // After SETTLED close, agreement.allocationId is cleared to address(0).
+        // Collecting fails because address(0) doesn't exist in the allocations mapping.
+        bytes memory expectedErr = abi.encodeWithSelector(IAllocation.AllocationDoesNotExist.selector, address(0));
         vm.expectRevert(expectedErr);
         subgraphService.collect(
             indexerState.addr,
@@ -281,7 +291,7 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
         );
     }
 
-    function test_SubgraphService_CollectIndexingFees_Reverts_WhenCloseStaleAllocation(
+    function test_SubgraphService_CollectIndexingFees_AllocationOpenAfterStaleDownsize(
         Seed memory seed,
         uint256 entities,
         bytes32 poi
@@ -294,18 +304,10 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
         resetPrank(indexerState.addr);
         subgraphService.closeStaleAllocation(indexerState.allocationId);
 
-        uint256 currentEpochBlock = epochManager.currentEpochBlock();
-
-        bytes memory expectedErr = abi.encodeWithSelector(
-            AllocationHandler.AllocationHandlerAllocationClosed.selector,
-            indexerState.allocationId
-        );
-        vm.expectRevert(expectedErr);
-        subgraphService.collect(
-            indexerState.addr,
-            IGraphPayments.PaymentTypes.IndexingFee,
-            _encodeCollectDataV1(acceptedAgreementId, entities, poi, currentEpochBlock, bytes(""))
-        );
+        // Allocation should still be open (resized to 0, not closed)
+        IAllocation.State memory allocation = subgraphService.getAllocation(indexerState.allocationId);
+        assertTrue(allocation.isOpen());
+        assertEq(allocation.tokens, 0);
     }
 
     function test_SubgraphService_CollectIndexingFees_Revert_WhenNotCollectable(
@@ -320,11 +322,16 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
         resetPrank(indexerState.addr);
         uint256 currentEpochBlock = epochManager.currentEpochBlock();
 
-        // Mock getCollectionInfo to return not collectable
+        // Mock getAgreementData to return not collectable
+        IRecurringCollector.AgreementData memory notCollectableData = recurringCollector.getAgreementData(
+            acceptedAgreementId
+        );
+        notCollectableData.isCollectable = false;
+        notCollectableData.collectionSeconds = 0;
         vm.mockCall(
             address(recurringCollector),
-            abi.encodeWithSelector(IRecurringCollector.getCollectionInfo.selector),
-            abi.encode(false, uint256(0), IRecurringCollector.AgreementNotCollectableReason.ZeroCollectionSeconds)
+            abi.encodeWithSelector(IRecurringCollector.getAgreementData.selector, acceptedAgreementId),
+            abi.encode(notCollectableData)
         );
 
         bytes memory expectedErr = abi.encodeWithSelector(
