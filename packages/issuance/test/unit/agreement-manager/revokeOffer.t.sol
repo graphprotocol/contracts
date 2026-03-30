@@ -1,11 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringAgreementManagement } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreementManagement.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringAgreements } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreements.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
 
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { RecurringAgreementManagerSharedTest } from "./shared.t.sol";
 
 contract RecurringAgreementManagerCancelOfferedTest is RecurringAgreementManagerSharedTest {
@@ -20,7 +25,7 @@ contract RecurringAgreementManagerCancelOfferedTest is RecurringAgreementManager
         );
 
         bytes16 agreementId = _offerAgreement(rca);
-        assertEq(agreementManager.getPairAgreementCount(address(recurringCollector), indexer), 1);
+        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
 
         uint256 maxClaim = 1 ether * 3600 + 100 ether;
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), maxClaim);
@@ -28,9 +33,12 @@ contract RecurringAgreementManagerCancelOfferedTest is RecurringAgreementManager
         bool gone = _cancelAgreement(agreementId);
         assertTrue(gone);
 
-        assertEq(agreementManager.getPairAgreementCount(address(recurringCollector), indexer), 0);
+        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), 0);
-        assertEq(agreementManager.getAgreementMaxNextClaim(address(recurringCollector), agreementId), 0);
+        assertEq(
+            agreementManager.getAgreementMaxNextClaim(IAgreementCollector(address(recurringCollector)), agreementId),
+            0
+        );
     }
 
     function test_CancelOffered_FullyRemovesTracking() public {
@@ -47,7 +55,7 @@ contract RecurringAgreementManagerCancelOfferedTest is RecurringAgreementManager
 
         // Agreement info should be zeroed out after cancel
         IRecurringAgreements.AgreementInfo memory info = agreementManager.getAgreementInfo(
-            address(recurringCollector),
+            IAgreementCollector(address(recurringCollector)),
             agreementId
         );
         assertEq(info.provider, address(0));
@@ -115,7 +123,7 @@ contract RecurringAgreementManagerCancelOfferedTest is RecurringAgreementManager
         );
 
         vm.prank(operator);
-        agreementManager.cancelAgreement(address(recurringCollector), fakeId, bytes32(0), 0);
+        agreementManager.cancelAgreement(IAgreementCollector(address(recurringCollector)), fakeId, bytes32(0), 0);
     }
 
     function test_CancelOffered_Revert_WhenNotOperator() public {
@@ -138,7 +146,7 @@ contract RecurringAgreementManagerCancelOfferedTest is RecurringAgreementManager
             )
         );
         vm.prank(nonOperator);
-        agreementManager.cancelAgreement(address(recurringCollector), agreementId, activeHash, 0);
+        agreementManager.cancelAgreement(IAgreementCollector(address(recurringCollector)), agreementId, activeHash, 0);
     }
 
     function test_CancelOffered_Succeeds_WhenPaused() public {
@@ -159,7 +167,7 @@ contract RecurringAgreementManagerCancelOfferedTest is RecurringAgreementManager
         // Role-gated functions should succeed even when paused
         bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
         vm.prank(operator);
-        agreementManager.cancelAgreement(address(recurringCollector), agreementId, activeHash, 0);
+        agreementManager.cancelAgreement(IAgreementCollector(address(recurringCollector)), agreementId, activeHash, 0);
     }
 
     /* solhint-enable graph/func-name-mixedcase */

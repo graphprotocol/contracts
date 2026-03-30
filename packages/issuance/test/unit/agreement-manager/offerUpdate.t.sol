@@ -1,17 +1,23 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringAgreementManagement } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreementManagement.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import {
     REGISTERED,
     ACCEPTED,
     OFFER_TYPE_NEW,
     OFFER_TYPE_UPDATE
 } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
 
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { RecurringAgreementManagerSharedTest } from "./shared.t.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { MockRecurringCollector } from "./mocks/MockRecurringCollector.sol";
 
 contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSharedTest {
@@ -50,7 +56,10 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
             pendingTotal // max(3700, 14600) = 14600
         );
         // maxNextClaim now stores max(active, pending)
-        assertEq(agreementManager.getAgreementMaxNextClaim(address(recurringCollector), agreementId), pendingTotal);
+        assertEq(
+            agreementManager.getAgreementMaxNextClaim(IAgreementCollector(address(recurringCollector)), agreementId),
+            pendingTotal
+        );
     }
 
     function test_OfferUpdate_StoresOnCollector() public {
@@ -305,13 +314,21 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
 
         // Simulate: agreement accepted with update nonce=1 applied
         IRecurringCollector.RecurringCollectionAgreement memory updatedRca = _makeRCA(
-            200 ether, 2 ether, 60, 7200, uint64(block.timestamp + 730 days)
+            200 ether,
+            2 ether,
+            60,
+            7200,
+            uint64(block.timestamp + 730 days)
         );
         updatedRca.payer = rca.payer;
         updatedRca.dataService = rca.dataService;
         updatedRca.serviceProvider = rca.serviceProvider;
         MockRecurringCollector.AgreementStorage memory data = _buildAgreementStorage(
-            updatedRca, REGISTERED | ACCEPTED, uint64(block.timestamp), 0, 0
+            updatedRca,
+            REGISTERED | ACCEPTED,
+            uint64(block.timestamp),
+            0,
+            0
         );
         data.updateNonce = 1;
         recurringCollector.setAgreement(agreementId, data);
@@ -360,13 +377,21 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
 
         // Simulate: agreement accepted with update nonce=1 applied
         IRecurringCollector.RecurringCollectionAgreement memory updatedRca = _makeRCA(
-            200 ether, 2 ether, 60, 7200, uint64(block.timestamp + 730 days)
+            200 ether,
+            2 ether,
+            60,
+            7200,
+            uint64(block.timestamp + 730 days)
         );
         updatedRca.payer = rca.payer;
         updatedRca.dataService = rca.dataService;
         updatedRca.serviceProvider = rca.serviceProvider;
         MockRecurringCollector.AgreementStorage memory data = _buildAgreementStorage(
-            updatedRca, REGISTERED | ACCEPTED, uint64(block.timestamp), 0, 0
+            updatedRca,
+            REGISTERED | ACCEPTED,
+            uint64(block.timestamp),
+            0,
+            0
         );
         data.updateNonce = 1;
         recurringCollector.setAgreement(agreementId, data);

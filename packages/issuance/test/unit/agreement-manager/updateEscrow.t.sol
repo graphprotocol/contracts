@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringEscrowManagement } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringEscrowManagement.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { RecurringAgreementManagerSharedTest } from "./shared.t.sol";
 
 contract RecurringAgreementManagerUpdateEscrowTest is RecurringAgreementManagerSharedTest {
@@ -35,9 +39,9 @@ contract RecurringAgreementManagerUpdateEscrowTest is RecurringAgreementManagerS
         // SP cancels — reconcileAgreement triggers escrow update, thawing the full balance
         _setAgreementCanceledBySP(agreementId, rca);
 
-        agreementManager.reconcileAgreement(address(recurringCollector), agreementId);
+        agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
 
-        assertEq(agreementManager.getPairAgreementCount(address(recurringCollector), indexer), 0);
+        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
 
         // balance should now be fully thawing
         IPaymentsEscrow.EscrowAccount memory account;
@@ -62,7 +66,7 @@ contract RecurringAgreementManagerUpdateEscrowTest is RecurringAgreementManagerS
 
         // SP cancels and reconcile (triggers thaw)
         _setAgreementCanceledBySP(agreementId, rca);
-        agreementManager.reconcileAgreement(address(recurringCollector), agreementId);
+        agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
 
         // Fast forward past thawing period (1 day in mock)
         vm.warp(block.timestamp + 1 days + 1);
@@ -73,7 +77,7 @@ contract RecurringAgreementManagerUpdateEscrowTest is RecurringAgreementManagerS
         vm.expectEmit(address(agreementManager));
         emit IRecurringEscrowManagement.EscrowWithdrawn(indexer, address(recurringCollector), maxClaim);
 
-        agreementManager.reconcileProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         // Tokens should be back in RecurringAgreementManager
         uint256 agreementManagerBalanceAfter = token.balanceOf(address(agreementManager));
@@ -82,7 +86,7 @@ contract RecurringAgreementManagerUpdateEscrowTest is RecurringAgreementManagerS
 
     function test_UpdateEscrow_NoopWhenNoBalance() public {
         // No agreements, no balance — should succeed silently
-        agreementManager.reconcileProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
     }
 
     function test_UpdateEscrow_NoopWhenStillThawing() public {
@@ -97,10 +101,10 @@ contract RecurringAgreementManagerUpdateEscrowTest is RecurringAgreementManagerS
 
         // SP cancels and reconcile (triggers thaw)
         _setAgreementCanceledBySP(agreementId, rca);
-        agreementManager.reconcileAgreement(address(recurringCollector), agreementId);
+        agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
 
         // Subsequent call before thaw complete: no-op (thaw in progress, amount is correct)
-        agreementManager.reconcileProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         // Balance should still be fully thawing
         IPaymentsEscrow.EscrowAccount memory account;
@@ -116,7 +120,7 @@ contract RecurringAgreementManagerUpdateEscrowTest is RecurringAgreementManagerS
         // Anyone can call reconcileProvider
         address anyone = makeAddr("anyone");
         vm.prank(anyone);
-        agreementManager.reconcileProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
     }
 
     // ==================== Excess Thawing With Active Agreements ====================
@@ -141,7 +145,7 @@ contract RecurringAgreementManagerUpdateEscrowTest is RecurringAgreementManagerS
         vm.warp(collectionTime);
 
         // Reconcile — should reduce required escrow
-        agreementManager.reconcileAgreement(address(recurringCollector), agreementId);
+        agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
         uint256 newRequired = agreementManager.getSumMaxNextClaim(_collector(), indexer);
         assertTrue(newRequired < maxClaim, "Required should have decreased");
 
@@ -190,8 +194,8 @@ contract RecurringAgreementManagerUpdateEscrowTest is RecurringAgreementManagerS
 
         // SP cancels agreement 1, reconcile to 0 (triggers thaw of excess)
         _setAgreementCanceledBySP(id1, rca1);
-        agreementManager.reconcileAgreement(address(recurringCollector), id1);
-        agreementManager.reconcileAgreement(address(recurringCollector), id1);
+        agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), id1);
+        agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), id1);
 
         // Verify excess is thawing
         IPaymentsEscrow.EscrowAccount memory accountBefore;
@@ -247,8 +251,8 @@ contract RecurringAgreementManagerUpdateEscrowTest is RecurringAgreementManagerS
 
         // SP cancels, reconcile to 0 (triggers thaw of all excess)
         _setAgreementCanceledBySP(id1, rca1);
-        agreementManager.reconcileAgreement(address(recurringCollector), id1);
-        agreementManager.reconcileAgreement(address(recurringCollector), id1);
+        agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), id1);
+        agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), id1);
 
         IPaymentsEscrow.EscrowAccount memory account;
         (account.balance, account.tokensThawing, account.thawEndTimestamp) = paymentsEscrow.escrowAccounts(
@@ -304,8 +308,8 @@ contract RecurringAgreementManagerUpdateEscrowTest is RecurringAgreementManagerS
 
         // Reconcile agreement 1 to create excess (triggers thaw)
         _setAgreementCanceledBySP(id1, rca1);
-        agreementManager.reconcileAgreement(address(recurringCollector), id1);
-        agreementManager.reconcileAgreement(address(recurringCollector), id1);
+        agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), id1);
+        agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), id1);
 
         IPaymentsEscrow.EscrowAccount memory accountBefore;
         (accountBefore.balance, accountBefore.tokensThawing, accountBefore.thawEndTimestamp) = paymentsEscrow
@@ -328,8 +332,8 @@ contract RecurringAgreementManagerUpdateEscrowTest is RecurringAgreementManagerS
             )
         );
         _setAgreementCanceledBySP(id2, rca2);
-        agreementManager.reconcileAgreement(address(recurringCollector), id2);
-        agreementManager.reconcileAgreement(address(recurringCollector), id2);
+        agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), id2);
+        agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), id2);
 
         IPaymentsEscrow.EscrowAccount memory accountAfter;
         (accountAfter.balance, accountAfter.tokensThawing, accountAfter.thawEndTimestamp) = paymentsEscrow
@@ -378,7 +382,7 @@ contract RecurringAgreementManagerUpdateEscrowTest is RecurringAgreementManagerS
             ready ? block.timestamp - 1 : (0 < thawing ? block.timestamp + 1 days : 0)
         );
 
-        agreementManager.reconcileProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         IPaymentsEscrow.EscrowAccount memory r;
         (r.balance, r.tokensThawing, r.thawEndTimestamp) = paymentsEscrow.escrowAccounts(
@@ -416,7 +420,7 @@ contract RecurringAgreementManagerUpdateEscrowTest is RecurringAgreementManagerS
             thawEndTimestamp
         );
 
-        agreementManager.reconcileProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         IPaymentsEscrow.EscrowAccount memory r;
         (r.balance, r.tokensThawing, r.thawEndTimestamp) = paymentsEscrow.escrowAccounts(
@@ -523,7 +527,7 @@ contract RecurringAgreementManagerUpdateEscrowTest is RecurringAgreementManagerS
 
         // Reconcile indexer1's agreement (triggers thaw)
         _setAgreementCanceledBySP(id1, rca1);
-        agreementManager.reconcileAgreement(address(recurringCollector), id1);
+        agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), id1);
 
         IPaymentsEscrow.EscrowAccount memory acct1;
         (acct1.balance, acct1.tokensThawing, acct1.thawEndTimestamp) = paymentsEscrow.escrowAccounts(
@@ -542,7 +546,7 @@ contract RecurringAgreementManagerUpdateEscrowTest is RecurringAgreementManagerS
         assertEq(indexer2Balance, maxClaim2);
 
         // reconcileProvider on indexer2 should be a no-op (balance == required)
-        agreementManager.reconcileProvider(address(_collector()), indexer2);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer2);
         (uint256 indexer2BalanceAfter, , ) = paymentsEscrow.escrowAccounts(
             address(agreementManager),
             address(recurringCollector),
@@ -573,7 +577,7 @@ contract RecurringAgreementManagerUpdateEscrowTest is RecurringAgreementManagerS
         assertEq(balanceBefore, maxClaim);
 
         // reconcileProvider should be a no-op
-        agreementManager.reconcileProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         // Nothing changed
         (uint256 balanceAfter, , ) = paymentsEscrow.escrowAccounts(
@@ -614,7 +618,7 @@ contract RecurringAgreementManagerUpdateEscrowTest is RecurringAgreementManagerS
         vm.warp(collectionTime);
 
         // Reconcile — triggers _updateEscrow internally
-        agreementManager.reconcileAgreement(address(recurringCollector), agreementId);
+        agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
 
         // Excess should already be thawing
         IPaymentsEscrow.EscrowAccount memory account;
@@ -660,7 +664,7 @@ contract RecurringAgreementManagerUpdateEscrowTest is RecurringAgreementManagerS
 
         // Cancel and reconcile rca2 -> excess (950) thawed, rca1 remains
         _setAgreementCanceledBySP(id2, rca2);
-        agreementManager.reconcileAgreement(address(recurringCollector), id2);
+        agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), id2);
 
         IPaymentsEscrow.EscrowAccount memory account;
         (account.balance, account.tokensThawing, account.thawEndTimestamp) = paymentsEscrow.escrowAccounts(
@@ -678,7 +682,7 @@ contract RecurringAgreementManagerUpdateEscrowTest is RecurringAgreementManagerS
         vm.expectEmit(address(agreementManager));
         emit IRecurringEscrowManagement.EscrowWithdrawn(indexer, address(recurringCollector), maxClaim2);
 
-        agreementManager.reconcileProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         // After withdraw: only rca1's required amount remains, nothing thawing
         (account.balance, account.tokensThawing, account.thawEndTimestamp) = paymentsEscrow.escrowAccounts(
@@ -707,7 +711,7 @@ contract RecurringAgreementManagerUpdateEscrowTest is RecurringAgreementManagerS
 
         // Reconcile -> full thaw
         _setAgreementCanceledBySP(id1, rca1);
-        agreementManager.reconcileAgreement(address(recurringCollector), id1);
+        agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), id1);
 
         // Verify: entire balance is thawing, liquid = 0
         IPaymentsEscrow.EscrowAccount memory account;
@@ -782,7 +786,7 @@ contract RecurringAgreementManagerUpdateEscrowTest is RecurringAgreementManagerS
             ready ? block.timestamp - 1 : (0 < thawing ? block.timestamp + 1 days : 0)
         );
 
-        agreementManager.reconcileProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         IPaymentsEscrow.EscrowAccount memory r;
         (r.balance, r.tokensThawing, r.thawEndTimestamp) = paymentsEscrow.escrowAccounts(

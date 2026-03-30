@@ -3,7 +3,10 @@ pragma solidity ^0.8.27;
 
 import { IRecurringAgreementManagement } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreementManagement.sol";
 import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
-import { OFFER_TYPE_NEW } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
+import {
+    IAgreementCollector,
+    OFFER_TYPE_NEW
+} from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 
 import { RecurringAgreementManagerSharedTest } from "./shared.t.sol";
@@ -37,7 +40,10 @@ contract RecurringAgreementManagerFuzzTest is RecurringAgreementManagerSharedTes
             ? remainingSeconds
             : maxSecondsPerCollection;
         uint256 expectedMaxClaim = uint256(maxOngoingTokensPerSecond) * effectiveSeconds + uint256(maxInitialTokens);
-        assertEq(agreementManager.getAgreementMaxNextClaim(address(recurringCollector), agreementId), expectedMaxClaim);
+        assertEq(
+            agreementManager.getAgreementMaxNextClaim(IAgreementCollector(address(recurringCollector)), agreementId),
+            expectedMaxClaim
+        );
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), expectedMaxClaim);
     }
 
@@ -64,7 +70,10 @@ contract RecurringAgreementManagerFuzzTest is RecurringAgreementManagerSharedTes
         vm.prank(operator);
         bytes16 agreementId = agreementManager.offerAgreement(_collector(), OFFER_TYPE_NEW, abi.encode(rca));
 
-        uint256 maxNextClaim = agreementManager.getAgreementMaxNextClaim(address(recurringCollector), agreementId);
+        uint256 maxNextClaim = agreementManager.getAgreementMaxNextClaim(
+            IAgreementCollector(address(recurringCollector)),
+            agreementId
+        );
         (uint256 escrowBalance, , ) = paymentsEscrow.escrowAccounts(
             address(agreementManager),
             address(recurringCollector),
@@ -154,7 +163,7 @@ contract RecurringAgreementManagerFuzzTest is RecurringAgreementManagerSharedTes
         _cancelAgreement(agreementId);
 
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), 0);
-        assertEq(agreementManager.getPairAgreementCount(address(recurringCollector), indexer), 0);
+        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
     }
 
     function testFuzz_Remove_AfterSPCancel_ClearsState(uint64 maxInitial, uint64 maxOngoing, uint32 maxSec) public {
@@ -171,11 +180,14 @@ contract RecurringAgreementManagerFuzzTest is RecurringAgreementManagerSharedTes
         bytes16 agreementId = _offerAgreement(rca);
         _setAgreementCanceledBySP(agreementId, rca);
 
-        agreementManager.reconcileAgreement(address(recurringCollector), agreementId);
+        agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
 
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), 0);
-        assertEq(agreementManager.getPairAgreementCount(address(recurringCollector), indexer), 0);
-        assertEq(agreementManager.getAgreementMaxNextClaim(address(recurringCollector), agreementId), 0);
+        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
+        assertEq(
+            agreementManager.getAgreementMaxNextClaim(IAgreementCollector(address(recurringCollector)), agreementId),
+            0
+        );
     }
 
     // -- reconcile --
@@ -209,7 +221,7 @@ contract RecurringAgreementManagerFuzzTest is RecurringAgreementManagerSharedTes
         // Warp to collection time
         vm.warp(collectionAt);
 
-        agreementManager.reconcileAgreement(address(recurringCollector), agreementId);
+        agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
 
         uint256 postReconcileRequired = agreementManager.getSumMaxNextClaim(_collector(), indexer);
 
@@ -283,15 +295,15 @@ contract RecurringAgreementManagerFuzzTest is RecurringAgreementManagerSharedTes
         bytes16 agreementId = _offerAgreement(rca);
 
         // Before deadline: should return true (still claimable)
-        bool exists = agreementManager.reconcileAgreement(address(recurringCollector), agreementId);
+        bool exists = agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
         assertTrue(exists);
 
         // Warp past deadline
         vm.warp(rca.deadline + extraTime);
 
         // After deadline: should succeed
-        agreementManager.reconcileAgreement(address(recurringCollector), agreementId);
-        assertEq(agreementManager.getPairAgreementCount(address(recurringCollector), indexer), 0);
+        agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
+        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
     }
 
     // -- getEscrowAccount --

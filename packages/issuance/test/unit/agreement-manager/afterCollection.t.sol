@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringAgreementManagement } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreementManagement.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { RecurringAgreementManagerSharedTest } from "./shared.t.sol";
 
 contract RecurringAgreementManagerCollectionCallbackTest is RecurringAgreementManagerSharedTest {
@@ -126,7 +129,10 @@ contract RecurringAgreementManagerCollectionCallbackTest is RecurringAgreementMa
 
         // After first collection, maxInitialTokens no longer applies
         // New max = 1e18 * 3600 = 3600e18
-        assertEq(agreementManager.getAgreementMaxNextClaim(address(recurringCollector), agreementId), 3600 ether);
+        assertEq(
+            agreementManager.getAgreementMaxNextClaim(IAgreementCollector(address(recurringCollector)), agreementId),
+            3600 ether
+        );
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), 3600 ether);
     }
 
@@ -166,7 +172,10 @@ contract RecurringAgreementManagerCollectionCallbackTest is RecurringAgreementMa
         vm.prank(address(recurringCollector));
         agreementManager.afterCollection(agreementId, 0);
 
-        assertEq(agreementManager.getAgreementMaxNextClaim(address(recurringCollector), agreementId), 0);
+        assertEq(
+            agreementManager.getAgreementMaxNextClaim(IAgreementCollector(address(recurringCollector)), agreementId),
+            0
+        );
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), 0);
     }
 

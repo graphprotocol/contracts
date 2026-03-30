@@ -26,7 +26,7 @@ interface IIndexingAgreement {
      */
     struct State {
         address allocationId;
-        address collector;
+        IRecurringCollector collector;
         IndexingAgreementVersion version;
         bytes32 subgraphDeploymentId;
     }

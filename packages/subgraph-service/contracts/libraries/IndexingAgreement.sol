@@ -198,7 +198,11 @@ library IndexingAgreement {
      * @param expectedCollector The collector that owns the agreement
      * @param actualCollector The caller
      */
-    error IndexingAgreementCollectorMismatch(bytes16 agreementId, address expectedCollector, address actualCollector);
+    error IndexingAgreementCollectorMismatch(
+        bytes16 agreementId,
+        IRecurringCollector expectedCollector,
+        IRecurringCollector actualCollector
+    );
 
     /**
      * @notice Thrown when an agreement and the allocation correspond to different deployment IDs
@@ -286,20 +290,18 @@ library IndexingAgreement {
         address serviceProvider,
         bytes calldata metadata,
         bytes calldata extraData,
-        address collector
+        IRecurringCollector collector
     ) external {
         IIndexingAgreement.State storage agreement = self.agreements[agreementId];
-        bool isInitial = agreement.collector == address(0);
+        bool isInitial = address(agreement.collector) == address(0);
 
         // ── 1. Collector identity ──
-        if (isInitial) {
-            agreement.collector = collector;
-        } else {
+        if (isInitial) agreement.collector = collector;
+        else
             require(
-                agreement.collector == collector,
+                address(agreement.collector) == address(collector),
                 IndexingAgreementCollectorMismatch(agreementId, agreement.collector, collector)
             );
-        }
 
         // ── 2. Decode metadata (different structs, same outputs) ──
         IIndexingAgreement.IndexingAgreementVersion version;
@@ -328,7 +330,7 @@ library IndexingAgreement {
         _setTermsV1(self, agreementId, terms);
 
         // ── 6. Events ──
-        if (isInitial) {
+        if (isInitial)
             emit IndexingAgreementAccepted(
                 serviceProvider,
                 payer,
@@ -338,7 +340,7 @@ library IndexingAgreement {
                 version,
                 terms
             );
-        } else {
+        else
             emit IndexingAgreementUpdated({
                 indexer: serviceProvider,
                 payer: payer,
@@ -347,7 +349,6 @@ library IndexingAgreement {
                 version: version,
                 versionTerms: terms
             });
-        }
     }
     /* solhint-enable function-max-lines */
 
@@ -430,7 +431,7 @@ library IndexingAgreement {
             allocation.indexer == params.indexer,
             IndexingAgreementNotAuthorized(params.agreementId, params.indexer)
         );
-        IRecurringCollector rc = IRecurringCollector(wrapper.agreement.collector);
+        IRecurringCollector rc = wrapper.agreement.collector;
 
         // Collection info comes from the collector (single source of truth for temporal logic)
         require(
@@ -663,8 +664,8 @@ library IndexingAgreement {
         bytes16 agreementId
     ) private view returns (IIndexingAgreement.AgreementWrapper memory wrapper) {
         wrapper.agreement = self.agreements[agreementId];
-        if (wrapper.agreement.collector != address(0)) {
-            wrapper.collectorAgreement = IRecurringCollector(wrapper.agreement.collector).getAgreementData(agreementId);
+        if (address(wrapper.agreement.collector) != address(0)) {
+            wrapper.collectorAgreement = wrapper.agreement.collector.getAgreementData(agreementId);
         }
     }
 }

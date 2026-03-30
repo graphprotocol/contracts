@@ -66,15 +66,21 @@ interface IRecurringAgreements {
      * @param agreementId The agreement ID
      * @return tokens The current max next claim stored for this agreement
      */
-    function getAgreementMaxNextClaim(address collector, bytes16 agreementId) external view returns (uint256 tokens);
+    function getAgreementMaxNextClaim(
+        IAgreementCollector collector,
+        bytes16 agreementId
+    ) external view returns (uint256 tokens);
 
     /**
      * @notice Get the full tracked state for a specific agreement
-     * @param collector The collector contract address
+     * @param collector The collector contract
      * @param agreementId The agreement ID
      * @return info The agreement info struct (all fields zero if not tracked)
      */
-    function getAgreementInfo(address collector, bytes16 agreementId) external view returns (AgreementInfo memory info);
+    function getAgreementInfo(
+        IAgreementCollector collector,
+        bytes16 agreementId
+    ) external view returns (AgreementInfo memory info);
 
     /**
      * @notice Get the current escrow basis setting
@@ -130,40 +136,43 @@ interface IRecurringAgreements {
      * @param index The index in the collector set
      * @return collector The collector address
      */
-    function getCollectorAt(uint256 index) external view returns (address collector);
+    function getCollectorAt(uint256 index) external view returns (IAgreementCollector collector);
 
     /**
      * @notice Get the number of providers with active agreements for a collector
-     * @param collector The collector address
+     * @param collector The collector contract
      * @return count The number of tracked providers
      */
-    function getProviderCount(address collector) external view returns (uint256 count);
+    function getProviderCount(IAgreementCollector collector) external view returns (uint256 count);
 
     /**
      * @notice Get a provider address by index for a given collector
-     * @param collector The collector address
+     * @param collector The collector contract
      * @param index The index in the provider set
      * @return provider The provider address
      */
-    function getProviderAt(address collector, uint256 index) external view returns (address provider);
+    function getProviderAt(IAgreementCollector collector, uint256 index) external view returns (address provider);
 
     /**
      * @notice Get the number of managed agreements for a (collector, provider) pair
-     * @param collector The collector address
+     * @param collector The collector contract
      * @param provider The provider address
      * @return count The pair agreement count
      */
-    function getPairAgreementCount(address collector, address provider) external view returns (uint256 count);
+    function getPairAgreementCount(
+        IAgreementCollector collector,
+        address provider
+    ) external view returns (uint256 count);
 
     /**
      * @notice Get a managed agreement ID by index for a (collector, provider) pair
-     * @param collector The collector address
+     * @param collector The collector contract
      * @param provider The provider address
      * @param index The index in the agreement set
      * @return agreementId The agreement ID
      */
     function getPairAgreementAt(
-        address collector,
+        IAgreementCollector collector,
         address provider,
         uint256 index
     ) external view returns (bytes16 agreementId);
@@ -171,9 +180,9 @@ interface IRecurringAgreements {
     /**
      * @notice Get the cached escrow balance for a (collector, provider) pair
      * @dev Compare with {getEscrowAccount} to detect stale escrow state requiring reconciliation.
-     * @param collector The collector address
+     * @param collector The collector contract
      * @param provider The provider address
      * @return escrowSnap The last-known escrow balance
      */
-    function getEscrowSnap(address collector, address provider) external view returns (uint256 escrowSnap);
+    function getEscrowSnap(IAgreementCollector collector, address provider) external view returns (uint256 escrowSnap);
 }

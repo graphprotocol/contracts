@@ -2,7 +2,10 @@
 pragma solidity ^0.8.27;
 
 import { IRecurringAgreementManagement } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreementManagement.sol";
-import { OFFER_TYPE_NEW } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
+import {
+    IAgreementCollector,
+    OFFER_TYPE_NEW
+} from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
 
@@ -25,9 +28,12 @@ contract RecurringAgreementManagerOfferTest is RecurringAgreementManagerSharedTe
         // maxNextClaim = maxOngoingTokensPerSecond * maxSecondsPerCollection + maxInitialTokens
         // = 1e18 * 3600 + 100e18 = 3700e18
         uint256 expectedMaxClaim = 1 ether * 3600 + 100 ether;
-        assertEq(agreementManager.getAgreementMaxNextClaim(address(recurringCollector), agreementId), expectedMaxClaim);
+        assertEq(
+            agreementManager.getAgreementMaxNextClaim(IAgreementCollector(address(recurringCollector)), agreementId),
+            expectedMaxClaim
+        );
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), expectedMaxClaim);
-        assertEq(agreementManager.getPairAgreementCount(address(recurringCollector), indexer), 1);
+        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
     }
 
     function test_Offer_FundsEscrow() public {
@@ -155,7 +161,7 @@ contract RecurringAgreementManagerOfferTest is RecurringAgreementManagerSharedTe
         bytes16 id2 = _offerAgreement(rca2);
 
         assertTrue(id1 != id2);
-        assertEq(agreementManager.getPairAgreementCount(address(recurringCollector), indexer), 2);
+        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 2);
 
         uint256 maxClaim1 = 1 ether * 3600 + 100 ether;
         uint256 maxClaim2 = 2 ether * 7200 + 200 ether;

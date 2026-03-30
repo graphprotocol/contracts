@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringAgreementManagement } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreementManagement.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
 
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { RecurringAgreementManagerSharedTest } from "./shared.t.sol";
 
 contract RecurringAgreementManagerCancelAgreementTest is RecurringAgreementManagerSharedTest {
@@ -25,14 +29,18 @@ contract RecurringAgreementManagerCancelAgreementTest is RecurringAgreementManag
         vm.warp(block.timestamp + 10);
 
         // After cancel by payer with 10s elapsed: maxNextClaim = 1e18 * 10 + 100e18 = 110e18
-        uint256 preMaxClaim = agreementManager.getAgreementInfo(address(recurringCollector), agreementId).maxNextClaim;
+        uint256 preMaxClaim = agreementManager
+            .getAgreementInfo(IAgreementCollector(address(recurringCollector)), agreementId)
+            .maxNextClaim;
 
         bool gone = _cancelAgreement(agreementId);
         // CanceledByPayer with remaining claim window => still tracked
         assertFalse(gone);
 
         // Verify maxNextClaim decreased to the payer-cancel window
-        uint256 postMaxClaim = agreementManager.getAgreementInfo(address(recurringCollector), agreementId).maxNextClaim;
+        uint256 postMaxClaim = agreementManager
+            .getAgreementInfo(IAgreementCollector(address(recurringCollector)), agreementId)
+            .maxNextClaim;
         assertEq(postMaxClaim, 1 ether * 10 + 100 ether, "maxNextClaim should reflect payer-cancel window");
         assertTrue(postMaxClaim < preMaxClaim, "maxNextClaim should decrease after cancel");
     }
@@ -133,7 +141,7 @@ contract RecurringAgreementManagerCancelAgreementTest is RecurringAgreementManag
         );
 
         vm.prank(operator);
-        agreementManager.cancelAgreement(address(recurringCollector), fakeId, bytes32(0), 0);
+        agreementManager.cancelAgreement(IAgreementCollector(address(recurringCollector)), fakeId, bytes32(0), 0);
     }
 
     function test_CancelAgreement_Revert_WhenNotOperator() public {
@@ -163,7 +171,7 @@ contract RecurringAgreementManagerCancelAgreementTest is RecurringAgreementManag
             )
         );
         vm.prank(nonOperator);
-        agreementManager.cancelAgreement(address(recurringCollector), agreementId, activeHash, 0);
+        agreementManager.cancelAgreement(IAgreementCollector(address(recurringCollector)), agreementId, activeHash, 0);
     }
 
     function test_CancelAgreement_SucceedsWhenPaused() public {
@@ -184,7 +192,7 @@ contract RecurringAgreementManagerCancelAgreementTest is RecurringAgreementManag
         // Role-gated functions should succeed even when paused
         bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
         vm.prank(operator);
-        agreementManager.cancelAgreement(address(recurringCollector), agreementId, activeHash, 0);
+        agreementManager.cancelAgreement(IAgreementCollector(address(recurringCollector)), agreementId, activeHash, 0);
     }
 
     function test_CancelAgreement_EmitsEvent() public {
@@ -222,7 +230,7 @@ contract RecurringAgreementManagerCancelAgreementTest is RecurringAgreementManag
         // Role-gated functions should succeed even when paused
         bytes32 activeHash = recurringCollector.getAgreementVersionAt(agreementId, 0).versionHash;
         vm.prank(operator);
-        agreementManager.cancelAgreement(address(recurringCollector), agreementId, activeHash, 0);
+        agreementManager.cancelAgreement(IAgreementCollector(address(recurringCollector)), agreementId, activeHash, 0);
     }
 
     /* solhint-enable graph/func-name-mixedcase */

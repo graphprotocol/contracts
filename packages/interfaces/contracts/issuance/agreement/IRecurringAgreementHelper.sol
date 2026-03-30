@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.22;
 
+import { IAgreementCollector } from "../../horizon/IAgreementCollector.sol";
 import { IPaymentsEscrow } from "../../horizon/IPaymentsEscrow.sol";
 import { IRecurringEscrowManagement } from "./IRecurringEscrowManagement.sol";
 
@@ -48,7 +49,7 @@ interface IRecurringAgreementHelper {
      * @param escrow Escrow account state (balance, tokensThawing, thawEndTimestamp)
      */
     struct PairAudit {
-        address collector;
+        IAgreementCollector collector;
         address provider;
         uint256 agreementCount;
         uint256 sumMaxNextClaim;
@@ -69,7 +70,7 @@ interface IRecurringAgreementHelper {
      * @param collector The collector address
      * @return pairs Array of pair audit structs
      */
-    function auditPairs(address collector) external view returns (PairAudit[] memory pairs);
+    function auditPairs(IAgreementCollector collector) external view returns (PairAudit[] memory pairs);
 
     /**
      * @notice Paginated pair summaries for a collector
@@ -79,7 +80,7 @@ interface IRecurringAgreementHelper {
      * @return pairs Array of pair audit structs
      */
     function auditPairs(
-        address collector,
+        IAgreementCollector collector,
         uint256 offset,
         uint256 count
     ) external view returns (PairAudit[] memory pairs);
@@ -90,7 +91,7 @@ interface IRecurringAgreementHelper {
      * @param provider The provider address
      * @return pair The pair audit struct
      */
-    function auditPair(address collector, address provider) external view returns (PairAudit memory pair);
+    function auditPair(IAgreementCollector collector, address provider) external view returns (PairAudit memory pair);
 
     // -- Enumeration Views --
 
@@ -101,7 +102,7 @@ interface IRecurringAgreementHelper {
      * @return agreementIds The array of agreement IDs
      */
     function getPairAgreements(
-        address collector,
+        IAgreementCollector collector,
         address provider
     ) external view returns (bytes16[] memory agreementIds);
 
@@ -114,7 +115,7 @@ interface IRecurringAgreementHelper {
      * @return agreementIds The array of agreement IDs
      */
     function getPairAgreements(
-        address collector,
+        IAgreementCollector collector,
         address provider,
         uint256 offset,
         uint256 count
@@ -139,7 +140,7 @@ interface IRecurringAgreementHelper {
      * @param collector The collector address
      * @return result Array of provider addresses
      */
-    function getProviders(address collector) external view returns (address[] memory result);
+    function getProviders(IAgreementCollector collector) external view returns (address[] memory result);
 
     /**
      * @notice Get a paginated slice of provider addresses for a collector
@@ -149,7 +150,7 @@ interface IRecurringAgreementHelper {
      * @return result Array of provider addresses
      */
     function getProviders(
-        address collector,
+        IAgreementCollector collector,
         uint256 offset,
         uint256 count
     ) external view returns (address[] memory result);
@@ -179,7 +180,7 @@ interface IRecurringAgreementHelper {
      * @return escrowStale True if escrowSnap differs from actual escrow balance
      */
     function checkPairStaleness(
-        address collector,
+        IAgreementCollector collector,
         address provider
     ) external view returns (AgreementStaleness[] memory staleAgreements, bool escrowStale);
 
@@ -194,7 +195,10 @@ interface IRecurringAgreementHelper {
      * @return removed Number of agreements removed
      * @return pairExists True if the pair is still tracked
      */
-    function reconcilePair(address collector, address provider) external returns (uint256 removed, bool pairExists);
+    function reconcilePair(
+        IAgreementCollector collector,
+        address provider
+    ) external returns (uint256 removed, bool pairExists);
 
     /**
      * @notice Reconcile all pairs for a collector, then attempt collector removal.
@@ -203,7 +207,7 @@ interface IRecurringAgreementHelper {
      * @return removed Total agreements removed
      * @return collectorExists True if the collector is still tracked
      */
-    function reconcileCollector(address collector) external returns (uint256 removed, bool collectorExists);
+    function reconcileCollector(IAgreementCollector collector) external returns (uint256 removed, bool collectorExists);
 
     /**
      * @notice Reconcile all agreements across all collectors and providers.

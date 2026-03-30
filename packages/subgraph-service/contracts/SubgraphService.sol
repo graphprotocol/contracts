@@ -4,6 +4,7 @@ pragma solidity ^0.8.27;
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
 import { IGraphTallyCollector } from "@graphprotocol/interfaces/contracts/horizon/IGraphTallyCollector.sol";
+import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { IRewardsIssuer } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsIssuer.sol";
 import { IDataService } from "@graphprotocol/interfaces/contracts/data-service/IDataService.sol";
 import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
@@ -413,7 +414,7 @@ contract SubgraphService is
         _requireCollectorCaller();
 
         IndexingAgreement.StorageManager storage sm = IndexingAgreement._getStorageManager();
-        if (sm.agreements[agreementId].collector == address(0)) {
+        if (address(sm.agreements[agreementId].collector) == address(0)) {
             // Initial accept — validate indexer and provision
             require(
                 bytes(indexers[serviceProvider].url).length > 0,
@@ -422,7 +423,15 @@ contract SubgraphService is
             _requireValidProvision(serviceProvider);
         }
         // Collector identity (initial: store, update: enforce match) handled by library
-        sm.onAcceptCallback(_allocations, agreementId, payer, serviceProvider, metadata, extraData, msg.sender);
+        sm.onAcceptCallback(
+            _allocations,
+            agreementId,
+            payer,
+            serviceProvider,
+            metadata,
+            extraData,
+            IRecurringCollector(msg.sender)
+        );
     }
 
     /**

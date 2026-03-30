@@ -21,8 +21,11 @@ import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon
  * bugs. We may have an active bug bounty program.
  */
 contract RecurringAgreementHelper is IRecurringAgreementHelper {
-    /// @notice The RecurringAgreementManager contract address
-    address public immutable MANAGER;
+    /// @notice The RecurringAgreementManager contract (management interface)
+    IRecurringAgreementManagement public immutable MANAGER;
+
+    /// @notice The RecurringAgreementManager contract (read-only interface)
+    IRecurringAgreements public immutable AGREEMENTS;
 
     /// @notice The GRT token contract
     IERC20 public immutable GRAPH_TOKEN;
@@ -38,7 +41,8 @@ contract RecurringAgreementHelper is IRecurringAgreementHelper {
     constructor(address manager, IERC20 graphToken) {
         require(manager != address(0), ZeroAddress());
         require(address(graphToken) != address(0), ZeroAddress());
-        MANAGER = manager;
+        MANAGER = IRecurringAgreementManagement(manager);
+        AGREEMENTS = IRecurringAgreements(manager);
         GRAPH_TOKEN = graphToken;
     }
 
@@ -46,26 +50,25 @@ contract RecurringAgreementHelper is IRecurringAgreementHelper {
 
     /// @inheritdoc IRecurringAgreementHelper
     function auditGlobal() external view returns (GlobalAudit memory audit) {
-        IRecurringAgreements mgr = IRecurringAgreements(MANAGER);
         audit = GlobalAudit({
-            tokenBalance: GRAPH_TOKEN.balanceOf(MANAGER),
-            sumMaxNextClaimAll: mgr.getSumMaxNextClaimAll(),
-            totalEscrowDeficit: mgr.getTotalEscrowDeficit(),
-            escrowBasis: mgr.getEscrowBasis(),
-            minOnDemandBasisThreshold: mgr.getMinOnDemandBasisThreshold(),
-            minFullBasisMargin: mgr.getMinFullBasisMargin(),
-            collectorCount: mgr.getCollectorCount()
+            tokenBalance: GRAPH_TOKEN.balanceOf(address(MANAGER)),
+            sumMaxNextClaimAll: AGREEMENTS.getSumMaxNextClaimAll(),
+            totalEscrowDeficit: AGREEMENTS.getTotalEscrowDeficit(),
+            escrowBasis: AGREEMENTS.getEscrowBasis(),
+            minOnDemandBasisThreshold: AGREEMENTS.getMinOnDemandBasisThreshold(),
+            minFullBasisMargin: AGREEMENTS.getMinFullBasisMargin(),
+            collectorCount: AGREEMENTS.getCollectorCount()
         });
     }
 
     /// @inheritdoc IRecurringAgreementHelper
-    function auditPairs(address collector) external view returns (PairAudit[] memory pairs) {
+    function auditPairs(IAgreementCollector collector) external view returns (PairAudit[] memory pairs) {
         return _auditPairs(collector, 0, type(uint256).max);
     }
 
     /// @inheritdoc IRecurringAgreementHelper
     function auditPairs(
-        address collector,
+        IAgreementCollector collector,
         uint256 offset,
         uint256 count
     ) external view returns (PairAudit[] memory pairs) {
@@ -73,40 +76,41 @@ contract RecurringAgreementHelper is IRecurringAgreementHelper {
     }
 
     /// @inheritdoc IRecurringAgreementHelper
-    function auditPair(address collector, address provider) external view returns (PairAudit memory pair) {
-        IRecurringAgreements mgr = IRecurringAgreements(MANAGER);
+    function auditPair(IAgreementCollector collector, address provider) external view returns (PairAudit memory pair) {
         pair = PairAudit({
             collector: collector,
             provider: provider,
-            agreementCount: mgr.getPairAgreementCount(collector, provider),
-            sumMaxNextClaim: mgr.getSumMaxNextClaim(IAgreementCollector(collector), provider),
-            escrowSnap: mgr.getEscrowSnap(collector, provider),
-            escrow: mgr.getEscrowAccount(IAgreementCollector(collector), provider)
+            agreementCount: AGREEMENTS.getPairAgreementCount(collector, provider),
+            sumMaxNextClaim: AGREEMENTS.getSumMaxNextClaim(collector, provider),
+            escrowSnap: AGREEMENTS.getEscrowSnap(collector, provider),
+            escrow: AGREEMENTS.getEscrowAccount(collector, provider)
         });
     }
 
     // -- Enumeration Views --
 
     /// @inheritdoc IRecurringAgreementHelper
-    function getPairAgreements(address collector, address provider) external view returns (bytes16[] memory) {
+    function getPairAgreements(
+        IAgreementCollector collector,
+        address provider
+    ) external view returns (bytes16[] memory) {
         return getPairAgreements(collector, provider, 0, type(uint256).max);
     }
 
     /// @inheritdoc IRecurringAgreementHelper
     function getPairAgreements(
-        address collector,
+        IAgreementCollector collector,
         address provider,
         uint256 offset,
         uint256 count
     ) public view returns (bytes16[] memory result) {
-        IRecurringAgreements mgr = IRecurringAgreements(MANAGER);
-        uint256 total = mgr.getPairAgreementCount(collector, provider);
+        uint256 total = AGREEMENTS.getPairAgreementCount(collector, provider);
         // solhint-disable-next-line gas-strict-inequalities
         if (total <= offset) return new bytes16[](0);
         uint256 remaining = total - offset;
         if (remaining < count) count = remaining;
         result = new bytes16[](count);
-        for (uint256 i = 0; i < count; ++i) result[i] = mgr.getPairAgreementAt(collector, provider, offset + i);
+        for (uint256 i = 0; i < count; ++i) result[i] = AGREEMENTS.getPairAgreementAt(collector, provider, offset + i);
     }
 
     /// @inheritdoc IRecurringAgreementHelper
@@ -116,51 +120,48 @@ contract RecurringAgreementHelper is IRecurringAgreementHelper {
 
     /// @inheritdoc IRecurringAgreementHelper
     function getCollectors(uint256 offset, uint256 count) public view returns (address[] memory result) {
-        IRecurringAgreements mgr = IRecurringAgreements(MANAGER);
-        uint256 total = mgr.getCollectorCount();
+        uint256 total = AGREEMENTS.getCollectorCount();
         // solhint-disable-next-line gas-strict-inequalities
         if (total <= offset) return new address[](0);
         uint256 remaining = total - offset;
         if (remaining < count) count = remaining;
         result = new address[](count);
-        for (uint256 i = 0; i < count; ++i) result[i] = mgr.getCollectorAt(offset + i);
+        for (uint256 i = 0; i < count; ++i) result[i] = address(AGREEMENTS.getCollectorAt(offset + i));
     }
 
     /// @inheritdoc IRecurringAgreementHelper
-    function getProviders(address collector) external view returns (address[] memory) {
+    function getProviders(IAgreementCollector collector) external view returns (address[] memory) {
         return getProviders(collector, 0, type(uint256).max);
     }
 
     /// @inheritdoc IRecurringAgreementHelper
     function getProviders(
-        address collector,
+        IAgreementCollector collector,
         uint256 offset,
         uint256 count
     ) public view returns (address[] memory result) {
-        IRecurringAgreements mgr = IRecurringAgreements(MANAGER);
-        uint256 total = mgr.getProviderCount(collector);
+        uint256 total = AGREEMENTS.getProviderCount(collector);
         // solhint-disable-next-line gas-strict-inequalities
         if (total <= offset) return new address[](0);
         uint256 remaining = total - offset;
         if (remaining < count) count = remaining;
         result = new address[](count);
-        for (uint256 i = 0; i < count; ++i) result[i] = mgr.getProviderAt(collector, offset + i);
+        for (uint256 i = 0; i < count; ++i) result[i] = AGREEMENTS.getProviderAt(collector, offset + i);
     }
 
     // -- Reconciliation Discovery --
 
     /// @inheritdoc IRecurringAgreementHelper
     function checkPairStaleness(
-        address collector,
+        IAgreementCollector collector,
         address provider
     ) external view returns (AgreementStaleness[] memory staleAgreements, bool escrowStale) {
-        IRecurringAgreements mgr = IRecurringAgreements(MANAGER);
-        uint256 count = mgr.getPairAgreementCount(collector, provider);
+        uint256 count = AGREEMENTS.getPairAgreementCount(collector, provider);
         staleAgreements = new AgreementStaleness[](count);
         for (uint256 i = 0; i < count; ++i) {
-            bytes16 id = mgr.getPairAgreementAt(collector, provider, i);
-            uint256 cached = mgr.getAgreementMaxNextClaim(collector, id);
-            uint256 live = IAgreementCollector(collector).getMaxNextClaim(id);
+            bytes16 id = AGREEMENTS.getPairAgreementAt(collector, provider, i);
+            uint256 cached = AGREEMENTS.getAgreementMaxNextClaim(collector, id);
+            uint256 live = collector.getMaxNextClaim(id);
             staleAgreements[i] = AgreementStaleness({
                 agreementId: id,
                 cachedMaxNextClaim: cached,
@@ -169,40 +170,43 @@ contract RecurringAgreementHelper is IRecurringAgreementHelper {
             });
         }
         escrowStale =
-            mgr.getEscrowSnap(collector, provider) !=
-            mgr.getEscrowAccount(IAgreementCollector(collector), provider).balance;
+            AGREEMENTS.getEscrowSnap(collector, provider) != AGREEMENTS.getEscrowAccount(collector, provider).balance;
     }
 
     // -- Reconciliation --
 
     /// @inheritdoc IRecurringAgreementHelper
-    function reconcilePair(address collector, address provider) external returns (uint256 removed, bool pairExists) {
+    function reconcilePair(
+        IAgreementCollector collector,
+        address provider
+    ) external returns (uint256 removed, bool pairExists) {
         removed = _reconcilePair(collector, provider);
-        pairExists = IRecurringAgreementManagement(MANAGER).reconcileProvider(collector, provider);
+        pairExists = MANAGER.reconcileProvider(collector, provider);
     }
 
     /// @inheritdoc IRecurringAgreementHelper
-    function reconcileCollector(address collector) external returns (uint256 removed, bool collectorExists) {
-        IRecurringAgreementManagement mgt = IRecurringAgreementManagement(MANAGER);
+    function reconcileCollector(
+        IAgreementCollector collector
+    ) external returns (uint256 removed, bool collectorExists) {
         // Snapshot providers before iterating (removal modifies the set)
         address[] memory providers = this.getProviders(collector);
         for (uint256 p = 0; p < providers.length; ++p) {
             removed += _reconcilePair(collector, providers[p]);
-            mgt.reconcileProvider(collector, providers[p]);
+            MANAGER.reconcileProvider(collector, providers[p]);
         }
-        collectorExists = IRecurringAgreements(MANAGER).getProviderCount(collector) != 0;
+        collectorExists = AGREEMENTS.getProviderCount(collector) != 0;
     }
 
     /// @inheritdoc IRecurringAgreementHelper
     function reconcileAll() external returns (uint256 removed) {
-        IRecurringAgreementManagement mgt = IRecurringAgreementManagement(MANAGER);
         // Snapshot collectors before iterating
         address[] memory collectors = this.getCollectors();
         for (uint256 c = 0; c < collectors.length; ++c) {
-            address[] memory providers = this.getProviders(collectors[c]);
+            IAgreementCollector collector = IAgreementCollector(collectors[c]);
+            address[] memory providers = this.getProviders(collector);
             for (uint256 p = 0; p < providers.length; ++p) {
-                removed += _reconcilePair(collectors[c], providers[p]);
-                mgt.reconcileProvider(collectors[c], providers[p]);
+                removed += _reconcilePair(collector, providers[p]);
+                MANAGER.reconcileProvider(collector, providers[p]);
             }
         }
     }
@@ -210,30 +214,28 @@ contract RecurringAgreementHelper is IRecurringAgreementHelper {
     // -- Private Helpers --
 
     function _auditPairs(
-        address collector,
+        IAgreementCollector collector,
         uint256 offset,
         uint256 count
     ) private view returns (PairAudit[] memory pairs) {
-        IRecurringAgreements mgr = IRecurringAgreements(MANAGER);
         address[] memory providers = this.getProviders(collector, offset, count);
         pairs = new PairAudit[](providers.length);
         for (uint256 i = 0; i < providers.length; ++i) {
             pairs[i] = PairAudit({
                 collector: collector,
                 provider: providers[i],
-                agreementCount: mgr.getPairAgreementCount(collector, providers[i]),
-                sumMaxNextClaim: mgr.getSumMaxNextClaim(IAgreementCollector(collector), providers[i]),
-                escrowSnap: mgr.getEscrowSnap(collector, providers[i]),
-                escrow: mgr.getEscrowAccount(IAgreementCollector(collector), providers[i])
+                agreementCount: AGREEMENTS.getPairAgreementCount(collector, providers[i]),
+                sumMaxNextClaim: AGREEMENTS.getSumMaxNextClaim(collector, providers[i]),
+                escrowSnap: AGREEMENTS.getEscrowSnap(collector, providers[i]),
+                escrow: AGREEMENTS.getEscrowAccount(collector, providers[i])
             });
         }
     }
 
-    function _reconcilePair(address collector, address provider) private returns (uint256 removed) {
-        IRecurringAgreementManagement mgt = IRecurringAgreementManagement(MANAGER);
+    function _reconcilePair(IAgreementCollector collector, address provider) private returns (uint256 removed) {
         bytes16[] memory ids = this.getPairAgreements(collector, provider);
         for (uint256 i = 0; i < ids.length; ++i) {
-            if (!mgt.reconcileAgreement(collector, ids[i])) ++removed;
+            if (!MANAGER.reconcileAgreement(collector, ids[i])) ++removed;
         }
     }
 }

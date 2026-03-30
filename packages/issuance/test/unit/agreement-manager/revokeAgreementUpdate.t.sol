@@ -2,7 +2,11 @@
 pragma solidity ^0.8.27;
 
 import { IRecurringAgreementManagement } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreementManagement.sol";
-import { REGISTERED, ACCEPTED } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
+import {
+    IAgreementCollector,
+    REGISTERED,
+    ACCEPTED
+} from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { IRecurringAgreements } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreements.sol";
 import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
@@ -72,14 +76,16 @@ contract RecurringAgreementManagerCancelPendingUpdateTest is RecurringAgreementM
 
         // Before cancel: maxNextClaim = max(active=3700, pending=14600) = 14600
         // After cancel: pending deleted, maxNextClaim = active-only = 3700
-        uint256 oldMaxClaim = agreementManager.getAgreementInfo(address(recurringCollector), agreementId).maxNextClaim;
+        uint256 oldMaxClaim = agreementManager
+            .getAgreementInfo(IAgreementCollector(address(recurringCollector)), agreementId)
+            .maxNextClaim;
         uint256 activeOnlyClaim = 1 ether * 3600 + 100 ether;
 
         vm.expectEmit(address(agreementManager));
         emit IRecurringAgreementManagement.AgreementReconciled(agreementId, oldMaxClaim, activeOnlyClaim);
 
         vm.prank(operator);
-        agreementManager.cancelAgreement(address(recurringCollector), agreementId, pendingHash, 0);
+        agreementManager.cancelAgreement(IAgreementCollector(address(recurringCollector)), agreementId, pendingHash, 0);
     }
 
     function test_CancelPendingUpdate_CanOfferNewUpdateAfterCancel() public {
@@ -122,7 +128,7 @@ contract RecurringAgreementManagerCancelPendingUpdateTest is RecurringAgreementM
 
         // maxNextClaim = max(3700, 950) = 3700 (active dominates)
         IRecurringAgreements.AgreementInfo memory info = agreementManager.getAgreementInfo(
-            address(recurringCollector),
+            IAgreementCollector(address(recurringCollector)),
             agreementId
         );
         assertEq(info.maxNextClaim, originalMaxClaim);
@@ -140,7 +146,7 @@ contract RecurringAgreementManagerCancelPendingUpdateTest is RecurringAgreementM
         );
 
         vm.prank(operator);
-        agreementManager.cancelAgreement(address(recurringCollector), fakeId, bytes32(0), 0);
+        agreementManager.cancelAgreement(IAgreementCollector(address(recurringCollector)), fakeId, bytes32(0), 0);
     }
 
     function test_CancelPendingUpdate_Revert_WhenNotOperator() public {
@@ -162,7 +168,7 @@ contract RecurringAgreementManagerCancelPendingUpdateTest is RecurringAgreementM
             )
         );
         vm.prank(nonOperator);
-        agreementManager.cancelAgreement(address(recurringCollector), agreementId, bytes32(0), 0);
+        agreementManager.cancelAgreement(IAgreementCollector(address(recurringCollector)), agreementId, bytes32(0), 0);
     }
 
     function test_CancelPendingUpdate_Succeeds_WhenPaused() public {
@@ -189,7 +195,7 @@ contract RecurringAgreementManagerCancelPendingUpdateTest is RecurringAgreementM
 
         // Role-gated functions should succeed even when paused
         vm.prank(operator);
-        agreementManager.cancelAgreement(address(recurringCollector), agreementId, bytes32(0), 0);
+        agreementManager.cancelAgreement(IAgreementCollector(address(recurringCollector)), agreementId, bytes32(0), 0);
     }
 
     /* solhint-enable graph/func-name-mixedcase */

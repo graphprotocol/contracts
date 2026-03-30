@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringAgreementManagement } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreementManagement.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringAgreements } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreements.sol";
 
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { RecurringAgreementManagerSharedTest } from "./shared.t.sol";
 
 /// @notice Tests that canceling an agreement correctly clears pending update escrow.
@@ -60,7 +64,7 @@ contract RecurringAgreementManagerCancelWithPendingUpdateTest is RecurringAgreem
 
         // State is CanceledByPayer — cancelAgreement rejects non-Accepted states,
         // so use reconcileAgreement to trigger cleanup.
-        bool exists = agreementManager.reconcileAgreement(address(recurringCollector), agreementId);
+        bool exists = agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
         assertTrue(exists, "agreement should still exist (has remaining claims)");
 
         // 4. BUG: The pending update can never be accepted (collector rejects updates on
@@ -71,7 +75,7 @@ contract RecurringAgreementManagerCancelWithPendingUpdateTest is RecurringAgreem
         // sumMaxNextClaim should only include the base claim, not the dead pending update.
         assertEq(
             sumAfterCancel,
-            agreementManager.getAgreementMaxNextClaim(address(recurringCollector), agreementId),
+            agreementManager.getAgreementMaxNextClaim(IAgreementCollector(address(recurringCollector)), agreementId),
             "BUG: sumMaxNextClaim should only include the base claim, not the dead pending update"
         );
     }
@@ -110,16 +114,16 @@ contract RecurringAgreementManagerCancelWithPendingUpdateTest is RecurringAgreem
 
         // State is CanceledByPayer — cancelAgreement rejects non-Accepted states,
         // so use reconcileAgreement to trigger cleanup.
-        agreementManager.reconcileAgreement(address(recurringCollector), agreementId);
+        agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
 
         // After cancel + reconcile, maxNextClaim should reflect only the remaining collection window
         IRecurringAgreements.AgreementInfo memory info = agreementManager.getAgreementInfo(
-            address(recurringCollector),
+            IAgreementCollector(address(recurringCollector)),
             agreementId
         );
         assertEq(
             info.maxNextClaim,
-            agreementManager.getAgreementMaxNextClaim(address(recurringCollector), agreementId)
+            agreementManager.getAgreementMaxNextClaim(IAgreementCollector(address(recurringCollector)), agreementId)
         );
 
         // The pending update can no longer be applied (collector handles hash lifecycle)

@@ -8,7 +8,10 @@ import { IRecurringEscrowManagement } from "@graphprotocol/interfaces/contracts/
 import { IProviderEligibilityManagement } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IProviderEligibilityManagement.sol";
 import { IRecurringAgreements } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreements.sol";
 import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceTarget.sol";
-import { OFFER_TYPE_NEW } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
+import {
+    IAgreementCollector,
+    OFFER_TYPE_NEW
+} from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 
 import { RecurringAgreementManagerSharedTest } from "./shared.t.sol";
@@ -114,13 +117,22 @@ contract RecurringAgreementManagerApproverTest is RecurringAgreementManagerShare
 
     function test_GetAgreementMaxNextClaim_ZeroForUnknown() public view {
         assertEq(
-            agreementManager.getAgreementMaxNextClaim(address(recurringCollector), bytes16(keccak256("unknown"))),
+            agreementManager.getAgreementMaxNextClaim(
+                IAgreementCollector(address(recurringCollector)),
+                bytes16(keccak256("unknown"))
+            ),
             0
         );
     }
 
     function test_GetIndexerAgreementCount_ZeroForUnknown() public {
-        assertEq(agreementManager.getPairAgreementCount(address(recurringCollector), makeAddr("unknown")), 0);
+        assertEq(
+            agreementManager.getPairAgreementCount(
+                IAgreementCollector(address(recurringCollector)),
+                makeAddr("unknown")
+            ),
+            0
+        );
     }
 
     /* solhint-enable graph/func-name-mixedcase */

@@ -71,7 +71,7 @@ contract SubgraphServiceMultiCollectorTest is SubgraphServiceIndexingAgreementSh
         // if the collector weren't stored, getIndexingAgreement would fail to
         // fetch collectorAgreement data from the RC.
         IIndexingAgreement.AgreementWrapper memory wrapper = subgraphService.getIndexingAgreement(agreementId);
-        assertEq(wrapper.agreement.collector, address(recurringCollector));
+        assertEq(address(wrapper.agreement.collector), address(recurringCollector));
     }
 
     // ==================== Deauthorization ====================

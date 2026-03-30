@@ -384,46 +384,46 @@ contract RecurringAgreementManager is
 
     /// @inheritdoc IRecurringAgreementManagement
     function cancelAgreement(
-        address collector,
+        IAgreementCollector collector,
         bytes16 agreementId,
         bytes32 versionHash,
         uint16 options
     ) external onlyRole(AGREEMENT_MANAGER_ROLE) nonReentrant {
         // Forward to collector — no callback to msg.sender, we reconcile after return
-        IAgreementCollector(collector).cancel(agreementId, versionHash, options);
-        _reconcileAgreement(_getStorage(), collector, agreementId);
+        collector.cancel(agreementId, versionHash, options);
+        _reconcileAgreement(_getStorage(), address(collector), agreementId);
     }
 
     /// @inheritdoc IRecurringAgreementManagement
     function reconcileAgreement(
-        address collector,
+        IAgreementCollector collector,
         bytes16 agreementId
     ) external whenNotPaused nonReentrant returns (bool exists) {
-        exists = !_reconcileAgreement(_getStorage(), collector, agreementId);
+        exists = !_reconcileAgreement(_getStorage(), address(collector), agreementId);
     }
 
     /// @inheritdoc IRecurringAgreementManagement
     function reconcileProvider(
-        address collector,
+        IAgreementCollector collector,
         address provider
     ) external whenNotPaused nonReentrant returns (bool tracked) {
-        return _reconcileProvider(_getStorage(), collector, provider);
+        return _reconcileProvider(_getStorage(), address(collector), provider);
     }
 
     /// @inheritdoc IRecurringAgreementManagement
     function forceRemoveAgreement(
-        address collector,
+        IAgreementCollector collector,
         bytes16 agreementId
     ) external onlyRole(OPERATOR_ROLE) nonReentrant {
         RecurringAgreementManagerStorage storage _s = _getStorage();
-        AgreementInfo storage agreement = _s.collectors[collector].agreements[agreementId];
+        AgreementInfo storage agreement = _s.collectors[address(collector)].agreements[agreementId];
         address provider = agreement.provider;
         if (provider == address(0)) return;
 
-        CollectorProviderData storage cpd = _s.collectors[collector].providers[provider];
+        CollectorProviderData storage cpd = _s.collectors[address(collector)].providers[provider];
 
         _adjustMaxNextClaim(_s, cpd, agreement, 0);
-        _removeAgreement(_s, cpd, collector, provider, agreementId);
+        _removeAgreement(_s, cpd, address(collector), provider, agreementId);
     }
 
     /// @inheritdoc IRecurringAgreementManagement
@@ -510,13 +510,19 @@ contract RecurringAgreementManager is
     // --- Agreement data ---
 
     /// @inheritdoc IRecurringAgreements
-    function getAgreementInfo(address collector, bytes16 agreementId) external view returns (AgreementInfo memory) {
-        return _getStorage().collectors[collector].agreements[agreementId];
+    function getAgreementInfo(
+        IAgreementCollector collector,
+        bytes16 agreementId
+    ) external view returns (AgreementInfo memory) {
+        return _getStorage().collectors[address(collector)].agreements[agreementId];
     }
 
     /// @inheritdoc IRecurringAgreements
-    function getAgreementMaxNextClaim(address collector, bytes16 agreementId) external view returns (uint256) {
-        return _getStorage().collectors[collector].agreements[agreementId].maxNextClaim;
+    function getAgreementMaxNextClaim(
+        IAgreementCollector collector,
+        bytes16 agreementId
+    ) external view returns (uint256) {
+        return _getStorage().collectors[address(collector)].agreements[agreementId].maxNextClaim;
     }
 
     // --- Escrow state ---
@@ -545,8 +551,8 @@ contract RecurringAgreementManager is
     }
 
     /// @inheritdoc IRecurringAgreements
-    function getEscrowSnap(address collector, address provider) external view returns (uint256) {
-        return _getStorage().collectors[collector].providers[provider].escrowSnap;
+    function getEscrowSnap(IAgreementCollector collector, address provider) external view returns (uint256) {
+        return _getStorage().collectors[address(collector)].providers[provider].escrowSnap;
     }
 
     // --- Escrow parameters ---
@@ -579,28 +585,32 @@ contract RecurringAgreementManager is
     }
 
     /// @inheritdoc IRecurringAgreements
-    function getCollectorAt(uint256 index) external view returns (address) {
-        return _getStorage().collectorSet.at(index);
+    function getCollectorAt(uint256 index) external view returns (IAgreementCollector) {
+        return IAgreementCollector(_getStorage().collectorSet.at(index));
     }
 
     /// @inheritdoc IRecurringAgreements
-    function getProviderCount(address collector) external view returns (uint256) {
-        return _getStorage().collectors[collector].providerSet.length();
+    function getProviderCount(IAgreementCollector collector) external view returns (uint256) {
+        return _getStorage().collectors[address(collector)].providerSet.length();
     }
 
     /// @inheritdoc IRecurringAgreements
-    function getProviderAt(address collector, uint256 index) external view returns (address) {
-        return _getStorage().collectors[collector].providerSet.at(index);
+    function getProviderAt(IAgreementCollector collector, uint256 index) external view returns (address) {
+        return _getStorage().collectors[address(collector)].providerSet.at(index);
     }
 
     /// @inheritdoc IRecurringAgreements
-    function getPairAgreementCount(address collector, address provider) external view returns (uint256) {
-        return _getStorage().collectors[collector].providers[provider].agreements.length();
+    function getPairAgreementCount(IAgreementCollector collector, address provider) external view returns (uint256) {
+        return _getStorage().collectors[address(collector)].providers[provider].agreements.length();
     }
 
     /// @inheritdoc IRecurringAgreements
-    function getPairAgreementAt(address collector, address provider, uint256 index) external view returns (bytes16) {
-        return bytes16(_getStorage().collectors[collector].providers[provider].agreements.at(index));
+    function getPairAgreementAt(
+        IAgreementCollector collector,
+        address provider,
+        uint256 index
+    ) external view returns (bytes16) {
+        return bytes16(_getStorage().collectors[address(collector)].providers[provider].agreements.at(index));
     }
 
     // -- Private Functions --

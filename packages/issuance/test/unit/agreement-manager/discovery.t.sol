@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { Vm } from "forge-std/Vm.sol";
 
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringAgreementManagement } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreementManagement.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import {
     REGISTERED,
     ACCEPTED,
@@ -11,9 +14,12 @@ import {
     SETTLED,
     BY_PROVIDER
 } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { RecurringAgreementManagerSharedTest } from "./shared.t.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { MockRecurringCollector } from "./mocks/MockRecurringCollector.sol";
 
 /// @notice Tests for agreement discovery via reconcileAgreement when the RAM
@@ -41,7 +47,10 @@ contract RecurringAgreementManagerDiscoveryTest is RecurringAgreementManagerShar
         token.mint(address(agreementManager), 1_000_000 ether);
 
         // RAM has no knowledge of this agreement
-        assertEq(agreementManager.getAgreementInfo(address(recurringCollector), agreementId).provider, address(0));
+        assertEq(
+            agreementManager.getAgreementInfo(IAgreementCollector(address(recurringCollector)), agreementId).provider,
+            address(0)
+        );
 
         // reconcileAgreement should discover, register, and reconcile
         vm.expectEmit(address(agreementManager));
@@ -52,14 +61,19 @@ contract RecurringAgreementManagerDiscoveryTest is RecurringAgreementManagerShar
             indexer
         );
 
-        bool exists = agreementManager.reconcileAgreement(address(recurringCollector), agreementId);
+        bool exists = agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
 
         assertTrue(exists);
-        assertEq(agreementManager.getAgreementInfo(address(recurringCollector), agreementId).provider, indexer);
+        assertEq(
+            agreementManager.getAgreementInfo(IAgreementCollector(address(recurringCollector)), agreementId).provider,
+            indexer
+        );
 
         uint256 expectedMaxClaim = 1 ether * 3600 + 100 ether;
         assertEq(
-            agreementManager.getAgreementInfo(address(recurringCollector), agreementId).maxNextClaim,
+            agreementManager
+                .getAgreementInfo(IAgreementCollector(address(recurringCollector)), agreementId)
+                .maxNextClaim,
             expectedMaxClaim
         );
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), expectedMaxClaim);
@@ -88,7 +102,7 @@ contract RecurringAgreementManagerDiscoveryTest is RecurringAgreementManagerShar
         vm.expectEmit(address(agreementManager));
         emit IRecurringAgreementManagement.AgreementRemoved(agreementId);
 
-        bool exists = agreementManager.reconcileAgreement(address(recurringCollector), agreementId);
+        bool exists = agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
 
         assertFalse(exists);
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), 0);
@@ -105,11 +119,11 @@ contract RecurringAgreementManagerDiscoveryTest is RecurringAgreementManagerShar
         _setAgreementAccepted(agreementId, rca, uint64(block.timestamp));
         token.mint(address(agreementManager), 1_000_000 ether);
 
-        agreementManager.reconcileAgreement(address(recurringCollector), agreementId);
+        agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
 
         // Second reconcile should NOT emit AgreementAdded again
         vm.recordLogs();
-        agreementManager.reconcileAgreement(address(recurringCollector), agreementId);
+        agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
 
         // Check no AgreementAdded was emitted
         Vm.Log[] memory logs = vm.getRecordedLogs();
@@ -132,7 +146,7 @@ contract RecurringAgreementManagerDiscoveryTest is RecurringAgreementManagerShar
             IRecurringAgreementManagement.AgreementRejectionReason.UnknownAgreement
         );
 
-        bool exists = agreementManager.reconcileAgreement(address(recurringCollector), fakeId);
+        bool exists = agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), fakeId);
         assertFalse(exists);
     }
 
@@ -161,7 +175,7 @@ contract RecurringAgreementManagerDiscoveryTest is RecurringAgreementManagerShar
             IRecurringAgreementManagement.AgreementRejectionReason.UnauthorizedCollector
         );
 
-        bool exists = agreementManager.reconcileAgreement(address(rogue), agreementId);
+        bool exists = agreementManager.reconcileAgreement(IAgreementCollector(address(rogue)), agreementId);
         assertFalse(exists);
     }
 
@@ -192,7 +206,7 @@ contract RecurringAgreementManagerDiscoveryTest is RecurringAgreementManagerShar
             IRecurringAgreementManagement.AgreementRejectionReason.PayerMismatch
         );
 
-        bool exists = agreementManager.reconcileAgreement(address(recurringCollector), agreementId);
+        bool exists = agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
         assertFalse(exists);
     }
 
@@ -222,7 +236,7 @@ contract RecurringAgreementManagerDiscoveryTest is RecurringAgreementManagerShar
             IRecurringAgreementManagement.AgreementRejectionReason.UnauthorizedDataService
         );
 
-        bool exists = agreementManager.reconcileAgreement(address(recurringCollector), agreementId);
+        bool exists = agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
         assertFalse(exists);
     }
 
@@ -239,7 +253,7 @@ contract RecurringAgreementManagerDiscoveryTest is RecurringAgreementManagerShar
         bytes16 agreementId = _offerAgreement(rca);
 
         uint256 trackedMaxClaim = agreementManager
-            .getAgreementInfo(address(recurringCollector), agreementId)
+            .getAgreementInfo(IAgreementCollector(address(recurringCollector)), agreementId)
             .maxNextClaim;
         assertTrue(trackedMaxClaim > 0, "Should be tracked after offer");
 
@@ -248,7 +262,9 @@ contract RecurringAgreementManagerDiscoveryTest is RecurringAgreementManagerShar
 
         // RAM still thinks it has the old maxNextClaim
         assertEq(
-            agreementManager.getAgreementInfo(address(recurringCollector), agreementId).maxNextClaim,
+            agreementManager
+                .getAgreementInfo(IAgreementCollector(address(recurringCollector)), agreementId)
+                .maxNextClaim,
             trackedMaxClaim,
             "RAM should still have stale maxNextClaim"
         );
@@ -257,7 +273,7 @@ contract RecurringAgreementManagerDiscoveryTest is RecurringAgreementManagerShar
         vm.expectEmit(address(agreementManager));
         emit IRecurringAgreementManagement.AgreementRemoved(agreementId);
 
-        bool exists = agreementManager.reconcileAgreement(address(recurringCollector), agreementId);
+        bool exists = agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
         assertFalse(exists);
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), 0);
     }
@@ -274,7 +290,7 @@ contract RecurringAgreementManagerDiscoveryTest is RecurringAgreementManagerShar
         _setAgreementAccepted(agreementId, rca, uint64(block.timestamp));
 
         uint256 preReconcileMax = agreementManager
-            .getAgreementInfo(address(recurringCollector), agreementId)
+            .getAgreementInfo(IAgreementCollector(address(recurringCollector)), agreementId)
             .maxNextClaim;
 
         // Simulate a collection happened out-of-band (lastCollectionAt advanced)
@@ -285,11 +301,11 @@ contract RecurringAgreementManagerDiscoveryTest is RecurringAgreementManagerShar
         vm.warp(collectionTime);
 
         // Reconcile should update maxNextClaim (no more initialTokens, reduced window)
-        bool exists = agreementManager.reconcileAgreement(address(recurringCollector), agreementId);
+        bool exists = agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
         assertTrue(exists);
 
         uint256 postReconcileMax = agreementManager
-            .getAgreementInfo(address(recurringCollector), agreementId)
+            .getAgreementInfo(IAgreementCollector(address(recurringCollector)), agreementId)
             .maxNextClaim;
         assertTrue(postReconcileMax < preReconcileMax, "maxNextClaim should decrease after collection");
         // After collection: no initialTokens, maxSeconds still 3600 → 1e18 * 3600 = 3600e18
@@ -311,7 +327,7 @@ contract RecurringAgreementManagerDiscoveryTest is RecurringAgreementManagerShar
 
         address randomUser = makeAddr("randomUser");
         vm.prank(randomUser);
-        bool exists = agreementManager.reconcileAgreement(address(recurringCollector), agreementId);
+        bool exists = agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
         assertTrue(exists);
     }
 

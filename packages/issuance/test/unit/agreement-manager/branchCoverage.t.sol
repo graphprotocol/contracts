@@ -1,17 +1,24 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import {
     REGISTERED,
     ACCEPTED,
     OFFER_TYPE_NEW
 } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringAgreementManagement } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreementManagement.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringEscrowManagement } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringEscrowManagement.sol";
 
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { RecurringAgreementManager } from "../../../contracts/agreement/RecurringAgreementManager.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { RecurringAgreementManagerSharedTest } from "./shared.t.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { MockRecurringCollector } from "./mocks/MockRecurringCollector.sol";
 
 /// @notice Targeted tests for uncovered branches in RecurringAgreementManager.
@@ -125,10 +132,10 @@ contract RecurringAgreementManagerBranchCoverageTest is RecurringAgreementManage
 
         // Should not revert — early return
         vm.prank(operator);
-        agreementManager.forceRemoveAgreement(address(recurringCollector), unknownId);
+        agreementManager.forceRemoveAgreement(IAgreementCollector(address(recurringCollector)), unknownId);
 
         // No state changes
-        assertEq(agreementManager.getPairAgreementCount(address(recurringCollector), indexer), 0);
+        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
     }
 
     /// @notice forceRemoveAgreement removes a tracked agreement.
@@ -143,15 +150,15 @@ contract RecurringAgreementManagerBranchCoverageTest is RecurringAgreementManage
         bytes16 agreementId = _offerAgreement(rca);
 
         // Verify tracked
-        assertEq(agreementManager.getPairAgreementCount(address(recurringCollector), indexer), 1);
+        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
         assertTrue(agreementManager.getSumMaxNextClaim(_collector(), indexer) > 0);
 
         // Force remove
         vm.prank(operator);
-        agreementManager.forceRemoveAgreement(address(recurringCollector), agreementId);
+        agreementManager.forceRemoveAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
 
         // Cleaned up
-        assertEq(agreementManager.getPairAgreementCount(address(recurringCollector), indexer), 0);
+        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), 0);
         assertEq(agreementManager.getSumMaxNextClaimAll(), 0);
     }
@@ -213,7 +220,7 @@ contract RecurringAgreementManagerBranchCoverageTest is RecurringAgreementManage
         agreementManager.afterAgreementStateChange(agreementId, bytes32(0), 0);
 
         // Agreement should still be tracked (reconcile updates maxNextClaim)
-        assertEq(agreementManager.getPairAgreementCount(address(recurringCollector), indexer), 1);
+        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -256,7 +263,7 @@ contract RecurringAgreementManagerBranchCoverageTest is RecurringAgreementManage
 
         // Manager still has tokens (minted 1M in _offerAgreement, deposited 3700)
         // Reconcile should trigger deposit deficit branch
-        agreementManager.reconcileProvider(address(recurringCollector), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(recurringCollector)), indexer);
 
         // After reconcile, escrow should be topped up
         (uint256 balAfter, , ) = paymentsEscrow.escrowAccounts(

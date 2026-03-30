@@ -3,7 +3,12 @@ pragma solidity ^0.8.27;
 
 import { IRecurringAgreementHelper } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreementHelper.sol";
 import { IRecurringEscrowManagement } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringEscrowManagement.sol";
-import { REGISTERED, ACCEPTED, OFFER_TYPE_NEW } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
+import {
+    IAgreementCollector,
+    REGISTERED,
+    ACCEPTED,
+    OFFER_TYPE_NEW
+} from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 
 import { RecurringAgreementManagerSharedTest } from "./shared.t.sol";
@@ -107,8 +112,8 @@ contract RecurringAgreementHelperAuditTest is RecurringAgreementManagerSharedTes
     // -- Tests: auditPair --
 
     function test_AuditPair_NonExistent() public view {
-        IRecurringAgreementHelper.PairAudit memory p = agreementHelper.auditPair(address(recurringCollector), indexer);
-        assertEq(p.collector, address(recurringCollector));
+        IRecurringAgreementHelper.PairAudit memory p = agreementHelper.auditPair(IAgreementCollector(address(recurringCollector)), indexer);
+        assertEq(address(p.collector), address(recurringCollector));
         assertEq(p.provider, indexer);
         assertEq(p.agreementCount, 0);
         assertEq(p.sumMaxNextClaim, 0);
@@ -125,7 +130,7 @@ contract RecurringAgreementHelperAuditTest is RecurringAgreementManagerSharedTes
 
         uint256 maxClaim = 1 ether * 3600 + 100 ether;
 
-        IRecurringAgreementHelper.PairAudit memory p = agreementHelper.auditPair(address(recurringCollector), indexer);
+        IRecurringAgreementHelper.PairAudit memory p = agreementHelper.auditPair(IAgreementCollector(address(recurringCollector)), indexer);
         assertEq(p.agreementCount, 1);
         assertEq(p.sumMaxNextClaim, maxClaim);
         assertEq(p.escrow.balance, maxClaim); // Full mode deposits all
@@ -141,9 +146,9 @@ contract RecurringAgreementHelperAuditTest is RecurringAgreementManagerSharedTes
 
         // Cancel by SP to make maxNextClaim = 0, then reconcile (thaw starts)
         _setAgreementCanceledBySP(agreementId, rca);
-        agreementManager.reconcileAgreement(address(recurringCollector), agreementId);
+        agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
 
-        IRecurringAgreementHelper.PairAudit memory p = agreementHelper.auditPair(address(recurringCollector), indexer);
+        IRecurringAgreementHelper.PairAudit memory p = agreementHelper.auditPair(IAgreementCollector(address(recurringCollector)), indexer);
         // sumMaxNextClaim should be 0 after reconcile
         assertEq(p.sumMaxNextClaim, 0);
         // Escrow should be thawing
@@ -153,7 +158,7 @@ contract RecurringAgreementHelperAuditTest is RecurringAgreementManagerSharedTes
     // -- Tests: auditPairs --
 
     function test_AuditPairs_EmptyCollector() public view {
-        IRecurringAgreementHelper.PairAudit[] memory pairs = agreementHelper.auditPairs(address(recurringCollector));
+        IRecurringAgreementHelper.PairAudit[] memory pairs = agreementHelper.auditPairs(IAgreementCollector(address(recurringCollector)));
         assertEq(pairs.length, 0);
     }
 
@@ -172,7 +177,7 @@ contract RecurringAgreementHelperAuditTest is RecurringAgreementManagerSharedTes
         );
         _offerAgreement(rca2);
 
-        IRecurringAgreementHelper.PairAudit[] memory pairs = agreementHelper.auditPairs(address(recurringCollector));
+        IRecurringAgreementHelper.PairAudit[] memory pairs = agreementHelper.auditPairs(IAgreementCollector(address(recurringCollector)));
         assertEq(pairs.length, 2);
         // Both should have agreementCount = 1
         assertEq(pairs[0].agreementCount, 1);
@@ -196,7 +201,7 @@ contract RecurringAgreementHelperAuditTest is RecurringAgreementManagerSharedTes
 
         // First page
         IRecurringAgreementHelper.PairAudit[] memory first = agreementHelper.auditPairs(
-            address(recurringCollector),
+            IAgreementCollector(address(recurringCollector)),
             0,
             1
         );
@@ -204,7 +209,7 @@ contract RecurringAgreementHelperAuditTest is RecurringAgreementManagerSharedTes
 
         // Second page
         IRecurringAgreementHelper.PairAudit[] memory second = agreementHelper.auditPairs(
-            address(recurringCollector),
+            IAgreementCollector(address(recurringCollector)),
             1,
             1
         );
@@ -212,7 +217,7 @@ contract RecurringAgreementHelperAuditTest is RecurringAgreementManagerSharedTes
 
         // Past end
         IRecurringAgreementHelper.PairAudit[] memory empty = agreementHelper.auditPairs(
-            address(recurringCollector),
+            IAgreementCollector(address(recurringCollector)),
             2,
             1
         );
@@ -237,25 +242,25 @@ contract RecurringAgreementHelperAuditTest is RecurringAgreementManagerSharedTes
         _offerAgreement(rca2);
 
         // Full list
-        bytes16[] memory all = agreementHelper.getPairAgreements(address(recurringCollector), indexer);
+        bytes16[] memory all = agreementHelper.getPairAgreements(IAgreementCollector(address(recurringCollector)), indexer);
         assertEq(all.length, 2);
 
         // First page
-        bytes16[] memory first = agreementHelper.getPairAgreements(address(recurringCollector), indexer, 0, 1);
+        bytes16[] memory first = agreementHelper.getPairAgreements(IAgreementCollector(address(recurringCollector)), indexer, 0, 1);
         assertEq(first.length, 1);
         assertEq(first[0], all[0]);
 
         // Second page
-        bytes16[] memory second = agreementHelper.getPairAgreements(address(recurringCollector), indexer, 1, 1);
+        bytes16[] memory second = agreementHelper.getPairAgreements(IAgreementCollector(address(recurringCollector)), indexer, 1, 1);
         assertEq(second.length, 1);
         assertEq(second[0], all[1]);
 
         // Past end
-        bytes16[] memory empty = agreementHelper.getPairAgreements(address(recurringCollector), indexer, 2, 1);
+        bytes16[] memory empty = agreementHelper.getPairAgreements(IAgreementCollector(address(recurringCollector)), indexer, 2, 1);
         assertEq(empty.length, 0);
 
         // Count larger than remaining
-        bytes16[] memory clamped = agreementHelper.getPairAgreements(address(recurringCollector), indexer, 1, 100);
+        bytes16[] memory clamped = agreementHelper.getPairAgreements(IAgreementCollector(address(recurringCollector)), indexer, 1, 100);
         assertEq(clamped.length, 1);
         assertEq(clamped[0], all[1]);
     }
@@ -309,10 +314,10 @@ contract RecurringAgreementHelperAuditTest is RecurringAgreementManagerSharedTes
         IRecurringCollector.RecurringCollectionAgreement memory rca2 = _makeRCAForCollector(collector2, indexer, 2);
         _offerForCollector(collector2, rca2);
 
-        IRecurringAgreementHelper.PairAudit[] memory c1Pairs = agreementHelper.auditPairs(address(recurringCollector));
+        IRecurringAgreementHelper.PairAudit[] memory c1Pairs = agreementHelper.auditPairs(IAgreementCollector(address(recurringCollector)));
         assertEq(c1Pairs.length, 1);
 
-        IRecurringAgreementHelper.PairAudit[] memory c2Pairs = agreementHelper.auditPairs(address(collector2));
+        IRecurringAgreementHelper.PairAudit[] memory c2Pairs = agreementHelper.auditPairs(IAgreementCollector(address(collector2)));
         assertEq(c2Pairs.length, 1);
     }
 
@@ -331,7 +336,7 @@ contract RecurringAgreementHelperAuditTest is RecurringAgreementManagerSharedTes
 
         // Fresh state: cached == live
         (IRecurringAgreementHelper.AgreementStaleness[] memory stale, bool escrowStale) =
-            agreementHelper.checkPairStaleness(address(recurringCollector), indexer);
+            agreementHelper.checkPairStaleness(IAgreementCollector(address(recurringCollector)), indexer);
         assertEq(stale.length, 1);
         assertEq(stale[0].agreementId, agreementId);
         assertFalse(stale[0].stale, "Should not be stale when cached == live");
@@ -344,7 +349,7 @@ contract RecurringAgreementHelperAuditTest is RecurringAgreementManagerSharedTes
         recurringCollector.setAgreement(agreementId, mockData);
 
         // Now cached != live
-        (stale, escrowStale) = agreementHelper.checkPairStaleness(address(recurringCollector), indexer);
+        (stale, escrowStale) = agreementHelper.checkPairStaleness(IAgreementCollector(address(recurringCollector)), indexer);
         assertEq(stale.length, 1);
         assertTrue(stale[0].stale, "Should be stale when collector rate changed");
         assertTrue(stale[0].liveMaxNextClaim > stale[0].cachedMaxNextClaim);

@@ -30,7 +30,7 @@ contract IndexingAgreementTest is Test {
         // Set the collector in the agreement state so _get() can resolve it
         _storageManager.agreements[agreementId] = IIndexingAgreement.State({
             allocationId: address(0),
-            collector: _mockCollector,
+            collector: IRecurringCollector(_mockCollector),
             version: IIndexingAgreement.IndexingAgreementVersion.V1,
             subgraphDeploymentId: bytes32(0)
         });
@@ -72,7 +72,7 @@ contract IndexingAgreementTest is Test {
         _storageManager.allocationToActiveAgreementId[allocationId] = agreementId;
         _storageManager.agreements[agreementId] = IIndexingAgreement.State({
             allocationId: allocationId,
-            collector: _mockCollector,
+            collector: IRecurringCollector(_mockCollector),
             version: IIndexingAgreement.IndexingAgreementVersion.V1,
             subgraphDeploymentId: bytes32(0)
         });
@@ -110,7 +110,7 @@ contract IndexingAgreementTest is Test {
         _storageManager.allocationToActiveAgreementId[allocationId] = agreementId;
         _storageManager.agreements[agreementId] = IIndexingAgreement.State({
             allocationId: allocationId,
-            collector: _mockCollector,
+            collector: IRecurringCollector(_mockCollector),
             version: IIndexingAgreement.IndexingAgreementVersion.V1,
             subgraphDeploymentId: bytes32(0)
         });

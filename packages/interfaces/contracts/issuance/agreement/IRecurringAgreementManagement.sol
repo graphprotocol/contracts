@@ -138,7 +138,12 @@ interface IRecurringAgreementManagement {
      * @param versionHash The terms hash to cancel (activeTerms.hash or pendingTerms.hash)
      * @param options Bitmask — IF_NOT_ACCEPTED reverts if the targeted version was already accepted.
      */
-    function cancelAgreement(address collector, bytes16 agreementId, bytes32 versionHash, uint16 options) external;
+    function cancelAgreement(
+        IAgreementCollector collector,
+        bytes16 agreementId,
+        bytes32 versionHash,
+        uint16 options
+    ) external;
 
     /**
      * @notice Reconcile a single agreement: re-read on-chain state, recalculate
@@ -152,7 +157,7 @@ interface IRecurringAgreementManagement {
      * @param agreementId The agreement ID to reconcile
      * @return exists True if the agreement is still tracked after this call
      */
-    function reconcileAgreement(address collector, bytes16 agreementId) external returns (bool exists);
+    function reconcileAgreement(IAgreementCollector collector, bytes16 agreementId) external returns (bool exists);
 
     /**
      * @notice Force-remove a tracked agreement whose collector is unresponsive.
@@ -166,7 +171,7 @@ interface IRecurringAgreementManagement {
      * @param collector The collector contract address
      * @param agreementId The agreement ID to force-remove
      */
-    function forceRemoveAgreement(address collector, bytes16 agreementId) external;
+    function forceRemoveAgreement(IAgreementCollector collector, bytes16 agreementId) external;
 
     /**
      * @notice Reconcile a (collector, provider) pair: rebalance escrow, withdraw
@@ -180,7 +185,7 @@ interface IRecurringAgreementManagement {
      * @param provider The provider address
      * @return tracked True if the pair is still tracked after this call
      */
-    function reconcileProvider(address collector, address provider) external returns (bool tracked);
+    function reconcileProvider(IAgreementCollector collector, address provider) external returns (bool tracked);
 
     /**
      * @notice Emergency: clear the eligibility oracle so all providers become eligible.

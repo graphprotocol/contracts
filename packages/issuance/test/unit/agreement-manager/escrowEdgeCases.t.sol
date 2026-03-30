@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import {
     REGISTERED,
     ACCEPTED,
@@ -9,11 +10,16 @@ import {
     BY_PROVIDER,
     OFFER_TYPE_NEW
 } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringEscrowManagement } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringEscrowManagement.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IProviderEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IProviderEligibility.sol";
 
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { RecurringAgreementManagerSharedTest } from "./shared.t.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { MockEligibilityOracle } from "./mocks/MockEligibilityOracle.sol";
 
 /// @notice Edge case tests for escrow lifecycle, basis degradation, and cross-provider isolation.
@@ -81,16 +87,18 @@ contract RecurringAgreementManagerEscrowEdgeCasesTest is RecurringAgreementManag
         bytes16 agreementId = _offerAgreement(rca);
 
         // Tracked with non-zero maxNextClaim
-        assertEq(agreementManager.getPairAgreementCount(address(recurringCollector), indexer), 1);
+        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
         assertTrue(
-            agreementManager.getAgreementInfo(address(recurringCollector), agreementId).maxNextClaim > 0,
+            agreementManager
+                .getAgreementInfo(IAgreementCollector(address(recurringCollector)), agreementId)
+                .maxNextClaim > 0,
             "REGISTERED agreement should have non-zero maxNextClaim"
         );
 
         // Cancel without ever accepting — cleans up immediately
         _cancelAgreement(agreementId);
         assertEq(
-            agreementManager.getPairAgreementCount(address(recurringCollector), indexer),
+            agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer),
             0,
             "canceled REGISTERED agreement should be removed"
         );
@@ -114,15 +122,15 @@ contract RecurringAgreementManagerEscrowEdgeCasesTest is RecurringAgreementManag
         );
 
         bytes16 agreementId = _offerAgreement(rca);
-        assertEq(agreementManager.getPairAgreementCount(address(recurringCollector), indexer), 1);
+        assertEq(agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
 
         // Warp past endsAt — collector reports maxNextClaim = 0
         vm.warp(block.timestamp + 31 days);
 
         // Reconcile removes the expired agreement automatically
-        agreementManager.reconcileAgreement(address(recurringCollector), agreementId);
+        agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
         assertEq(
-            agreementManager.getPairAgreementCount(address(recurringCollector), indexer),
+            agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer),
             0,
             "expired REGISTERED agreement should be auto-removed on reconcile"
         );
@@ -224,7 +232,7 @@ contract RecurringAgreementManagerEscrowEdgeCasesTest is RecurringAgreementManag
         agreementManager.setEscrowBasis(IRecurringEscrowManagement.EscrowBasis.JustInTime);
 
         // Reconcile to trigger escrow rebalancing
-        agreementManager.reconcileProvider(address(recurringCollector), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(recurringCollector)), indexer);
 
         // In JIT, excess should be thawing
         uint256 thawing = _escrowThawing(address(recurringCollector), indexer);
@@ -235,7 +243,7 @@ contract RecurringAgreementManagerEscrowEdgeCasesTest is RecurringAgreementManag
         agreementManager.setEscrowBasis(IRecurringEscrowManagement.EscrowBasis.Full);
 
         // Reconcile — should cancel thaw and maintain full deposit
-        agreementManager.reconcileProvider(address(recurringCollector), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(recurringCollector)), indexer);
 
         uint256 escrowRecovered = _escrowBalance(address(recurringCollector), indexer);
         assertEq(escrowRecovered, expectedMaxClaim, "recovered: escrow should be fully funded again");
@@ -336,7 +344,7 @@ contract RecurringAgreementManagerEscrowEdgeCasesTest is RecurringAgreementManag
 
         // After thaw period, withdraw for indexer1 does not touch indexer2
         vm.warp(block.timestamp + 1 days + 1);
-        agreementManager.reconcileProvider(address(recurringCollector), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(recurringCollector)), indexer);
 
         assertEq(
             _escrowBalance(address(recurringCollector), indexer2),
@@ -380,12 +388,15 @@ contract RecurringAgreementManagerEscrowEdgeCasesTest is RecurringAgreementManag
 
         // Agreement is still tracked (eligibility doesn't auto-remove)
         assertEq(
-            agreementManager.getPairAgreementCount(address(recurringCollector), indexer),
+            agreementManager.getPairAgreementCount(IAgreementCollector(address(recurringCollector)), indexer),
             1,
             "agreement should persist despite ineligibility"
         );
         assertTrue(
-            agreementManager.getAgreementInfo(address(recurringCollector), bytes16(0)).maxNextClaim == 0 ||
+            agreementManager
+                .getAgreementInfo(IAgreementCollector(address(recurringCollector)), bytes16(0))
+                .maxNextClaim ==
+                0 ||
                 agreementManager.getSumMaxNextClaim(_collector(), indexer) > 0,
             "escrow tracking should be unaffected by eligibility"
         );
