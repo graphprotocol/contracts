@@ -2,6 +2,7 @@
 pragma solidity ^0.8.27;
 
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
+import { OFFER_TYPE_NEW, OFFER_TYPE_UPDATE } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 
 import { RecurringCollectorSharedTest } from "./shared.t.sol";
 import { MockAgreementOwner } from "./MockAgreementOwner.t.sol";
@@ -16,8 +17,8 @@ contract RecurringCollectorUpdateUnsignedTest is RecurringCollectorSharedTest {
         MockAgreementOwner approver,
         IRecurringCollector.RecurringCollectionAgreement memory rca
     ) internal returns (bytes16) {
-        bytes32 agreementHash = _recurringCollector.hashRCA(rca);
-        approver.authorize(agreementHash);
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0);
 
         _setupValidProvision(rca.serviceProvider, rca.dataService);
 
@@ -38,6 +39,7 @@ contract RecurringCollectorUpdateUnsignedTest is RecurringCollectorSharedTest {
                     maxOngoingTokensPerSecond: 1 ether,
                     minSecondsPerCollection: 600,
                     maxSecondsPerCollection: 3600,
+                    conditions: 0,
                     nonce: 1,
                     metadata: ""
                 })
@@ -58,6 +60,7 @@ contract RecurringCollectorUpdateUnsignedTest is RecurringCollectorSharedTest {
                     maxOngoingTokensPerSecond: 2 ether,
                     minSecondsPerCollection: 600,
                     maxSecondsPerCollection: 7200,
+                    conditions: 0,
                     nonce: nonce,
                     metadata: ""
                 })
@@ -74,9 +77,9 @@ contract RecurringCollectorUpdateUnsignedTest is RecurringCollectorSharedTest {
 
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _makeSimpleRCAU(agreementId, 1);
 
-        // Authorize the update hash
-        bytes32 updateHash = _recurringCollector.hashRCAU(rcau);
-        approver.authorize(updateHash);
+        // Store the update offer
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
 
         vm.expectEmit(address(_recurringCollector));
         emit IRecurringCollector.AgreementUpdated(
@@ -104,43 +107,6 @@ contract RecurringCollectorUpdateUnsignedTest is RecurringCollectorSharedTest {
         assertEq(rcau.nonce, agreement.updateNonce);
     }
 
-    function test_UpdateUnsigned_Revert_WhenPayerNotContract() public {
-        // Use the signed accept path to create an agreement with an EOA payer,
-        // then attempt updateUnsigned which should fail because payer isn't a contract
-        uint256 signerKey = 0xA11CE;
-        address payer = vm.addr(signerKey);
-        IRecurringCollector.RecurringCollectionAgreement memory rca = _recurringCollectorHelper.sensibleRCA(
-            IRecurringCollector.RecurringCollectionAgreement({
-                deadline: uint64(block.timestamp + 1 hours),
-                endsAt: uint64(block.timestamp + 365 days),
-                payer: payer,
-                dataService: makeAddr("ds"),
-                serviceProvider: makeAddr("sp"),
-                maxInitialTokens: 100 ether,
-                maxOngoingTokensPerSecond: 1 ether,
-                minSecondsPerCollection: 600,
-                maxSecondsPerCollection: 3600,
-                nonce: 1,
-                metadata: ""
-            })
-        );
-
-        // Accept via signed path
-        _recurringCollectorHelper.authorizeSignerWithChecks(payer, signerKey);
-        (, bytes memory signature) = _recurringCollectorHelper.generateSignedRCA(rca, signerKey);
-        _setupValidProvision(rca.serviceProvider, rca.dataService);
-        vm.prank(rca.dataService);
-        bytes16 agreementId = _recurringCollector.accept(rca, signature);
-
-        IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _makeSimpleRCAU(agreementId, 1);
-
-        vm.expectRevert(
-            abi.encodeWithSelector(IRecurringCollector.RecurringCollectorApproverNotContract.selector, payer)
-        );
-        vm.prank(rca.dataService);
-        _recurringCollector.update(rcau, "");
-    }
-
     function test_UpdateUnsigned_Revert_WhenHashNotAuthorized() public {
         MockAgreementOwner approver = _newApprover();
         IRecurringCollector.RecurringCollectionAgreement memory rca = _makeSimpleRCA(address(approver));
@@ -163,8 +129,7 @@ contract RecurringCollectorUpdateUnsignedTest is RecurringCollectorSharedTest {
 
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _makeSimpleRCAU(agreementId, 1);
 
-        approver.setOverrideReturnValue(bytes4(0xdeadbeef));
-
+        // With stored offers, "wrong magic value" maps to "no matching offer stored"
         vm.expectRevert(abi.encodeWithSelector(IRecurringCollector.RecurringCollectorInvalidSigner.selector));
         vm.prank(rca.dataService);
         _recurringCollector.update(rcau, "");
@@ -178,8 +143,8 @@ contract RecurringCollectorUpdateUnsignedTest is RecurringCollectorSharedTest {
 
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _makeSimpleRCAU(agreementId, 1);
 
-        bytes32 updateHash = _recurringCollector.hashRCAU(rcau);
-        approver.authorize(updateHash);
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
 
         address notDataService = makeAddr("notDataService");
         vm.expectRevert(
@@ -217,8 +182,8 @@ contract RecurringCollectorUpdateUnsignedTest is RecurringCollectorSharedTest {
         // Use wrong nonce (0 instead of 1)
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _makeSimpleRCAU(agreementId, 0);
 
-        bytes32 updateHash = _recurringCollector.hashRCAU(rcau);
-        approver.authorize(updateHash);
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
 
         bytes memory expectedErr = abi.encodeWithSelector(
             IRecurringCollector.RecurringCollectorInvalidUpdateNonce.selector,
@@ -231,7 +196,7 @@ contract RecurringCollectorUpdateUnsignedTest is RecurringCollectorSharedTest {
         _recurringCollector.update(rcau, "");
     }
 
-    function test_UpdateUnsigned_Revert_WhenApproverReverts() public {
+    function test_UpdateUnsigned_Revert_WhenNoOfferStored() public {
         MockAgreementOwner approver = _newApprover();
         IRecurringCollector.RecurringCollectionAgreement memory rca = _makeSimpleRCA(address(approver));
 
@@ -239,9 +204,8 @@ contract RecurringCollectorUpdateUnsignedTest is RecurringCollectorSharedTest {
 
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _makeSimpleRCAU(agreementId, 1);
 
-        approver.setShouldRevert(true);
-
-        vm.expectRevert("MockAgreementOwner: forced revert");
+        // No offer stored — should revert with InvalidSigner
+        vm.expectRevert(abi.encodeWithSelector(IRecurringCollector.RecurringCollectorInvalidSigner.selector));
         vm.prank(rca.dataService);
         _recurringCollector.update(rcau, "");
     }
@@ -257,8 +221,8 @@ contract RecurringCollectorUpdateUnsignedTest is RecurringCollectorSharedTest {
         // Set the update deadline in the past
         rcau.deadline = uint64(block.timestamp - 1);
 
-        bytes32 updateHash = _recurringCollector.hashRCAU(rcau);
-        approver.authorize(updateHash);
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
 
         bytes memory expectedErr = abi.encodeWithSelector(
             IRecurringCollector.RecurringCollectorAgreementDeadlineElapsed.selector,

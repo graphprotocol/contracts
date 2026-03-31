@@ -113,6 +113,7 @@ contract RecurringAgreementManagerSharedTest is Test {
                 minSecondsPerCollection: minSecondsPerCollection,
                 maxSecondsPerCollection: maxSecondsPerCollection,
                 nonce: 1,
+                conditions: 0,
                 metadata: ""
             });
     }
@@ -163,6 +164,7 @@ contract RecurringAgreementManagerSharedTest is Test {
                 minSecondsPerCollection: minSecondsPerCollection,
                 maxSecondsPerCollection: maxSecondsPerCollection,
                 nonce: nonce,
+                conditions: 0,
                 metadata: ""
             });
     }
@@ -195,6 +197,8 @@ contract RecurringAgreementManagerSharedTest is Test {
                 minSecondsPerCollection: rca.minSecondsPerCollection,
                 maxSecondsPerCollection: rca.maxSecondsPerCollection,
                 updateNonce: 0,
+                conditions: 0,
+                activeTermsHash: bytes32(0),
                 canceledAt: 0,
                 state: IRecurringCollector.AgreementState.Accepted
             })
@@ -220,6 +224,8 @@ contract RecurringAgreementManagerSharedTest is Test {
                 minSecondsPerCollection: rca.minSecondsPerCollection,
                 maxSecondsPerCollection: rca.maxSecondsPerCollection,
                 updateNonce: 0,
+                conditions: 0,
+                activeTermsHash: bytes32(0),
                 canceledAt: uint64(block.timestamp),
                 state: IRecurringCollector.AgreementState.CanceledByServiceProvider
             })
@@ -248,6 +254,8 @@ contract RecurringAgreementManagerSharedTest is Test {
                 minSecondsPerCollection: rca.minSecondsPerCollection,
                 maxSecondsPerCollection: rca.maxSecondsPerCollection,
                 updateNonce: 0,
+                conditions: 0,
+                activeTermsHash: bytes32(0),
                 canceledAt: canceledAt,
                 state: IRecurringCollector.AgreementState.CanceledByPayer
             })
@@ -275,6 +283,8 @@ contract RecurringAgreementManagerSharedTest is Test {
                 minSecondsPerCollection: rca.minSecondsPerCollection,
                 maxSecondsPerCollection: rca.maxSecondsPerCollection,
                 updateNonce: 0,
+                conditions: 0,
+                activeTermsHash: bytes32(0),
                 canceledAt: 0,
                 state: IRecurringCollector.AgreementState.Accepted
             })

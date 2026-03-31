@@ -15,6 +15,7 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
     /* solhint-disable graph/func-name-mixedcase */
 
     function test_Collect_Revert_WhenInvalidData(address caller, uint8 unboundedPaymentType, bytes memory data) public {
+        vm.assume(caller != _proxyAdmin);
         bytes memory expectedErr = abi.encodeWithSelector(
             IRecurringCollector.RecurringCollectorInvalidCollectData.selector,
             data
@@ -29,6 +30,7 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         address notDataService
     ) public {
         vm.assume(fuzzy.fuzzyTestAccept.rca.dataService != notDataService);
+        vm.assume(notDataService != _proxyAdmin);
 
         (, , , bytes16 agreementId) = _sensibleAuthorizeAndAccept(fuzzy.fuzzyTestAccept);
         IRecurringCollector.CollectParams memory collectParams = fuzzy.collectParams;
@@ -90,6 +92,7 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
     }
 
     function test_Collect_Revert_WhenUnknownAgreement(FuzzyTestCollect memory fuzzy, address dataService) public {
+        vm.assume(dataService != _proxyAdmin);
         bytes memory data = _generateCollectData(fuzzy.collectParams);
 
         bytes memory expectedErr = abi.encodeWithSelector(

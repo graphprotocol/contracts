@@ -97,7 +97,7 @@ abstract contract Authorizable is IAuthorizable {
      * @param _signer The address of the signer
      * @return true if the signer is authorized by the authorizer, false otherwise
      */
-    function _isAuthorized(address _authorizer, address _signer) internal view returns (bool) {
+    function _isAuthorized(address _authorizer, address _signer) internal view virtual returns (bool) {
         return (_authorizer != address(0) &&
             authorizations[_signer].authorizer == _authorizer &&
             !authorizations[_signer].revoked);

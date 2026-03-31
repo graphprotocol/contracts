@@ -350,6 +350,8 @@ contract RecurringAgreementHelperTest is RecurringAgreementManagerSharedTest {
                 minSecondsPerCollection: rcau.minSecondsPerCollection,
                 maxSecondsPerCollection: rcau.maxSecondsPerCollection,
                 updateNonce: 1, // matches pending nonce, so update was applied
+                conditions: 0,
+                activeTermsHash: bytes32(0),
                 canceledAt: 0,
                 state: IRecurringCollector.AgreementState.Accepted
             })

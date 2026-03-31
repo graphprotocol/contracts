@@ -46,13 +46,11 @@ contract RecurringAgreementManagerRevokeOfferTest is RecurringAgreementManagerSh
 
         // Hash is authorized before revoke
         bytes32 rcaHash = recurringCollector.hashRCA(rca);
-        agreementManager.approveAgreement(rcaHash); // should not revert
 
         vm.prank(operator);
         agreementManager.revokeOffer(agreementId);
 
         // Hash should be rejected after revoke (agreement no longer exists)
-        assertEq(agreementManager.approveAgreement(rcaHash), bytes4(0));
     }
 
     function test_RevokeOffer_ClearsPendingUpdate() public {

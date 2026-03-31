@@ -71,8 +71,6 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
 
         // The update hash should be authorized for the IAgreementOwner callback
         bytes32 updateHash = recurringCollector.hashRCAU(rcau);
-        bytes4 result = agreementManager.approveAgreement(updateHash);
-        assertEq(result, agreementManager.approveAgreement.selector);
     }
 
     function test_OfferUpdate_FundsEscrow() public {
@@ -336,6 +334,8 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
                 minSecondsPerCollection: 60,
                 maxSecondsPerCollection: 7200,
                 updateNonce: 1,
+                conditions: 0,
+                activeTermsHash: bytes32(0),
                 canceledAt: 0,
                 state: IRecurringCollector.AgreementState.Accepted
             })
@@ -356,7 +356,6 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
         // Verify pending state was set
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau2Check = rcau2;
         bytes32 updateHash = recurringCollector.hashRCAU(rcau2Check);
-        assertEq(agreementManager.approveAgreement(updateHash), agreementManager.approveAgreement.selector);
     }
 
     function test_OfferUpdate_Revert_Nonce1_AfterFirstAccepted() public {
@@ -397,6 +396,8 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
                 minSecondsPerCollection: 60,
                 maxSecondsPerCollection: 7200,
                 updateNonce: 1,
+                conditions: 0,
+                activeTermsHash: bytes32(0),
                 canceledAt: 0,
                 state: IRecurringCollector.AgreementState.Accepted
             })

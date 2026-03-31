@@ -47,6 +47,7 @@ contract RecurringAgreementLifecycleTest is RecurringAgreementManagerSharedTest 
             minSecondsPerCollection: 60,
             maxSecondsPerCollection: maxSec,
             nonce: nonce,
+            conditions: 0,
             metadata: ""
         });
     }
@@ -79,6 +80,8 @@ contract RecurringAgreementLifecycleTest is RecurringAgreementManagerSharedTest 
                 minSecondsPerCollection: rca.minSecondsPerCollection,
                 maxSecondsPerCollection: rca.maxSecondsPerCollection,
                 updateNonce: 0,
+                conditions: 0,
+                activeTermsHash: bytes32(0),
                 canceledAt: uint64(block.timestamp),
                 state: IRecurringCollector.AgreementState.CanceledByServiceProvider
             })

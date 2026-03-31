@@ -541,7 +541,7 @@ library IndexingAgreement {
         );
         // Get collection info from RecurringCollector (single source of truth for temporal logic)
         (bool isCollectable, uint256 collectionSeconds, ) = _directory().recurringCollector().getCollectionInfo(
-            wrapper.collectorAgreement
+            params.agreementId
         );
         require(_isValid(wrapper) && isCollectable, IndexingAgreementNotCollectable(params.agreementId));
 

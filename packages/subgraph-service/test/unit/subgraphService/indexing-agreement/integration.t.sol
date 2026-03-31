@@ -44,6 +44,7 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
         IRecurringCollector.RecurringCollectionAgreement memory rca = _recurringCollectorHelper.sensibleRCA(
             ctx.ctxInternal.seed.rca
         );
+        rca.conditions = 0;
         bytes16 acceptedAgreementId = _sharedSetup(ctx, rca, indexerState, expectedTokens);
 
         TestState memory beforeCollect = _getState(rca.payer, indexerState.addr);
@@ -77,6 +78,7 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
         IRecurringCollector.RecurringCollectionAgreement memory rca = _recurringCollectorHelper.sensibleRCA(
             ctx.ctxInternal.seed.rca
         );
+        rca.conditions = 0;
         bytes16 acceptedAgreementId = _sharedSetup(ctx, rca, indexerState, expectedTokens);
 
         // Cancel the indexing agreement by the payer

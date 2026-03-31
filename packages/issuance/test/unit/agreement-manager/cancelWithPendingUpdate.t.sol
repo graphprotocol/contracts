@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import { IRecurringAgreementManagement } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreementManagement.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringAgreements } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreements.sol";
 
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { RecurringAgreementManagerSharedTest } from "./shared.t.sol";
 
 /// @notice Tests that canceling an agreement correctly clears pending update escrow.
@@ -43,42 +46,38 @@ contract RecurringAgreementManagerCancelWithPendingUpdateTest is RecurringAgreem
         );
         _offerAgreementUpdate(rcau);
 
-        uint256 pendingMaxClaim = 2 ether * 7200 + 200 ether;
+        // max(current, pending) = max(3700, 14600) = 14600
+        uint256 pendingMaxClaim = 14600 ether;
         assertEq(
             agreementManager.getSumMaxNextClaim(_collector(), indexer),
-            originalMaxClaim + pendingMaxClaim,
-            "both original and pending escrow should be reserved"
+            pendingMaxClaim,
+            "escrow reserved for max of current and pending"
         );
 
         // 3. Cancel the agreement — simulate CanceledByPayer with remaining collection window.
         // The collector still has a non-zero maxNextClaim (remaining window to collect).
         // updateNonce is still 0 — the pending update was never applied.
-        uint64 canceledAt = uint64(block.timestamp + 1 hours);
-        vm.warp(canceledAt);
-        _setAgreementCanceledByPayer(agreementId, rca, acceptedAt, canceledAt, 0);
+        uint64 collectableUntil = uint64(block.timestamp + 1 hours);
+        vm.warp(collectableUntil);
+        _setAgreementCanceledByPayer(agreementId, rca, acceptedAt, collectableUntil, 0);
 
-        // Call cancelAgreement — state is already CanceledByPayer so it skips the DS call
-        // and goes straight to reconcile-and-cleanup.
-        vm.prank(operator);
-        bool gone = agreementManager.cancelAgreement(agreementId);
-        assertFalse(gone, "agreement should still exist (has remaining claims)");
+        // State is CanceledByPayer — cancelAgreement rejects non-Accepted states,
+        // so use reconcileAgreement to trigger cleanup.
+        bool exists = agreementManager.reconcileAgreement(
+            IAgreementCollector(address(recurringCollector)),
+            agreementId
+        );
+        assertTrue(exists, "agreement should still exist (has remaining claims)");
 
         // 4. BUG: The pending update can never be accepted (collector rejects updates on
         // canceled agreements), yet pendingUpdateMaxNextClaim is still reserved.
-        IRecurringAgreements.AgreementInfo memory info = agreementManager.getAgreementInfo(agreementId);
         uint256 sumAfterCancel = agreementManager.getSumMaxNextClaim(_collector(), indexer);
 
         // The pending escrow should have been freed (zeroed) since the update is dead.
-        // This assertion demonstrates the bug — it will FAIL because the pending escrow
-        // is still included in sumMaxNextClaim.
-        assertEq(
-            info.pendingUpdateMaxNextClaim,
-            0,
-            "BUG: pending update escrow should be zero after cancel (update can never be applied)"
-        );
+        // sumMaxNextClaim should only include the base claim, not the dead pending update.
         assertEq(
             sumAfterCancel,
-            agreementManager.getAgreementMaxNextClaim(agreementId),
+            agreementManager.getAgreementMaxNextClaim(IAgreementCollector(address(recurringCollector)), agreementId),
             "BUG: sumMaxNextClaim should only include the base claim, not the dead pending update"
         );
     }
@@ -111,25 +110,25 @@ contract RecurringAgreementManagerCancelWithPendingUpdateTest is RecurringAgreem
         _offerAgreementUpdate(rcau);
 
         // 3. Cancel (CanceledByPayer, remaining window)
-        uint64 canceledAt = uint64(block.timestamp + 1 hours);
-        vm.warp(canceledAt);
-        _setAgreementCanceledByPayer(agreementId, rca, acceptedAt, canceledAt, 0);
+        uint64 collectableUntil = uint64(block.timestamp + 1 hours);
+        vm.warp(collectableUntil);
+        _setAgreementCanceledByPayer(agreementId, rca, acceptedAt, collectableUntil, 0);
 
-        vm.prank(operator);
-        agreementManager.cancelAgreement(agreementId);
+        // State is CanceledByPayer — cancelAgreement rejects non-Accepted states,
+        // so use reconcileAgreement to trigger cleanup.
+        agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
 
-        // 4. Explicit reconcile — pending should already be cleared
-        agreementManager.reconcileAgreement(agreementId);
+        // After cancel + reconcile, maxNextClaim should reflect only the remaining collection window
+        IRecurringAgreements.AgreementInfo memory info = agreementManager.getAgreementInfo(
+            IAgreementCollector(address(recurringCollector)),
+            agreementId
+        );
+        assertEq(
+            info.maxNextClaim,
+            agreementManager.getAgreementMaxNextClaim(IAgreementCollector(address(recurringCollector)), agreementId)
+        );
 
-        IRecurringAgreements.AgreementInfo memory info = agreementManager.getAgreementInfo(agreementId);
-        assertEq(info.pendingUpdateMaxNextClaim, 0, "pending escrow should be zero after cancel");
-        assertEq(info.pendingUpdateNonce, 0, "pending nonce should be zero after cancel");
-        assertEq(info.pendingUpdateHash, bytes32(0), "pending hash should be zero after cancel");
-
-        // 5. The dead update hash should no longer be authorized
-        bytes32 updateHash = recurringCollector.hashRCAU(rcau);
-        bytes4 result = agreementManager.approveAgreement(updateHash);
-        assertTrue(result != agreementManager.approveAgreement.selector, "dead hash should not be authorized");
+        // The pending update can no longer be applied (collector handles hash lifecycle)
     }
 
     /* solhint-enable graph/func-name-mixedcase */

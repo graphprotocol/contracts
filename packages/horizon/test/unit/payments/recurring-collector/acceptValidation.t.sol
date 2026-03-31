@@ -23,6 +23,7 @@ contract RecurringCollectorAcceptValidationTest is RecurringCollectorSharedTest 
                 maxOngoingTokensPerSecond: 1 ether,
                 minSecondsPerCollection: 600,
                 maxSecondsPerCollection: 3600,
+                conditions: 0,
                 nonce: 1,
                 metadata: ""
             });
@@ -181,6 +182,40 @@ contract RecurringCollectorAcceptValidationTest is RecurringCollectorSharedTest 
             )
         );
         vm.prank(wrongCaller);
+        _recurringCollector.accept(rca, signature);
+    }
+
+    // ==================== Overflow validation ====================
+
+    function test_Accept_Revert_WhenMaxOngoingTokensOverflows() public {
+        IRecurringCollector.RecurringCollectionAgreement memory rca = _makeValidRCA();
+        // Set maxOngoingTokensPerSecond so that maxOngoingTokensPerSecond * maxSecondsPerCollection * 1024 overflows
+        rca.maxOngoingTokensPerSecond = type(uint256).max / 1024; // overflow when multiplied by 3600 * 1024
+        rca.maxSecondsPerCollection = 3600;
+
+        _recurringCollectorHelper.authorizeSignerWithChecks(rca.payer, SIGNER_KEY);
+        (, bytes memory signature) = _recurringCollectorHelper.generateSignedRCA(rca, SIGNER_KEY);
+        _setupValidProvision(rca.serviceProvider, rca.dataService);
+
+        vm.expectRevert(); // overflow panic
+        vm.prank(rca.dataService);
+        _recurringCollector.accept(rca, signature);
+    }
+
+    function test_Accept_OK_WhenMaxOngoingTokensAtBoundary() public {
+        IRecurringCollector.RecurringCollectionAgreement memory rca = _makeValidRCA();
+        // Set values at exactly the boundary that does not overflow
+        rca.maxSecondsPerCollection = 3600;
+        rca.maxOngoingTokensPerSecond = type(uint256).max / (uint256(3600) * 1024);
+        // Ensure collection window is valid
+        rca.minSecondsPerCollection = 600;
+
+        _recurringCollectorHelper.authorizeSignerWithChecks(rca.payer, SIGNER_KEY);
+        (, bytes memory signature) = _recurringCollectorHelper.generateSignedRCA(rca, SIGNER_KEY);
+        _setupValidProvision(rca.serviceProvider, rca.dataService);
+
+        // Should not revert
+        vm.prank(rca.dataService);
         _recurringCollector.accept(rca, signature);
     }
 

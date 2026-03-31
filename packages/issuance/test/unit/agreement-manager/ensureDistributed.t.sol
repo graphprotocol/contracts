@@ -109,6 +109,7 @@ contract RecurringAgreementManagerEnsureDistributedTest is RecurringAgreementMan
         // Burn RAM's free balance so it can't cover a JIT deposit without distribution
         uint256 freeBalance = token.balanceOf(address(agreementManager));
         vm.prank(address(agreementManager));
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         token.transfer(address(1), freeBalance);
         assertEq(token.balanceOf(address(agreementManager)), 0);
 

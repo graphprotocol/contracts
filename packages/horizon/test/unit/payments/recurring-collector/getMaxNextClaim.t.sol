@@ -2,8 +2,10 @@
 pragma solidity ^0.8.27;
 
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
+import { OFFER_TYPE_NEW, OFFER_TYPE_UPDATE } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 
 import { RecurringCollectorSharedTest } from "./shared.t.sol";
+import { MockAgreementOwner } from "./MockAgreementOwner.t.sol";
 
 contract RecurringCollectorGetMaxNextClaimTest is RecurringCollectorSharedTest {
     /* solhint-disable graph/func-name-mixedcase */
@@ -13,6 +15,203 @@ contract RecurringCollectorGetMaxNextClaimTest is RecurringCollectorSharedTest {
     function test_GetMaxNextClaim_NotAccepted() public view {
         bytes16 fakeId = bytes16(keccak256("nonexistent"));
         assertEq(_recurringCollector.getMaxNextClaim(fakeId), 0, "NotAccepted agreement should return 0");
+    }
+
+    // -- Pre-acceptance stored-offer tests --
+
+    /// @notice After offer(OFFER_TYPE_NEW), getMaxNextClaim returns expected value before accept
+    function test_GetMaxNextClaim_StoredOffer_BeforeAccept() public {
+        MockAgreementOwner approver = new MockAgreementOwner();
+        IRecurringCollector.RecurringCollectionAgreement memory rca = _recurringCollectorHelper.sensibleRCA(
+            IRecurringCollector.RecurringCollectionAgreement({
+                deadline: uint64(block.timestamp + 1 hours),
+                endsAt: uint64(block.timestamp + 365 days),
+                payer: address(approver),
+                dataService: makeAddr("ds"),
+                serviceProvider: makeAddr("sp"),
+                maxInitialTokens: 100 ether,
+                maxOngoingTokensPerSecond: 1 ether,
+                minSecondsPerCollection: 600,
+                maxSecondsPerCollection: 3600,
+                conditions: 0,
+                nonce: 1,
+                metadata: ""
+            })
+        );
+
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0);
+
+        bytes16 agreementId = _recurringCollector.generateAgreementId(
+            rca.payer,
+            rca.dataService,
+            rca.serviceProvider,
+            rca.deadline,
+            rca.nonce
+        );
+
+        uint256 maxClaim = _recurringCollector.getMaxNextClaim(agreementId);
+
+        // Pre-acceptance: window = endsAt - now, capped at maxSecondsPerCollection
+        uint256 windowSeconds = rca.endsAt - block.timestamp;
+        uint256 maxSeconds = windowSeconds < rca.maxSecondsPerCollection ? windowSeconds : rca.maxSecondsPerCollection;
+        uint256 expected = rca.maxOngoingTokensPerSecond * maxSeconds + rca.maxInitialTokens;
+        assertEq(maxClaim, expected, "Stored RCA offer should return expected maxNextClaim before accept");
+        assertTrue(maxClaim > 0, "Stored offer maxNextClaim should be non-zero");
+    }
+
+    /// @notice After offer(OFFER_TYPE_NEW), getMaxNextClaim returns 0 if deadline has passed
+    function test_GetMaxNextClaim_StoredOffer_ExpiredDeadline() public {
+        MockAgreementOwner approver = new MockAgreementOwner();
+        IRecurringCollector.RecurringCollectionAgreement memory rca = _recurringCollectorHelper.sensibleRCA(
+            IRecurringCollector.RecurringCollectionAgreement({
+                deadline: uint64(block.timestamp + 100),
+                endsAt: uint64(block.timestamp + 365 days),
+                payer: address(approver),
+                dataService: makeAddr("ds"),
+                serviceProvider: makeAddr("sp"),
+                maxInitialTokens: 100 ether,
+                maxOngoingTokensPerSecond: 1 ether,
+                minSecondsPerCollection: 600,
+                maxSecondsPerCollection: 3600,
+                conditions: 0,
+                nonce: 1,
+                metadata: ""
+            })
+        );
+
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0);
+
+        bytes16 agreementId = _recurringCollector.generateAgreementId(
+            rca.payer,
+            rca.dataService,
+            rca.serviceProvider,
+            rca.deadline,
+            rca.nonce
+        );
+
+        // Warp past deadline
+        vm.warp(rca.deadline + 1);
+
+        uint256 maxClaim = _recurringCollector.getMaxNextClaim(agreementId);
+        assertEq(maxClaim, 0, "Stored offer past deadline should return 0");
+    }
+
+    /// @notice After offer(OFFER_TYPE_UPDATE), getMaxNextClaim reflects pending update
+    function test_GetMaxNextClaim_StoredUpdate_PendingScope() public {
+        MockAgreementOwner approver = new MockAgreementOwner();
+        IRecurringCollector.RecurringCollectionAgreement memory rca = _recurringCollectorHelper.sensibleRCA(
+            IRecurringCollector.RecurringCollectionAgreement({
+                deadline: uint64(block.timestamp + 1 hours),
+                endsAt: uint64(block.timestamp + 365 days),
+                payer: address(approver),
+                dataService: makeAddr("ds"),
+                serviceProvider: makeAddr("sp"),
+                maxInitialTokens: 100 ether,
+                maxOngoingTokensPerSecond: 1 ether,
+                minSecondsPerCollection: 600,
+                maxSecondsPerCollection: 3600,
+                conditions: 0,
+                nonce: 1,
+                metadata: ""
+            })
+        );
+
+        // Accept via unsigned path
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0);
+        _setupValidProvision(rca.serviceProvider, rca.dataService);
+        vm.prank(rca.dataService);
+        bytes16 agreementId = _recurringCollector.accept(rca, "");
+
+        // Store a pending update with higher rates
+        IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _recurringCollectorHelper.sensibleRCAU(
+            IRecurringCollector.RecurringCollectionAgreementUpdate({
+                agreementId: agreementId,
+                deadline: 0,
+                endsAt: uint64(block.timestamp + 730 days),
+                maxInitialTokens: 200 ether,
+                maxOngoingTokensPerSecond: 2 ether,
+                minSecondsPerCollection: 600,
+                maxSecondsPerCollection: 7200,
+                conditions: 0,
+                nonce: 1,
+                metadata: ""
+            })
+        );
+
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
+
+        // Check pending scope
+        uint256 pendingClaim = _recurringCollector.getMaxNextClaim(agreementId, 2); // SCOPE_PENDING
+
+        // Pending: window = rcau.endsAt - now, capped at rcau.maxSecondsPerCollection
+        // Never collected so includes maxInitialTokens
+        uint256 windowSeconds = rcau.endsAt - block.timestamp;
+        uint256 maxSeconds = windowSeconds < rcau.maxSecondsPerCollection
+            ? windowSeconds
+            : rcau.maxSecondsPerCollection;
+        uint256 expected = rcau.maxOngoingTokensPerSecond * maxSeconds + rcau.maxInitialTokens;
+        assertEq(pendingClaim, expected, "Pending RCAU should return expected maxNextClaim");
+        assertTrue(pendingClaim > 0, "Pending maxNextClaim should be non-zero");
+    }
+
+    /// @notice getMaxNextClaim (no scope) returns max(active, pending) when both exist
+    function test_GetMaxNextClaim_MaxOfActiveAndPending() public {
+        MockAgreementOwner approver = new MockAgreementOwner();
+        IRecurringCollector.RecurringCollectionAgreement memory rca = _recurringCollectorHelper.sensibleRCA(
+            IRecurringCollector.RecurringCollectionAgreement({
+                deadline: uint64(block.timestamp + 1 hours),
+                endsAt: uint64(block.timestamp + 365 days),
+                payer: address(approver),
+                dataService: makeAddr("ds"),
+                serviceProvider: makeAddr("sp"),
+                maxInitialTokens: 100 ether,
+                maxOngoingTokensPerSecond: 1 ether,
+                minSecondsPerCollection: 600,
+                maxSecondsPerCollection: 3600,
+                conditions: 0,
+                nonce: 1,
+                metadata: ""
+            })
+        );
+
+        // Accept
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0);
+        _setupValidProvision(rca.serviceProvider, rca.dataService);
+        vm.prank(rca.dataService);
+        bytes16 agreementId = _recurringCollector.accept(rca, "");
+
+        // Store a pending update with higher rates
+        IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _recurringCollectorHelper.sensibleRCAU(
+            IRecurringCollector.RecurringCollectionAgreementUpdate({
+                agreementId: agreementId,
+                deadline: 0,
+                endsAt: uint64(block.timestamp + 730 days),
+                maxInitialTokens: 200 ether,
+                maxOngoingTokensPerSecond: 2 ether,
+                minSecondsPerCollection: 600,
+                maxSecondsPerCollection: 7200,
+                conditions: 0,
+                nonce: 1,
+                metadata: ""
+            })
+        );
+
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
+
+        uint256 activeClaim = _recurringCollector.getMaxNextClaim(agreementId, 1); // SCOPE_ACTIVE
+        uint256 pendingClaim = _recurringCollector.getMaxNextClaim(agreementId, 2); // SCOPE_PENDING
+        uint256 combinedClaim = _recurringCollector.getMaxNextClaim(agreementId); // max of both
+
+        uint256 expectedMax = activeClaim < pendingClaim ? pendingClaim : activeClaim;
+        assertEq(combinedClaim, expectedMax, "Combined should be max(active, pending)");
+        // With higher rates on pending, pending should dominate
+        assertGe(pendingClaim, activeClaim, "Higher-rate pending should be >= active");
     }
 
     // -- Test 2: CanceledByServiceProvider agreement returns 0 --
@@ -233,6 +432,7 @@ contract RecurringCollectorGetMaxNextClaimTest is RecurringCollectorSharedTest {
             maxOngoingTokensPerSecond: maxOngoingTokensPerSecond,
             minSecondsPerCollection: minSecondsPerCollection,
             maxSecondsPerCollection: maxSecondsPerCollection,
+            conditions: 0,
             nonce: 1,
             metadata: ""
         });
@@ -283,6 +483,7 @@ contract RecurringCollectorGetMaxNextClaimTest is RecurringCollectorSharedTest {
             maxOngoingTokensPerSecond: maxOngoingTokensPerSecond,
             minSecondsPerCollection: minSecondsPerCollection,
             maxSecondsPerCollection: maxSecondsPerCollection,
+            conditions: 0,
             nonce: 1,
             metadata: ""
         });

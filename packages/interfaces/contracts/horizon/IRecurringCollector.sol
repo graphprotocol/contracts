@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.22;
 
-import { IPaymentsCollector } from "./IPaymentsCollector.sol";
+import { IAgreementCollector } from "./IAgreementCollector.sol";
 import { IGraphPayments } from "./IGraphPayments.sol";
 import { IAuthorizable } from "./IAuthorizable.sol";
 
 /**
  * @title Interface for the {RecurringCollector} contract
  * @author Edge & Node
- * @dev Implements the {IPaymentCollector} interface as defined by the Graph
- * Horizon payments protocol.
+ * @dev Extends {IAgreementCollector} with Recurring Collection Agreement (RCA) specific
+ * structures, methods, and validation rules.
  * @notice Implements a payments collector contract that can be used to collect
  * recurrent payments.
  */
-interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
+interface IRecurringCollector is IAuthorizable, IAgreementCollector {
     /// @notice The state of an agreement
     enum AgreementState {
         NotAccepted,
@@ -50,6 +50,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * except for the first collection
      * @param minSecondsPerCollection The minimum amount of seconds that must pass between collections
      * @param maxSecondsPerCollection The maximum seconds of service that can be collected in a single collection
+     * @param conditions Bitmask of payer-declared conditions (e.g. CONDITION_ELIGIBILITY_CHECK)
      * @param nonce A unique nonce for preventing collisions (user-chosen)
      * @param metadata Arbitrary metadata to extend functionality if a data service requires it
      *
@@ -65,6 +66,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         uint256 maxOngoingTokensPerSecond;
         uint32 minSecondsPerCollection;
         uint32 maxSecondsPerCollection;
+        uint16 conditions;
         uint256 nonce;
         bytes metadata;
     }
@@ -80,6 +82,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * except for the first collection
      * @param minSecondsPerCollection The minimum amount of seconds that must pass between collections
      * @param maxSecondsPerCollection The maximum seconds of service that can be collected in a single collection
+     * @param conditions Bitmask of payer-declared conditions (e.g. CONDITION_ELIGIBILITY_CHECK)
      * @param nonce The nonce for preventing replay attacks (must be current nonce + 1)
      * @param metadata Arbitrary metadata to extend functionality if a data service requires it
      */
@@ -92,43 +95,49 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         uint256 maxOngoingTokensPerSecond;
         uint32 minSecondsPerCollection;
         uint32 maxSecondsPerCollection;
+        uint16 conditions;
         uint32 nonce;
         bytes metadata;
     }
 
     /**
      * @notice The data for an agreement
-     * @dev This struct is used to store the data of an agreement in the contract
+     * @dev This struct is used to store the data of an agreement in the contract.
+     * Fields are ordered for optimal storage packing (7 slots).
      * @param dataService The address of the data service
-     * @param payer The address of the payer
-     * @param serviceProvider The address of the service provider
      * @param acceptedAt The timestamp when the agreement was accepted
+     * @param minSecondsPerCollection The minimum amount of seconds that must pass between collections
+     * @param payer The address of the payer
      * @param lastCollectionAt The timestamp when the agreement was last collected at
+     * @param maxSecondsPerCollection The maximum seconds of service that can be collected in a single collection
+     * @param serviceProvider The address of the service provider
      * @param endsAt The timestamp when the agreement ends
+     * @param updateNonce The current nonce for updates (prevents replay attacks)
      * @param maxInitialTokens The maximum amount of tokens that can be collected in the first collection
      * on top of the amount allowed for subsequent collections
      * @param maxOngoingTokensPerSecond The maximum amount of tokens that can be collected per second
      * except for the first collection
-     * @param minSecondsPerCollection The minimum amount of seconds that must pass between collections
-     * @param maxSecondsPerCollection The maximum seconds of service that can be collected in a single collection
-     * @param updateNonce The current nonce for updates (prevents replay attacks)
+     * @param activeTermsHash EIP-712 hash of the currently active terms (RCA or RCAU)
      * @param canceledAt The timestamp when the agreement was canceled
+     * @param conditions Bitmask of payer-declared conditions
      * @param state The state of the agreement
      */
     struct AgreementData {
-        address dataService;
-        address payer;
-        address serviceProvider;
-        uint64 acceptedAt;
-        uint64 lastCollectionAt;
-        uint64 endsAt;
-        uint256 maxInitialTokens;
-        uint256 maxOngoingTokensPerSecond;
-        uint32 minSecondsPerCollection;
-        uint32 maxSecondsPerCollection;
-        uint32 updateNonce;
-        uint64 canceledAt;
-        AgreementState state;
+        address dataService; //        20 bytes ─┐ slot 0 (32/32)
+        uint64 acceptedAt; //           8 bytes ─┤
+        uint32 minSecondsPerCollection; // 4 bytes ─┘
+        address payer; //              20 bytes ─┐ slot 1 (32/32)
+        uint64 lastCollectionAt; //     8 bytes ─┤
+        uint32 maxSecondsPerCollection; // 4 bytes ─┘
+        address serviceProvider; //    20 bytes ─┐ slot 2 (32/32)
+        uint64 endsAt; //              8 bytes ─┤
+        uint32 updateNonce; //          4 bytes ─┘
+        uint256 maxInitialTokens; //   32 bytes ─── slot 3
+        uint256 maxOngoingTokensPerSecond; // 32 bytes ─── slot 4
+        bytes32 activeTermsHash; //    32 bytes ─── slot 5
+        uint64 canceledAt; //           8 bytes ─┐ slot 6 (11/32)
+        uint16 conditions; //           2 bytes ─┤
+        AgreementState state; //        1 byte  ─┘
     }
 
     /**
@@ -238,6 +247,12 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         uint256 tokens,
         uint256 dataServiceCut
     );
+
+    /**
+     * @notice Thrown when an agreement does not exist (no accepted state and no stored offer)
+     * @param agreementId The agreement ID that was not found
+     */
+    error RecurringCollectorAgreementNotFound(bytes16 agreementId);
 
     /**
      * @notice Thrown when accepting an agreement with a zero ID
@@ -377,10 +392,13 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     error RecurringCollectorCollectionNotEligible(bytes16 agreementId, address serviceProvider);
 
     /**
-     * @notice Thrown when the contract approver is not a contract
-     * @param approver The address that is not a contract
+     * @notice Emitted when an offer (RCA or RCAU) is stored via {IAgreementCollector.offer}
+     * @param agreementId The agreement ID
+     * @param payer The payer that stored the offer
+     * @param offerType OFFER_TYPE_NEW or OFFER_TYPE_UPDATE
+     * @param offerHash The EIP-712 hash of the stored offer
      */
-    error RecurringCollectorApproverNotContract(address approver);
+    event OfferStored(bytes16 indexed agreementId, address indexed payer, uint8 indexed offerType, bytes32 offerHash);
 
     /**
      * @notice Accept a Recurring Collection Agreement.
@@ -459,25 +477,15 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     function getAgreement(bytes16 agreementId) external view returns (AgreementData memory);
 
     /**
-     * @notice Get the maximum tokens collectable in the next collection for an agreement.
-     * @dev Computes the worst-case (maximum possible) claim amount based on current on-chain
-     * agreement state. For active agreements, uses `endsAt` as the upper bound (not block.timestamp).
-     * Returns 0 for NotAccepted, CanceledByServiceProvider, or fully expired agreements.
-     * @param agreementId The ID of the agreement
-     * @return The maximum tokens that could be collected in the next collection
-     */
-    function getMaxNextClaim(bytes16 agreementId) external view returns (uint256);
-
-    /**
      * @notice Get collection info for an agreement
-     * @param agreement The agreement data
+     * @param agreementId The agreement id
      * @return isCollectable Whether the agreement is in a valid state that allows collection attempts,
      * not that there are necessarily funds available to collect.
      * @return collectionSeconds The valid collection duration in seconds (0 if not collectable)
      * @return reason The reason why the agreement is not collectable (None if collectable)
      */
     function getCollectionInfo(
-        AgreementData calldata agreement
+        bytes16 agreementId
     ) external view returns (bool isCollectable, uint256 collectionSeconds, AgreementNotCollectableReason reason);
 
     /**
