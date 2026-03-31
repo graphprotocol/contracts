@@ -20,3 +20,7 @@ Enforce a minimum gas forwarding requirement for the `afterCollection()` callbac
 ## Team Response
 
 TBD
+
+---
+
+A `gasleft()` guard before each payer callback (`isEligible`, `beforeCollection`, `afterCollection`) reverts the entire collection when insufficient gas remains. Callbacks use low-level `call`/`staticcall` with gas cap (`MAX_PAYER_CALLBACK_GAS`); failures emit `PayerCallbackFailed` for observability but do not block collection.

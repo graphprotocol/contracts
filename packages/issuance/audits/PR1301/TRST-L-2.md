@@ -20,3 +20,7 @@ The `pendingMaxNextClaim` should be computed as stated above, then reduced by th
 ## Team Response
 
 TBD
+
+---
+
+Fixed. RAM now delegates all max-claim estimates to the collector via `IAgreementCollector.getMaxNextClaim(agreementId)`, which returns `max(active, pending)` — only the larger of current or pending terms is reserved, not both additively. The RC's `_getMaxNextClaimScoped` computes active and pending claims independently and returns the maximum, ensuring per-agreement escrow contribution reflects the worst-case single-term scenario.
