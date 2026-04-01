@@ -302,41 +302,18 @@ contract RecurringAgreementManager is
     }
 
     /// @inheritdoc IRecurringAgreementManagement
-    function offerAgreementUpdate(
-        IRecurringCollector.RecurringCollectionAgreementUpdate calldata rcau
-    ) external onlyRole(AGREEMENT_MANAGER_ROLE) whenNotPaused returns (bytes16 agreementId) {
-        agreementId = rcau.agreementId;
+    function forceRemoveAgreement(
+        IAgreementCollector collector,
+        bytes16 agreementId
+    ) external onlyRole(OPERATOR_ROLE) nonReentrant {
         RecurringAgreementManagerStorage storage $ = _getStorage();
-        AgreementInfo storage agreement = $.agreements[agreementId];
-        require(agreement.provider != address(0), AgreementNotOffered(agreementId));
+        AgreementInfo storage agreement = $.collectors[address(collector)].agreements[agreementId];
+        address provider = agreement.provider;
+        if (provider == address(0)) return;
 
-        // Reconcile against on-chain state before layering a new pending update,
-        // so escrow accounting is current and we can validate the nonce.
-        _reconcileAgreement($, agreementId);
+        CollectorProviderData storage cpd = $.collectors[address(collector)].providers[provider];
 
-        // Validate nonce: must be the next expected nonce on the collector
-        IRecurringCollector.AgreementData memory rca = agreement.collector.getAgreement(agreementId);
-        uint32 expectedNonce = rca.updateNonce + 1;
-        require(rcau.nonce == expectedNonce, InvalidUpdateNonce(agreementId, expectedNonce, rcau.nonce));
-
-        // Clean up old pending hash if replacing
-        if (agreement.pendingUpdateHash != bytes32(0)) delete $.authorizedHashes[agreement.pendingUpdateHash];
-
-        // Authorize the RCAU hash for the IAgreementOwner callback
-        bytes32 updateHash = agreement.collector.hashRCAU(rcau);
-        $.authorizedHashes[updateHash] = agreementId;
-        agreement.pendingUpdateNonce = rcau.nonce;
-        agreement.pendingUpdateHash = updateHash;
-
-        uint256 pendingMaxNextClaim = _computeMaxFirstClaim(
-            rcau.maxOngoingTokensPerSecond,
-            rcau.maxSecondsPerCollection,
-            rcau.maxInitialTokens
-        );
-        _setAgreementMaxNextClaim($, agreementId, pendingMaxNextClaim, true);
-        _updateEscrow($, address(agreement.collector), agreement.provider);
-
-        emit AgreementUpdateOffered(agreementId, pendingMaxNextClaim, rcau.nonce);
+        _removeAgreement($, cpd, address(collector), provider, agreementId);
     }
 
     /// @inheritdoc IRecurringAgreementManagement
@@ -352,50 +329,6 @@ contract RecurringAgreementManager is
     function emergencyRevokeRole(bytes32 role, address account) external override onlyRole(PAUSE_ROLE) {
         require(role != GOVERNOR_ROLE, CannotRevokeGovernorRole());
         _revokeRole(role, account);
-    }
-
-    /// @inheritdoc IRecurringAgreementManagement
-    function revokeAgreementUpdate(
-        bytes16 agreementId
-    ) external onlyRole(AGREEMENT_MANAGER_ROLE) whenNotPaused returns (bool revoked) {
-        RecurringAgreementManagerStorage storage $ = _getStorage();
-        AgreementInfo storage agreement = $.agreements[agreementId];
-        require(agreement.provider != address(0), AgreementNotOffered(agreementId));
-
-        // Reconcile first — the update may have been accepted since the offer was made
-        _reconcileAgreement($, agreementId);
-
-        if (agreement.pendingUpdateHash == bytes32(0)) return false;
-
-        uint256 pendingMaxClaim = agreement.pendingUpdateMaxNextClaim;
-        uint32 nonce = agreement.pendingUpdateNonce;
-
-        _setAgreementMaxNextClaim($, agreementId, 0, true);
-        delete $.authorizedHashes[agreement.pendingUpdateHash];
-        agreement.pendingUpdateNonce = 0;
-        agreement.pendingUpdateHash = bytes32(0);
-
-        _updateEscrow($, address(agreement.collector), agreement.provider);
-
-        emit AgreementUpdateRevoked(agreementId, pendingMaxClaim, nonce);
-        return true;
-    }
-
-    /// @inheritdoc IRecurringAgreementManagement
-    function revokeOffer(
-        bytes16 agreementId
-    ) external onlyRole(AGREEMENT_MANAGER_ROLE) whenNotPaused returns (bool gone) {
-        RecurringAgreementManagerStorage storage $ = _getStorage();
-        AgreementInfo storage agreement = $.agreements[agreementId];
-        if (agreement.provider == address(0)) return true;
-
-        // Only revoke un-accepted agreements — accepted ones must be canceled via cancelAgreement
-        IRecurringCollector.AgreementData memory rca = agreement.collector.getAgreement(agreementId);
-        require(rca.state == IRecurringCollector.AgreementState.NotAccepted, AgreementAlreadyAccepted(agreementId));
-
-        address provider = _deleteAgreement($, agreementId, agreement);
-        emit OfferRevoked(agreementId, provider);
-        return true;
     }
 
     /// @inheritdoc IRecurringAgreementManagement
