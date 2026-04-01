@@ -74,7 +74,7 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
     function setUp() public override {
         super.setUp();
 
-        _recurringCollectorHelper = new RecurringCollectorHelper(recurringCollector);
+        _recurringCollectorHelper = new RecurringCollectorHelper(recurringCollector, recurringCollectorProxyAdmin);
     }
 
     /*
@@ -184,7 +184,6 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
         rca.metadata = abi.encode(metadata);
 
         rca = _recurringCollectorHelper.sensibleRCA(rca);
-        rca.conditions = 0;
 
         (
             IRecurringCollector.RecurringCollectionAgreement memory signedRca,
@@ -268,10 +267,7 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
         rca.dataService = address(subgraphService);
         rca.metadata = abi.encode(metadata);
 
-        rca = _recurringCollectorHelper.sensibleRCA(rca);
-        // Zero conditions for EOA payers — CONDITION_ELIGIBILITY_CHECK requires ERC-165
-        rca.conditions = 0;
-        return rca;
+        return _recurringCollectorHelper.sensibleRCA(rca);
     }
 
     function _generateAcceptableSignedRCAU(
@@ -304,9 +300,7 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
                 _ctx.ctxInternal.seed.termsV1.tokensPerEntityPerSecond
             )
         );
-        rcau = _recurringCollectorHelper.sensibleRCAU(rcau);
-        rcau.conditions = 0;
-        return rcau;
+        return _recurringCollectorHelper.sensibleRCAU(rcau);
     }
 
     function _requireIndexer(Context storage _ctx, address _indexer) internal view returns (IndexerState memory) {

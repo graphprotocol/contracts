@@ -225,9 +225,7 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
             1
         );
 
-        vm.expectRevert(
-            abi.encodeWithSelector(IRecurringAgreementManagement.UnauthorizedDataService.selector, address(0))
-        );
+        vm.expectRevert(abi.encodeWithSelector(IRecurringAgreementManagement.UnauthorizedDataService.selector, address(0)));
         vm.prank(operator);
         agreementManager.offerAgreement(_collector(), OFFER_TYPE_UPDATE, abi.encode(rcau));
     }

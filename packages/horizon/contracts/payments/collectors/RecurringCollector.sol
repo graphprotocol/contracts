@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.27;
 
-import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
+import { EIP712Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
@@ -35,7 +36,7 @@ import { PPMMath } from "../../libraries/PPMMath.sol";
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */
-contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringCollector {
+contract RecurringCollector is Initializable, EIP712Upgradeable, GraphDirectory, Authorizable, IRecurringCollector {
     using PPMMath for uint256;
 
     /// @notice The minimum number of seconds that must be between two collections
@@ -69,12 +70,28 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         bytes data;
     }
 
-    /// @notice Tracks agreements
-    mapping(bytes16 agreementId => AgreementData data) internal agreements;
-    /// @notice Stored RCA offers (pre-approval), keyed by agreement ID
-    mapping(bytes16 agreementId => StoredOffer offer) internal rcaOffers;
-    /// @notice Stored RCAU offers (pre-approval), keyed by agreement ID
-    mapping(bytes16 agreementId => StoredOffer offer) internal rcauOffers;
+    /// @custom:storage-location erc7201:graphprotocol.storage.RecurringCollector
+    struct RecurringCollectorStorage {
+        /// @notice List of pause guardians and their allowed status
+        mapping(address pauseGuardian => bool allowed) pauseGuardians;
+        /// @notice Tracks agreements
+        mapping(bytes16 agreementId => AgreementData data) agreements;
+        /// @notice Stored RCA offers (pre-approval), keyed by agreement ID
+        mapping(bytes16 agreementId => StoredOffer offer) rcaOffers;
+        /// @notice Stored RCAU offers (pre-approval), keyed by agreement ID
+        mapping(bytes16 agreementId => StoredOffer offer) rcauOffers;
+    }
+
+    /// @dev keccak256(abi.encode(uint256(keccak256("graphprotocol.storage.RecurringCollector")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant RECURRING_COLLECTOR_STORAGE_LOCATION =
+        0x436d179d846767cf46c6cda3ec5a404bcbe1b4351ce320082402e5e9ab4d6600;
+
+    function _getStorage() private pure returns (RecurringCollectorStorage storage $) {
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            $.slot := RECURRING_COLLECTOR_STORAGE_LOCATION
+        }
+    }
 
     /**
      * @notice Constructs a new instance of the RecurringCollector contract.
@@ -84,11 +101,22 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
      * @param revokeSignerThawingPeriod The duration (in seconds) in which a signer is thawing before they can be revoked.
      */
     constructor(
-        string memory eip712Name,
-        string memory eip712Version,
         address controller,
         uint256 revokeSignerThawingPeriod
-    ) EIP712(eip712Name, eip712Version) GraphDirectory(controller) Authorizable(revokeSignerThawingPeriod) {}
+    ) GraphDirectory(controller) Authorizable(revokeSignerThawingPeriod) {
+        _disableInitializers();
+    }
+
+    /* solhint-disable gas-calldata-parameters */
+    /**
+     * @notice Initializes the contract (proxy storage).
+     * @param eip712Name The name of the EIP712 domain.
+     * @param eip712Version The version of the EIP712 domain.
+     */
+    function initialize(string memory eip712Name, string memory eip712Version) external initializer {
+        __EIP712_init(eip712Name, eip712Version);
+    }
+    /* solhint-enable gas-calldata-parameters */
 
     /**
      * @inheritdoc IPaymentsCollector
@@ -880,7 +908,8 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         else
             // Check stored offer hash instead of callback
             require(
-                (_offerType == OFFER_TYPE_NEW ? rcaOffers[_agreementId] : rcauOffers[_agreementId]).offerHash == _hash,
+                (_offerType == OFFER_TYPE_NEW ? $.rcaOffers[_agreementId] : $.rcauOffers[_agreementId]).offerHash ==
+                    _hash,
                 RecurringCollectorInvalidSigner()
             );
     }
@@ -966,7 +995,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
      * @return The storage reference to the agreement data
      */
     function _getAgreementStorage(bytes16 _agreementId) private view returns (AgreementData storage) {
-        return agreements[_agreementId];
+        return _getStorage().agreements[_agreementId];
     }
 
     /**
@@ -975,7 +1004,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
      * @return The agreement data
      */
     function _getAgreement(bytes16 _agreementId) private view returns (AgreementData memory) {
-        return agreements[_agreementId];
+        return _getStorage().agreements[_agreementId];
     }
 
     /**
@@ -1080,7 +1109,8 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
      * @return maxClaim The maximum tokens claimable under the requested scope
      */
     function _getMaxNextClaimScoped(bytes16 agreementId, uint8 agreementScope) private view returns (uint256 maxClaim) {
-        AgreementData storage _a = agreements[agreementId];
+        RecurringCollectorStorage storage $ = _getStorage();
+        AgreementData storage _a = $.agreements[agreementId];
 
         uint256 maxActiveClaim = 0;
         uint256 maxPendingClaim = 0;
@@ -1088,7 +1118,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         if (agreementScope & SCOPE_ACTIVE != 0) {
             if (_a.state == AgreementState.NotAccepted) {
                 // Not yet accepted — check stored RCA offer
-                StoredOffer storage rcaOffer = rcaOffers[agreementId];
+                StoredOffer storage rcaOffer = $.rcaOffers[agreementId];
                 if (rcaOffer.offerHash != bytes32(0)) {
                     RecurringCollectionAgreement memory rca = abi.decode(rcaOffer.data, (RecurringCollectionAgreement));
                     // Use block.timestamp as proxy for acceptedAt, deadline as expiry
@@ -1108,7 +1138,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         }
 
         if (agreementScope & SCOPE_PENDING != 0) {
-            StoredOffer storage rcauOffer = rcauOffers[agreementId];
+            StoredOffer storage rcauOffer = $.rcauOffers[agreementId];
             if (rcauOffer.offerHash != bytes32(0)) {
                 RecurringCollectionAgreementUpdate memory rcau = abi.decode(
                     rcauOffer.data,

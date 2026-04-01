@@ -3,6 +3,7 @@ pragma solidity ^0.8.27;
 
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { SCOPE_ACTIVE } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
 import { IIndexingAgreement } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IIndexingAgreement.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
@@ -44,7 +45,6 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
         IRecurringCollector.RecurringCollectionAgreement memory rca = _recurringCollectorHelper.sensibleRCA(
             ctx.ctxInternal.seed.rca
         );
-        rca.conditions = 0;
         bytes16 acceptedAgreementId = _sharedSetup(ctx, rca, indexerState, expectedTokens);
 
         TestState memory beforeCollect = _getState(rca.payer, indexerState.addr);
@@ -78,7 +78,6 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
         IRecurringCollector.RecurringCollectionAgreement memory rca = _recurringCollectorHelper.sensibleRCA(
             ctx.ctxInternal.seed.rca
         );
-        rca.conditions = 0;
         bytes16 acceptedAgreementId = _sharedSetup(ctx, rca, indexerState, expectedTokens);
 
         // Cancel the indexing agreement by the payer
@@ -103,6 +102,67 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
 
         TestState memory afterCollect = _getState(rca.payer, indexerState.addr);
         _sharedAssert(beforeCollect, afterCollect, expectedTokens, tokensCollected);
+    }
+
+    /// @notice Payer-initiated scoped cancel via RC.cancel(id, hash, SCOPE_ACTIVE).
+    /// Exercises the full reentrant callback chain:
+    ///   payer → RC.cancel(id, hash, SCOPE_ACTIVE)
+    ///     → SubgraphService.cancelIndexingAgreementByPayer(id)
+    ///       → RC.cancel(id, CancelAgreementBy.Payer)
+    /// Verifies the callback is not blocked by reentrancy and the agreement ends up canceled.
+    function test_SubgraphService_ScopedCancelActive_ViaRecurringCollector_Integration(Seed memory seed) public {
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+        (
+            IRecurringCollector.RecurringCollectionAgreement memory acceptedRca,
+            bytes16 agreementId
+        ) = _withAcceptedIndexingAgreement(ctx, indexerState);
+
+        // Read activeTermsHash from the accepted agreement
+        IRecurringCollector.AgreementData memory agreementData = recurringCollector.getAgreement(agreementId);
+        bytes32 activeTermsHash = agreementData.activeTermsHash;
+        assertTrue(activeTermsHash != bytes32(0), "activeTermsHash should be set after accept");
+
+        // Expect the SubgraphService cancel event
+        vm.expectEmit(address(subgraphService));
+        emit IndexingAgreement.IndexingAgreementCanceled(
+            acceptedRca.serviceProvider,
+            acceptedRca.payer,
+            agreementId,
+            acceptedRca.payer
+        );
+
+        // Expect the RC cancel event from the callback
+        vm.expectEmit(address(recurringCollector));
+        emit IRecurringCollector.AgreementCanceled(
+            acceptedRca.dataService,
+            acceptedRca.payer,
+            acceptedRca.serviceProvider,
+            agreementId,
+            uint64(block.timestamp),
+            IRecurringCollector.CancelAgreementBy.Payer
+        );
+
+        // Payer calls RC's scoped cancel — triggers the full callback chain
+        resetPrank(acceptedRca.payer);
+        recurringCollector.cancel(agreementId, activeTermsHash, SCOPE_ACTIVE);
+
+        // Verify agreement is canceled in RecurringCollector
+        IRecurringCollector.AgreementData memory afterCancel = recurringCollector.getAgreement(agreementId);
+        assertEq(
+            uint8(afterCancel.state),
+            uint8(IRecurringCollector.AgreementState.CanceledByPayer),
+            "RC agreement should be CanceledByPayer"
+        );
+        assertEq(afterCancel.canceledAt, uint64(block.timestamp), "canceledAt should be set");
+
+        // Verify agreement is canceled in SubgraphService
+        IIndexingAgreement.AgreementWrapper memory wrapper = subgraphService.getIndexingAgreement(agreementId);
+        assertEq(
+            uint8(wrapper.collectorAgreement.state),
+            uint8(IRecurringCollector.AgreementState.CanceledByPayer),
+            "SubgraphService should reflect CanceledByPayer"
+        );
     }
 
     function test_SubgraphService_CollectIndexingRewards_ResizesToZeroWhenOverAllocated_Integration(
