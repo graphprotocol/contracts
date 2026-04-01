@@ -135,6 +135,9 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
             RecurringCollectorAgreementIncorrectState(agreementId, agreement.state)
         );
 
+        // Reverts on overflow — rejecting excessive terms that could prevent collection
+        _rca.maxOngoingTokensPerSecond * _rca.maxSecondsPerCollection * 1024;
+
         // accept the agreement
         agreement.acceptedAt = uint64(block.timestamp);
         agreement.state = AgreementState.Accepted;
@@ -649,6 +652,9 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         );
 
         _requireValidCollectionWindowParams(_rcau.endsAt, _rcau.minSecondsPerCollection, _rcau.maxSecondsPerCollection);
+
+        // Reverts on overflow — rejecting excessive terms that could prevent collection
+        _rcau.maxOngoingTokensPerSecond * _rcau.maxSecondsPerCollection * 1024;
 
         // update the agreement
         _agreement.endsAt = _rcau.endsAt;
