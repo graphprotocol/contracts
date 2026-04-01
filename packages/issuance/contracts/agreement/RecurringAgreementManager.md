@@ -7,7 +7,7 @@ It implements seven interfaces:
 - **`IIssuanceTarget`** — receives minted GRT from IssuanceAllocator
 - **`IAgreementOwner`** — authorizes RCA acceptance and updates via callback (replaces ECDSA signature)
 - **`IRecurringAgreementManagement`** — agreement lifecycle: offer, update, revoke, cancel, remove, reconcile
-- **`IRecurringEscrowManagement`** — escrow configuration: setEscrowBasis, setTempJit
+- **`IRecurringEscrowManagement`** — escrow configuration: setEscrowBasis, limit thresholds, thaw fraction
 - **`IProviderEligibilityManagement`** — eligibility oracle configuration: setProviderEligibilityOracle
 - **`IRecurringAgreements`** — read-only queries: agreement info, escrow state, global tracking
 - **`IProviderEligibility`** — delegates payment eligibility checks to an optional oracle
@@ -16,7 +16,7 @@ It implements seven interfaces:
 
 RAM pulls minted GRT from IssuanceAllocator via `_ensureIncomingDistributionToCurrentBlock()` before any balance-dependent decision. This ensures `balanceOf(address(this))` reflects all available tokens before escrow deposits or JIT calculations.
 
-**Trigger points**: `beforeCollection` (JIT path, when escrow is insufficient) and `_updateEscrow` (all escrow rebalancing). Both may fire in the same transaction, so a per-block deduplication guard (`ensuredIncomingDistributedToBlock`) skips redundant allocator calls.
+**Trigger points**: `beforeCollection` (JIT path, when escrow is insufficient) and `_reconcileProviderEscrow` (all escrow rebalancing). Both may fire in the same transaction, so a per-block deduplication guard (`ensuredIncomingDistributedToBlock`) skips redundant allocator calls.
 
 **Failure tolerance**: Allocator reverts are caught via try-catch — collection continues and a `DistributeIssuanceFailed` event is emitted for monitoring. This prevents a malfunctioning allocator from blocking payments.
 
@@ -31,10 +31,6 @@ sum(maxNextClaim + pendingUpdateMaxNextClaim for all active agreements for that 
 ```
 
 Deposits never revert — `_escrowMinMax` degrades the mode when balance is insufficient, ensuring the deposit amount is always affordable. The `getEscrowAccount` view exposes the underlying escrow account for monitoring.
-
-## Hash Authorization
-
-The `authorizedHashes` mapping stores `hash → agreementId` rather than `hash → bool`. Hashes are automatically invalidated when agreements are deleted, preventing reuse without explicit cleanup.
 
 ## Max Next Claim
 
@@ -58,10 +54,7 @@ maxNextClaim = maxOngoingTokensPerSecond * maxSecondsPerCollection + maxInitialT
 
 ### Offer → Accept (two-step)
 
-1. **Agreement manager** calls `offerAgreement(rca, collector)` — stores hash, calculates conservative maxNextClaim, deposits into escrow
-2. **Service provider operator** calls `SubgraphService.acceptUnsignedIndexingAgreement(allocationId, rca)` — SubgraphService → RecurringCollector → `approveAgreement(hash)` callback to RecurringAgreementManager
-
-During the pending update window, both current and pending maxNextClaim are escrowed simultaneously (conservative).
+1. **Agreement manager** calls `offerAgreement(collector, offerType, offerData)` — forwards opaque offer to collector (new or update), tracks agreement, calculates conservative maxNextClaim, deposits into escrow
 
 ### Collect → Reconcile
 
