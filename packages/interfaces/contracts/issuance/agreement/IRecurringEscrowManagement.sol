@@ -6,7 +6,7 @@ pragma solidity ^0.8.22;
  * @author Edge & Node
  * @notice Functions for configuring escrow deposits that back
  * managed RCAs. Controls how aggressively escrow is pre-deposited.
- * Escrow rebalancing is performed by {IRecurringAgreementManagement-reconcileCollectorProvider}.
+ * Escrow rebalancing is performed by {IRecurringAgreementManagement-reconcileProvider}.
  *
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
@@ -84,7 +84,7 @@ interface IRecurringEscrowManagement {
      * @notice Set the escrow basis (maximum aspiration level).
      * @dev Requires OPERATOR_ROLE. The system automatically degrades below the configured
      * level when balance is insufficient. Changing the basis does not immediately rebalance
-     * escrow — call {IRecurringAgreementManagement-reconcileCollectorProvider} per pair to apply.
+     * escrow — call {IRecurringAgreementManagement-reconcileProvider} per pair to apply.
      * @param basis The new escrow basis
      */
     function setEscrowBasis(EscrowBasis basis) external;
