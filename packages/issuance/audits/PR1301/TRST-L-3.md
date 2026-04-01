@@ -20,3 +20,9 @@ Add a pause check to `approveAgreement()` that returns `bytes4(0)` when the cont
 ## Team Response
 
 TBD
+
+---
+
+Fixed. RecurringCollector now has a pause mechanism with `whenNotPaused` modifier gating `accept`, `update`, `collect`, `cancel`, and `offer`. Pause guardians are managed by the governor via `setPauseGuardian`. This provides a middle layer between the RAM-level pause (agreement lifecycle only) and the Controller-level nuclear pause (all escrow operations protocol-wide).
+
+The `approveAgreement` callback has been removed entirely — stored-hash authorization replaced callback-based approval, so the pause-bypass vector no longer exists. Collection callbacks (`beforeCollection`, `afterCollection`) are wrapped in try/catch and cannot block collection regardless of pause state.

@@ -225,9 +225,10 @@ contract RecurringCollectorCoverageGapsTest is RecurringCollectorSharedTest {
         vm.prank(rca.dataService);
         _recurringCollector.accept(rca, "");
 
-        // After accept: offer is cleaned up
-        (, bytes memory postAcceptData) = _recurringCollector.getAgreementOfferAt(agreementId, 0);
-        assertEq(postAcceptData.length, 0, "RCA offer should be cleaned up after accept");
+        // After accept: offer persists
+        (uint8 postOfferType, bytes memory postAcceptData) = _recurringCollector.getAgreementOfferAt(agreementId, 0);
+        assertEq(postOfferType, OFFER_TYPE_NEW, "Index 0 should still be OFFER_TYPE_NEW after accept");
+        assertTrue(postAcceptData.length > 0, "RCA offer should persist after accept");
     }
 
     function test_GetAgreementOfferAt_Index1_WithPending() public {
