@@ -20,3 +20,7 @@ Align `_computeMaxFirstClaim()` with the RecurringCollector's `getMaxNextClaim()
 ## Team Response
 
 TBD
+
+---
+
+RAM delegates to `IRecurringCollector.getMaxNextClaim(agreementId)` for all `maxNextClaim` calculations. The RC's `_maxClaimForTerms` correctly caps the collection window by remaining time until `endsAt`, eliminating the overestimate.

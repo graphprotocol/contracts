@@ -115,7 +115,6 @@ contract EnumerableSetUtilTest is Test {
         assertEq(result.length, 0);
     }
 
-    // forge-lint: disable(unsafe-typecast)
     function test_GetPageBytes16_ReturnsAllElements() public {
         bytes32 b1 = bytes32(bytes16(hex"00010002000300040005000600070008"));
         bytes32 b2 = bytes32(bytes16(hex"000a000b000c000d000e000f00100011"));
@@ -188,8 +187,6 @@ contract EnumerableSetUtilTest is Test {
         bytes16[] memory result = harness.getPageBytes16(0, 0);
         assertEq(result.length, 0);
     }
-
-    // forge-lint: enable(unsafe-typecast)
 
     /* solhint-enable graph/func-name-mixedcase */
 }

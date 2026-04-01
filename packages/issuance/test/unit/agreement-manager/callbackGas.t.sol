@@ -7,26 +7,26 @@ import { RecurringAgreementManagerSharedTest } from "./shared.t.sol";
 import { MockIssuanceAllocator } from "./mocks/MockIssuanceAllocator.sol";
 
 /// @notice Gas regression canary for RAM callbacks (beforeCollection / afterCollection).
-/// RecurringCollector caps gas forwarded to these callbacks at 1.5M (MAX_PAYER_CALLBACK_GAS).
+/// RecurringCollector caps gas forwarded to these callbacks at 1.5M (MAX_CALLBACK_GAS).
 ///
 /// These tests use mocks for PaymentsEscrow, IssuanceAllocator, and RecurringCollector,
 /// so measured gas is lower than production. They catch RAM code regressions (new loops,
 /// extra external calls, etc.) but cannot validate the production gas margin.
 ///
-/// @dev Future work: add integration gas tests in a dedicated cross-package test harness
-/// that uses the real PaymentsEscrow, RecurringCollector, and IssuanceAllocator contracts
-/// to measure production-representative callback gas.
+/// Production-representative gas measurements live in the testing package:
+/// packages/testing/test/gas/CallbackGas.t.sol (uses real PaymentsEscrow, RecurringCollector,
+/// and IssuanceAllocator via RealStackHarness).
 contract RecurringAgreementManagerCallbackGasTest is RecurringAgreementManagerSharedTest {
     /* solhint-disable graph/func-name-mixedcase */
 
     /// @notice Gas budget that RecurringCollector forwards to each callback.
-    /// Must match MAX_PAYER_CALLBACK_GAS in RecurringCollector.
-    uint256 internal constant MAX_PAYER_CALLBACK_GAS = 1_500_000;
+    /// Must match MAX_CALLBACK_GAS in RecurringCollector.
+    uint256 internal constant MAX_CALLBACK_GAS = 1_500_000;
 
     /// @notice Alarm threshold — 1/10th of the callback gas budget.
     /// Current mock worst-case is ~70k. Crossing 150k means RAM code got significantly
     /// heavier and the production gas margin (against real contracts) must be re-evaluated.
-    uint256 internal constant GAS_ALARM_THRESHOLD = MAX_PAYER_CALLBACK_GAS / 10; // 150_000
+    uint256 internal constant GAS_ALARM_THRESHOLD = MAX_CALLBACK_GAS / 10; // 150_000
 
     MockIssuanceAllocator internal mockAllocator;
 

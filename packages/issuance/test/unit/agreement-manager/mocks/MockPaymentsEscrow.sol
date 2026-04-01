@@ -28,7 +28,6 @@ contract MockPaymentsEscrow is IPaymentsEscrow {
     }
 
     function deposit(address collector, address receiver, uint256 tokens) external {
-        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         token.transferFrom(msg.sender, address(this), tokens);
         accounts[msg.sender][collector][receiver].balance += tokens;
     }
@@ -82,7 +81,6 @@ contract MockPaymentsEscrow is IPaymentsEscrow {
         account.balance -= tokens;
         account.tokensThawing = 0;
         account.thawEndTimestamp = 0;
-        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         token.transfer(msg.sender, tokens);
     }
 
