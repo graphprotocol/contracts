@@ -798,22 +798,28 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
      * @return The EIP712 hash of the RCA
      */
     function _hashRCA(RecurringCollectionAgreement memory _rca) private view returns (bytes32) {
+        // Split abi.encode into two halves to avoid stack-too-deep without optimizer
         return
             _hashTypedDataV4(
                 keccak256(
-                    abi.encode(
-                        EIP712_RCA_TYPEHASH,
-                        _rca.deadline,
-                        _rca.endsAt,
-                        _rca.payer,
-                        _rca.dataService,
-                        _rca.serviceProvider,
-                        _rca.maxInitialTokens,
-                        _rca.maxOngoingTokensPerSecond,
-                        _rca.minSecondsPerCollection,
-                        _rca.maxSecondsPerCollection,
-                        _rca.nonce,
-                        keccak256(_rca.metadata)
+                    bytes.concat(
+                        abi.encode(
+                            EIP712_RCA_TYPEHASH,
+                            _rca.deadline,
+                            _rca.endsAt,
+                            _rca.payer,
+                            _rca.dataService,
+                            _rca.serviceProvider,
+                            _rca.maxInitialTokens
+                        ),
+                        abi.encode(
+                            _rca.maxOngoingTokensPerSecond,
+                            _rca.minSecondsPerCollection,
+                            _rca.maxSecondsPerCollection,
+                            _rca.conditions,
+                            _rca.nonce,
+                            keccak256(_rca.metadata)
+                        )
                     )
                 )
             );
@@ -825,20 +831,26 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
      * @return The EIP712 hash of the RCAU
      */
     function _hashRCAU(RecurringCollectionAgreementUpdate memory _rcau) private view returns (bytes32) {
+        // Split abi.encode into two halves to avoid stack-too-deep without optimizer
         return
             _hashTypedDataV4(
                 keccak256(
-                    abi.encode(
-                        EIP712_RCAU_TYPEHASH,
-                        _rcau.agreementId,
-                        _rcau.deadline,
-                        _rcau.endsAt,
-                        _rcau.maxInitialTokens,
-                        _rcau.maxOngoingTokensPerSecond,
-                        _rcau.minSecondsPerCollection,
-                        _rcau.maxSecondsPerCollection,
-                        _rcau.nonce,
-                        keccak256(_rcau.metadata)
+                    bytes.concat(
+                        abi.encode(
+                            EIP712_RCAU_TYPEHASH,
+                            _rcau.agreementId,
+                            _rcau.deadline,
+                            _rcau.endsAt,
+                            _rcau.maxInitialTokens,
+                            _rcau.maxOngoingTokensPerSecond
+                        ),
+                        abi.encode(
+                            _rcau.minSecondsPerCollection,
+                            _rcau.maxSecondsPerCollection,
+                            _rcau.conditions,
+                            _rcau.nonce,
+                            keccak256(_rcau.metadata)
+                        )
                     )
                 )
             );
