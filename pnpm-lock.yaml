@@ -1317,6 +1317,9 @@ importers:
       '@graphprotocol/issuance':
         specifier: workspace:^
         version: link:../issuance
+      '@graphprotocol/subgraph-service':
+        specifier: workspace:^
+        version: link:../subgraph-service
       '@openzeppelin/contracts':
         specifier: ^5.4.0
         version: 5.4.0
