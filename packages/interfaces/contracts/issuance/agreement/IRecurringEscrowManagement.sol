@@ -6,7 +6,7 @@ pragma solidity ^0.8.22;
  * @author Edge & Node
  * @notice Functions for configuring escrow deposits that back
  * managed RCAs. Controls how aggressively escrow is pre-deposited.
- * Escrow rebalancing is performed by {IRecurringAgreementManagement-reconcileCollectorProvider}.
+ * Escrow rebalancing is performed by {IRecurringAgreementManagement-reconcileProvider}.
  *
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
@@ -56,12 +56,25 @@ interface IRecurringEscrowManagement {
     event EscrowBasisSet(EscrowBasis indexed oldBasis, EscrowBasis indexed newBasis);
 
     /**
-     * @notice Emitted when temporary JIT mode is activated or deactivated
-     * @param active True when entering temp JIT, false when recovering
-     * @param automatic True when triggered by the system (beforeCollection/reconcileCollectorProvider),
-     * false when triggered by operator (setTempJit/setEscrowBasis)
+     * @notice Emitted when the OnDemand basis threshold is changed
+     * @param oldThreshold The previous threshold
+     * @param newThreshold The new threshold
      */
-    event TempJitSet(bool indexed active, bool indexed automatic);
+    event MinOnDemandBasisThresholdSet(uint8 oldThreshold, uint8 newThreshold);
+
+    /**
+     * @notice Emitted when the Full basis margin is changed
+     * @param oldMargin The previous margin
+     * @param newMargin The new margin
+     */
+    event MinFullBasisMarginSet(uint8 oldMargin, uint8 newMargin);
+
+    /**
+     * @notice Emitted when the minimum thaw fraction is changed
+     * @param oldFraction The previous fraction
+     * @param newFraction The new fraction
+     */
+    event MinThawFractionSet(uint8 oldFraction, uint8 newFraction);
 
     // solhint-enable gas-indexed-events
 
@@ -71,17 +84,44 @@ interface IRecurringEscrowManagement {
      * @notice Set the escrow basis (maximum aspiration level).
      * @dev Requires OPERATOR_ROLE. The system automatically degrades below the configured
      * level when balance is insufficient. Changing the basis does not immediately rebalance
-     * escrow — call {IRecurringAgreementManagement-reconcileCollectorProvider} per pair to apply.
+     * escrow — call {IRecurringAgreementManagement-reconcileProvider} per pair to apply.
      * @param basis The new escrow basis
      */
     function setEscrowBasis(EscrowBasis basis) external;
 
     /**
-     * @notice Manually activate or deactivate temporary JIT mode
-     * @dev Requires OPERATOR_ROLE. When activated, the system operates in JIT-only mode
-     * regardless of the configured escrow basis. When deactivated, the configured basis
-     * takes effect again. Emits {TempJitSet}.
-     * @param active True to activate temp JIT, false to deactivate
+     * @notice Set the minimum spare balance threshold for OnDemand basis.
+     * @dev Requires OPERATOR_ROLE. The effective basis is limited to JustInTime
+     * when spare balance (balance - totalEscrowDeficit) is not strictly greater than
+     * sumMaxNextClaimAll * minOnDemandBasisThreshold / 256.
+     * @param threshold The numerator over 256 for the spare threshold
      */
-    function setTempJit(bool active) external;
+    function setMinOnDemandBasisThreshold(uint8 threshold) external;
+
+    /**
+     * @notice Set the minimum spare balance margin for Full basis.
+     * @dev Requires OPERATOR_ROLE. The effective basis is limited to OnDemand
+     * when spare balance is not strictly greater than
+     * sumMaxNextClaimAll * (256 + minFullBasisMargin) / 256.
+     * @param margin The margin added to 256 for the spare threshold numerator
+     */
+    function setMinFullBasisMargin(uint8 margin) external;
+
+    /**
+     * @notice Set the minimum fraction to initiate thawing excess escrow.
+     * @dev Requires OPERATOR_ROLE. When excess above max for a (collector, provider) pair
+     * is less than sumMaxNextClaim[collector][provider] * minThawFraction / 256, the thaw
+     * is skipped. This avoids wasting the thaw timer on negligible amounts and prevents
+     * micro-deposit griefing where an attacker deposits dust via depositTo() and triggers
+     * reconciliation to start a tiny thaw that blocks legitimate thaw increases.
+     *
+     * WARNING: Setting fraction to 0 disables the dust threshold entirely, allowing any
+     * excess (including dust amounts) to trigger a thaw. This re-enables the micro-deposit
+     * griefing vector described above. Setting fraction to very high values (e.g. 255)
+     * means thaws are almost never triggered (excess must exceed ~99.6% of sumMaxNextClaim),
+     * which can cause escrow to remain over-funded indefinitely. The default of 16 (~6.25%)
+     * provides a reasonable balance. Operators should keep this value between 8 and 64.
+     * @param fraction The numerator over 256 for the dust threshold
+     */
+    function setMinThawFraction(uint8 fraction) external;
 }

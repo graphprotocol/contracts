@@ -281,7 +281,7 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
         );
     }
 
-    function test_SubgraphService_CollectIndexingFees_Reverts_WhenCloseStaleAllocation(
+    function test_SubgraphService_CollectIndexingFees_AfterCloseStaleAllocation_ResizesToZero(
         Seed memory seed,
         uint256 entities,
         bytes32 poi
@@ -292,13 +292,37 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
 
         skip(MAX_POI_STALENESS + 1);
         resetPrank(indexerState.addr);
+        // closeStaleAllocation now resizes to zero instead of hard-closing,
+        // so the allocation remains open and collection can still proceed.
         subgraphService.closeStaleAllocation(indexerState.allocationId);
 
+        IAllocation.State memory allocation = subgraphService.getAllocation(indexerState.allocationId);
+        assertEq(allocation.closedAt, 0, "allocation should still be open after resize-to-zero");
+        assertEq(allocation.tokens, 0, "allocation tokens should be zero");
+    }
+
+    function test_SubgraphService_CollectIndexingFees_Revert_WhenNotCollectable(
+        Seed memory seed,
+        uint256 entities,
+        bytes32 poi
+    ) public {
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+        (, bytes16 acceptedAgreementId) = _withAcceptedIndexingAgreement(ctx, indexerState);
+
+        resetPrank(indexerState.addr);
         uint256 currentEpochBlock = epochManager.currentEpochBlock();
 
+        // Mock getCollectionInfo to return not collectable
+        vm.mockCall(
+            address(recurringCollector),
+            abi.encodeWithSelector(IRecurringCollector.getCollectionInfo.selector),
+            abi.encode(false, uint256(0), IRecurringCollector.AgreementNotCollectableReason.ZeroCollectionSeconds)
+        );
+
         bytes memory expectedErr = abi.encodeWithSelector(
-            AllocationHandler.AllocationHandlerAllocationClosed.selector,
-            indexerState.allocationId
+            IndexingAgreement.IndexingAgreementNotCollectable.selector,
+            acceptedAgreementId
         );
         vm.expectRevert(expectedErr);
         subgraphService.collect(

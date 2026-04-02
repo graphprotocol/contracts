@@ -112,20 +112,18 @@ contract RecurringAgreementManagerEnsureDistributedTest is RecurringAgreementMan
         token.transfer(address(1), freeBalance);
         assertEq(token.balanceOf(address(agreementManager)), 0);
 
-        // Configure allocator to mint enough to cover the deficit
+        // Configure allocator to mint enough to cover the deficit plus 50% of sumMaxNextClaimAll reserve
         uint256 deficit = 500 ether;
-        mockAllocator.setMintPerDistribution(deficit + 1 ether);
+        uint256 reserve = agreementManager.getSumMaxNextClaim(); // >= 50% threshold
+        mockAllocator.setMintPerDistribution(deficit + reserve);
 
         // Advance block so distribution actually mints
         vm.roll(block.number + 1);
 
-        // Without distribution, this would trigger tempJit (balance=0, deficit=500).
-        // With distribution, the allocator mints tokens first, so JIT deposit succeeds.
+        // Without distribution, balance would be 0. With distribution, the allocator mints
+        // tokens first, so JIT deposit succeeds.
         vm.prank(address(recurringCollector));
         agreementManager.beforeCollection(agreementId, escrowBalance + deficit);
-
-        // tempJit should NOT be active — distribution provided funds
-        assertFalse(agreementManager.isTempJit(), "tempJit should not be set when distribution provides funds");
     }
 
     function test_BeforeCollection_SkipsDistributeWhenEscrowSufficient() public {
@@ -227,9 +225,9 @@ contract RecurringAgreementManagerEnsureDistributedTest is RecurringAgreementMan
         agreementManager.beforeCollection(agreementId, escrowBalance + 500 ether);
     }
 
-    // ==================== uint64 wrap ====================
+    // ==================== uint32 wrap ====================
 
-    function test_EnsureDistributed_WorksAcrossUint64Boundary() public {
+    function test_EnsureDistributed_WorksAcrossUint32Boundary() public {
         // Use afterCollection path which always reaches _updateEscrow → _ensureIncomingDistributionToCurrentBlock,
         // regardless of escrow balance (unlike beforeCollection which has an early return).
         (IRecurringCollector.RecurringCollectionAgreement memory rca, ) = _makeRCAWithId(
@@ -245,31 +243,31 @@ contract RecurringAgreementManagerEnsureDistributedTest is RecurringAgreementMan
 
         uint256 countBefore = mockAllocator.distributeCallCount();
 
-        // Jump to uint64 max
-        vm.roll(type(uint64).max);
+        // Jump to uint32 max
+        vm.roll(type(uint32).max);
         vm.prank(address(recurringCollector));
         agreementManager.afterCollection(agreementId, 0);
-        assertGt(mockAllocator.distributeCallCount(), countBefore, "should distribute at uint64.max");
+        assertGt(mockAllocator.distributeCallCount(), countBefore, "should distribute at uint32.max");
 
         uint256 countAtMax = mockAllocator.distributeCallCount();
 
-        // Cross the boundary: uint64.max + 1 wraps to 0 in uint64.
-        // ensuredIncomingDistributedToBlock is uint64.max from the previous call, so no false match.
-        vm.roll(uint256(type(uint64).max) + 1);
+        // Cross the boundary: uint32.max + 1 wraps to 0 in uint32.
+        // ensuredIncomingDistributedToBlock is uint32.max from the previous call, so no false match.
+        vm.roll(uint256(type(uint32).max) + 1);
         vm.prank(address(recurringCollector));
         agreementManager.afterCollection(agreementId, 0);
-        assertGt(mockAllocator.distributeCallCount(), countAtMax, "should distribute after uint64 wrap to 0");
+        assertGt(mockAllocator.distributeCallCount(), countAtMax, "should distribute after uint32 wrap to 0");
 
         uint256 countAfterWrap = mockAllocator.distributeCallCount();
 
         // Next block after wrap (wraps to 1) also works
-        vm.roll(uint256(type(uint64).max) + 2);
+        vm.roll(uint256(type(uint32).max) + 2);
         vm.prank(address(recurringCollector));
         agreementManager.afterCollection(agreementId, 0);
         assertGt(mockAllocator.distributeCallCount(), countAfterWrap, "should distribute on block after wrap");
     }
 
-    function test_EnsureDistributed_SameBlockDedup_AtUint64Boundary() public {
+    function test_EnsureDistributed_SameBlockDedup_AtUint32Boundary() public {
         (IRecurringCollector.RecurringCollectionAgreement memory rca, ) = _makeRCAWithId(
             100 ether,
             1 ether,
@@ -280,7 +278,7 @@ contract RecurringAgreementManagerEnsureDistributedTest is RecurringAgreementMan
         token.mint(address(agreementManager), 10_000 ether);
 
         // Jump past the boundary
-        vm.roll(uint256(type(uint64).max) + 3);
+        vm.roll(uint256(type(uint32).max) + 3);
         (uint256 escrowBalance, , ) = paymentsEscrow.escrowAccounts(
             address(agreementManager),
             address(recurringCollector),
@@ -308,7 +306,9 @@ contract RecurringAgreementManagerEnsureDistributedTest is RecurringAgreementMan
         // Deploy a contract that doesn't support ERC165
         address notAllocator = address(new NoERC165Contract());
         vm.prank(governor);
-        vm.expectRevert(abi.encodeWithSelector(RecurringAgreementManager.InvalidIssuanceAllocator.selector, notAllocator));
+        vm.expectRevert(
+            abi.encodeWithSelector(RecurringAgreementManager.InvalidIssuanceAllocator.selector, notAllocator)
+        );
         agreementManager.setIssuanceAllocator(notAllocator);
     }
 

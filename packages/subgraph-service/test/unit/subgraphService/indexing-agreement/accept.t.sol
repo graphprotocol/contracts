@@ -318,6 +318,38 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
         subgraphService.acceptIndexingAgreement(indexerState.allocationId, notAcceptableRcaSigned, signature);
     }
 
+    function test_SubgraphService_AcceptIndexingAgreement_Revert_WhenTermsExceedRCALimit(Seed memory seed) public {
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+        (IRecurringCollector.RecurringCollectionAgreement memory acceptableRca, ) = _generateAcceptableSignedRCA(
+            ctx,
+            indexerState.addr
+        );
+
+        // Override metadata with tokensPerSecond exceeding RCA maxOngoingTokensPerSecond
+        uint256 excessiveTokensPerSecond = acceptableRca.maxOngoingTokensPerSecond + 1;
+        acceptableRca.metadata = _encodeAcceptIndexingAgreementMetadataV1(
+            indexerState.subgraphDeploymentId,
+            IndexingAgreement.IndexingAgreementTermsV1({
+                tokensPerSecond: excessiveTokensPerSecond,
+                tokensPerEntityPerSecond: 0
+            })
+        );
+        (
+            IRecurringCollector.RecurringCollectionAgreement memory unacceptableRca,
+            bytes memory signature
+        ) = _recurringCollectorHelper.generateSignedRCA(acceptableRca, ctx.payer.signerPrivateKey);
+
+        bytes memory expectedErr = abi.encodeWithSelector(
+            IndexingAgreement.IndexingAgreementInvalidTerms.selector,
+            excessiveTokensPerSecond,
+            unacceptableRca.maxOngoingTokensPerSecond
+        );
+        vm.expectRevert(expectedErr);
+        vm.prank(indexerState.addr);
+        subgraphService.acceptIndexingAgreement(indexerState.allocationId, unacceptableRca, signature);
+    }
+
     function test_SubgraphService_AcceptIndexingAgreement(Seed memory seed) public {
         Context storage ctx = _newCtx(seed);
         IndexerState memory indexerState = _withIndexer(ctx);

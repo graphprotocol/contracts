@@ -21,7 +21,7 @@ import { DataService } from "@graphprotocol/horizon/contracts/data-service/DataS
 import { DataServiceFees } from "@graphprotocol/horizon/contracts/data-service/extensions/DataServiceFees.sol";
 import { Directory } from "./utilities/Directory.sol";
 import { AllocationManager } from "./utilities/AllocationManager.sol";
-import { SubgraphServiceV1Storage } from "./SubgraphServiceStorage.sol";
+import { SubgraphServiceV2Storage } from "./SubgraphServiceStorage.sol";
 
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
@@ -47,7 +47,7 @@ contract SubgraphService is
     AllocationManager,
     IRewardsIssuer,
     ISubgraphService,
-    SubgraphServiceV1Storage
+    SubgraphServiceV2Storage
 {
     using PPMMath for uint256;
     using Allocation for mapping(address => IAllocation.State);
@@ -114,7 +114,7 @@ contract SubgraphService is
     }
 
     /**
-     * @notice
+     * @notice Register an indexer to the subgraph service
      * @dev Implements {IDataService.register}
      *
      * Requirements:
@@ -210,7 +210,7 @@ contract SubgraphService is
      * @notice Close an allocation, indicating that the indexer has stopped indexing the subgraph deployment
      * @dev This is the equivalent of the `closeAllocation` function in the legacy Staking contract.
      * There are a few notable differences with the legacy function:
-     * - allocations are nowlong lived. All service payments, including indexing rewards, should be collected periodically
+     * - allocations are now long lived. All service payments, including indexing rewards, should be collected periodically
      * without the need of closing the allocation. Allocations should only be closed when indexers want to reclaim the allocated
      * tokens for other purposes.
      * - No POI is required to close an allocation. Indexers should present POIs to collect indexing rewards using {collect}.
@@ -229,7 +229,7 @@ contract SubgraphService is
     function stopService(address indexer, bytes calldata data) external override enforceService(indexer, REGISTERED) {
         address allocationId = abi.decode(data, (address));
         _checkAllocationOwnership(indexer, allocationId);
-        _onCloseAllocation(allocationId, false);
+        _onCloseAllocation(allocationId);
         _closeAllocation(allocationId, false);
         emit ServiceStopped(indexer, data);
     }
@@ -315,8 +315,7 @@ contract SubgraphService is
         IAllocation.State memory allocation = _allocations.get(allocationId);
         require(allocation.isStale(maxPOIStaleness), SubgraphServiceCannotForceCloseAllocation(allocationId));
         require(!allocation.isAltruistic(), SubgraphServiceAllocationIsAltruistic(allocationId));
-        _onCloseAllocation(allocationId, true);
-        _closeAllocation(allocationId, true);
+        _resizeAllocation(allocationId, 0, _delegationRatio);
     }
 
     /// @inheritdoc ISubgraphService
@@ -371,6 +370,14 @@ contract SubgraphService is
         require(PPMMath.isValidPPM(indexingFeesCut_), SubgraphServiceInvalidIndexingFeesCut(indexingFeesCut_));
         indexingFeesCut = indexingFeesCut_;
         emit IndexingFeesCutSet(indexingFeesCut_);
+    }
+
+    /// @inheritdoc ISubgraphService
+    function setBlockClosingAllocationWithActiveAgreement(bool enabled) external override onlyOwner {
+        if (blockClosingAllocationWithActiveAgreement == enabled) return;
+
+        blockClosingAllocationWithActiveAgreement = enabled;
+        emit BlockClosingAllocationWithActiveAgreementSet(enabled);
     }
 
     /**
@@ -443,10 +450,7 @@ contract SubgraphService is
      * @param indexer The indexer address
      * @param agreementId The id of the agreement
      */
-    function cancelIndexingAgreement(
-        address indexer,
-        bytes16 agreementId
-    ) external enforceService(indexer, VALID_PROVISION | REGISTERED) {
+    function cancelIndexingAgreement(address indexer, bytes16 agreementId) external enforceService(indexer, DEFAULT) {
         IndexingAgreement._getStorageManager().cancel(indexer, agreementId);
     }
 
@@ -495,6 +499,11 @@ contract SubgraphService is
         );
     }
 
+    /// @inheritdoc ISubgraphService
+    function getBlockClosingAllocationWithActiveAgreement() external view override returns (bool enabled) {
+        enabled = blockClosingAllocationWithActiveAgreement;
+    }
+
     /// @inheritdoc IRewardsIssuer
     function getSubgraphAllocatedTokens(bytes32 subgraphDeploymentId) external view override returns (uint256) {
         return _subgraphAllocatedTokens[subgraphDeploymentId];
@@ -532,12 +541,15 @@ contract SubgraphService is
 
     /**
      * @notice Internal function to handle closing an allocation
-     * @dev This function is called when an allocation is closed, either by the indexer or by a third party
+     * @dev This function is called when an allocation is closed, either by the indexer or by a third party.
+     * Cancels any active indexing agreement on the allocation, or reverts if the close guard is enabled.
      * @param _allocationId The id of the allocation being closed
-     * @param _forceClosed Whether the allocation was force closed
      */
-    function _onCloseAllocation(address _allocationId, bool _forceClosed) internal {
-        IndexingAgreement._getStorageManager().onCloseAllocation(_allocationId, _forceClosed);
+    function _onCloseAllocation(address _allocationId) internal {
+        IndexingAgreement._getStorageManager().onCloseAllocation(
+            _allocationId,
+            blockClosingAllocationWithActiveAgreement
+        );
     }
 
     /**
@@ -722,17 +734,13 @@ contract SubgraphService is
         (address allocationId, bytes32 poi_, bytes memory poiMetadata_) = abi.decode(_data, (address, bytes32, bytes));
         _checkAllocationOwnership(_indexer, allocationId);
 
-        (uint256 paymentCollected, bool allocationForceClosed) = _presentPoi(
+        (uint256 paymentCollected, ) = _presentPoi(
             allocationId,
             poi_,
             poiMetadata_,
             _delegationRatio,
             paymentsDestination[_indexer]
         );
-
-        if (allocationForceClosed) {
-            _onCloseAllocation(allocationId, true);
-        }
 
         return paymentCollected;
     }

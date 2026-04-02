@@ -442,40 +442,32 @@ library IndexingAgreement {
     }
 
     /**
-     * @notice Cancel an allocation's indexing agreement if it exists.
+     * @notice Handle an allocation's indexing agreement when the allocation is closed.
      *
-     * @dev This function is to be called by the data service when an allocation is closed.
-     *
-     * Requirements:
-     * - The allocation must have an active agreement
-     * - Agreement must be active
-     *
-     * Emits {IndexingAgreementCanceled} event
+     * @dev Called by the data service when an allocation is closed.
+     * When `_blockIfActive` is true, reverts if the agreement is still active.
+     * When false, cancels any active agreement as ServiceProvider.
      *
      * @param self The indexing agreement storage manager
      * @param _allocationId The allocation ID
-     * @param forceClosed Whether the allocation was force closed
-     *
+     * @param _blockIfActive Whether to revert if the agreement is active
      */
-    function onCloseAllocation(StorageManager storage self, address _allocationId, bool forceClosed) external {
+    function onCloseAllocation(StorageManager storage self, address _allocationId, bool _blockIfActive) external {
         bytes16 agreementId = self.allocationToActiveAgreementId[_allocationId];
-        if (agreementId == bytes16(0)) {
-            return;
-        }
+        if (agreementId == bytes16(0)) return;
 
         IIndexingAgreement.AgreementWrapper memory wrapper = _get(self, agreementId);
-        if (!_isActive(wrapper)) {
-            return;
-        }
+        if (!_isActive(wrapper)) return;
+
+        if (_blockIfActive)
+            revert ISubgraphService.SubgraphServiceAllocationHasActiveAgreement(_allocationId, agreementId);
 
         _cancel(
             self,
             agreementId,
             wrapper.agreement,
             wrapper.collectorAgreement,
-            forceClosed
-                ? IRecurringCollector.CancelAgreementBy.ThirdParty
-                : IRecurringCollector.CancelAgreementBy.ServiceProvider
+            IRecurringCollector.CancelAgreementBy.ServiceProvider
         );
     }
 
@@ -549,7 +541,7 @@ library IndexingAgreement {
         );
         // Get collection info from RecurringCollector (single source of truth for temporal logic)
         (bool isCollectable, uint256 collectionSeconds, ) = _directory().recurringCollector().getCollectionInfo(
-            wrapper.collectorAgreement
+            params.agreementId
         );
         require(_isValid(wrapper) && isCollectable, IndexingAgreementNotCollectable(params.agreementId));
 

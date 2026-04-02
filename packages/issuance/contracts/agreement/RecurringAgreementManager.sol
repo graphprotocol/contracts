@@ -15,11 +15,10 @@ import { IRecurringEscrowManagement } from "@graphprotocol/interfaces/contracts/
 import { IProviderEligibilityManagement } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IProviderEligibilityManagement.sol";
 import { IRecurringAgreements } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreements.sol";
 import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
-import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
-import { IDataServiceAgreements } from "@graphprotocol/interfaces/contracts/data-service/IDataServiceAgreements.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IProviderEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IProviderEligibility.sol";
+import { IEmergencyRoleControl } from "@graphprotocol/interfaces/contracts/issuance/common/IEmergencyRoleControl.sol";
 
-import { EnumerableSetUtil } from "../common/EnumerableSetUtil.sol";
 import { BaseUpgradeable } from "../common/BaseUpgradeable.sol";
 import { IGraphToken } from "../common/IGraphToken.sol";
 
@@ -30,23 +29,57 @@ import { ReentrancyGuardTransient } from "@openzeppelin/contracts/utils/Reentran
 /**
  * @title RecurringAgreementManager
  * @author Edge & Node
- * @notice Manages escrow for RCAs (Recurring Collection Agreements) using
- * issuance-allocated tokens. This contract:
+ * @notice Manages escrow for collector-managed agreements using issuance-allocated tokens.
+ * This contract:
  *
- * 1. Receives minted GRT from IssuanceAllocator (implements IIssuanceTarget)
- * 2. Authorizes RCA acceptance via contract callback (implements IAgreementOwner)
- * 3. Tracks max-next-claim per agreement, deposits into PaymentsEscrow to cover maximums
+ * 1. Receives minted GRT from IssuanceAllocator ({IIssuanceTarget})
+ * 2. Offers and cancels agreements by calling collectors directly (AGREEMENT_MANAGER_ROLE-gated)
+ * 3. Handles collection callbacks — JIT escrow top-up and post-collection reconciliation
+ *    ({IAgreementOwner})
+ * 4. Tracks max-next-claim per agreement, deposits into PaymentsEscrow to cover maximums
  *
- * One escrow per (this contract, collector, provider) covers all managed
- * RCAs for that (collector, provider) pair. Each agreement stores its own collector
- * address. Other participants can independently use RCAs via the standard ECDSA-signed flow.
+ * One escrow per (this contract, collector, provider) covers all managed agreements for that
+ * (collector, provider) pair. Agreements are namespaced under their collector to prevent
+ * cross-collector ID collisions.
  *
- * @custom:security CEI — All external calls target trusted protocol contracts (PaymentsEscrow,
- * GRT, RecurringCollector) except {cancelAgreement}'s call to the data service, which is
- * governance-gated, and {_ensureIncomingDistributionToCurrentBlock}'s call to the issuance
- * allocator, which is also governance-gated. {nonReentrant} on {beforeCollection},
- * {afterCollection}, and {cancelAgreement} guards against reentrancy through these external
- * calls as defence-in-depth.
+ * @custom:design-coupling All collector interactions go through {IAgreementCollector}:
+ * discovery via {IAgreementCollector.getAgreementDetails}, claim computation via
+ * {IAgreementCollector.getMaxNextClaim}. A collector with a different pricing model or
+ * agreement type works without changes here.
+ *
+ * @custom:security CEI — external calls target trusted protocol contracts (PaymentsEscrow,
+ * GRT, issuance allocator) which are governance-gated.
+ *
+ * Collector trust: collectors are COLLECTOR_ROLE-gated (governor-managed). {offerAgreement}
+ * and {cancelAgreement} call collectors directly. Discovery calls `getAgreementDetails`;
+ * reconciliation calls `getMaxNextClaim` — these return values drive escrow accounting.
+ * A broken or malicious collector can cause reconciliation to revert; use
+ * {forceRemoveAgreement} as an operator escape hatch. Once tracked, reconciliation proceeds
+ * even if COLLECTOR_ROLE is later revoked, ensuring orderly settlement.
+ *
+ * {offerAgreement} and {cancelAgreement} forward to the collector then reconcile locally.
+ * The collector does not callback to `msg.sender`, so these methods own the full call
+ * sequence and hold the reentrancy lock for the entire operation.
+ *
+ * All state-mutating entry points are {nonReentrant}.
+ *
+ * @custom:security-pause This contract and RecurringCollector are independently pausable.
+ *
+ * When paused, all permissionless state-changing operations are blocked: collection callbacks,
+ * reconciliation, and agreement management. Operator-gated functions ({forceRemoveAgreement},
+ * configuration setters) remain callable during pause.
+ *
+ * Cross-contract: when this contract is paused but RecurringCollector is not, providers can
+ * still collect. The collector proceeds but payer callbacks revert (low-level calls, so
+ * collection succeeds without JIT top-up). Escrow accounting drifts until unpaused and
+ * {reconcileAgreement} is called. To fully halt collections, pause RecurringCollector too.
+ *
+ * Escalation ladder (targeted → full stop):
+ * 1. {emergencyRevokeRole} — disable a specific actor (operator, collector, guardian)
+ * 2. {emergencyClearEligibilityOracle} — fail-open if oracle blocks collections
+ * 3. Pause this contract — stops all permissionless escrow management
+ * 4. Pause RecurringCollector — stops all collections and state changes
+ * 5. Pause both — full halt
  *
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
@@ -60,11 +93,11 @@ contract RecurringAgreementManager is
     IRecurringEscrowManagement,
     IProviderEligibilityManagement,
     IRecurringAgreements,
-    IProviderEligibility
+    IProviderEligibility,
+    IEmergencyRoleControl
 {
     using EnumerableSet for EnumerableSet.Bytes32Set;
     using EnumerableSet for EnumerableSet.AddressSet;
-    using EnumerableSetUtil for EnumerableSet.AddressSet;
 
     /// @notice Emitted when distributeIssuance() reverts (collection continues without fresh issuance)
     /// @param allocator The allocator that reverted
@@ -73,7 +106,8 @@ contract RecurringAgreementManager is
     /// @notice Thrown when the issuance allocator does not support IIssuanceAllocationDistribution
     error InvalidIssuanceAllocator(address allocator);
 
-    using EnumerableSetUtil for EnumerableSet.Bytes32Set;
+    /// @notice Thrown when attempting to emergency-revoke the governor role
+    error CannotRevokeGovernorRole();
 
     // -- Role Constants --
 
@@ -106,41 +140,60 @@ contract RecurringAgreementManager is
 
     // -- Storage (ERC-7201) --
 
+    /**
+     * @notice Per-(collector, provider) pair tracking data
+     * @param sumMaxNextClaim Sum of maxNextClaim for all agreements in this pair
+     * @param escrowSnap Last known escrow balance (for snapshot diff)
+     * @param agreements Set of agreement IDs for this pair (stored as bytes32 for EnumerableSet)
+     */
+    struct CollectorProviderData {
+        uint256 sumMaxNextClaim;
+        uint256 escrowSnap;
+        EnumerableSet.Bytes32Set agreements;
+    }
+
+    /**
+     * @notice Per-collector tracking data
+     * @param agreements Agreement data keyed by agreement ID
+     * @param providers Per-provider tracking data
+     * @param providerSet Set of provider addresses with active agreements
+     */
+    struct CollectorData {
+        mapping(bytes16 agreementId => AgreementInfo) agreements;
+        mapping(address provider => CollectorProviderData) providers;
+        EnumerableSet.AddressSet providerSet;
+    }
+
     /// @custom:storage-location erc7201:graphprotocol.issuance.storage.RecurringAgreementManager
     // solhint-disable-next-line gas-struct-packing
     struct RecurringAgreementManagerStorage {
-        /// @notice Authorized agreement hashes — maps hash to agreementId (bytes16(0) = not authorized)
-        mapping(bytes32 agreementHash => bytes16) authorizedHashes;
-        /// @notice Per-agreement tracking data
-        mapping(bytes16 agreementId => AgreementInfo) agreements;
-        /// @notice Sum of maxNextClaim for all agreements per (collector, provider) pair
-        mapping(address collector => mapping(address provider => uint256)) sumMaxNextClaim;
-        /// @notice Set of agreement IDs per service provider (stored as bytes32 for EnumerableSet)
-        mapping(address provider => EnumerableSet.Bytes32Set) providerAgreementIds;
+        /// @notice Per-collector tracking data (agreements, providers, escrow)
+        mapping(address collector => CollectorData) collectors;
+        /// @notice Set of all collector addresses with active agreements
+        EnumerableSet.AddressSet collectorSet;
         /// @notice Sum of sumMaxNextClaim across all (collector, provider) pairs
         uint256 sumMaxNextClaimAll;
         /// @notice Total unfunded escrow: sum of max(0, sumMaxNextClaim[c][p] - escrowSnap[c][p])
         uint256 totalEscrowDeficit;
-        /// @notice Total number of tracked agreements across all providers
-        uint256 totalAgreementCount;
-        /// @notice Last known escrow balance per (collector, provider) pair (for snapshot diff)
-        mapping(address collector => mapping(address provider => uint256)) escrowSnap;
-        /// @notice Set of all collector addresses with active agreements
-        EnumerableSet.AddressSet collectors;
-        /// @notice Set of provider addresses per collector
-        mapping(address collector => EnumerableSet.AddressSet) collectorProviders;
-        /// @notice Number of agreements per (collector, provider) pair
-        mapping(address collector => mapping(address provider => uint256)) pairAgreementCount;
         /// @notice The issuance allocator that mints GRT to this contract (20 bytes)
-        /// @dev Packed slot (30/32 bytes): issuanceAllocator (20) + ensuredIncomingDistributedToBlock (8) +
-        /// escrowBasis (1) + tempJit (1). All read together in _updateEscrow / beforeCollection.
+        /// @dev Packed slot (28/32 bytes): issuanceAllocator (20) + ensuredIncomingDistributedToBlock (4) +
+        /// escrowBasis (1) + minOnDemandBasisThreshold (1) + minFullBasisMargin (1) + minThawFraction (1).
+        /// All read together in _reconcileProviderEscrow / beforeCollection.
         IIssuanceAllocationDistribution issuanceAllocator;
         /// @notice Block number when _ensureIncomingDistributionToCurrentBlock last ran
-        uint64 ensuredIncomingDistributedToBlock;
-        /// @notice Governance-configured escrow level (not modified by temp JIT)
+        uint32 ensuredIncomingDistributedToBlock;
+        /// @notice Governance-configured escrow level (maximum aspiration)
         EscrowBasis escrowBasis;
-        /// @notice Whether temporary JIT mode is active (beforeCollection couldn't deposit)
-        bool tempJit;
+        /// @notice Threshold for OnDemand: sumMaxNextClaimAll * threshold / 256 < spare.
+        /// Governance-configured.
+        uint8 minOnDemandBasisThreshold;
+        /// @notice Margin for Full: sumMaxNextClaimAll * (256 + margin) / 256 < spare.
+        /// Governance-configured.
+        uint8 minFullBasisMargin;
+        /// @notice Minimum thaw fraction: escrow excess below sumMaxNextClaim * minThawFraction / 256
+        /// per (collector, provider) pair is skipped as operationally insignificant.
+        /// Governance-configured.
+        uint8 minThawFraction;
         /// @notice Optional oracle for checking payment eligibility of service providers (20/32 bytes in slot)
         IProviderEligibility providerEligibilityOracle;
     }
@@ -172,7 +225,12 @@ contract RecurringAgreementManager is
         _setRoleAdmin(DATA_SERVICE_ROLE, GOVERNOR_ROLE);
         _setRoleAdmin(COLLECTOR_ROLE, GOVERNOR_ROLE);
         _setRoleAdmin(AGREEMENT_MANAGER_ROLE, OPERATOR_ROLE);
-        _getStorage().escrowBasis = EscrowBasis.Full;
+
+        RecurringAgreementManagerStorage storage $ = _getStorage();
+        $.escrowBasis = EscrowBasis.Full;
+        $.minOnDemandBasisThreshold = 128;
+        $.minFullBasisMargin = 16;
+        $.minThawFraction = 16;
     }
 
     // -- ERC165 --
@@ -187,6 +245,7 @@ contract RecurringAgreementManager is
             interfaceId == type(IProviderEligibilityManagement).interfaceId ||
             interfaceId == type(IRecurringAgreements).interfaceId ||
             interfaceId == type(IProviderEligibility).interfaceId ||
+            interfaceId == type(IEmergencyRoleControl).interfaceId ||
             super.supportsInterface(interfaceId);
     }
 
@@ -223,203 +282,115 @@ contract RecurringAgreementManager is
     // -- IAgreementOwner --
 
     /// @inheritdoc IAgreementOwner
-    function approveAgreement(bytes32 agreementHash) external view override returns (bytes4) {
+    function beforeCollection(
+        bytes16 agreementId,
+        uint256 tokensToCollect
+    ) external override whenNotPaused nonReentrant {
         RecurringAgreementManagerStorage storage $ = _getStorage();
-        bytes16 agreementId = $.authorizedHashes[agreementHash];
-
-        if (agreementId == bytes16(0) || $.agreements[agreementId].provider == address(0)) return bytes4(0);
-
-        return IAgreementOwner.approveAgreement.selector;
-    }
-
-    /// @inheritdoc IAgreementOwner
-    function beforeCollection(bytes16 agreementId, uint256 tokensToCollect) external override nonReentrant {
-        RecurringAgreementManagerStorage storage $ = _getStorage();
-        AgreementInfo storage agreement = $.agreements[agreementId];
-        address provider = agreement.provider;
+        address collector = msg.sender;
+        address provider = _getAgreementProvider($, collector, agreementId);
         if (provider == address(0)) return;
-        _requireCollector(agreement);
 
         // JIT top-up: deposit only when escrow balance cannot cover this collection
-        uint256 escrowBalance = _fetchEscrowAccount(msg.sender, provider).balance;
+        uint256 escrowBalance = _fetchEscrowAccount(collector, provider).balance;
         if (tokensToCollect <= escrowBalance) return;
 
         // Ensure issuance is distributed so balanceOf reflects all available tokens
         _ensureIncomingDistributionToCurrentBlock($);
 
-        // Strict <: when deficit == available, enter tempJit rather than depleting entire balance
         uint256 deficit = tokensToCollect - escrowBalance;
         if (deficit < GRAPH_TOKEN.balanceOf(address(this))) {
             GRAPH_TOKEN.approve(address(PAYMENTS_ESCROW), deficit);
-            PAYMENTS_ESCROW.deposit(msg.sender, provider, deficit);
-        } else if (!$.tempJit) {
-            $.tempJit = true;
-            emit TempJitSet(true, true);
+            PAYMENTS_ESCROW.deposit(collector, provider, deficit);
         }
     }
 
     /// @inheritdoc IAgreementOwner
-    function afterCollection(bytes16 agreementId, uint256 /* tokensCollected */) external override nonReentrant {
-        RecurringAgreementManagerStorage storage $ = _getStorage();
-        AgreementInfo storage agreement = $.agreements[agreementId];
-        if (agreement.provider == address(0)) return;
-        _requireCollector(agreement);
-
-        _reconcileAndUpdateEscrow($, agreementId);
+    function afterCollection(
+        bytes16 agreementId,
+        uint256 /* tokensCollected */
+    ) external override whenNotPaused nonReentrant {
+        _reconcileAgreement(_getStorage(), msg.sender, agreementId);
     }
 
     // -- IRecurringAgreementManagement --
 
     /// @inheritdoc IRecurringAgreementManagement
     function offerAgreement(
-        IRecurringCollector.RecurringCollectionAgreement calldata rca,
-        IRecurringCollector collector
-    ) external onlyRole(AGREEMENT_MANAGER_ROLE) whenNotPaused returns (bytes16 agreementId) {
-        require(rca.payer == address(this), PayerMustBeManager(rca.payer, address(this)));
-        require(rca.serviceProvider != address(0), ServiceProviderZeroAddress());
-        require(hasRole(DATA_SERVICE_ROLE, rca.dataService), UnauthorizedDataService(rca.dataService));
+        IAgreementCollector collector,
+        uint8 offerType,
+        bytes calldata offerData
+    ) external onlyRole(AGREEMENT_MANAGER_ROLE) nonReentrant returns (bytes16 agreementId) {
         require(hasRole(COLLECTOR_ROLE, address(collector)), UnauthorizedCollector(address(collector)));
 
-        RecurringAgreementManagerStorage storage $ = _getStorage();
+        // Forward to collector — no callback to msg.sender, we reconcile after return
+        IAgreementCollector.AgreementDetails memory details = collector.offer(offerType, offerData, 0);
+        require(hasRole(DATA_SERVICE_ROLE, details.dataService), UnauthorizedDataService(details.dataService));
+        agreementId = details.agreementId;
 
-        agreementId = collector.generateAgreementId(
-            rca.payer,
-            rca.dataService,
-            rca.serviceProvider,
-            rca.deadline,
-            rca.nonce
-        );
-        require($.agreements[agreementId].provider == address(0), AgreementAlreadyOffered(agreementId));
+        require(agreementId != bytes16(0), AgreementIdZero());
+        require(details.payer == address(this), PayerMismatch(details.payer));
+        require(details.serviceProvider != address(0), ServiceProviderZeroAddress());
 
-        bytes32 agreementHash = collector.hashRCA(rca);
-        uint256 maxNextClaim = _createAgreement($, agreementId, rca, collector, agreementHash);
-        _updateEscrow($, address(collector), rca.serviceProvider);
-
-        emit AgreementOffered(agreementId, rca.serviceProvider, maxNextClaim);
+        _reconcileAgreement(_getStorage(), address(collector), agreementId);
     }
 
     /// @inheritdoc IRecurringAgreementManagement
-    function offerAgreementUpdate(
-        IRecurringCollector.RecurringCollectionAgreementUpdate calldata rcau
-    ) external onlyRole(AGREEMENT_MANAGER_ROLE) whenNotPaused returns (bytes16 agreementId) {
-        agreementId = rcau.agreementId;
-        RecurringAgreementManagerStorage storage $ = _getStorage();
-        AgreementInfo storage agreement = $.agreements[agreementId];
-        require(agreement.provider != address(0), AgreementNotOffered(agreementId));
-
-        // Reconcile against on-chain state before layering a new pending update,
-        // so escrow accounting is current and we can validate the nonce.
-        _reconcileAgreement($, agreementId);
-
-        // Validate nonce: must be the next expected nonce on the collector
-        IRecurringCollector.AgreementData memory rca = agreement.collector.getAgreement(agreementId);
-        uint32 expectedNonce = rca.updateNonce + 1;
-        require(rcau.nonce == expectedNonce, InvalidUpdateNonce(agreementId, expectedNonce, rcau.nonce));
-
-        // Clean up old pending hash if replacing
-        if (agreement.pendingUpdateHash != bytes32(0)) delete $.authorizedHashes[agreement.pendingUpdateHash];
-
-        // Authorize the RCAU hash for the IAgreementOwner callback
-        bytes32 updateHash = agreement.collector.hashRCAU(rcau);
-        $.authorizedHashes[updateHash] = agreementId;
-        agreement.pendingUpdateNonce = rcau.nonce;
-        agreement.pendingUpdateHash = updateHash;
-
-        uint256 pendingMaxNextClaim = _computeMaxFirstClaim(
-            rcau.maxOngoingTokensPerSecond,
-            rcau.maxSecondsPerCollection,
-            rcau.maxInitialTokens
-        );
-        _setAgreementMaxNextClaim($, agreementId, pendingMaxNextClaim, true);
-        _updateEscrow($, address(agreement.collector), agreement.provider);
-
-        emit AgreementUpdateOffered(agreementId, pendingMaxNextClaim, rcau.nonce);
-    }
-
-    /// @inheritdoc IRecurringAgreementManagement
-    function revokeAgreementUpdate(
+    function forceRemoveAgreement(
+        IAgreementCollector collector,
         bytes16 agreementId
-    ) external onlyRole(AGREEMENT_MANAGER_ROLE) whenNotPaused returns (bool revoked) {
+    ) external onlyRole(OPERATOR_ROLE) nonReentrant {
         RecurringAgreementManagerStorage storage $ = _getStorage();
-        AgreementInfo storage agreement = $.agreements[agreementId];
-        require(agreement.provider != address(0), AgreementNotOffered(agreementId));
+        AgreementInfo storage agreement = $.collectors[address(collector)].agreements[agreementId];
+        address provider = agreement.provider;
+        if (provider == address(0)) return;
 
-        // Reconcile first — the update may have been accepted since the offer was made
-        _reconcileAgreement($, agreementId);
+        CollectorProviderData storage cpd = $.collectors[address(collector)].providers[provider];
 
-        if (agreement.pendingUpdateHash == bytes32(0)) return false;
-
-        uint256 pendingMaxClaim = agreement.pendingUpdateMaxNextClaim;
-        uint32 nonce = agreement.pendingUpdateNonce;
-
-        _setAgreementMaxNextClaim($, agreementId, 0, true);
-        delete $.authorizedHashes[agreement.pendingUpdateHash];
-        agreement.pendingUpdateNonce = 0;
-        agreement.pendingUpdateHash = bytes32(0);
-
-        _updateEscrow($, address(agreement.collector), agreement.provider);
-
-        emit AgreementUpdateRevoked(agreementId, pendingMaxClaim, nonce);
-        return true;
+        _removeAgreement($, cpd, address(collector), provider, agreementId);
     }
 
     /// @inheritdoc IRecurringAgreementManagement
-    function revokeOffer(
-        bytes16 agreementId
-    ) external onlyRole(AGREEMENT_MANAGER_ROLE) whenNotPaused returns (bool gone) {
-        RecurringAgreementManagerStorage storage $ = _getStorage();
-        AgreementInfo storage agreement = $.agreements[agreementId];
-        if (agreement.provider == address(0)) return true;
+    /// @dev Emergency fail-open: if the oracle is broken or compromised and is wrongly
+    /// blocking collections, the pause guardian can clear it so all providers become eligible.
+    /// The governor can later set a replacement oracle.
+    function emergencyClearEligibilityOracle() external override onlyRole(PAUSE_ROLE) {
+        _setProviderEligibilityOracle(IProviderEligibility(address(0)));
+    }
 
-        // Only revoke un-accepted agreements — accepted ones must be canceled via cancelAgreement
-        IRecurringCollector.AgreementData memory rca = agreement.collector.getAgreement(agreementId);
-        require(rca.state == IRecurringCollector.AgreementState.NotAccepted, AgreementAlreadyAccepted(agreementId));
-
-        address provider = _deleteAgreement($, agreementId, agreement);
-        emit OfferRevoked(agreementId, provider);
-        return true;
+    /// @inheritdoc IEmergencyRoleControl
+    /// @dev Governor role is excluded to prevent a pause guardian from locking out governance.
+    function emergencyRevokeRole(bytes32 role, address account) external override onlyRole(PAUSE_ROLE) {
+        require(role != GOVERNOR_ROLE, CannotRevokeGovernorRole());
+        _revokeRole(role, account);
     }
 
     /// @inheritdoc IRecurringAgreementManagement
     function cancelAgreement(
+        IAgreementCollector collector,
+        bytes16 agreementId,
+        bytes32 versionHash,
+        uint16 options
+    ) external onlyRole(AGREEMENT_MANAGER_ROLE) nonReentrant {
+        // Forward to collector — no callback to msg.sender, we reconcile after return
+        collector.cancel(agreementId, versionHash, options);
+        _reconcileAgreement(_getStorage(), address(collector), agreementId);
+    }
+
+    /// @inheritdoc IRecurringAgreementManagement
+    function reconcileAgreement(
+        IAgreementCollector collector,
         bytes16 agreementId
-    ) external onlyRole(AGREEMENT_MANAGER_ROLE) whenNotPaused nonReentrant returns (bool gone) {
-        RecurringAgreementManagerStorage storage $ = _getStorage();
-        AgreementInfo storage agreement = $.agreements[agreementId];
-        if (agreement.provider == address(0)) return true;
-
-        IRecurringCollector.AgreementData memory rca = agreement.collector.getAgreement(agreementId);
-
-        // Not accepted — use revokeOffer instead
-        require(rca.state != IRecurringCollector.AgreementState.NotAccepted, AgreementNotAccepted(agreementId));
-
-        // If still active, route cancellation through the data service.
-        // Note: external call before state update — safe because caller must hold
-        // AGREEMENT_MANAGER_ROLE and data service is governance-gated. nonReentrant
-        // provides defence-in-depth (see CEI note in contract header).
-        if (rca.state == IRecurringCollector.AgreementState.Accepted) {
-            IDataServiceAgreements ds = agreement.dataService;
-            require(address(ds).code.length != 0, InvalidDataService(address(ds)));
-            ds.cancelIndexingAgreementByPayer(agreementId);
-            emit AgreementCanceled(agreementId, agreement.provider);
-        }
-        // else: already canceled (CanceledByPayer or CanceledByServiceProvider) — skip cancel call, just reconcile
-
-        return _reconcileAndCleanup($, agreementId, agreement);
+    ) external whenNotPaused nonReentrant returns (bool tracked) {
+        tracked = _reconcileAgreement(_getStorage(), address(collector), agreementId);
     }
 
     /// @inheritdoc IRecurringAgreementManagement
-    function reconcileAgreement(bytes16 agreementId) external returns (bool exists) {
-        RecurringAgreementManagerStorage storage $ = _getStorage();
-        AgreementInfo storage agreement = $.agreements[agreementId];
-        if (agreement.provider == address(0)) return false;
-
-        return !_reconcileAndCleanup($, agreementId, agreement);
-    }
-
-    /// @inheritdoc IRecurringAgreementManagement
-    function reconcileCollectorProvider(address collector, address provider) external returns (bool exists) {
-        return !_reconcilePairTracking(_getStorage(), collector, provider);
+    function reconcileProvider(
+        IAgreementCollector collector,
+        address provider
+    ) external whenNotPaused nonReentrant returns (bool tracked) {
+        return _reconcileProvider(_getStorage(), address(collector), provider);
     }
 
     // -- IRecurringEscrowManagement --
@@ -428,26 +399,54 @@ contract RecurringAgreementManager is
     function setEscrowBasis(EscrowBasis basis) external onlyRole(OPERATOR_ROLE) {
         RecurringAgreementManagerStorage storage $ = _getStorage();
         if ($.escrowBasis == basis) return;
+
         EscrowBasis oldBasis = $.escrowBasis;
         $.escrowBasis = basis;
         emit EscrowBasisSet(oldBasis, basis);
     }
 
     /// @inheritdoc IRecurringEscrowManagement
-    function setTempJit(bool active) external onlyRole(OPERATOR_ROLE) {
+    function setMinOnDemandBasisThreshold(uint8 threshold) external onlyRole(OPERATOR_ROLE) {
         RecurringAgreementManagerStorage storage $ = _getStorage();
-        if ($.tempJit != active) {
-            $.tempJit = active;
-            emit TempJitSet(active, false);
-        }
+        if ($.minOnDemandBasisThreshold == threshold) return;
+
+        uint8 oldThreshold = $.minOnDemandBasisThreshold;
+        $.minOnDemandBasisThreshold = threshold;
+        emit MinOnDemandBasisThresholdSet(oldThreshold, threshold);
+    }
+
+    /// @inheritdoc IRecurringEscrowManagement
+    function setMinFullBasisMargin(uint8 margin) external onlyRole(OPERATOR_ROLE) {
+        RecurringAgreementManagerStorage storage $ = _getStorage();
+        if ($.minFullBasisMargin == margin) return;
+
+        uint8 oldMargin = $.minFullBasisMargin;
+        $.minFullBasisMargin = margin;
+        emit MinFullBasisMarginSet(oldMargin, margin);
+    }
+
+    /// @inheritdoc IRecurringEscrowManagement
+    function setMinThawFraction(uint8 fraction) external onlyRole(OPERATOR_ROLE) {
+        RecurringAgreementManagerStorage storage $ = _getStorage();
+        if ($.minThawFraction == fraction) return;
+
+        uint8 oldFraction = $.minThawFraction;
+        $.minThawFraction = fraction;
+        emit MinThawFractionSet(oldFraction, fraction);
     }
 
     // -- IProviderEligibilityManagement --
 
     /// @inheritdoc IProviderEligibilityManagement
     function setProviderEligibilityOracle(IProviderEligibility oracle) external onlyRole(GOVERNOR_ROLE) {
+        _setProviderEligibilityOracle(oracle);
+    }
+
+    // solhint-disable-next-line use-natspec
+    function _setProviderEligibilityOracle(IProviderEligibility oracle) private {
         RecurringAgreementManagerStorage storage $ = _getStorage();
         if (address($.providerEligibilityOracle) == address(oracle)) return;
+
         IProviderEligibility oldOracle = $.providerEligibilityOracle;
         $.providerEligibilityOracle = oracle;
         emit ProviderEligibilityOracleSet(oldOracle, oracle);
@@ -471,45 +470,46 @@ contract RecurringAgreementManager is
     // -- IRecurringAgreements --
 
     /// @inheritdoc IRecurringAgreements
-    function getSumMaxNextClaim(IRecurringCollector collector, address provider) external view returns (uint256) {
-        return _getStorage().sumMaxNextClaim[address(collector)][provider];
+    function getSumMaxNextClaim(IAgreementCollector collector, address provider) external view returns (uint256) {
+        return _getStorage().collectors[address(collector)].providers[provider].sumMaxNextClaim;
     }
 
     /// @inheritdoc IRecurringAgreements
     function getEscrowAccount(
-        IRecurringCollector collector,
+        IAgreementCollector collector,
         address provider
     ) external view returns (IPaymentsEscrow.EscrowAccount memory account) {
         return _fetchEscrowAccount(address(collector), provider);
     }
 
     /// @inheritdoc IRecurringAgreements
-    function getAgreementMaxNextClaim(bytes16 agreementId) external view returns (uint256) {
-        return _getStorage().agreements[agreementId].maxNextClaim;
+    function getAgreementMaxNextClaim(
+        IAgreementCollector collector,
+        bytes16 agreementId
+    ) external view returns (uint256) {
+        return _getStorage().collectors[address(collector)].agreements[agreementId].maxNextClaim;
     }
 
     /// @inheritdoc IRecurringAgreements
-    function getAgreementInfo(bytes16 agreementId) external view returns (AgreementInfo memory) {
-        return _getStorage().agreements[agreementId];
+    function getAgreementInfo(
+        IAgreementCollector collector,
+        bytes16 agreementId
+    ) external view returns (AgreementInfo memory) {
+        return _getStorage().collectors[address(collector)].agreements[agreementId];
     }
 
     /// @inheritdoc IRecurringAgreements
-    function getProviderAgreementCount(address provider) external view returns (uint256) {
-        return _getStorage().providerAgreementIds[provider].length();
+    function getAgreementCount(IAgreementCollector collector, address provider) external view returns (uint256) {
+        return _getStorage().collectors[address(collector)].providers[provider].agreements.length();
     }
 
     /// @inheritdoc IRecurringAgreements
-    function getProviderAgreements(address provider) external view returns (bytes16[] memory) {
-        return _getStorage().providerAgreementIds[provider].getPageBytes16(0, type(uint256).max);
-    }
-
-    /// @inheritdoc IRecurringAgreements
-    function getProviderAgreements(
+    function getAgreementAt(
+        IAgreementCollector collector,
         address provider,
-        uint256 offset,
-        uint256 count
-    ) external view returns (bytes16[] memory) {
-        return _getStorage().providerAgreementIds[provider].getPageBytes16(offset, count);
+        uint256 index
+    ) external view returns (bytes16) {
+        return bytes16(_getStorage().collectors[address(collector)].providers[provider].agreements.at(index));
     }
 
     /// @inheritdoc IRecurringAgreements
@@ -518,7 +518,7 @@ contract RecurringAgreementManager is
     }
 
     /// @inheritdoc IRecurringAgreements
-    function getSumMaxNextClaimAll() external view returns (uint256) {
+    function getSumMaxNextClaim() external view returns (uint256) {
         return _getStorage().sumMaxNextClaimAll;
     }
 
@@ -528,284 +528,219 @@ contract RecurringAgreementManager is
     }
 
     /// @inheritdoc IRecurringAgreements
-    function getTotalAgreementCount() external view returns (uint256) {
-        return _getStorage().totalAgreementCount;
+    function getMinOnDemandBasisThreshold() external view returns (uint8) {
+        return _getStorage().minOnDemandBasisThreshold;
     }
 
     /// @inheritdoc IRecurringAgreements
-    function isTempJit() external view returns (bool) {
-        return _getStorage().tempJit;
+    function getMinFullBasisMargin() external view returns (uint8) {
+        return _getStorage().minFullBasisMargin;
+    }
+
+    /// @inheritdoc IRecurringAgreements
+    function getMinThawFraction() external view returns (uint8) {
+        return _getStorage().minThawFraction;
     }
 
     /// @inheritdoc IRecurringAgreements
     function getCollectorCount() external view returns (uint256) {
-        return _getStorage().collectors.length();
+        return _getStorage().collectorSet.length();
     }
 
     /// @inheritdoc IRecurringAgreements
-    function getCollectors() external view returns (address[] memory) {
-        return _getStorage().collectors.getPage(0, type(uint256).max);
+    function getCollectorAt(uint256 index) external view returns (IAgreementCollector) {
+        return IAgreementCollector(_getStorage().collectorSet.at(index));
     }
 
     /// @inheritdoc IRecurringAgreements
-    function getCollectors(uint256 offset, uint256 count) external view returns (address[] memory) {
-        return _getStorage().collectors.getPage(offset, count);
+    function getProviderCount(IAgreementCollector collector) external view returns (uint256) {
+        return _getStorage().collectors[address(collector)].providerSet.length();
     }
 
     /// @inheritdoc IRecurringAgreements
-    function getCollectorProviderCount(address collector) external view returns (uint256) {
-        return _getStorage().collectorProviders[collector].length();
+    function getProviderAt(IAgreementCollector collector, uint256 index) external view returns (address) {
+        return _getStorage().collectors[address(collector)].providerSet.at(index);
     }
 
     /// @inheritdoc IRecurringAgreements
-    function getCollectorProviders(address collector) external view returns (address[] memory) {
-        return _getStorage().collectorProviders[collector].getPage(0, type(uint256).max);
+    function getEscrowSnap(IAgreementCollector collector, address provider) external view returns (uint256) {
+        return _getStorage().collectors[address(collector)].providers[provider].escrowSnap;
     }
 
-    /// @inheritdoc IRecurringAgreements
-    function getCollectorProviders(
+    /**
+     * @notice Get the service provider for an agreement, discovering from the collector if first-seen.
+     * @dev Returns the cached provider for known agreements. For first-seen agreements:
+     * reads from the collector, validates roles and payer, registers in tracking sets,
+     * and returns the provider. Returns address(0) for agreements that don't belong to
+     * this manager (unauthorized collector, wrong payer, unauthorized data service, or
+     * non-existent). Once tracked, reconciliation bypasses this function's discovery path.
+     * @param $ The storage reference
+     * @param collector The collector contract address
+     * @param agreementId The agreement ID
+     * @return provider The service provider address, or address(0) if not ours
+     */
+    // solhint-disable-next-line use-natspec
+    function _getAgreementProvider(
+        RecurringAgreementManagerStorage storage $,
         address collector,
-        uint256 offset,
-        uint256 count
-    ) external view returns (address[] memory) {
-        return _getStorage().collectorProviders[collector].getPage(offset, count);
-    }
-
-    /// @inheritdoc IRecurringAgreements
-    function getPairAgreementCount(address collector, address provider) external view returns (uint256) {
-        return _getStorage().pairAgreementCount[collector][provider];
-    }
-
-    // -- Internal Functions --
-
-    /**
-     * @notice Require that msg.sender is the agreement's collector.
-     * @param agreement The agreement info to check against
-     */
-    function _requireCollector(AgreementInfo storage agreement) private view {
-        require(msg.sender == address(agreement.collector), OnlyAgreementCollector());
-    }
-
-    /**
-     * @notice Create agreement storage, authorize its hash, update pair tracking, and set max-next-claim.
-     * @param agreementId The generated agreement ID
-     * @param rca The recurring collection agreement parameters
-     * @param collector The collector contract
-     * @param agreementHash The hash of the RCA to authorize
-     * @return maxNextClaim The computed max-next-claim for the new agreement
-     */
-    // solhint-disable-next-line use-natspec
-    function _createAgreement(
-        RecurringAgreementManagerStorage storage $,
-        bytes16 agreementId,
-        IRecurringCollector.RecurringCollectionAgreement calldata rca,
-        IRecurringCollector collector,
-        bytes32 agreementHash
-    ) private returns (uint256 maxNextClaim) {
-        $.authorizedHashes[agreementHash] = agreementId;
-
-        $.agreements[agreementId] = AgreementInfo({
-            provider: rca.serviceProvider,
-            deadline: rca.deadline,
-            pendingUpdateNonce: 0,
-            maxNextClaim: 0,
-            pendingUpdateMaxNextClaim: 0,
-            agreementHash: agreementHash,
-            pendingUpdateHash: bytes32(0),
-            dataService: IDataServiceAgreements(rca.dataService),
-            collector: collector
-        });
-        $.providerAgreementIds[rca.serviceProvider].add(bytes32(agreementId));
-        ++$.totalAgreementCount;
-        if (++$.pairAgreementCount[address(collector)][rca.serviceProvider] == 1) {
-            $.collectorProviders[address(collector)].add(rca.serviceProvider);
-            $.collectors.add(address(collector));
-        }
-
-        maxNextClaim = _computeMaxFirstClaim(
-            rca.maxOngoingTokensPerSecond,
-            rca.maxSecondsPerCollection,
-            rca.maxInitialTokens
-        );
-        _setAgreementMaxNextClaim($, agreementId, maxNextClaim, false);
-    }
-
-    /**
-     * @notice Compute maximum first claim from agreement rate parameters.
-     * @param maxOngoingTokensPerSecond Maximum ongoing tokens per second
-     * @param maxSecondsPerCollection Maximum seconds per collection period
-     * @param maxInitialTokens Maximum initial tokens
-     * @return Maximum possible claim amount
-     */
-    function _computeMaxFirstClaim(
-        uint256 maxOngoingTokensPerSecond,
-        uint256 maxSecondsPerCollection,
-        uint256 maxInitialTokens
-    ) private pure returns (uint256) {
-        return maxOngoingTokensPerSecond * maxSecondsPerCollection + maxInitialTokens;
-    }
-
-    /**
-     * @notice Reconcile an agreement and update escrow for its (collector, provider) pair.
-     * @param agreementId The agreement ID to reconcile
-     */
-    // solhint-disable-next-line use-natspec
-    function _reconcileAndUpdateEscrow(RecurringAgreementManagerStorage storage $, bytes16 agreementId) private {
-        _reconcileAgreement($, agreementId);
-        AgreementInfo storage info = $.agreements[agreementId];
-        _updateEscrow($, address(info.collector), info.provider);
-    }
-
-    /**
-     * @notice Reconcile an agreement, update escrow, and delete if nothing left to claim.
-     * @param agreementId The agreement ID to reconcile
-     * @param agreement Storage pointer to the agreement info
-     * @return deleted True if the agreement was removed
-     */
-    // solhint-disable-next-line use-natspec
-    function _reconcileAndCleanup(
-        RecurringAgreementManagerStorage storage $,
-        bytes16 agreementId,
-        AgreementInfo storage agreement
-    ) private returns (bool deleted) {
-        _reconcileAndUpdateEscrow($, agreementId);
-        if (agreement.maxNextClaim == 0) {
-            address provider = _deleteAgreement($, agreementId, agreement);
-            emit AgreementRemoved(agreementId, provider);
-            return true;
-        }
-    }
-
-    /**
-     * @notice Reconcile a single agreement's max next claim against on-chain state
-     * @param agreementId The agreement ID to reconcile
-     */
-    // solhint-disable-next-line use-natspec
-    function _reconcileAgreement(RecurringAgreementManagerStorage storage $, bytes16 agreementId) private {
-        AgreementInfo storage agreement = $.agreements[agreementId];
-
-        IRecurringCollector rc = agreement.collector;
-        IRecurringCollector.AgreementData memory rca = rc.getAgreement(agreementId);
-
-        // Not yet accepted — keep the pre-offer estimate unless the deadline has passed
-        if (rca.state == IRecurringCollector.AgreementState.NotAccepted) {
-            if (block.timestamp <= agreement.deadline) return;
-            // Deadline passed: zero out so the caller can delete the expired offer
-            uint256 prev = agreement.maxNextClaim;
-            if (prev != 0) {
-                _setAgreementMaxNextClaim($, agreementId, 0, false);
-                emit AgreementReconciled(agreementId, prev, 0);
-            }
-            return;
-        }
-
-        // Clear pending update if applied (updateNonce advanced) or unreachable (agreement canceled)
-        if (
-            agreement.pendingUpdateHash != bytes32(0) &&
-            (agreement.pendingUpdateNonce <= rca.updateNonce ||
-                rca.state != IRecurringCollector.AgreementState.Accepted)
-        ) {
-            _setAgreementMaxNextClaim($, agreementId, 0, true);
-            delete $.authorizedHashes[agreement.pendingUpdateHash];
-            agreement.pendingUpdateNonce = 0;
-            agreement.pendingUpdateHash = bytes32(0);
-        }
-
-        uint256 oldMaxClaim = agreement.maxNextClaim;
-        uint256 newMaxClaim = rc.getMaxNextClaim(agreementId);
-
-        if (oldMaxClaim != newMaxClaim) {
-            _setAgreementMaxNextClaim($, agreementId, newMaxClaim, false);
-            emit AgreementReconciled(agreementId, oldMaxClaim, newMaxClaim);
-        }
-    }
-
-    /**
-     * @notice Delete an agreement: clean up hashes, zero escrow obligations, remove from provider set, and update escrow.
-     * @param agreementId The agreement ID to delete
-     * @param agreement Storage pointer to the agreement info
-     * @return provider The provider address (captured before deletion)
-     */
-    // solhint-disable-next-line use-natspec
-    function _deleteAgreement(
-        RecurringAgreementManagerStorage storage $,
-        bytes16 agreementId,
-        AgreementInfo storage agreement
+        bytes16 agreementId
     ) private returns (address provider) {
-        provider = agreement.provider;
-        IRecurringCollector collector = agreement.collector;
+        provider = $.collectors[collector].agreements[agreementId].provider;
+        if (provider != address(0)) return provider;
 
-        // Clean up authorized hashes
-        delete $.authorizedHashes[agreement.agreementHash];
-        if (agreement.pendingUpdateHash != bytes32(0)) delete $.authorizedHashes[agreement.pendingUpdateHash];
+        // Untracked agreement; validate collector role, existence, payer, and data service.
+        // COLLECTOR_ROLE is required for discovery (first encounter). Once tracked, reconciliation
+        // of already-added agreements proceeds regardless of role — a deauthorized collector's
+        // agreements can still be reconciled, settled, and force-removed.
+        if (!hasRole(COLLECTOR_ROLE, collector)) {
+            emit AgreementRejected(agreementId, collector, AgreementRejectionReason.UnauthorizedCollector);
+            return address(0);
+        }
+        IAgreementCollector.AgreementDetails memory details = IAgreementCollector(collector).getAgreementDetails(
+            agreementId,
+            0
+        );
+        provider = details.serviceProvider;
+        if (provider == address(0)) {
+            emit AgreementRejected(agreementId, collector, AgreementRejectionReason.UnknownAgreement);
+            return address(0);
+        }
+        if (details.payer != address(this)) {
+            emit AgreementRejected(agreementId, collector, AgreementRejectionReason.PayerMismatch);
+            return address(0);
+        }
+        if (!hasRole(DATA_SERVICE_ROLE, details.dataService)) {
+            emit AgreementRejected(agreementId, collector, AgreementRejectionReason.UnauthorizedDataService);
+            return address(0);
+        }
 
-        // Zero out escrow requirements before deleting
-        _setAgreementMaxNextClaim($, agreementId, 0, false);
-        _setAgreementMaxNextClaim($, agreementId, 0, true);
-        --$.totalAgreementCount;
-        $.providerAgreementIds[provider].remove(bytes32(agreementId));
+        // Register agreement
+        $.collectors[collector].agreements[agreementId].provider = provider;
+        CollectorProviderData storage cpd = $.collectors[collector].providers[provider];
+        cpd.agreements.add(bytes32(agreementId));
+        $.collectors[collector].providerSet.add(provider);
+        $.collectorSet.add(collector);
+        emit AgreementAdded(agreementId, collector, details.dataService, provider);
+    }
 
-        --$.pairAgreementCount[address(collector)][provider];
-        delete $.agreements[agreementId];
+    /**
+     * @notice Discover (if first-seen) and reconcile a single agreement.
+     * @dev Used by {afterCollection}, {reconcileAgreement}, {offerAgreement}, and {cancelAgreement}.
+     * Resolves the provider via {_getAgreementProvider}, refreshes the cached
+     * maxNextClaim from the collector, and reconciles escrow.
+     * @param $ The storage reference
+     * @param collector The collector contract address
+     * @param agreementId The agreement ID
+     * @return tracked True if the agreement is still tracked after this call
+     */
+    // solhint-disable-next-line use-natspec
+    function _reconcileAgreement(
+        RecurringAgreementManagerStorage storage $,
+        address collector,
+        bytes16 agreementId
+    ) private returns (bool tracked) {
+        address provider = _getAgreementProvider($, collector, agreementId);
+        if (provider == address(0)) return false;
 
-        _reconcilePairTracking($, address(collector), provider);
+        AgreementInfo storage agreement = $.collectors[collector].agreements[agreementId];
+        CollectorProviderData storage cpd = $.collectors[collector].providers[provider];
+
+        // Refresh cached maxNextClaim from collector
+        uint256 newMaxClaim = IAgreementCollector(collector).getMaxNextClaim(agreementId);
+
+        // Update agreement + all derived totals (reads old value from storage)
+        uint256 oldMaxClaim = _setAgreementMaxNextClaim($, cpd, agreement, newMaxClaim);
+        if (oldMaxClaim != newMaxClaim) emit AgreementReconciled(agreementId, oldMaxClaim, newMaxClaim);
+
+        tracked = newMaxClaim != 0;
+        if (!tracked) _removeAgreement($, cpd, collector, provider, agreementId);
+        else _reconcileProviderEscrow($, collector, provider);
+    }
+
+    /**
+     * @notice Remove an agreement and reconcile the provider's escrow.
+     * @dev Zeroes the agreement's maxNextClaim contribution before deleting, so callers
+     * do not need to call {_setAgreementMaxNextClaim} themselves.
+     * @param $ The storage reference
+     * @param cpd The provider's CollectorProviderData
+     * @param collector The collector contract address
+     * @param provider Service provider address
+     * @param agreementId The agreement ID
+     */
+    // solhint-disable-next-line use-natspec
+    function _removeAgreement(
+        RecurringAgreementManagerStorage storage $,
+        CollectorProviderData storage cpd,
+        address collector,
+        address provider,
+        bytes16 agreementId
+    ) private {
+        _setAgreementMaxNextClaim($, cpd, $.collectors[collector].agreements[agreementId], 0);
+        cpd.agreements.remove(bytes32(agreementId));
+        delete $.collectors[collector].agreements[agreementId];
+        emit AgreementRemoved(agreementId);
+        _reconcileProvider($, collector, provider);
     }
 
     /**
      * @notice Reconcile escrow then remove (collector, provider) tracking if fully drained.
-     * @dev Calls {_updateEscrow} to withdraw completed thaws, then removes the pair from
-     * tracking only when both pairAgreementCount and escrowSnap are zero.
+     * @dev Calls {_reconcileProviderEscrow} to withdraw completed thaws, then removes the pair from
+     * tracking only when both agreement count and escrowSnap are zero.
      * Cascades to remove the collector when it has no remaining providers.
-     * @return gone True if the pair is not tracked after this call
+     * @param $ The storage reference
+     * @param collector The collector contract address
+     * @param provider Service provider address
+     * @return tracked True if the pair is still tracked after this call
      */
     // solhint-disable-next-line use-natspec
-    function _reconcilePairTracking(
+    function _reconcileProvider(
         RecurringAgreementManagerStorage storage $,
         address collector,
         address provider
-    ) private returns (bool gone) {
-        _updateEscrow($, collector, provider);
-        if ($.pairAgreementCount[collector][provider] != 0) return false;
-        if ($.escrowSnap[collector][provider] != 0) return false;
-        if ($.collectorProviders[collector].remove(provider)) {
-            emit CollectorProviderRemoved(collector, provider);
-            if ($.collectorProviders[collector].length() == 0) {
-                $.collectors.remove(collector);
+    ) private returns (bool tracked) {
+        _reconcileProviderEscrow($, collector, provider);
+        CollectorProviderData storage cpd = $.collectors[collector].providers[provider];
+
+        if (cpd.agreements.length() != 0 || cpd.escrowSnap != 0) tracked = true;
+        else if ($.collectors[collector].providerSet.remove(provider)) {
+            emit ProviderRemoved(collector, provider);
+            if ($.collectors[collector].providerSet.length() == 0) {
+                // Provider agreement count will already be zero at this point.
+                $.collectorSet.remove(collector);
                 emit CollectorRemoved(collector);
             }
         }
-        return true;
     }
 
     /**
-     * @notice Atomically set one escrow obligation slot of an agreement and cascade to provider/global totals.
-     * @dev This and {_setEscrowSnap} are the only two functions that mutate totalEscrowDeficit.
-     * @param agreementId The agreement to update
-     * @param newValue The new obligation value
-     * @param pending If true, updates pendingUpdateMaxNextClaim; otherwise updates maxNextClaim
+     * @notice The sole mutation point for agreement.maxNextClaim and all derived totals.
+     * @dev ALL writes to agreement.maxNextClaim, sumMaxNextClaim, sumMaxNextClaimAll, and
+     * claim-driven totalEscrowDeficit MUST go through this function. It reads the old value
+     * from storage itself — callers cannot supply a stale or incorrect old value.
+     * (Escrow-balance-driven deficit updates go through {_setEscrowSnap} instead.)
+     * @param $ The storage reference
+     * @param cpd The collector-provider data storage pointer
+     * @param agreement The agreement whose maxNextClaim is changing
+     * @param newMaxClaim The new maxNextClaim for the agreement
+     * @return oldMaxClaim The previous maxNextClaim (read from storage)
      */
     // solhint-disable-next-line use-natspec
     function _setAgreementMaxNextClaim(
         RecurringAgreementManagerStorage storage $,
-        bytes16 agreementId,
-        uint256 newValue,
-        bool pending
-    ) private {
-        AgreementInfo storage agreement = $.agreements[agreementId];
+        CollectorProviderData storage cpd,
+        AgreementInfo storage agreement,
+        uint256 newMaxClaim
+    ) private returns (uint256 oldMaxClaim) {
+        oldMaxClaim = agreement.maxNextClaim;
 
-        uint256 oldValue = pending ? agreement.pendingUpdateMaxNextClaim : agreement.maxNextClaim;
-        if (oldValue == newValue) return;
+        if (oldMaxClaim != newMaxClaim) {
+            agreement.maxNextClaim = newMaxClaim;
 
-        address collector = address(agreement.collector);
-        address provider = agreement.provider;
-        uint256 oldDeficit = _providerEscrowDeficit($, collector, provider);
-
-        if (pending) agreement.pendingUpdateMaxNextClaim = newValue;
-        else agreement.maxNextClaim = newValue;
-
-        $.sumMaxNextClaim[collector][provider] = $.sumMaxNextClaim[collector][provider] - oldValue + newValue;
-        $.sumMaxNextClaimAll = $.sumMaxNextClaimAll - oldValue + newValue;
-        $.totalEscrowDeficit = $.totalEscrowDeficit - oldDeficit + _providerEscrowDeficit($, collector, provider);
+            uint256 oldDeficit = _providerEscrowDeficit(cpd);
+            cpd.sumMaxNextClaim = cpd.sumMaxNextClaim - oldMaxClaim + newMaxClaim;
+            $.sumMaxNextClaimAll = $.sumMaxNextClaimAll - oldMaxClaim + newMaxClaim;
+            $.totalEscrowDeficit = $.totalEscrowDeficit - oldDeficit + _providerEscrowDeficit(cpd);
+        }
     }
 
     /**
@@ -818,41 +753,43 @@ contract RecurringAgreementManager is
      * | OnDemand   | 0                   | sumMaxNext         |
      * | JustInTime | 0                   | 0                  |
      *
-     * When tempJit, behaves as JustInTime regardless of configured basis.
-     * Full degrades to OnDemand when available balance <= totalEscrowDeficit.
-     * Full requires strictly more tokens on hand than the global deficit.
+     * The effective basis is the configured escrowBasis degraded based on spare balance
+     * (balance - totalEscrowDeficit). OnDemand requires sumMaxNextClaimAll * threshold / 256 < spare.
+     * Full requires sumMaxNextClaimAll * (256 + margin) / 256 < spare.
      *
-     * @param collector The collector address
-     * @param provider The service provider
+     * @param $ The storage reference
+     * @param sumMaxNextClaim The collector-provider's sumMaxNextClaim
      * @return min Deposit floor — deposit if balance is below this
      * @return max Thaw ceiling — thaw if balance is above this
      */
     // solhint-disable-next-line use-natspec
     function _escrowMinMax(
         RecurringAgreementManagerStorage storage $,
-        address collector,
-        address provider
+        uint256 sumMaxNextClaim
     ) private view returns (uint256 min, uint256 max) {
-        EscrowBasis basis = $.tempJit ? EscrowBasis.JustInTime : $.escrowBasis;
+        uint256 balance = GRAPH_TOKEN.balanceOf(address(this));
+        uint256 totalDeficit = $.totalEscrowDeficit;
+        uint256 spare = totalDeficit < balance ? balance - totalDeficit : 0;
+        uint256 sumMaxNext = $.sumMaxNextClaimAll;
 
-        max = basis == EscrowBasis.JustInTime ? 0 : $.sumMaxNextClaim[collector][provider];
-        min = (basis == EscrowBasis.Full && $.totalEscrowDeficit < GRAPH_TOKEN.balanceOf(address(this))) ? max : 0;
+        EscrowBasis basis = $.escrowBasis;
+        max = basis != EscrowBasis.JustInTime && ((sumMaxNext * uint256($.minOnDemandBasisThreshold)) / 256 < spare)
+            ? sumMaxNextClaim
+            : 0;
+        min = basis == EscrowBasis.Full && ((sumMaxNext * (256 + uint256($.minFullBasisMargin))) / 256 < spare)
+            ? max
+            : 0;
     }
 
     /**
      * @notice Compute a (collector, provider) pair's escrow deficit: max(0, sumMaxNext - snapshot).
-     * @param collector The collector address
-     * @param provider The service provider
+     * @param cpd The collector-provider data
      * @return deficit The amount not in escrow for this (collector, provider)
      */
     // solhint-disable-next-line use-natspec
-    function _providerEscrowDeficit(
-        RecurringAgreementManagerStorage storage $,
-        address collector,
-        address provider
-    ) private view returns (uint256 deficit) {
-        uint256 sumMaxNext = $.sumMaxNextClaim[collector][provider];
-        uint256 snapshot = $.escrowSnap[collector][provider];
+    function _providerEscrowDeficit(CollectorProviderData storage cpd) private view returns (uint256 deficit) {
+        uint256 sumMaxNext = cpd.sumMaxNextClaim;
+        uint256 snapshot = cpd.escrowSnap;
 
         deficit = (snapshot < sumMaxNext) ? sumMaxNext - snapshot : 0;
     }
@@ -881,39 +818,56 @@ contract RecurringAgreementManager is
      *
      * Updates escrow snapshot at the end for global tracking.
      *
+     * @param $ The storage reference
      * @param collector The collector contract address
      * @param provider The service provider to update escrow for
      */
     // solhint-disable-next-line use-natspec
-    function _updateEscrow(RecurringAgreementManagerStorage storage $, address collector, address provider) private {
+    function _reconcileProviderEscrow(
+        RecurringAgreementManagerStorage storage $,
+        address collector,
+        address provider
+    ) private {
         _ensureIncomingDistributionToCurrentBlock($);
-        // Auto-recover from tempJit when balance exceeds deficit (same strict < as beforeCollection/escrowMinMax)
-        if ($.tempJit && $.totalEscrowDeficit < GRAPH_TOKEN.balanceOf(address(this))) {
-            $.tempJit = false;
-            emit TempJitSet(false, true);
-        }
+
+        CollectorProviderData storage cpd = $.collectors[collector].providers[provider];
+        // Sync snapshot before decisions: the escrow balance may have changed externally.
+        // Without this, totalEscrowDeficit is stale → spare is overstated → basis is inflated
+        // → deposit attempt for tokens we don't have → revert swallowed → snap
+        // stays permanently stale.  Reading the fresh balance here makes the function
+        // self-correcting regardless of prior callback failures.
+        _setEscrowSnap($, cpd, collector, provider);
 
         IPaymentsEscrow.EscrowAccount memory account = _fetchEscrowAccount(collector, provider);
-        (uint256 min, uint256 max) = _escrowMinMax($, collector, provider);
+        (uint256 min, uint256 max) = _escrowMinMax($, cpd.sumMaxNextClaim);
 
         // Defensive: PaymentsEscrow maintains tokensThawing <= balance, guard against external invariant breach
         uint256 escrowed = account.tokensThawing < account.balance ? account.balance - account.tokensThawing : 0;
+        // Thaw threshold: ignore thaws below this to prevent micro-thaw griefing.
+        // An attacker depositing dust via depositTo() then triggering reconciliation could start
+        // a tiny thaw that blocks legitimate thaw increases for the entire thawing period.
+        uint256 thawThreshold = (cpd.sumMaxNextClaim * uint256($.minThawFraction)) / 256;
+
         // Objectives in order of priority:
         // We want to end with escrowed of at least min, and seek to thaw down to no more than max.
         // 1. Do not reset thaw timer if a thaw is in progress.
         //    (This is to avoid thrash of restarting thaws resulting in never withdrawing excess.)
         // 2. Make minimal adjustment to thawing tokens to get as close to min/max as possible.
         //    (First cancel unrealised thawing before depositing.)
+        // 3. Skip thaw if excess above max is below the minimum thaw threshold.
+        uint256 excess = max < escrowed ? escrowed - max : 0;
         uint256 thawTarget = (escrowed < min)
             ? (min < account.balance ? account.balance - min : 0)
-            : (max < escrowed ? account.balance - max : account.tokensThawing);
-        if (thawTarget != account.tokensThawing) {
+            : (max < account.balance ? account.balance - max : 0);
+        // Act when the target differs, but skip thaw increases below thawThreshold (obj 3).
+        // Deficit adjustments (escrowed < min) always proceed — the threshold only gates new thaws.
+        if (thawTarget != account.tokensThawing && (escrowed < min || thawThreshold <= excess)) {
             PAYMENTS_ESCROW.adjustThaw(collector, provider, thawTarget, false);
             account = _fetchEscrowAccount(collector, provider);
         }
 
-        _withdrawAndRebalance(collector, provider, account, min, max);
-        _setEscrowSnap($, collector, provider);
+        _withdrawAndRebalance(collector, provider, account, min, max, thawThreshold);
+        _setEscrowSnap($, cpd, collector, provider);
     }
 
     /**
@@ -926,13 +880,15 @@ contract RecurringAgreementManager is
      * @param account Current escrow account state
      * @param min Deposit floor
      * @param max Thaw ceiling
+     * @param thawThreshold Minimum excess to start a new thaw
      */
     function _withdrawAndRebalance(
         address collector,
         address provider,
         IPaymentsEscrow.EscrowAccount memory account,
         uint256 min,
-        uint256 max
+        uint256 max,
+        uint256 thawThreshold
     ) private {
         // Withdraw any remaining thawed tokens (realised thawing is withdrawn even if within [min, max])
         if (0 < account.tokensThawing && account.thawEndTimestamp < block.timestamp) {
@@ -943,17 +899,17 @@ contract RecurringAgreementManager is
         }
 
         if (account.tokensThawing == 0) {
-            if (max < account.balance)
-                // Thaw excess above max (might have withdrawn allowing a new thaw to start)
-                PAYMENTS_ESCROW.adjustThaw(collector, provider, account.balance - max, false);
-            else {
+            if (max < account.balance) {
+                uint256 excess = account.balance - max;
+                if (thawThreshold <= excess)
+                    // Thaw excess above max (might have withdrawn allowing a new thaw to start)
+                    PAYMENTS_ESCROW.adjustThaw(collector, provider, excess, false);
+            } else if (account.balance < min) {
                 // Deposit any deficit below min (deposit exactly the missing amount, no more)
-                uint256 deposit = (min < account.balance) ? 0 : min - account.balance;
-                if (0 < deposit) {
-                    GRAPH_TOKEN.approve(address(PAYMENTS_ESCROW), deposit);
-                    PAYMENTS_ESCROW.deposit(collector, provider, deposit);
-                    emit EscrowFunded(provider, collector, deposit);
-                }
+                uint256 deficit = min - account.balance;
+                GRAPH_TOKEN.approve(address(PAYMENTS_ESCROW), deficit);
+                PAYMENTS_ESCROW.deposit(collector, provider, deficit);
+                emit EscrowFunded(provider, collector, deficit);
             }
         }
     }
@@ -965,14 +921,19 @@ contract RecurringAgreementManager is
      * @param provider The service provider
      */
     // solhint-disable-next-line use-natspec
-    function _setEscrowSnap(RecurringAgreementManagerStorage storage $, address collector, address provider) private {
-        uint256 oldEscrow = $.escrowSnap[collector][provider];
+    function _setEscrowSnap(
+        RecurringAgreementManagerStorage storage $,
+        CollectorProviderData storage cpd,
+        address collector,
+        address provider
+    ) private {
+        uint256 oldEscrow = cpd.escrowSnap;
         uint256 newEscrow = _fetchEscrowAccount(collector, provider).balance;
         if (oldEscrow == newEscrow) return;
 
-        uint256 oldDeficit = _providerEscrowDeficit($, collector, provider);
-        $.escrowSnap[collector][provider] = newEscrow;
-        uint256 newDeficit = _providerEscrowDeficit($, collector, provider);
+        uint256 oldDeficit = _providerEscrowDeficit(cpd);
+        cpd.escrowSnap = newEscrow;
+        uint256 newDeficit = _providerEscrowDeficit(cpd);
         $.totalEscrowDeficit = $.totalEscrowDeficit - oldDeficit + newDeficit;
     }
 
@@ -993,15 +954,16 @@ contract RecurringAgreementManager is
      * @dev No-op if allocator is not set or already ensured this block. The local ensuredIncomingDistributedToBlock
      * check avoids the external call overhead (~2800 gas) on redundant same-block invocations
      * (e.g. beforeCollection + afterCollection in the same collection tx).
+     * @param $ The storage reference
      */
     // solhint-disable-next-line use-natspec
     function _ensureIncomingDistributionToCurrentBlock(RecurringAgreementManagerStorage storage $) private {
-        // Uses low 8 bytes of block.number; consecutive blocks always differ so same-block
-        // dedup works correctly even past uint64 wrap. A false match requires the previous
-        // last call to have been exactly 2^64 blocks ago (~584 billion years at 1 block/s).
-        uint64 blockNum;
+        // Uses low 4 bytes of block.number; consecutive blocks always differ so same-block
+        // dedup works correctly even past uint32 wrap. A false match requires the previous
+        // last call to have been exactly 2^32 blocks ago (~1,630 years at 12 s/block).
+        uint32 blockNum;
         unchecked {
-            blockNum = uint64(block.number);
+            blockNum = uint32(block.number);
         }
         if ($.ensuredIncomingDistributedToBlock == blockNum) return;
         $.ensuredIncomingDistributedToBlock = blockNum;

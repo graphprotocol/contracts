@@ -16,6 +16,7 @@ import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/Mes
  * @notice A mechanism to authorize signers to sign messages on behalf of an authorizer.
  * Signers cannot be reused for different authorizers.
  * @dev Contract uses "authorizeSignerProof" as the domain for signer proofs.
+ * Uses ERC-7201 namespaced storage for upgrade safety.
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */
@@ -23,8 +24,36 @@ abstract contract Authorizable is IAuthorizable {
     /// @notice The duration (in seconds) for which an authorization is thawing before it can be revoked
     uint256 public immutable REVOKE_AUTHORIZATION_THAWING_PERIOD;
 
-    /// @notice Authorization details for authorizer-signer pairs
-    mapping(address signer => Authorization authorization) public authorizations;
+    /// @custom:storage-location erc7201:graphprotocol.storage.Authorizable
+    struct AuthorizableStorage {
+        /// @notice Authorization details for authorizer-signer pairs
+        mapping(address signer => Authorization authorization) authorizations;
+    }
+
+    /// @dev keccak256(abi.encode(uint256(keccak256("graphprotocol.storage.Authorizable")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant AUTHORIZABLE_STORAGE_LOCATION =
+        0x09a0d55e31421ed256ea7c0d86e067159825634deef4770e03c18fe9dc08b900;
+
+    function _getAuthorizableStorage() private pure returns (AuthorizableStorage storage $) {
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            $.slot := AUTHORIZABLE_STORAGE_LOCATION
+        }
+    }
+
+    /**
+     * @notice Authorization details for authorizer-signer pairs
+     * @param signer The address of the signer
+     * @return authorizer The address of the authorizer
+     * @return thawEndTimestamp The timestamp when the thawing period ends
+     * @return revoked Whether the authorization has been revoked
+     */
+    function authorizations(
+        address signer
+    ) public view returns (address authorizer, uint256 thawEndTimestamp, bool revoked) {
+        Authorization storage auth = _getAuthorizableStorage().authorizations[signer];
+        return (auth.authorizer, auth.thawEndTimestamp, auth.revoked);
+    }
 
     /**
      * @dev Revert if the caller has not authorized the signer
@@ -45,45 +74,49 @@ abstract contract Authorizable is IAuthorizable {
 
     /// @inheritdoc IAuthorizable
     function authorizeSigner(address signer, uint256 proofDeadline, bytes calldata proof) external {
+        AuthorizableStorage storage $ = _getAuthorizableStorage();
         require(
-            authorizations[signer].authorizer == address(0),
+            $.authorizations[signer].authorizer == address(0),
             AuthorizableSignerAlreadyAuthorized(
-                authorizations[signer].authorizer,
+                $.authorizations[signer].authorizer,
                 signer,
-                authorizations[signer].revoked
+                $.authorizations[signer].revoked
             )
         );
         _verifyAuthorizationProof(proof, proofDeadline, signer);
-        authorizations[signer].authorizer = msg.sender;
+        $.authorizations[signer].authorizer = msg.sender;
         emit SignerAuthorized(msg.sender, signer);
     }
 
     /// @inheritdoc IAuthorizable
     function thawSigner(address signer) external onlyAuthorized(signer) {
-        authorizations[signer].thawEndTimestamp = block.timestamp + REVOKE_AUTHORIZATION_THAWING_PERIOD;
-        emit SignerThawing(msg.sender, signer, authorizations[signer].thawEndTimestamp);
+        AuthorizableStorage storage $ = _getAuthorizableStorage();
+        $.authorizations[signer].thawEndTimestamp = block.timestamp + REVOKE_AUTHORIZATION_THAWING_PERIOD;
+        emit SignerThawing(msg.sender, signer, $.authorizations[signer].thawEndTimestamp);
     }
 
     /// @inheritdoc IAuthorizable
     function cancelThawSigner(address signer) external onlyAuthorized(signer) {
-        require(authorizations[signer].thawEndTimestamp > 0, AuthorizableSignerNotThawing(signer));
-        uint256 thawEnd = authorizations[signer].thawEndTimestamp;
-        authorizations[signer].thawEndTimestamp = 0;
+        AuthorizableStorage storage $ = _getAuthorizableStorage();
+        require($.authorizations[signer].thawEndTimestamp > 0, AuthorizableSignerNotThawing(signer));
+        uint256 thawEnd = $.authorizations[signer].thawEndTimestamp;
+        $.authorizations[signer].thawEndTimestamp = 0;
         emit SignerThawCanceled(msg.sender, signer, thawEnd);
     }
 
     /// @inheritdoc IAuthorizable
     function revokeAuthorizedSigner(address signer) external onlyAuthorized(signer) {
-        uint256 thawEndTimestamp = authorizations[signer].thawEndTimestamp;
+        AuthorizableStorage storage $ = _getAuthorizableStorage();
+        uint256 thawEndTimestamp = $.authorizations[signer].thawEndTimestamp;
         require(thawEndTimestamp > 0, AuthorizableSignerNotThawing(signer));
         require(thawEndTimestamp <= block.timestamp, AuthorizableSignerStillThawing(block.timestamp, thawEndTimestamp));
-        authorizations[signer].revoked = true;
+        $.authorizations[signer].revoked = true;
         emit SignerRevoked(msg.sender, signer);
     }
 
     /// @inheritdoc IAuthorizable
     function getThawEnd(address signer) external view returns (uint256) {
-        return authorizations[signer].thawEndTimestamp;
+        return _getAuthorizableStorage().authorizations[signer].thawEndTimestamp;
     }
 
     /// @inheritdoc IAuthorizable
@@ -93,14 +126,15 @@ abstract contract Authorizable is IAuthorizable {
 
     /**
      * @notice Returns true if the signer is authorized by the authorizer
-     * @param _authorizer The address of the authorizer
-     * @param _signer The address of the signer
+     * @param authorizer The address of the authorizer
+     * @param signer The address of the signer
      * @return true if the signer is authorized by the authorizer, false otherwise
      */
-    function _isAuthorized(address _authorizer, address _signer) internal view returns (bool) {
-        return (_authorizer != address(0) &&
-            authorizations[_signer].authorizer == _authorizer &&
-            !authorizations[_signer].revoked);
+    function _isAuthorized(address authorizer, address signer) internal view virtual returns (bool) {
+        AuthorizableStorage storage $ = _getAuthorizableStorage();
+        return (authorizer != address(0) &&
+            $.authorizations[signer].authorizer == authorizer &&
+            !$.authorizations[signer].revoked);
     }
 
     /**

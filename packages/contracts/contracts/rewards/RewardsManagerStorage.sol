@@ -117,4 +117,9 @@ abstract contract RewardsManagerV6Storage is RewardsManagerV5Storage {
     /// @dev Default fallback address for reclaiming rewards when no reason-specific address is configured.
     /// Zero address means rewards are dropped (not minted) if no specific reclaim address matches.
     address internal defaultReclaimAddress;
+
+    /// @dev When true, ineligible indexers cause takeRewards to revert (blocking POI presentation
+    /// and allowing allocations to go stale). When false (default), ineligible indexers have
+    /// rewards reclaimed but takeRewards succeeds (returning 0).
+    bool internal revertOnIneligible;
 }

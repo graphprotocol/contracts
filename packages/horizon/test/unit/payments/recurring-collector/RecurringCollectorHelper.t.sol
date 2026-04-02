@@ -8,11 +8,14 @@ import { Bounder } from "../../../unit/utils/Bounder.t.sol";
 
 contract RecurringCollectorHelper is AuthorizableHelper, Bounder {
     RecurringCollector public collector;
+    address public proxyAdmin;
 
     constructor(
-        RecurringCollector collector_
+        RecurringCollector collector_,
+        address proxyAdmin_
     ) AuthorizableHelper(collector_, collector_.REVOKE_AUTHORIZATION_THAWING_PERIOD()) {
         collector = collector_;
+        proxyAdmin = proxyAdmin_;
     }
 
     function generateSignedRCA(
@@ -104,6 +107,10 @@ contract RecurringCollectorHelper is AuthorizableHelper, Bounder {
         vm.assume(rca.dataService != address(0));
         vm.assume(rca.payer != address(0));
         vm.assume(rca.serviceProvider != address(0));
+        // Exclude ProxyAdmin address — TransparentProxy routes admin calls to ProxyAdmin, not implementation
+        vm.assume(rca.dataService != proxyAdmin);
+        vm.assume(rca.payer != proxyAdmin);
+        vm.assume(rca.serviceProvider != proxyAdmin);
 
         // Ensure we have a nonce if it's zero
         if (rca.nonce == 0) {
@@ -122,6 +129,14 @@ contract RecurringCollectorHelper is AuthorizableHelper, Bounder {
         rca.maxInitialTokens = _sensibleMaxInitialTokens(rca.maxInitialTokens);
         rca.maxOngoingTokensPerSecond = _sensibleMaxOngoingTokensPerSecond(rca.maxOngoingTokensPerSecond);
 
+        // Zero fuzzed conditions to avoid spurious ERC-165 failures.
+        // Eligibility tests set conditions explicitly before calling sensibleRCA.
+        // Preserve explicitly-set conditions (non-fuzz callers).
+        // Fuzz inputs can hit any value; we zero to keep non-eligibility tests clean.
+        // (sensibleRCA is always called — fuzz and explicit alike — so we zero unconditionally
+        // and eligibility tests re-set after sensibleRCA returns.)
+        rca.conditions = 0;
+
         return rca;
     }
 
@@ -138,6 +153,7 @@ contract RecurringCollectorHelper is AuthorizableHelper, Bounder {
         rcau.endsAt = _sensibleEndsAt(rcau.endsAt, rcau.maxSecondsPerCollection);
         rcau.maxInitialTokens = _sensibleMaxInitialTokens(rcau.maxInitialTokens);
         rcau.maxOngoingTokensPerSecond = _sensibleMaxOngoingTokensPerSecond(rcau.maxOngoingTokensPerSecond);
+        rcau.conditions = 0;
 
         return rcau;
     }

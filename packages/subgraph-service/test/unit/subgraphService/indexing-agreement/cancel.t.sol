@@ -135,7 +135,10 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
         subgraphService.cancelIndexingAgreement(indexer, agreementId);
     }
 
-    function test_SubgraphService_CancelIndexingAgreement_Revert_WhenInvalidProvision(
+    // cancelIndexingAgreement uses enforceService(DEFAULT) — only authorization + pause.
+    // No VALID_PROVISION or REGISTERED check. Cancel is an exit path.
+    // With an invalid provision and no agreement, reverts with IndexingAgreementNotActive.
+    function test_SubgraphService_CancelIndexingAgreement_Revert_WhenNotActive_WithInvalidProvision(
         address indexer,
         bytes16 agreementId,
         uint256 unboundedTokens
@@ -146,17 +149,15 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
         _createProvision(indexer, tokens, FISHERMAN_REWARD_PERCENTAGE, DISPUTE_PERIOD);
 
         bytes memory expectedErr = abi.encodeWithSelector(
-            ProvisionManager.ProvisionManagerInvalidValue.selector,
-            "tokens",
-            tokens,
-            MINIMUM_PROVISION_TOKENS,
-            MAXIMUM_PROVISION_TOKENS
+            IndexingAgreement.IndexingAgreementNotActive.selector,
+            agreementId
         );
         vm.expectRevert(expectedErr);
         subgraphService.cancelIndexingAgreement(indexer, agreementId);
     }
 
-    function test_SubgraphService_CancelIndexingAgreement_Revert_WhenIndexerNotRegistered(
+    // With valid provision but no registration or agreement, also reverts with IndexingAgreementNotActive.
+    function test_SubgraphService_CancelIndexingAgreement_Revert_WhenNotActive_WithoutRegistration(
         address indexer,
         bytes16 agreementId,
         uint256 unboundedTokens
@@ -166,8 +167,8 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
         resetPrank(indexer);
         _createProvision(indexer, tokens, FISHERMAN_REWARD_PERCENTAGE, DISPUTE_PERIOD);
         bytes memory expectedErr = abi.encodeWithSelector(
-            ISubgraphService.SubgraphServiceIndexerNotRegistered.selector,
-            indexer
+            IndexingAgreement.IndexingAgreementNotActive.selector,
+            agreementId
         );
         vm.expectRevert(expectedErr);
         subgraphService.cancelIndexingAgreement(indexer, agreementId);
@@ -213,6 +214,23 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
         subgraphService.cancelIndexingAgreement(indexerState.addr, acceptedAgreementId);
     }
 
+    function test_SubgraphService_CancelIndexingAgreement_Revert_WhenWrongIndexer(Seed memory seed) public {
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerStateA = _withIndexer(ctx);
+        IndexerState memory indexerStateB = _withIndexer(ctx);
+        (, bytes16 acceptedAgreementId) = _withAcceptedIndexingAgreement(ctx, indexerStateA);
+
+        // IndexerB tries to cancel indexerA's agreement
+        bytes memory expectedErr = abi.encodeWithSelector(
+            IndexingAgreement.IndexingAgreementNonCancelableBy.selector,
+            indexerStateA.addr,
+            indexerStateB.addr
+        );
+        vm.expectRevert(expectedErr);
+        resetPrank(indexerStateB.addr);
+        subgraphService.cancelIndexingAgreement(indexerStateB.addr, acceptedAgreementId);
+    }
+
     function test_SubgraphService_CancelIndexingAgreement_OK(Seed memory seed) public {
         Context storage ctx = _newCtx(seed);
         (
@@ -228,5 +246,40 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
             IRecurringCollector.CancelAgreementBy.ServiceProvider
         );
     }
+
+    // solhint-disable-next-line graph/func-name-mixedcase
+    /// @notice An indexer whose provision drops below minimum should still be able
+    /// to cancel their indexing agreement. Cancel is an exit path.
+    function test_SubgraphService_CancelIndexingAgreement_OK_WhenProvisionBelowMinimum(
+        Seed memory seed
+    ) public {
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+        (
+            IRecurringCollector.RecurringCollectionAgreement memory acceptedRca,
+            bytes16 acceptedAgreementId
+        ) = _withAcceptedIndexingAgreement(ctx, indexerState);
+
+        // Thaw tokens to bring effective provision below minimum.
+        // _withIndexer provisions at least MINIMUM_PROVISION_TOKENS, so thawing
+        // (tokens - MINIMUM_PROVISION_TOKENS + 1) puts us 1 below the floor.
+        uint256 thawAmount = indexerState.tokens - MINIMUM_PROVISION_TOKENS + 1;
+        resetPrank(indexerState.addr);
+        staking.thaw(indexerState.addr, address(subgraphService), thawAmount);
+
+        // Verify provision is now below minimum
+        uint256 effectiveTokens = indexerState.tokens - thawAmount;
+        assertLt(effectiveTokens, MINIMUM_PROVISION_TOKENS);
+
+        // Cancel should succeed despite invalid provision
+        _cancelAgreement(
+            ctx,
+            acceptedAgreementId,
+            acceptedRca.serviceProvider,
+            acceptedRca.payer,
+            IRecurringCollector.CancelAgreementBy.ServiceProvider
+        );
+    }
+
     /* solhint-enable graph/func-name-mixedcase */
 }

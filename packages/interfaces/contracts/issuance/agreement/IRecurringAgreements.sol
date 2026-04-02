@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.22;
 
-import { IDataServiceAgreements } from "../../data-service/IDataServiceAgreements.sol";
 import { IPaymentsEscrow } from "../../horizon/IPaymentsEscrow.sol";
-import { IRecurringCollector } from "../../horizon/IRecurringCollector.sol";
+import { IAgreementCollector } from "../../horizon/IAgreementCollector.sol";
 import { IRecurringEscrowManagement } from "./IRecurringEscrowManagement.sol";
 
 /**
@@ -21,102 +20,26 @@ interface IRecurringAgreements {
     /**
      * @notice Tracked state for a managed agreement
      * @dev An agreement is considered tracked when `provider != address(0)`.
+     * The collector owns all agreement terms, pending update state, and
+     * data service reference. The RAM only caches the max next claim
+     * and the minimum needed for routing and tracking.
      *
-     * Storage layout (7 slots):
-     *   slot 0: provider (20) + deadline (8) + pendingUpdateNonce (4) = 32  (packed)
+     * The collector is implicit from the storage key: agreements are stored
+     * under `collectors[collector].agreements[agreementId]`.
+     *
+     * Storage layout (2 slots):
+     *   slot 0: provider (20)                                              (12 bytes free)
      *   slot 1: maxNextClaim (32)
-     *   slot 2: pendingUpdateMaxNextClaim (32)
-     *   slot 3: agreementHash (32)
-     *   slot 4: pendingUpdateHash (32)
-     *   slot 5: dataService (20)                                            (12 bytes free)
-     *   slot 6: collector (20)                                              (12 bytes free)
      *
      * @param provider The service provider for this agreement
-     * @param deadline The RCA deadline for acceptance (used to detect expired offers)
-     * @param pendingUpdateNonce The RCAU nonce for the pending update (0 means no pending)
-     * @param maxNextClaim The current maximum tokens claimable in the next collection
-     * @param pendingUpdateMaxNextClaim Max next claim for an offered-but-not-yet-applied update
-     * @param agreementHash The RCA hash stored for cleanup of authorizedHashes on deletion
-     * @param pendingUpdateHash The RCAU hash stored for cleanup of authorizedHashes on deletion
-     * @param dataService The data service contract for this agreement
-     * @param collector The RecurringCollector contract for this agreement
+     * @param maxNextClaim Cached max of active and pending claims from collector
      */
     struct AgreementInfo {
         address provider;
-        uint64 deadline;
-        uint32 pendingUpdateNonce;
         uint256 maxNextClaim;
-        uint256 pendingUpdateMaxNextClaim;
-        bytes32 agreementHash;
-        bytes32 pendingUpdateHash;
-        IDataServiceAgreements dataService;
-        IRecurringCollector collector;
     }
 
-    // -- View Functions --
-
-    /**
-     * @notice Get the sum of maxNextClaim for all managed agreements for a (collector, provider) pair
-     * @param collector The collector contract
-     * @param provider The provider address
-     * @return tokens The sum of max next claims
-     */
-    function getSumMaxNextClaim(IRecurringCollector collector, address provider) external view returns (uint256 tokens);
-
-    /**
-     * @notice Get the escrow account for a (collector, provider) pair
-     * @param collector The collector contract
-     * @param provider The provider address
-     * @return account The escrow account data
-     */
-    function getEscrowAccount(
-        IRecurringCollector collector,
-        address provider
-    ) external view returns (IPaymentsEscrow.EscrowAccount memory account);
-
-    /**
-     * @notice Get the max next claim for a specific agreement
-     * @param agreementId The agreement ID
-     * @return tokens The current max next claim stored for this agreement
-     */
-    function getAgreementMaxNextClaim(bytes16 agreementId) external view returns (uint256 tokens);
-
-    /**
-     * @notice Get the full tracked state for a specific agreement
-     * @param agreementId The agreement ID
-     * @return info The agreement info struct (all fields zero if not tracked)
-     */
-    function getAgreementInfo(bytes16 agreementId) external view returns (AgreementInfo memory info);
-
-    /**
-     * @notice Get the number of managed agreements for a provider
-     * @param provider The provider address
-     * @return count The count of tracked agreements
-     */
-    function getProviderAgreementCount(address provider) external view returns (uint256 count);
-
-    /**
-     * @notice Get all managed agreement IDs for a provider
-     * @dev Returns the full set of tracked agreement IDs. May be expensive for providers
-     * with many agreements — prefer the paginated overload or {getProviderAgreementCount}
-     * for on-chain use.
-     * @param provider The provider address
-     * @return agreementIds The array of agreement IDs
-     */
-    function getProviderAgreements(address provider) external view returns (bytes16[] memory agreementIds);
-
-    /**
-     * @notice Get a paginated slice of managed agreement IDs for a provider
-     * @param provider The provider address
-     * @param offset The index to start from
-     * @param count Maximum number of IDs to return (clamped to available)
-     * @return agreementIds The array of agreement IDs
-     */
-    function getProviderAgreements(
-        address provider,
-        uint256 offset,
-        uint256 count
-    ) external view returns (bytes16[] memory agreementIds);
+    // -- Global --
 
     /**
      * @notice Get the current escrow basis setting
@@ -125,12 +48,32 @@ interface IRecurringAgreements {
     function getEscrowBasis() external view returns (IRecurringEscrowManagement.EscrowBasis basis);
 
     /**
+     * @notice Get the minimum spare balance threshold for OnDemand basis.
+     * @dev Effective basis limited to JustInTime when spare < sumMaxNextClaimAll * threshold / 256.
+     * @return threshold The numerator over 256
+     */
+    function getMinOnDemandBasisThreshold() external view returns (uint8 threshold);
+
+    /**
+     * @notice Get the minimum spare balance margin for Full basis.
+     * @dev Effective basis limited to OnDemand when spare < sumMaxNextClaimAll * (256 + margin) / 256.
+     * @return margin The margin added to 256
+     */
+    function getMinFullBasisMargin() external view returns (uint8 margin);
+
+    /**
+     * @notice Minimum fraction of sumMaxNextClaim required to initiate an escrow thaw.
+     * @dev Escrow thaw is not initiated if excess is below sumMaxNextClaim * minThawFraction / 256 for a (collector, provider) pair.
+     * @return fraction The numerator over 256
+     */
+    function getMinThawFraction() external view returns (uint8 fraction);
+
+    /**
      * @notice Get the sum of maxNextClaim across all (collector, provider) pairs
-     * @dev Populated lazily through normal operations. May be stale if agreements were
-     * offered before this feature was deployed — run reconciliation to populate.
+     * @dev Populated lazily through normal operations.
      * @return tokens The global sum of max next claims
      */
-    function getSumMaxNextClaimAll() external view returns (uint256 tokens);
+    function getSumMaxNextClaim() external view returns (uint256 tokens);
 
     /**
      * @notice Get the total undeposited escrow across all providers
@@ -141,21 +84,7 @@ interface IRecurringAgreements {
      */
     function getTotalEscrowDeficit() external view returns (uint256 tokens);
 
-    /**
-     * @notice Get the total number of tracked agreements across all providers
-     * @dev Populated lazily through normal operations.
-     * @return count The total agreement count
-     */
-    function getTotalAgreementCount() external view returns (uint256 count);
-
-    /**
-     * @notice Check whether temporary JIT mode is currently active
-     * @dev When active, the system operates in JIT-only mode regardless of the configured
-     * escrow basis. The configured basis is preserved and takes effect again when
-     * temp JIT recovers (totalEscrowDeficit < available) or operator calls {setTempJit}.
-     * @return active True if temporary JIT mode is active
-     */
-    function isTempJit() external view returns (bool active);
+    // -- Collector enumeration --
 
     /**
      * @notice Get the number of collectors with active agreements
@@ -164,53 +93,101 @@ interface IRecurringAgreements {
     function getCollectorCount() external view returns (uint256 count);
 
     /**
-     * @notice Get all collector addresses with active agreements
-     * @dev May be expensive for large sets — prefer the paginated overload for on-chain use.
-     * @return result Array of collector addresses
+     * @notice Get a collector address by index
+     * @param index The index in the collector set
+     * @return collector The collector address
      */
-    function getCollectors() external view returns (address[] memory result);
+    function getCollectorAt(uint256 index) external view returns (IAgreementCollector collector);
 
-    /**
-     * @notice Get a paginated slice of collector addresses
-     * @param offset The index to start from
-     * @param count Maximum number to return (clamped to available)
-     * @return result Array of collector addresses
-     */
-    function getCollectors(uint256 offset, uint256 count) external view returns (address[] memory result);
+    // -- Provider enumeration --
 
     /**
      * @notice Get the number of providers with active agreements for a collector
-     * @param collector The collector address
+     * @param collector The collector contract
      * @return count The number of tracked providers
      */
-    function getCollectorProviderCount(address collector) external view returns (uint256 count);
+    function getProviderCount(IAgreementCollector collector) external view returns (uint256 count);
 
     /**
-     * @notice Get all provider addresses with active agreements for a collector
-     * @dev May be expensive for large sets — prefer the paginated overload for on-chain use.
-     * @param collector The collector address
-     * @return result Array of provider addresses
+     * @notice Get a provider address by index for a given collector
+     * @param collector The collector contract
+     * @param index The index in the provider set
+     * @return provider The provider address
      */
-    function getCollectorProviders(address collector) external view returns (address[] memory result);
+    function getProviderAt(IAgreementCollector collector, uint256 index) external view returns (address provider);
+
+    // -- Per-(collector, provider) --
 
     /**
-     * @notice Get a paginated slice of provider addresses for a collector
-     * @param collector The collector address
-     * @param offset The index to start from
-     * @param count Maximum number to return (clamped to available)
-     * @return result Array of provider addresses
+     * @notice Get the sum of maxNextClaim for all managed agreements for a (collector, provider) pair
+     * @param collector The collector contract
+     * @param provider The provider address
+     * @return tokens The sum of max next claims
      */
-    function getCollectorProviders(
-        address collector,
-        uint256 offset,
-        uint256 count
-    ) external view returns (address[] memory result);
+    function getSumMaxNextClaim(IAgreementCollector collector, address provider) external view returns (uint256 tokens);
+
+    /**
+     * @notice Get the escrow account for a (collector, provider) pair
+     * @param collector The collector contract
+     * @param provider The provider address
+     * @return account The escrow account data
+     */
+    function getEscrowAccount(
+        IAgreementCollector collector,
+        address provider
+    ) external view returns (IPaymentsEscrow.EscrowAccount memory account);
+
+    /**
+     * @notice Get the cached escrow balance for a (collector, provider) pair
+     * @dev Compare with {getEscrowAccount} to detect stale escrow state requiring reconciliation.
+     * @param collector The collector contract
+     * @param provider The provider address
+     * @return escrowSnap The last-known escrow balance
+     */
+    function getEscrowSnap(IAgreementCollector collector, address provider) external view returns (uint256 escrowSnap);
 
     /**
      * @notice Get the number of managed agreements for a (collector, provider) pair
-     * @param collector The collector address
+     * @param collector The collector contract
      * @param provider The provider address
      * @return count The pair agreement count
      */
-    function getPairAgreementCount(address collector, address provider) external view returns (uint256 count);
+    function getAgreementCount(IAgreementCollector collector, address provider) external view returns (uint256 count);
+
+    /**
+     * @notice Get a managed agreement ID by index for a (collector, provider) pair
+     * @param collector The collector contract
+     * @param provider The provider address
+     * @param index The index in the agreement set
+     * @return agreementId The agreement ID
+     */
+    function getAgreementAt(
+        IAgreementCollector collector,
+        address provider,
+        uint256 index
+    ) external view returns (bytes16 agreementId);
+
+    // -- Per-agreement --
+
+    /**
+     * @notice Get the full tracked state for a specific agreement
+     * @param collector The collector contract
+     * @param agreementId The agreement ID
+     * @return info The agreement info struct (all fields zero if not tracked)
+     */
+    function getAgreementInfo(
+        IAgreementCollector collector,
+        bytes16 agreementId
+    ) external view returns (AgreementInfo memory info);
+
+    /**
+     * @notice Get the max next claim for a specific agreement
+     * @param collector The collector contract address
+     * @param agreementId The agreement ID
+     * @return tokens The current max next claim stored for this agreement
+     */
+    function getAgreementMaxNextClaim(
+        IAgreementCollector collector,
+        bytes16 agreementId
+    ) external view returns (uint256 tokens);
 }

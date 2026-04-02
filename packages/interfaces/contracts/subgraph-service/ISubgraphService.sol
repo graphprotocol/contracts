@@ -80,6 +80,13 @@ interface ISubgraphService is IDataServiceAgreements, IDataServiceFees {
     // solhint-disable-previous-line gas-indexed-events
 
     /**
+     * @notice Emitted when the block closing allocation with active agreement setting is toggled
+     * @param enabled Whether the setting is enabled
+     */
+    event BlockClosingAllocationWithActiveAgreementSet(bool enabled);
+    // solhint-disable-previous-line gas-indexed-events
+
+    /**
      * @notice Thrown when trying to set a curation cut that is not a valid PPM value
      * @param curationCut The curation cut value
      */
@@ -142,13 +149,13 @@ interface ISubgraphService is IDataServiceAgreements, IDataServiceFees {
     error SubgraphServiceInvalidRAV(address ravIndexer, address allocationIndexer);
 
     /**
-     * @notice Thrown when trying to force close an allocation that is not stale and the indexer is not over-allocated
+     * @notice Thrown when trying to resize a stale allocation but it is not stale
      * @param allocationId The id of the allocation
      */
     error SubgraphServiceCannotForceCloseAllocation(address allocationId);
 
     /**
-     * @notice Thrown when trying to force close an altruistic allocation
+     * @notice Thrown when trying to resize a stale allocation that is already altruistic (0 tokens)
      * @param allocationId The id of the allocation
      */
     error SubgraphServiceAllocationIsAltruistic(address allocationId);
@@ -163,6 +170,14 @@ interface ISubgraphService is IDataServiceAgreements, IDataServiceFees {
      * @param collectionId The collectionId
      */
     error SubgraphServiceInvalidCollectionId(bytes32 collectionId);
+
+    /**
+     * @notice Thrown when trying to close an allocation that has an active indexing agreement
+     * and the close allocation guard is enabled
+     * @param allocationId The id of the allocation
+     * @param agreementId The id of the active agreement
+     */
+    error SubgraphServiceAllocationHasActiveAgreement(address allocationId, bytes16 agreementId);
 
     /**
      * @notice Initialize the contract
@@ -181,16 +196,21 @@ interface ISubgraphService is IDataServiceAgreements, IDataServiceFees {
     ) external;
 
     /**
-     * @notice Force close a stale allocation
+     * @notice Resize a stale allocation to zero tokens
      * @dev This function can be permissionlessly called when the allocation is stale. This
      * ensures that rewards for other allocations are not diluted by an inactive allocation.
+     *
+     * The allocation stays open as a stakeless allocation (0 tokens) rather than being closed.
+     * Allocations are long-lived and track agreement bindings, so force-closing would
+     * inadvertently cancel the associated agreement. Any bound indexing agreement remains
+     * active.
      *
      * Requirements:
      * - Allocation must exist and be open
      * - Allocation must be stale
-     * - Allocation cannot be altruistic
+     * - Allocation cannot already be stakeless
      *
-     * Emits a {AllocationClosed} event.
+     * Emits a {AllocationResized} event.
      *
      * @param allocationId The id of the allocation
      */
@@ -266,6 +286,19 @@ interface ISubgraphService is IDataServiceAgreements, IDataServiceFees {
      * @param newPaymentsDestination The address where payments should be sent
      */
     function setPaymentsDestination(address newPaymentsDestination) external;
+
+    /**
+     * @notice Enables or disables blocking allocation closure when an active agreement exists.
+     * When enabled, closing an allocation that has an active indexing agreement will revert.
+     * @param enabled True to enable, false to disable
+     */
+    function setBlockClosingAllocationWithActiveAgreement(bool enabled) external;
+
+    /**
+     * @notice Whether closing an allocation with an active agreement is blocked
+     * @return enabled True if blocking is enabled
+     */
+    function getBlockClosingAllocationWithActiveAgreement() external view returns (bool enabled);
 
     /**
      * @notice Accept an indexing agreement.

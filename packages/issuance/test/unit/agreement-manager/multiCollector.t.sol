@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import { IRecurringAgreementManagement } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreementManagement.sol";
+import { OFFER_TYPE_NEW } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 
 import { RecurringAgreementManagerSharedTest } from "./shared.t.sol";
@@ -41,6 +41,7 @@ contract RecurringAgreementManagerMultiCollectorTest is RecurringAgreementManage
             maxOngoingTokensPerSecond: maxOngoingTokensPerSecond,
             minSecondsPerCollection: 60,
             maxSecondsPerCollection: maxSecondsPerCollection,
+            conditions: 0,
             nonce: nonce,
             metadata: ""
         });
@@ -67,7 +68,7 @@ contract RecurringAgreementManagerMultiCollectorTest is RecurringAgreementManage
         );
         token.mint(address(agreementManager), 1_000_000 ether);
         vm.prank(operator);
-        agreementManager.offerAgreement(rca1, _collector());
+        agreementManager.offerAgreement(_collector(), OFFER_TYPE_NEW, abi.encode(rca1));
 
         uint256 maxClaim1 = 1 ether * 3600 + 100 ether;
 
@@ -81,7 +82,7 @@ contract RecurringAgreementManagerMultiCollectorTest is RecurringAgreementManage
             2
         );
         vm.prank(operator);
-        agreementManager.offerAgreement(rca2, IRecurringCollector(address(collector2)));
+        agreementManager.offerAgreement(IRecurringCollector(address(collector2)), OFFER_TYPE_NEW, abi.encode(rca2));
 
         uint256 maxClaim2 = 2 ether * 7200 + 200 ether;
 
@@ -102,11 +103,11 @@ contract RecurringAgreementManagerMultiCollectorTest is RecurringAgreementManage
         );
         token.mint(address(agreementManager), 1_000_000 ether);
         vm.prank(operator);
-        agreementManager.offerAgreement(rca1, _collector());
+        agreementManager.offerAgreement(_collector(), OFFER_TYPE_NEW, abi.encode(rca1));
 
-        // collector2 cannot call beforeCollection on collector1's agreement
+        // collector2 calling beforeCollection on collector1's agreement is a no-op
+        // (agreement doesn't exist under collector2's namespace)
         vm.prank(address(collector2));
-        vm.expectRevert(IRecurringAgreementManagement.OnlyAgreementCollector.selector);
         agreementManager.beforeCollection(agreementId1, 100 ether);
 
         // collector1 can call beforeCollection on its own agreement
@@ -126,11 +127,11 @@ contract RecurringAgreementManagerMultiCollectorTest is RecurringAgreementManage
         );
         token.mint(address(agreementManager), 1_000_000 ether);
         vm.prank(operator);
-        agreementManager.offerAgreement(rca1, _collector());
+        agreementManager.offerAgreement(_collector(), OFFER_TYPE_NEW, abi.encode(rca1));
 
-        // collector2 cannot call afterCollection on collector1's agreement
+        // collector2 calling afterCollection on collector1's agreement is a no-op
+        // (agreement doesn't exist under collector2's namespace)
         vm.prank(address(collector2));
-        vm.expectRevert(IRecurringAgreementManagement.OnlyAgreementCollector.selector);
         agreementManager.afterCollection(agreementId1, 100 ether);
     }
 
@@ -145,10 +146,6 @@ contract RecurringAgreementManagerMultiCollectorTest is RecurringAgreementManage
             1
         );
         uint256 maxClaim1 = 1 ether * 3600 + 100 ether;
-        // Fund with surplus so Full mode stays active (deficit < balance required)
-        token.mint(address(agreementManager), maxClaim1 + 1);
-        vm.prank(operator);
-        agreementManager.offerAgreement(rca1, _collector());
 
         // Offer via collector2
         (IRecurringCollector.RecurringCollectionAgreement memory rca2, ) = _makeRCAForCollector(
@@ -160,10 +157,17 @@ contract RecurringAgreementManagerMultiCollectorTest is RecurringAgreementManage
             2
         );
         uint256 maxClaim2 = 2 ether * 7200 + 200 ether;
-        // Fund with surplus so Full mode stays active (deficit < balance required)
-        token.mint(address(agreementManager), maxClaim2 + 1);
+
+        // Fund generously so Full mode stays active through both offers.
+        // After both: smnca = maxClaim1 + maxClaim2, deficit = smnca.
+        // spare = balance - deficit. Full requires smnca * 272 / 256 < spare.
+        uint256 totalMaxClaim = maxClaim1 + maxClaim2;
+        token.mint(address(agreementManager), totalMaxClaim + (totalMaxClaim * 272) / 256 + 1);
+
         vm.prank(operator);
-        agreementManager.offerAgreement(rca2, IRecurringCollector(address(collector2)));
+        agreementManager.offerAgreement(_collector(), OFFER_TYPE_NEW, abi.encode(rca1));
+        vm.prank(operator);
+        agreementManager.offerAgreement(IRecurringCollector(address(collector2)), OFFER_TYPE_NEW, abi.encode(rca2));
 
         // Escrow accounts are separate per (collector, provider)
         (uint256 collector1Balance, , ) = paymentsEscrow.escrowAccounts(
@@ -180,7 +184,7 @@ contract RecurringAgreementManagerMultiCollectorTest is RecurringAgreementManage
         assertEq(collector2Balance, maxClaim2);
     }
 
-    function test_MultiCollector_RevokeOnlyAffectsOwnCollectorEscrow() public {
+    function test_MultiCollector_CancelOnlyAffectsOwnCollectorEscrow() public {
         // Offer via both collectors
         (IRecurringCollector.RecurringCollectionAgreement memory rca1, bytes16 agreementId1) = _makeRCAForCollector(
             recurringCollector,
@@ -192,7 +196,7 @@ contract RecurringAgreementManagerMultiCollectorTest is RecurringAgreementManage
         );
         token.mint(address(agreementManager), 1_000_000 ether);
         vm.prank(operator);
-        agreementManager.offerAgreement(rca1, _collector());
+        agreementManager.offerAgreement(_collector(), OFFER_TYPE_NEW, abi.encode(rca1));
 
         (IRecurringCollector.RecurringCollectionAgreement memory rca2, ) = _makeRCAForCollector(
             collector2,
@@ -203,13 +207,12 @@ contract RecurringAgreementManagerMultiCollectorTest is RecurringAgreementManage
             2
         );
         vm.prank(operator);
-        agreementManager.offerAgreement(rca2, IRecurringCollector(address(collector2)));
+        agreementManager.offerAgreement(IRecurringCollector(address(collector2)), OFFER_TYPE_NEW, abi.encode(rca2));
 
         uint256 maxClaim2 = 2 ether * 7200 + 200 ether;
 
-        // Revoke collector1's agreement
-        vm.prank(operator);
-        agreementManager.revokeOffer(agreementId1);
+        // Cancel collector1's agreement
+        _cancelAgreement(agreementId1);
 
         // Collector1 escrow cleared, collector2 unaffected
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), 0);
