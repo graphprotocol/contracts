@@ -148,6 +148,12 @@ interface ISubgraphService is IDataServiceFees {
     error SubgraphServiceInvalidCollectionId(bytes32 collectionId);
 
     /**
+     * @notice Thrown when trying to set the payments destination to an invalid address
+     * @param paymentsDestination The invalid payments destination address
+     */
+    error SubgraphServiceInvalidPaymentsDestination(address paymentsDestination);
+
+    /**
      * @notice Initialize the contract
      * @dev The thawingPeriod and verifierCut ranges are not set here because they are variables
      * on the DisputeManager. We use the {ProvisionManager} overrideable getters to get the ranges.

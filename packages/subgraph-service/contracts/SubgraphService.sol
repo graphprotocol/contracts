@@ -432,6 +432,10 @@ contract SubgraphService is
      * @param _paymentsDestination The address where payments should be sent
      */
     function _setPaymentsDestination(address _indexer, address _paymentsDestination) internal {
+        require(
+            _paymentsDestination != address(this),
+            SubgraphServiceInvalidPaymentsDestination(_paymentsDestination)
+        );
         paymentsDestination[_indexer] = _paymentsDestination;
         emit PaymentsDestinationSet(_indexer, _paymentsDestination);
     }
