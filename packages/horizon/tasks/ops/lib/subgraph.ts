@@ -74,7 +74,6 @@ const ESCROW_ACCOUNTS_QUERY = `
         id
       }
       balance
-      amountThawing
       thawEndTimestamp
       totalAmountThawing
     }
@@ -225,7 +224,6 @@ export async function queryEscrowAccounts(
     sender: { id: string }
     receiver: { id: string }
     balance: string
-    amountThawing: string
     thawEndTimestamp: string
     totalAmountThawing: string
   }
@@ -245,7 +243,7 @@ export async function queryEscrowAccounts(
       sender: raw.sender.id,
       receiver: raw.receiver.id,
       balance: BigInt(raw.balance),
-      amountThawing: BigInt(raw.amountThawing),
+      amountThawing: BigInt(raw.totalAmountThawing),
       thawEndTimestamp: BigInt(raw.thawEndTimestamp),
       totalAmountThawing: BigInt(raw.totalAmountThawing),
     }))
