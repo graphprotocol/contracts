@@ -1,14 +1,13 @@
 import { expect } from 'chai'
 import { ethers as ethersLib } from 'ethers'
 
-import { getEthers } from '../common/ethersHelper'
 import { mineBlocks } from '../allocate/optimizationHelpers'
+import { getEthers } from '../common/ethersHelper'
 import {
+  DEFAULT_ISSUANCE_PER_BLOCK,
   deployIndexingSignalSystem,
   type IndexingSignalSystem,
   SUBGRAPH_IDS,
-  ROLES,
-  DEFAULT_ISSUANCE_PER_BLOCK,
 } from './fixtures'
 
 describe('IndexingSignal', () => {
@@ -33,9 +32,7 @@ describe('IndexingSignal', () => {
       await (graphToken as any).connect(accounts.user).approve(addresses.indexingSignal, DEPOSIT_AMOUNT)
 
       // Deposit
-      await expect(
-        (indexingSignal as any).connect(accounts.user).deposit(SUBGRAPH_IDS.SUBGRAPH_A, DEPOSIT_AMOUNT, 3),
-      )
+      await expect((indexingSignal as any).connect(accounts.user).deposit(SUBGRAPH_IDS.SUBGRAPH_A, DEPOSIT_AMOUNT, 3))
         .to.emit(indexingSignal, 'SignalDeposited')
         .withArgs(accounts.user.address, SUBGRAPH_IDS.SUBGRAPH_A, DEPOSIT_AMOUNT, 3)
 
@@ -102,9 +99,7 @@ describe('IndexingSignal', () => {
       const withdrawAmount = ethersLib.parseEther('200')
       const balanceBefore = await graphToken.balanceOf(accounts.user.address)
 
-      await expect(
-        (indexingSignal as any).connect(accounts.user).withdraw(SUBGRAPH_IDS.SUBGRAPH_A, withdrawAmount),
-      )
+      await expect((indexingSignal as any).connect(accounts.user).withdraw(SUBGRAPH_IDS.SUBGRAPH_A, withdrawAmount))
         .to.emit(indexingSignal, 'SignalWithdrawn')
         .withArgs(accounts.user.address, SUBGRAPH_IDS.SUBGRAPH_A, withdrawAmount)
 
@@ -147,9 +142,7 @@ describe('IndexingSignal', () => {
       await (indexingSignal as any).connect(accounts.user).deposit(SUBGRAPH_IDS.SUBGRAPH_A, initial, 3)
 
       // Add signal
-      await expect(
-        (indexingSignal as any).connect(accounts.user).addSignal(SUBGRAPH_IDS.SUBGRAPH_A, additional),
-      )
+      await expect((indexingSignal as any).connect(accounts.user).addSignal(SUBGRAPH_IDS.SUBGRAPH_A, additional))
         .to.emit(indexingSignal, 'SignalAdded')
         .withArgs(accounts.user.address, SUBGRAPH_IDS.SUBGRAPH_A, additional)
 
@@ -277,7 +270,14 @@ describe('IndexingSignal', () => {
   describe('collect()', () => {
     it('should mint and transfer GRT for accumulated issuance', async () => {
       const freshSys = await deployIndexingSignalSystem()
-      const { indexingSignal, graphToken, graphTokenHelper, accounts, addresses, mockRewardsManager } = freshSys
+      const {
+        indexingSignal,
+        graphToken,
+        graphTokenHelper,
+        accounts,
+        addresses,
+        mockRewardsManager: _mockRewardsManager,
+      } = freshSys
       const depositAmount = ethersLib.parseEther('1000')
 
       // There's no curation signal, so total signal = indexing signal only
@@ -297,10 +297,7 @@ describe('IndexingSignal', () => {
       await mineBlocks(10)
 
       // Check virtual balance is non-zero
-      const virtualBalance = await indexingSignal.getVirtualBalance(
-        SUBGRAPH_IDS.SUBGRAPH_A,
-        indexers[0],
-      )
+      const virtualBalance = await indexingSignal.getVirtualBalance(SUBGRAPH_IDS.SUBGRAPH_A, indexers[0])
       expect(virtualBalance).to.be.greaterThan(0n)
 
       // Collect for first indexer (from any caller)
@@ -308,7 +305,7 @@ describe('IndexingSignal', () => {
       const tx = await (indexingSignal as any)
         .connect(accounts.nonGovernor)
         .collectTest(SUBGRAPH_IDS.SUBGRAPH_A, indexers[0], 0)
-      const receipt = await tx.wait()
+      const _receipt = await tx.wait()
 
       // Verify GRT was minted to caller
       const callerBalanceAfter = await graphToken.balanceOf(accounts.nonGovernor.address)
@@ -342,22 +339,14 @@ describe('IndexingSignal', () => {
       await mineBlocks(10)
 
       // Collect for indexer 0
-      await (indexingSignal as any)
-        .connect(accounts.nonGovernor)
-        .collectTest(SUBGRAPH_IDS.SUBGRAPH_A, indexers[0], 0)
+      await (indexingSignal as any).connect(accounts.nonGovernor).collectTest(SUBGRAPH_IDS.SUBGRAPH_A, indexers[0], 0)
 
       // After collecting for indexer 0, their virtual balance should be 0
-      const balance0After = await indexingSignal.getVirtualBalance(
-        SUBGRAPH_IDS.SUBGRAPH_A,
-        indexers[0],
-      )
+      const balance0After = await indexingSignal.getVirtualBalance(SUBGRAPH_IDS.SUBGRAPH_A, indexers[0])
       expect(balance0After).to.equal(0n)
 
       // But indexer 1 should still have uncollected balance
-      const balance1After = await indexingSignal.getVirtualBalance(
-        SUBGRAPH_IDS.SUBGRAPH_A,
-        indexers[1],
-      )
+      const balance1After = await indexingSignal.getVirtualBalance(SUBGRAPH_IDS.SUBGRAPH_A, indexers[1])
       expect(balance1After).to.be.greaterThan(0n)
     })
 
@@ -379,10 +368,7 @@ describe('IndexingSignal', () => {
       await mineBlocks(10)
 
       // Get available balance
-      const available = await indexingSignal.getVirtualBalance(
-        SUBGRAPH_IDS.SUBGRAPH_A,
-        indexers[0],
-      )
+      const available = await indexingSignal.getVirtualBalance(SUBGRAPH_IDS.SUBGRAPH_A, indexers[0])
       expect(available).to.be.greaterThan(0n)
 
       // Collect half
@@ -396,10 +382,7 @@ describe('IndexingSignal', () => {
       expect(balanceAfter - balanceBefore).to.equal(halfAmount)
 
       // Remaining virtual balance should be approximately half
-      const remaining = await indexingSignal.getVirtualBalance(
-        SUBGRAPH_IDS.SUBGRAPH_A,
-        indexers[0],
-      )
+      const remaining = await indexingSignal.getVirtualBalance(SUBGRAPH_IDS.SUBGRAPH_A, indexers[0])
       // Should be close to half (within rounding)
       expect(remaining).to.be.greaterThan(0n)
     })
@@ -424,9 +407,7 @@ describe('IndexingSignal', () => {
       // Collect for an indexer NOT in the set — should succeed but return 0
       const notInSet = signers[15].address
       const balanceBefore = await graphToken.balanceOf(accounts.nonGovernor.address)
-      await (indexingSignal as any)
-        .connect(accounts.nonGovernor)
-        .collectTest(SUBGRAPH_IDS.SUBGRAPH_A, notInSet, 0)
+      await (indexingSignal as any).connect(accounts.nonGovernor).collectTest(SUBGRAPH_IDS.SUBGRAPH_A, notInSet, 0)
       const balanceAfter = await graphToken.balanceOf(accounts.nonGovernor.address)
 
       expect(balanceAfter - balanceBefore).to.equal(0n)
@@ -472,10 +453,7 @@ describe('IndexingSignal', () => {
         .setDepositorIndexerSet(accounts.user.address, SUBGRAPH_IDS.SUBGRAPH_A, indexers)
 
       // Virtual balance should be 0 at the same block (or close to it)
-      const balance = await indexingSignal.getVirtualBalance(
-        SUBGRAPH_IDS.SUBGRAPH_A,
-        indexers[0],
-      )
+      const balance = await indexingSignal.getVirtualBalance(SUBGRAPH_IDS.SUBGRAPH_A, indexers[0])
       // Could be 0 or a tiny amount from the few blocks between deposit and query
       // The key point is it should be finite and small
       expect(balance).to.be.lessThan(ethersLib.parseEther('1000'))
@@ -497,19 +475,13 @@ describe('IndexingSignal', () => {
         .setDepositorIndexerSet(accounts.user.address, SUBGRAPH_IDS.SUBGRAPH_A, indexers)
 
       // Check balance before mining
-      const balanceBefore = await indexingSignal.getVirtualBalance(
-        SUBGRAPH_IDS.SUBGRAPH_A,
-        indexers[0],
-      )
+      const balanceBefore = await indexingSignal.getVirtualBalance(SUBGRAPH_IDS.SUBGRAPH_A, indexers[0])
 
       // Mine blocks
       await mineBlocks(20)
 
       // Check balance after
-      const balanceAfter = await indexingSignal.getVirtualBalance(
-        SUBGRAPH_IDS.SUBGRAPH_A,
-        indexers[0],
-      )
+      const balanceAfter = await indexingSignal.getVirtualBalance(SUBGRAPH_IDS.SUBGRAPH_A, indexers[0])
 
       expect(balanceAfter).to.be.greaterThan(balanceBefore)
     })
@@ -533,10 +505,7 @@ describe('IndexingSignal', () => {
 
       // Check balance for address not in set — no agreement escrow exists
       const notInSet = signers[15].address
-      const balance = await indexingSignal.getVirtualBalance(
-        SUBGRAPH_IDS.SUBGRAPH_A,
-        notInSet,
-      )
+      const balance = await indexingSignal.getVirtualBalance(SUBGRAPH_IDS.SUBGRAPH_A, notInSet)
       expect(balance).to.equal(0n)
     })
 
@@ -558,18 +527,9 @@ describe('IndexingSignal', () => {
       await mineBlocks(10)
 
       // All three indexers should have the same virtual balance
-      const balance0 = await indexingSignal.getVirtualBalance(
-        SUBGRAPH_IDS.SUBGRAPH_A,
-        indexers[0],
-      )
-      const balance1 = await indexingSignal.getVirtualBalance(
-        SUBGRAPH_IDS.SUBGRAPH_A,
-        indexers[1],
-      )
-      const balance2 = await indexingSignal.getVirtualBalance(
-        SUBGRAPH_IDS.SUBGRAPH_A,
-        indexers[2],
-      )
+      const balance0 = await indexingSignal.getVirtualBalance(SUBGRAPH_IDS.SUBGRAPH_A, indexers[0])
+      const balance1 = await indexingSignal.getVirtualBalance(SUBGRAPH_IDS.SUBGRAPH_A, indexers[1])
+      const balance2 = await indexingSignal.getVirtualBalance(SUBGRAPH_IDS.SUBGRAPH_A, indexers[2])
 
       expect(balance0).to.equal(balance1)
       expect(balance1).to.equal(balance2)
@@ -602,10 +562,7 @@ describe('IndexingSignal', () => {
       const supplyBefore = await graphToken.totalSupply()
 
       // Check balance exists
-      const balanceBefore = await indexingSignal.getVirtualBalance(
-        SUBGRAPH_IDS.SUBGRAPH_A,
-        indexers[0],
-      )
+      const balanceBefore = await indexingSignal.getVirtualBalance(SUBGRAPH_IDS.SUBGRAPH_A, indexers[0])
       expect(balanceBefore).to.be.greaterThan(0n)
 
       // Cancel RCA for indexer 0 (operator has INDEXER_SET_OPERATOR_ROLE)
@@ -620,17 +577,11 @@ describe('IndexingSignal', () => {
       expect(supplyAfter).to.equal(supplyBefore)
 
       // Virtual balance should be zero after cancellation
-      const balanceAfter = await indexingSignal.getVirtualBalance(
-        SUBGRAPH_IDS.SUBGRAPH_A,
-        indexers[0],
-      )
+      const balanceAfter = await indexingSignal.getVirtualBalance(SUBGRAPH_IDS.SUBGRAPH_A, indexers[0])
       expect(balanceAfter).to.equal(0n)
 
       // Other indexers should still have balances
-      const balance1 = await indexingSignal.getVirtualBalance(
-        SUBGRAPH_IDS.SUBGRAPH_A,
-        indexers[1],
-      )
+      const balance1 = await indexingSignal.getVirtualBalance(SUBGRAPH_IDS.SUBGRAPH_A, indexers[1])
       expect(balance1).to.be.greaterThan(0n)
     })
 
@@ -658,9 +609,7 @@ describe('IndexingSignal', () => {
       await (graphToken as any).connect(accounts.user).approve(addresses.indexingSignal, amount)
       await (indexingSignal as any).connect(accounts.user).deposit(SUBGRAPH_IDS.SUBGRAPH_A, amount, 3)
 
-      await expect(
-        (indexingSignal as any).connect(accounts.user).setIndexerCount(SUBGRAPH_IDS.SUBGRAPH_A, 5),
-      )
+      await expect((indexingSignal as any).connect(accounts.user).setIndexerCount(SUBGRAPH_IDS.SUBGRAPH_A, 5))
         .to.emit(indexingSignal, 'IndexerCountChanged')
         .withArgs(accounts.user.address, SUBGRAPH_IDS.SUBGRAPH_A, 3, 5)
 
@@ -824,7 +773,9 @@ describe('IndexingSignal', () => {
       const initialDeposit = ethersLib.parseEther('100')
       const addAmount = ethersLib.parseEther('1') // 1e18 / 3 has remainder
       await graphTokenHelper.mint(accounts.user.address, initialDeposit + addAmount * 5n)
-      await (graphToken as any).connect(accounts.user).approve(addresses.indexingSignal, initialDeposit + addAmount * 5n)
+      await (graphToken as any)
+        .connect(accounts.user)
+        .approve(addresses.indexingSignal, initialDeposit + addAmount * 5n)
 
       await (indexingSignal as any).connect(accounts.user).deposit(SUBGRAPH_IDS.SUBGRAPH_A, initialDeposit, 3)
 
@@ -975,10 +926,7 @@ describe('IndexingSignal', () => {
       expect(escrow.signal).to.equal(depositAmount / 3n) // 300 GRT effective signal per indexer
 
       // Virtual balance should match the computed issuance from the escrow
-      const virtualBalance = await indexingSignal.getVirtualBalance(
-        SUBGRAPH_IDS.SUBGRAPH_A,
-        indexers[0],
-      )
+      const virtualBalance = await indexingSignal.getVirtualBalance(SUBGRAPH_IDS.SUBGRAPH_A, indexers[0])
       expect(virtualBalance).to.be.greaterThan(0n)
     })
   })
@@ -1057,9 +1005,7 @@ describe('IndexingSignal', () => {
         .connect(accounts.operator)
         .prepareAgreement(SUBGRAPH_IDS.SUBGRAPH_A, indexers[0], agreementHash, '0x')
 
-      const clearTx = await (indexingSignal as any)
-        .connect(accounts.operator)
-        .clearPreparedAgreement(agreementHash)
+      const clearTx = await (indexingSignal as any).connect(accounts.operator).clearPreparedAgreement(agreementHash)
       await expect(clearTx).to.emit(indexingSignal, 'AgreementCleared').withArgs(agreementHash)
 
       // Should no longer be authorized
@@ -1178,16 +1124,9 @@ describe('IndexingSignal', () => {
       await expect(
         (indexingSignal as any)
           .connect(accounts.nonGovernor)
-          ['collect(uint8,address,address,uint256,address,uint256,address,bytes32)'](
-            0,
-            accounts.user.address,
-            accounts.user.address,
-            0,
-            accounts.operator.address,
-            0,
-            accounts.user.address,
-            SUBGRAPH_IDS.SUBGRAPH_A,
-          ),
+          [
+            'collect(uint8,address,address,uint256,address,uint256,address,bytes32)'
+          ](0, accounts.user.address, accounts.user.address, 0, accounts.operator.address, 0, accounts.user.address, SUBGRAPH_IDS.SUBGRAPH_A),
       ).to.be.revertedWithCustomError(indexingSignal, 'UnauthorizedEscrowCaller')
     })
 
@@ -1198,15 +1137,9 @@ describe('IndexingSignal', () => {
       await expect(
         (indexingSignal as any)
           .connect(escrowRouterSigner)
-          ['collect(uint8,address,address,uint256,address,uint256,address)'](
-            0,
-            escrowRouterSigner.address,
-            escrowRouterSigner.address,
-            0,
-            escrowRouterSigner.address,
-            0,
-            escrowRouterSigner.address,
-          ),
+          [
+            'collect(uint8,address,address,uint256,address,uint256,address)'
+          ](0, escrowRouterSigner.address, escrowRouterSigner.address, 0, escrowRouterSigner.address, 0, escrowRouterSigner.address),
       ).to.be.revertedWithCustomError(indexingSignal, 'CollectionContextRequired')
     })
   })

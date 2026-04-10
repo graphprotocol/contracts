@@ -19,26 +19,28 @@ library IndexingAgreementDecoderRaw {
         return abi.decode(data, (bytes16, bytes));
     }
 
+    // forge-lint: disable-next-item(mixed-case-function)
     /**
-     * @notice See {IndexingAgreementDecoder.decodeRCAMetadata}
+     * @notice Decodes the RCA metadata into an AcceptIndexingAgreementMetadata struct.
+     * See {IndexingAgreementDecoder.decodeRCAMetadata}
      * @dev The data should be encoded as {IndexingAgreement.AcceptIndexingAgreementMetadata}
      * @param data The data to decode
-     * @return The decoded data
+     * @return The decoded AcceptIndexingAgreementMetadata
      */
-    // forge-lint: disable-next-item(mixed-case-function)
     function decodeRCAMetadata(
         bytes calldata data
     ) public pure returns (IndexingAgreement.AcceptIndexingAgreementMetadata memory) {
         return abi.decode(data, (IndexingAgreement.AcceptIndexingAgreementMetadata));
     }
 
+    // forge-lint: disable-next-item(mixed-case-function)
     /**
-     * @notice See {IndexingAgreementDecoder.decodeRCAUMetadata}
+     * @notice Decodes the RCAU metadata into an UpdateIndexingAgreementMetadata struct.
+     * See {IndexingAgreementDecoder.decodeRCAUMetadata}
      * @dev The data should be encoded as {IndexingAgreement.UpdateIndexingAgreementMetadata}
      * @param data The data to decode
-     * @return The decoded data
+     * @return The decoded UpdateIndexingAgreementMetadata
      */
-    // forge-lint: disable-next-item(mixed-case-function)
     function decodeRCAUMetadata(
         bytes calldata data
     ) public pure returns (IndexingAgreement.UpdateIndexingAgreementMetadata memory) {

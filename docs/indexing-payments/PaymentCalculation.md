@@ -277,7 +277,7 @@ This prevents griefing where payer sets an impossibly narrow collection window.
 
 ### Collection Window Examples
 
-**Example 1: Valid Timing**
+#### Example 1: Valid Timing
 
 ```
 minSecondsPerCollection = 3000 (50 minutes)
@@ -289,7 +289,7 @@ collectionSeconds = 3600
 Validation: 3000 ≤ 3600 ≤ 4200 ✓
 ```
 
-**Example 2: Too Soon**
+#### Example 2: Too Soon
 
 ```
 minSecondsPerCollection = 3600 (60 minutes)
@@ -300,7 +300,7 @@ collectionSeconds = 1800
 Validation: 1800 < 3600 ✗ ERROR
 ```
 
-**Example 3: Too Late**
+#### Example 3: Too Late
 
 ```
 maxSecondsPerCollection = 7200 (2 hours)
@@ -311,7 +311,7 @@ collectionSeconds = 10000
 Validation: 10000 > 7200 ✗ ERROR
 ```
 
-**Example 4: Canceled (minSeconds Waived)**
+#### Example 4: Canceled (minSeconds Waived)
 
 ```
 minSecondsPerCollection = 3600

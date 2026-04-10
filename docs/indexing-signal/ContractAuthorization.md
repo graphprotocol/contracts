@@ -18,22 +18,22 @@ Both steps use `ECDSA.recover()` — only EOAs with private keys can participate
 
 ### The Two ECDSA Gates
 
-| Gate | Where | What's Signed |
-|------|-------|---------------|
-| Authorization proof | `Authorizable._verifyAuthorizationProof()` | `(chainId, RC, "authorizeSignerProof", deadline, authorizer)` |
-| RCA signature | `RC._recoverRCASigner()` → `_requireAuthorizedRCASigner()` | EIP712 hash of full RCA struct |
+| Gate                | Where                                                      | What's Signed                                                 |
+| ------------------- | ---------------------------------------------------------- | ------------------------------------------------------------- |
+| Authorization proof | `Authorizable._verifyAuthorizationProof()`                 | `(chainId, RC, "authorizeSignerProof", deadline, authorizer)` |
+| RCA signature       | `RC._recoverRCASigner()` → `_requireAuthorizedRCASigner()` | EIP712 hash of full RCA struct                                |
 
 Both must be bypassed for a contract to create RCAs.
 
 ## Contract Authorization: Different Trust Model, Not Weaker
 
-| | ECDSA (current) | Contract-based |
-|---|---|---|
-| **Trust basis** | Private key custody | Contract logic + governance |
-| **Authorization** | "Holder of key K authorized this" | "Contract C's code authorized this" |
-| **Auditability** | Key management is opaque | Logic is on-chain, auditable |
-| **Revocation** | Thaw → revoke signer | Same (contract is the signer) |
-| **Attack surface** | Key compromise | Contract bug or governance attack |
+|                    | ECDSA (current)                   | Contract-based                      |
+| ------------------ | --------------------------------- | ----------------------------------- |
+| **Trust basis**    | Private key custody               | Contract logic + governance         |
+| **Authorization**  | "Holder of key K authorized this" | "Contract C's code authorized this" |
+| **Auditability**   | Key management is opaque          | Logic is on-chain, auditable        |
+| **Revocation**     | Thaw → revoke signer              | Same (contract is the signer)       |
+| **Attack surface** | Key compromise                    | Contract bug or governance attack   |
 
 For IS specifically: the contract's authorization logic is governed (only callers with appropriate roles can trigger agreement creation). The authorization chain is: governance grants role → role holder calls IS → IS creates RCA → RC accepts. Every step is on-chain and auditable.
 
@@ -41,7 +41,7 @@ For IS specifically: the contract's authorization logic is governed (only caller
 
 ### Option A: Overload ECDSA Recovery
 
-Add code.length checks to both Authorizable.authorizeSigner() and RC._requireAuthorizedRCASigner(). **Rejected** — ECDSA.recover on non-ECDSA signature returns garbage address. Can't cleanly distinguish contract vs EOA.
+Add code.length checks to both Authorizable.authorizeSigner() and RC.\_requireAuthorizedRCASigner(). **Rejected** — ECDSA.recover on non-ECDSA signature returns garbage address. Can't cleanly distinguish contract vs EOA.
 
 ### Option B: Separate Accept Path (Chosen)
 
@@ -59,13 +59,13 @@ Option B, but simplified from the original proposal:
 
 ```solidity
 interface IContractApprover {
-    function isAuthorizedAgreement(bytes32 agreementHash) external view returns (bytes4);
+  function isAuthorizedAgreement(bytes32 agreementHash) external view returns (bytes4);
 }
 ```
 
-`isAuthorizedSigner` was removed — per-payer Authorizable setup is unnecessary. The contract's callback *is* the authorization.
+`isAuthorizedSigner` was removed — per-payer Authorizable setup is unnecessary. The contract's callback _is_ the authorization.
 
-### RC.acceptFromContract (no _isAuthorized check)
+### RC.acceptFromContract (no \_isAuthorized check)
 
 ```solidity
 function acceptFromContract(
@@ -83,6 +83,7 @@ function acceptFromContract(
 ```
 
 No `_isAuthorized(rca.payer, contractApprover)` check. The contract's `isAuthorizedAgreement` callback is the only gate. The trust chain is:
+
 - `_validateAndStoreAgreement` checks `msg.sender == rca.dataService`
 - DataService (SS) has its own access control (allocation validation, etc.)
 - The contract approver confirms the specific agreement hash
@@ -94,12 +95,12 @@ No code.length branch. The original plan to modify Authorizable was reverted —
 
 ### What changed vs original proposal
 
-| Proposed | Implemented | Why |
-|----------|-------------|-----|
+| Proposed                                                                | Implemented                  | Why                                                          |
+| ----------------------------------------------------------------------- | ---------------------------- | ------------------------------------------------------------ |
 | `IContractApprover` with `isAuthorizedSigner` + `isAuthorizedAgreement` | Only `isAuthorizedAgreement` | Per-payer auth unnecessary — contract callback is sufficient |
-| Authorizable code.length branch | No change to Authorizable | acceptFromContract bypasses Authorizable entirely |
-| `_isAuthorized` check in acceptFromContract | Removed | Same reason — contract path doesn't need Authorizable |
-| Two-function interface | Single-function interface | Simpler, only one gate needed |
+| Authorizable code.length branch                                         | No change to Authorizable    | acceptFromContract bypasses Authorizable entirely            |
+| `_isAuthorized` check in acceptFromContract                             | Removed                      | Same reason — contract path doesn't need Authorizable        |
+| Two-function interface                                                  | Single-function interface    | Simpler, only one gate needed                                |
 
 ## IS Flow With Contract Authorization
 
@@ -131,23 +132,24 @@ No code.length branch. The original plan to modify Authorizable was reverted —
 
 ## What Changes
 
-| Component | Change | Impact |
-|-----------|--------|--------|
-| `IAuthorizable` | No change | None |
-| `Authorizable` | No change | None |
-| `IRecurringCollector` | Add `acceptFromContract()` | Additive |
-| `RecurringCollector` | Implement `acceptFromContract()` with shared `_validateAndStoreAgreement()` | Moderate |
-| `IContractApprover` | New interface (single function) | New |
-| `ISubgraphService` | Add `acceptIndexingAgreementFromContract()` | Additive |
-| `SubgraphService` | Implement `acceptIndexingAgreementFromContract()` | Additive |
-| `IndexingAgreement` (library) | Add `acceptFromContract()` with shared `_validateAndPrepareAccept()` | Moderate |
-| `IndexingSignal` | Implement `IContractApprover`, add `prepareAgreement()` / `clearPreparedAgreement()` | Moderate |
+| Component                     | Change                                                                               | Impact   |
+| ----------------------------- | ------------------------------------------------------------------------------------ | -------- |
+| `IAuthorizable`               | No change                                                                            | None     |
+| `Authorizable`                | No change                                                                            | None     |
+| `IRecurringCollector`         | Add `acceptFromContract()`                                                           | Additive |
+| `RecurringCollector`          | Implement `acceptFromContract()` with shared `_validateAndStoreAgreement()`          | Moderate |
+| `IContractApprover`           | New interface (single function)                                                      | New      |
+| `ISubgraphService`            | Add `acceptIndexingAgreementFromContract()`                                          | Additive |
+| `SubgraphService`             | Implement `acceptIndexingAgreementFromContract()`                                    | Additive |
+| `IndexingAgreement` (library) | Add `acceptFromContract()` with shared `_validateAndPrepareAccept()`                 | Moderate |
+| `IndexingSignal`              | Implement `IContractApprover`, add `prepareAgreement()` / `clearPreparedAgreement()` | Moderate |
 
 Neither RC nor Authorizable are deployed, so no migration concerns.
 
 ## Open Questions
 
-**RC authorization gap**: `acceptFromContract` has no check on *who* the contractApprover is — any contract that returns the magic value can approve agreements. The current trust relies on:
+**RC authorization gap**: `acceptFromContract` has no check on _who_ the contractApprover is — any contract that returns the magic value can approve agreements. The current trust relies on:
+
 - SS access control (only valid allocations can call)
 - The contract approver's own internal logic (IS uses role-based `prepareAgreement`)
 

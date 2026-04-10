@@ -2,7 +2,6 @@
 
 pragma solidity 0.8.27;
 
-// TODO: Re-enable and fix issues when publishing a new version
 // solhint-disable gas-strict-inequalities
 
 import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
@@ -27,6 +26,7 @@ import { GraphDirectory } from "../utilities/GraphDirectory.sol";
  * (e.g., IndexingSignal virtual escrow). All other operations (deposit, thaw, withdraw)
  * always use the router's own escrow storage.
  *
+ * @author Edge & Node
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */
@@ -46,9 +46,13 @@ contract EscrowRouter is Initializable, MulticallUpgradeable, GraphDirectory, IP
     /// @notice Governance-controlled override: payer -> escrow implementation.
     /// When set, collect() and getBalance() for this payer delegate to the override.
     /// Zero address means use standard escrow (this contract's own storage).
-    mapping(address payer => IPaymentsEscrow) public escrowOverrides;
+    mapping(address payer => IPaymentsEscrow escrow) public escrowOverrides;
 
-    /// @notice Emitted when an escrow override is set or removed for a payer
+    /**
+     * @notice Emitted when an escrow override is set or removed for a payer
+     * @param payer The payer address for which the override is set
+     * @param escrowOverride The override escrow implementation address (zero address to remove)
+     */
     event EscrowOverrideSet(address indexed payer, address indexed escrowOverride);
 
     /// @notice Thrown when a non-governor calls a governor-only function
@@ -60,8 +64,9 @@ contract EscrowRouter is Initializable, MulticallUpgradeable, GraphDirectory, IP
         _;
     }
 
+    // forge-lint: disable-next-item(unwrapped-modifier-logic)
     modifier onlyGovernor() {
-        require(msg.sender == _graphController().getGovernor(), EscrowRouterNotGovernor());
+        _onlyGovernor();
         _;
     }
 
@@ -126,6 +131,36 @@ contract EscrowRouter is Initializable, MulticallUpgradeable, GraphDirectory, IP
     }
 
     /// @inheritdoc IPaymentsEscrow
+    function adjustThaw(
+        address collector,
+        address receiver,
+        uint256 tokensToThaw,
+        bool evenIfTimerReset
+    ) external override notPaused returns (uint256 tokensThawing) {
+        EscrowAccount storage account = escrowAccounts[msg.sender][collector][receiver];
+        uint256 currentThawing = account.tokensThawing;
+
+        tokensThawing = tokensToThaw < account.balance ? tokensToThaw : account.balance;
+
+        if (tokensThawing == currentThawing) return tokensThawing;
+
+        uint256 thawEndTimestamp;
+        uint256 previousThawEnd = account.thawEndTimestamp;
+        if (tokensThawing < currentThawing) {
+            account.tokensThawing = tokensThawing;
+            if (tokensThawing == 0) account.thawEndTimestamp = 0;
+            else thawEndTimestamp = previousThawEnd;
+        } else {
+            thawEndTimestamp = block.timestamp + WITHDRAW_ESCROW_THAWING_PERIOD;
+            if (!evenIfTimerReset && previousThawEnd != 0 && previousThawEnd != thawEndTimestamp) return currentThawing;
+            account.tokensThawing = tokensThawing;
+            account.thawEndTimestamp = thawEndTimestamp;
+        }
+
+        emit Thaw(msg.sender, collector, receiver, tokensThawing, thawEndTimestamp);
+    }
+
+    /// @inheritdoc IPaymentsEscrow
     function cancelThaw(address collector, address receiver) external override notPaused {
         EscrowAccount storage account = escrowAccounts[msg.sender][collector][receiver];
         require(account.tokensThawing != 0, PaymentsEscrowNotThawing());
@@ -168,7 +203,16 @@ contract EscrowRouter is Initializable, MulticallUpgradeable, GraphDirectory, IP
         uint256 dataServiceCut,
         address receiverDestination
     ) external override notPaused {
-        _collectRouted(paymentType, payer, receiver, tokens, dataService, dataServiceCut, receiverDestination, bytes32(0));
+        _collectRouted(
+            paymentType,
+            payer,
+            receiver,
+            tokens,
+            dataService,
+            dataServiceCut,
+            receiverDestination,
+            bytes32(0)
+        );
     }
 
     /// @inheritdoc IPaymentsEscrow
@@ -182,7 +226,16 @@ contract EscrowRouter is Initializable, MulticallUpgradeable, GraphDirectory, IP
         address receiverDestination,
         bytes32 collectionContext
     ) external override notPaused {
-        _collectRouted(paymentType, payer, receiver, tokens, dataService, dataServiceCut, receiverDestination, collectionContext);
+        _collectRouted(
+            paymentType,
+            payer,
+            receiver,
+            tokens,
+            dataService,
+            dataServiceCut,
+            receiverDestination,
+            collectionContext
+        );
     }
 
     /// @inheritdoc IPaymentsEscrow
@@ -211,7 +264,14 @@ contract EscrowRouter is Initializable, MulticallUpgradeable, GraphDirectory, IP
         IPaymentsEscrow escrowOverride = escrowOverrides[_payer];
         if (address(escrowOverride) != address(0)) {
             escrowOverride.collect(
-                _paymentType, _payer, _receiver, _tokens, _dataService, _dataServiceCut, _receiverDestination, _collectionContext
+                _paymentType,
+                _payer,
+                _receiver,
+                _tokens,
+                _dataService,
+                _dataServiceCut,
+                _receiverDestination,
+                _collectionContext
             );
             return;
         }
@@ -234,6 +294,10 @@ contract EscrowRouter is Initializable, MulticallUpgradeable, GraphDirectory, IP
         );
 
         emit EscrowCollected(_paymentType, _payer, msg.sender, _receiver, _tokens, _receiverDestination);
+    }
+
+    function _onlyGovernor() internal view {
+        require(msg.sender == _graphController().getGovernor(), EscrowRouterNotGovernor());
     }
 
     function _deposit(address _payer, address _collector, address _receiver, uint256 _tokens) private {

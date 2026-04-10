@@ -19,9 +19,18 @@ import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/al
 import { IProviderEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IProviderEligibility.sol";
 import { IProviderEligibilityManagement } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IProviderEligibilityManagement.sol";
 import { RewardsCondition } from "@graphprotocol/interfaces/contracts/contracts/rewards/RewardsCondition.sol";
-/// @dev Minimal interface for reading total indexing signal. The full IIndexingSignal
-/// interface uses Solidity 0.8.x features (custom errors) incompatible with this 0.7.6 contract.
+/**
+ * @title IIndexingSignalReadOnly
+ * @author Edge & Node
+ * @notice Minimal interface for reading total indexing signal.
+ * @dev The full IIndexingSignal interface uses Solidity 0.8.x features (custom errors)
+ * incompatible with this 0.7.6 contract.
+ */
 interface IIndexingSignalReadOnly {
+    /**
+     * @notice Get total indexing signal across all subgraphs.
+     * @return Total GRT locked as indexing signal.
+     */
     function getTotalSignal() external view returns (uint256);
 }
 

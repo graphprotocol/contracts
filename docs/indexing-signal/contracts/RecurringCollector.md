@@ -30,6 +30,7 @@ For IS-backed indexing fees, the payer is the IndexingSignal contract (or a depo
 ## Changes Needed
 
 Depends on [EscrowRouter decision](./EscrowRouter.md). Options:
+
 - **No RC changes**: If a router intercepts the escrow call
 - **RC changes**: If RC needs to detect IS-backed agreements and call IS directly
 - **New collector**: If a separate collector handles IS flows (RC unchanged)

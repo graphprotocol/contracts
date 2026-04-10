@@ -13,13 +13,13 @@
 
 ## File Roles
 
-| File | Who updates | Purpose |
-|------|-------------|---------|
-| [Status.md](./Status.md) | Claude (after every step) | Single source of current state. Start here. |
-| [Goal.md](./Goal.md) | Either (rarely) | Definition of done. Changes only if scope changes. |
-| [Disconnects.md](./Disconnects.md) | Claude | Gap tracker. Items get resolved or moved to contract docs. |
-| [Design.md](./Design.md) | Claude | High-level architecture. Updated when design decisions change it. |
-| [contracts/*.md](./contracts/) | Claude | Per-contract detail. Updated when implementation changes. |
+| File                               | Who updates               | Purpose                                                           |
+| ---------------------------------- | ------------------------- | ----------------------------------------------------------------- |
+| [Status.md](./Status.md)           | Claude (after every step) | Single source of current state. Start here.                       |
+| [Goal.md](./Goal.md)               | Either (rarely)           | Definition of done. Changes only if scope changes.                |
+| [Disconnects.md](./Disconnects.md) | Claude                    | Gap tracker. Items get resolved or moved to contract docs.        |
+| [Design.md](./Design.md)           | Claude                    | High-level architecture. Updated when design decisions change it. |
+| [contracts/\*.md](./contracts/)    | Claude                    | Per-contract detail. Updated when implementation changes.         |
 
 ## Conventions
 

@@ -193,7 +193,15 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
     }
 
     /**
-     * @notice Internal implementation of collect logic shared by both overloads
+     * @notice Internal implementation of collect logic shared by both overloads.
+     * Deducts tokens from the payer's escrow account and distributes them via GraphPayments.
+     * @param _paymentType The type of payment being collected
+     * @param _payer The address of the payer
+     * @param _receiver The address of the receiver
+     * @param _tokens The amount of tokens to collect
+     * @param _dataService The address of the data service
+     * @param _dataServiceCut The data service cut in PPM
+     * @param _receiverDestination The destination address for the receiver's share
      */
     function _collect(
         IGraphPayments.PaymentTypes _paymentType,

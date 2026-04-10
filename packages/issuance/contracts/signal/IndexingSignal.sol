@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity 0.8.33;
+pragma solidity ^0.8.27;
 
 import { IIndexingSignal } from "@graphprotocol/interfaces/contracts/issuance/signal/IIndexingSignal.sol";
 import { IContractApprover } from "@graphprotocol/interfaces/contracts/horizon/IContractApprover.sol";
 import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManager.sol";
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { BaseUpgradeable } from "../common/BaseUpgradeable.sol";
+import { IGraphToken } from "../common/IGraphToken.sol";
 
 // solhint-disable-next-line no-unused-import
 import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol"; // Used by @inheritdoc
@@ -107,10 +108,12 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
 
     /**
      * @notice Constructor for the IndexingSignal contract
-     * @dev Sets immutable references to GraphToken, RewardsManager, and Curation.
+     * @dev Sets immutable references to GraphToken, RewardsManager, Curation, EscrowRouter, and GraphPayments.
      * @param graphToken Address of the Graph Token contract
      * @param rewardsManager Address of the RewardsManager contract
      * @param curation Address of the Curation contract
+     * @param escrowRouter Address of the EscrowRouter contract
+     * @param graphPayments Address of the GraphPayments contract
      * @custom:oz-upgrades-unsafe-allow constructor
      */
     constructor(
@@ -119,7 +122,7 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
         address curation,
         address escrowRouter,
         address graphPayments
-    ) BaseUpgradeable(graphToken) {
+    ) BaseUpgradeable(IGraphToken(graphToken)) {
         require(rewardsManager != address(0), AddressCannotBeZero());
         require(curation != address(0), AddressCannotBeZero());
         require(escrowRouter != address(0), AddressCannotBeZero());
@@ -137,10 +140,7 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
      * @param governor Address that will have the GOVERNOR_ROLE
      * @param minimumIndexerCount_ Initial minimum indexer count
      */
-    function initialize(
-        address governor,
-        uint256 minimumIndexerCount_
-    ) external virtual initializer {
+    function initialize(address governor, uint256 minimumIndexerCount_) external virtual initializer {
         __BaseUpgradeable_init(governor);
 
         // Set up indexer set operator role (admin'd by governor)
@@ -179,7 +179,10 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
 
         // Enforce minimum indexer count (unless privileged)
         if (!$.privilegedSignalers[msg.sender]) {
-            require(indexerCount >= $.minimumIndexerCount, IndexerCountBelowMinimum(indexerCount, $.minimumIndexerCount));
+            require(
+                !(indexerCount < $.minimumIndexerCount),
+                IndexerCountBelowMinimum(indexerCount, $.minimumIndexerCount)
+            );
         }
 
         // Update global accumulator before signal changes
@@ -225,7 +228,7 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
         if (indexerSet.length > 0) {
             uint256 n = indexerSet.length;
             uint256 addedSignalPerIndexer = (pos.tokens / n) - (oldTokens / n);
-            for (uint256 i = 0; i < indexerSet.length; i++) {
+            for (uint256 i = 0; i < indexerSet.length; ++i) {
                 _snapshotAndUpdateSignal($, subgraphDeploymentID, indexerSet[i], addedSignalPerIndexer, true);
             }
         }
@@ -249,7 +252,7 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
         IndexingSignalData storage $ = _getStorage();
         DepositorPosition storage pos = $.positions[msg.sender][subgraphDeploymentID];
         require(pos.tokens > 0, NoExistingPosition(msg.sender, subgraphDeploymentID));
-        require(tokens <= pos.tokens, InsufficientSignal(tokens, pos.tokens));
+        require(!(tokens > pos.tokens), InsufficientSignal(tokens, pos.tokens));
 
         // Update global accumulator before signal changes
         _updateAccIssuancePerSignal($);
@@ -262,7 +265,7 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
         if (indexerSet.length > 0) {
             uint256 n = indexerSet.length;
             uint256 removedSignalPerIndexer = (oldTokens / n) - (pos.tokens / n);
-            for (uint256 i = 0; i < indexerSet.length; i++) {
+            for (uint256 i = 0; i < indexerSet.length; ++i) {
                 _snapshotAndUpdateSignal($, subgraphDeploymentID, indexerSet[i], removedSignalPerIndexer, false);
             }
         }
@@ -287,16 +290,16 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
     /**
      * @inheritdoc IIndexingSignal
      */
-    function setIndexerCount(
-        bytes32 subgraphDeploymentID,
-        uint256 indexerCount
-    ) external override whenNotPaused {
+    function setIndexerCount(bytes32 subgraphDeploymentID, uint256 indexerCount) external override whenNotPaused {
         IndexingSignalData storage $ = _getStorage();
         DepositorPosition storage pos = $.positions[msg.sender][subgraphDeploymentID];
         require(pos.tokens > 0, NoExistingPosition(msg.sender, subgraphDeploymentID));
 
         if (!$.privilegedSignalers[msg.sender]) {
-            require(indexerCount >= $.minimumIndexerCount, IndexerCountBelowMinimum(indexerCount, $.minimumIndexerCount));
+            require(
+                !(indexerCount < $.minimumIndexerCount),
+                IndexerCountBelowMinimum(indexerCount, $.minimumIndexerCount)
+            );
         }
 
         uint256 oldCount = pos.indexerCount;
@@ -348,7 +351,7 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
         // Remove depositor's signal contribution from old indexers' agreement escrows
         if (oldSet.length > 0) {
             uint256 oldSignalPerIndexer = depositorTokens / oldSet.length;
-            for (uint256 i = 0; i < oldSet.length; i++) {
+            for (uint256 i = 0; i < oldSet.length; ++i) {
                 _snapshotAndUpdateSignal($, subgraphDeploymentID, oldSet[i], oldSignalPerIndexer, false);
             }
         }
@@ -356,7 +359,7 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
         // Add depositor's signal contribution to new indexers' agreement escrows
         if (indexers.length > 0) {
             uint256 newSignalPerIndexer = depositorTokens / indexers.length;
-            for (uint256 i = 0; i < indexers.length; i++) {
+            for (uint256 i = 0; i < indexers.length; ++i) {
                 _snapshotAndUpdateSignal($, subgraphDeploymentID, indexers[i], newSignalPerIndexer, true);
             }
         }
@@ -414,18 +417,11 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
     // -- IPaymentsEscrow Implementation (Virtual Escrow) --
 
     /**
-     * @notice Collect via the escrow interface without context. Reverts — context is required
+     * @notice Collect via the escrow interface without context. Reverts - context is required
      * for virtual escrow to resolve the subgraph deployment.
      */
-    function collect(
-        IGraphPayments.PaymentTypes,
-        address,
-        address,
-        uint256,
-        address,
-        uint256,
-        address
-    ) external pure {
+    // solhint-disable-next-line use-natspec
+    function collect(IGraphPayments.PaymentTypes, address, address, uint256, address, uint256, address) external pure {
         revert CollectionContextRequired();
     }
 
@@ -434,7 +430,15 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
      * Called by EscrowRouter when this contract is the escrow override for a payer.
      * Interprets collectionContext as subgraphDeploymentID.
      * Mints GRT and distributes via GraphPayments (protocol tax, data service cut, delegation).
+     * @param paymentType The type of payment being collected
+     * @param receiver The indexer receiving the payment
+     * @param tokens The amount of tokens to collect
+     * @param dataService The data service address for payment distribution
+     * @param dataServiceCut The data service cut percentage
+     * @param receiverDestination The destination address for the receiver
+     * @param collectionContext The subgraph deployment ID encoded as bytes32
      */
+    // solhint-disable-next-line use-natspec
     function collect(
         IGraphPayments.PaymentTypes paymentType,
         address,
@@ -454,7 +458,14 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
             // Mint GRT to this contract, then distribute via GraphPayments
             GRAPH_TOKEN.mint(address(this), collectedTokens);
             GRAPH_TOKEN.approve(address(GRAPH_PAYMENTS), collectedTokens);
-            GRAPH_PAYMENTS.collect(paymentType, receiver, collectedTokens, dataService, dataServiceCut, receiverDestination);
+            GRAPH_PAYMENTS.collect(
+                paymentType,
+                receiver,
+                collectedTokens,
+                dataService,
+                dataServiceCut,
+                receiverDestination
+            );
         }
 
         emit IssuanceCollected(collectionContext, receiver, collectedTokens);
@@ -464,7 +475,9 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
      * @notice Get virtual escrow balance for a (payer, collector, receiver) tuple.
      * Without a subgraph context, we cannot compute a meaningful balance.
      * Callers should use getVirtualBalance() for precise queries.
+     * @return Always returns 0 since subgraph context is required for meaningful balance
      */
+    // solhint-disable-next-line use-natspec
     function getBalance(address, address, address) external pure returns (uint256) {
         return 0;
     }
@@ -533,10 +546,7 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
     /**
      * @inheritdoc IIndexingSignal
      */
-    function getVirtualBalance(
-        bytes32 subgraphDeploymentID,
-        address indexer
-    ) external view override returns (uint256) {
+    function getVirtualBalance(bytes32 subgraphDeploymentID, address indexer) external view override returns (uint256) {
         IndexingSignalData storage $ = _getStorage();
         uint256 currentAcc = $.accIssuancePerSignal + _getNewIssuancePerSignal($);
         return _calcVirtualBalance($.agreementEscrows[subgraphDeploymentID][indexer], currentAcc);
@@ -584,9 +594,13 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
     // -- Internal Functions --
 
     /**
-     * @dev Shared virtual escrow collection logic. Computes available balance from the
+     * @notice Shared virtual escrow collection logic
+     * @dev Computes available balance from the
      * agreement escrow, determines collection amount, and updates escrow state.
-     * Does NOT mint or distribute — caller is responsible for that.
+     * Does NOT mint or distribute - caller is responsible for that.
+     * @param subgraphDeploymentID The subgraph deployment to collect from
+     * @param indexer The indexer whose agreement escrow to collect from
+     * @param amount The requested collection amount (0 for all available)
      * @return collectedTokens The amount of tokens collected from virtual balance
      */
     function _collectVirtual(
@@ -615,7 +629,10 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
     }
 
     /**
+     * @notice Calculate virtual balance for an agreement escrow
      * @dev Calculate virtual balance for an agreement escrow at a given accumulator value.
+     * @param escrow The agreement escrow to calculate balance for
+     * @param currentAccIssuancePerSignal The current accumulated issuance per signal value
      * @return Virtual balance = accruedIssuance + (signal * accumulator delta / scaling)
      */
     function _calcVirtualBalance(
@@ -631,14 +648,15 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
     }
 
     /**
-     * @dev Snapshot accrued issuance for an agreement escrow and adjust its signal.
-     * Must be called after _updateAccIssuancePerSignal().
+     * @notice Snapshot accrued issuance for an agreement escrow and adjust its signal
+     * @dev Must be called after _updateAccIssuancePerSignal().
      * @param $ Storage pointer
      * @param subgraphDeploymentID The subgraph deployment
      * @param indexer The indexer
      * @param signalDelta Amount of effective signal to add or remove
      * @param isAdd True to add signal, false to remove
      */
+    // solhint-disable-next-line use-natspec
     function _snapshotAndUpdateSignal(
         IndexingSignalData storage $,
         bytes32 subgraphDeploymentID,
@@ -696,6 +714,7 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
      */
     function _getStorage() private pure returns (IndexingSignalData storage $) {
         bytes32 slot = INDEXING_SIGNAL_STORAGE_LOCATION;
+        // solhint-disable-next-line no-inline-assembly
         assembly {
             $.slot := slot
         }

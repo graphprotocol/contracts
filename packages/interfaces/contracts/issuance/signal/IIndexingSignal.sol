@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6 || ^0.8.0;
+pragma solidity ^0.8.27;
 
 /**
  * @title IIndexingSignal
@@ -67,7 +67,7 @@ interface IIndexingSignal {
     event SignalDeposited(
         address indexed depositor,
         bytes32 indexed subgraphDeploymentID,
-        uint256 tokens,
+        uint256 indexed tokens,
         uint256 indexerCount
     );
 
@@ -77,7 +77,7 @@ interface IIndexingSignal {
      * @param subgraphDeploymentID Subgraph deployment
      * @param tokens Amount of GRT added
      */
-    event SignalAdded(address indexed depositor, bytes32 indexed subgraphDeploymentID, uint256 tokens);
+    event SignalAdded(address indexed depositor, bytes32 indexed subgraphDeploymentID, uint256 indexed tokens);
 
     /**
      * @notice Emitted when a depositor withdraws GRT
@@ -85,7 +85,7 @@ interface IIndexingSignal {
      * @param subgraphDeploymentID Subgraph deployment
      * @param tokens Amount of GRT withdrawn
      */
-    event SignalWithdrawn(address indexed depositor, bytes32 indexed subgraphDeploymentID, uint256 tokens);
+    event SignalWithdrawn(address indexed depositor, bytes32 indexed subgraphDeploymentID, uint256 indexed tokens);
 
     /**
      * @notice Emitted when a depositor changes their desired indexer count
@@ -97,7 +97,7 @@ interface IIndexingSignal {
     event IndexerCountChanged(
         address indexed depositor,
         bytes32 indexed subgraphDeploymentID,
-        uint256 oldCount,
+        uint256 indexed oldCount,
         uint256 newCount
     );
 
@@ -119,11 +119,7 @@ interface IIndexingSignal {
      * @param indexer Address of the indexer (receiver)
      * @param tokens Amount of GRT minted and distributed
      */
-    event IssuanceCollected(
-        bytes32 indexed subgraphDeploymentID,
-        address indexed indexer,
-        uint256 tokens
-    );
+    event IssuanceCollected(bytes32 indexed subgraphDeploymentID, address indexed indexer, uint256 indexed tokens);
 
     /**
      * @notice Emitted when an RCA is cancelled and uncollected issuance is settled
@@ -131,25 +127,21 @@ interface IIndexingSignal {
      * @param indexer Address of the indexer whose RCA was cancelled
      * @param settledTokens Amount of issuance that was settled (never minted)
      */
-    event IssuanceSettled(
-        bytes32 indexed subgraphDeploymentID,
-        address indexed indexer,
-        uint256 settledTokens
-    );
+    event IssuanceSettled(bytes32 indexed subgraphDeploymentID, address indexed indexer, uint256 indexed settledTokens);
 
     /**
      * @notice Emitted when the minimum indexer count is updated
      * @param oldCount Previous minimum
      * @param newCount New minimum
      */
-    event MinimumIndexerCountSet(uint256 oldCount, uint256 newCount);
+    event MinimumIndexerCountSet(uint256 indexed oldCount, uint256 indexed newCount);
 
     /**
      * @notice Emitted when a privileged signaler is granted or revoked
      * @param account Address of the account
      * @param privileged Whether the account is privileged
      */
-    event PrivilegedSignalerSet(address indexed account, bool privileged);
+    event PrivilegedSignalerSet(address indexed account, bool indexed privileged);
 
     // -- Custom Errors --
 
@@ -315,10 +307,7 @@ interface IIndexingSignal {
      * @param subgraphDeploymentID The subgraph deployment
      * @param indexer The indexer whose RCA was cancelled
      */
-    function onRCACancelled(
-        bytes32 subgraphDeploymentID,
-        address indexer
-    ) external;
+    function onRCACancelled(bytes32 subgraphDeploymentID, address indexer) external;
 
     /**
      * @notice Update the global issuance accumulator
@@ -365,10 +354,7 @@ interface IIndexingSignal {
      * @param indexer The indexer address
      * @return Virtual balance (collectable amount)
      */
-    function getVirtualBalance(
-        bytes32 subgraphDeploymentID,
-        address indexer
-    ) external view returns (uint256);
+    function getVirtualBalance(bytes32 subgraphDeploymentID, address indexer) external view returns (uint256);
 
     /**
      * @notice Get the agreement escrow state for a (subgraph, indexer) pair

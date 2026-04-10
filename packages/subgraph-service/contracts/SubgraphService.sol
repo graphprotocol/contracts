@@ -433,20 +433,14 @@ contract SubgraphService is
         address allocationId,
         IRecurringCollector.RecurringCollectionAgreement calldata rca,
         address contractApprover
-    )
-        external
-        whenNotPaused
-        onlyAuthorizedForProvision(rca.serviceProvider)
-        onlyValidProvision(rca.serviceProvider)
-        onlyRegisteredIndexer(rca.serviceProvider)
-        returns (bytes16)
-    {
-        return IndexingAgreement._getStorageManager().acceptFromContract(
-            _allocations,
-            allocationId,
-            rca,
-            contractApprover
-        );
+    ) external enforceService(rca.serviceProvider, VALID_PROVISION | REGISTERED) returns (bytes16) {
+        return
+            IndexingAgreement._getStorageManager().acceptFromContract(
+                _allocations,
+                allocationId,
+                rca,
+                contractApprover
+            );
     }
 
     /**

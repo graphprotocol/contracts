@@ -754,10 +754,7 @@ contract RecurringCollector is
         );
 
         require(agreementId != bytes16(0), RecurringCollectorAgreementIdZero());
-        require(
-            msg.sender == _rca.dataService,
-            RecurringCollectorUnauthorizedCaller(msg.sender, _rca.dataService)
-        );
+        require(msg.sender == _rca.dataService, RecurringCollectorUnauthorizedCaller(msg.sender, _rca.dataService));
         /* solhint-disable gas-strict-inequalities */
         require(
             _rca.deadline >= block.timestamp,

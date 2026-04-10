@@ -316,6 +316,7 @@ library IndexingAgreement {
      * @param allocationId The id of the allocation
      * @param rca The Recurring Collection Agreement
      * @param contractApprover The address of the contract that authorized this agreement
+     * @return The agreement ID assigned to the accepted indexing agreement
      */
     function acceptFromContract(
         StorageManager storage self,
@@ -628,18 +629,20 @@ library IndexingAgreement {
      * @param _rca The Recurring Collection Agreement
      * @return agreementId The deterministically generated agreement ID
      */
+    // solhint-disable-next-line function-max-lines
     function _validateAndPrepareAccept(
         StorageManager storage _self,
         mapping(address => IAllocation.State) storage _allocations,
         address _allocationId,
         IRecurringCollector.RecurringCollectionAgreement calldata _rca
     ) private returns (bytes16) {
-        IAllocation.State memory allocation = _requireValidAllocation(_allocations, _allocationId, _rca.serviceProvider);
-
-        require(
-            _rca.dataService == address(this),
-            IndexingAgreementWrongDataService(address(this), _rca.dataService)
+        IAllocation.State memory allocation = _requireValidAllocation(
+            _allocations,
+            _allocationId,
+            _rca.serviceProvider
         );
+
+        require(_rca.dataService == address(this), IndexingAgreementWrongDataService(address(this), _rca.dataService));
 
         AcceptIndexingAgreementMetadata memory metadata = IndexingAgreementDecoder.decodeRCAMetadata(_rca.metadata);
 
