@@ -1,4 +1,4 @@
-import { deployImplementation, upgradeTransparentUpgradeableProxy } from '@graphprotocol/horizon/ignition'
+import { upgradeTransparentUpgradeableProxy } from '@graphprotocol/horizon/ignition'
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 import ProxyAdminArtifact from '@openzeppelin/contracts/build/contracts/ProxyAdmin.json'
 import TransparentUpgradeableProxyArtifact from '@openzeppelin/contracts/build/contracts/TransparentUpgradeableProxy.json'
@@ -15,6 +15,7 @@ export default buildModule('SubgraphService', (m) => {
   const disputeManagerProxyAddress = m.getParameter('disputeManagerProxyAddress')
   const graphTallyCollectorAddress = m.getParameter('graphTallyCollectorAddress')
   const curationProxyAddress = m.getParameter('curationProxyAddress')
+  const recurringCollectorAddress = m.getParameter('recurringCollectorAddress')
   const minimumProvisionTokens = m.getParameter('minimumProvisionTokens')
   const maximumDelegationRatio = m.getParameter('maximumDelegationRatio')
   const stakeToFeesRatio = m.getParameter('stakeToFeesRatio')
@@ -28,11 +29,36 @@ export default buildModule('SubgraphService', (m) => {
     subgraphServiceProxyAddress,
   )
 
-  // Deploy implementation
-  const SubgraphServiceImplementation = deployImplementation(m, {
-    name: 'SubgraphService',
-    constructorArgs: [controllerAddress, disputeManagerProxyAddress, graphTallyCollectorAddress, curationProxyAddress],
+  // Deploy libraries required by SubgraphService
+  const StakeClaims = m.library('StakeClaims')
+  const AllocationHandler = m.library('AllocationHandler')
+  const IndexingAgreementDecoderRaw = m.library('IndexingAgreementDecoderRaw')
+  const IndexingAgreementDecoder = m.library('IndexingAgreementDecoder', {
+    libraries: { IndexingAgreementDecoderRaw },
   })
+  const IndexingAgreement = m.library('IndexingAgreement', {
+    libraries: { IndexingAgreementDecoder },
+  })
+
+  // Deploy implementation
+  const SubgraphServiceImplementation = m.contract(
+    'SubgraphService',
+    [
+      controllerAddress,
+      disputeManagerProxyAddress,
+      graphTallyCollectorAddress,
+      curationProxyAddress,
+      recurringCollectorAddress,
+    ],
+    {
+      libraries: {
+        StakeClaims,
+        AllocationHandler,
+        IndexingAgreement,
+        IndexingAgreementDecoder,
+      },
+    },
+  )
 
   // Upgrade implementation
   const SubgraphService = upgradeTransparentUpgradeableProxy(
