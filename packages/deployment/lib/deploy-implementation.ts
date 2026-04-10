@@ -304,7 +304,9 @@ export async function deployImplementation(
   // Rocketh's comparison can false-positive when sync creates bare records (e.g., wrong
   // argsData, unlinked library bytecodes). The content-aware bytecodeHash handles both
   // cases — it strips CBOR metadata and resolves library references by content hash.
-  const contractEntry = addressBookInstance.entryExists(contractName) ? addressBookInstance.getEntry(contractName) : null
+  const contractEntry = addressBookInstance.entryExists(contractName)
+    ? addressBookInstance.getEntry(contractName)
+    : null
   const pendingImpl = contractEntry?.pendingImplementation
   const storedMetadata = pendingImpl?.deployment ?? addressBookInstance.getDeploymentMetadata(contractName)
 

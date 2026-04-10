@@ -421,9 +421,7 @@ export function buildContractSpec(
   // Get deployment argsData from address book for accurate rocketh record seeding
   let deploymentArgsData: string | undefined
   if (entry) {
-    const deploymentMeta = entry.proxy
-      ? entry.implementationDeployment
-      : entry.deployment
+    const deploymentMeta = entry.proxy ? entry.implementationDeployment : entry.deployment
     if (deploymentMeta?.argsData && deploymentMeta.argsData !== '0x') {
       deploymentArgsData = deploymentMeta.argsData
     }
@@ -1412,7 +1410,9 @@ export async function getContractStatusLine(
     }
 
     // Non-proxy contract — check for code changes against stored bytecodeHash
-    const { codeChanged } = meta?.artifact ? checkCodeChanged(meta.artifact, addressBook, entryName) : { codeChanged: false }
+    const { codeChanged } = meta?.artifact
+      ? checkCodeChanged(meta.artifact, addressBook, entryName)
+      : { codeChanged: false }
     const icon = codeChanged ? '△' : '✓'
     return { line: `${icon}   ${contractName} @ ${formatAddress(entry.address)}`, exists: true, codeChanged }
   } catch (e) {

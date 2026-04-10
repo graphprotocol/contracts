@@ -17,8 +17,14 @@ export const accounts = {
   deployer: {
     default: 0,
   },
-  // Note: Governor address is queried from Controller contract via Controller.getGovernor()
-  // See lib/controller-utils.ts for helper functions
+  // Governor — second mnemonic account on local/test networks.
+  // On mainnet, governance is a multisig (not available via mnemonic).
+  // The on-chain source of truth is Controller.getGovernor() — see lib/controller-utils.ts.
+  // This named account exists so rocketh registers a signer, allowing deploy
+  // scripts to send TXs as governor via tx().
+  governor: {
+    default: 1,
+  },
 } as const satisfies UserConfig['accounts']
 
 // Network-specific data (can be extended as needed)
