@@ -11,6 +11,7 @@ import type {
   LegacyRewardsManager,
   LegacyStaking,
   PaymentsEscrow,
+  RecurringCollector,
   RewardsManager,
   SubgraphNFT,
 } from '@graphprotocol/interfaces'
@@ -36,6 +37,7 @@ export const GraphHorizonContractNameList = [
   'GraphPayments',
   'PaymentsEscrow',
   'GraphTallyCollector',
+  'RecurringCollector',
 ] as const
 
 export interface GraphHorizonContracts extends ContractList<GraphHorizonContractName> {
@@ -56,6 +58,7 @@ export interface GraphHorizonContracts extends ContractList<GraphHorizonContract
   GraphPayments: GraphPayments
   PaymentsEscrow: PaymentsEscrow
   GraphTallyCollector: GraphTallyCollector
+  RecurringCollector: RecurringCollector
 
   // Aliases
   GraphToken: L2GraphToken

@@ -1,5 +1,11 @@
 # @graphprotocol/address-book
 
+## 1.2.0
+
+### Minor Changes
+
+- Upgraded Rewards Manager and Subgraph Service with Rewards Eligibility Oracle and rewards reclaiming.
+
 ## 1.1.0
 
 ### Minor Changes
