@@ -3,6 +3,7 @@ import type { Environment } from '@rocketh/core/types'
 import type { PublicClient } from 'viem'
 import { encodeFunctionData } from 'viem'
 
+import type { AnyAddressBookOps } from './address-book-ops.js'
 import { Contracts, type RegistryEntry } from './contract-registry.js'
 import { getGovernor } from './controller-utils.js'
 import {
@@ -12,9 +13,10 @@ import {
   loadArtifactFromSource,
 } from './deploy-implementation.js'
 import { loadTransparentProxyArtifact } from './artifact-loaders.js'
-import { INITIALIZE_GOVERNOR_ABI } from './abis.js'
+import { INITIALIZE_GOVERNOR_ABI, OZ_PROXY_ADMIN_ABI } from './abis.js'
 import { computeBytecodeHash } from './bytecode-utils.js'
-import { deploy, graph } from '../rocketh/deploy.js'
+import { getTargetChainIdFromEnv } from './address-book-utils.js'
+import { deploy, execute, graph } from '../rocketh/deploy.js'
 
 /** ERC1967 admin slot: keccak256("eip1967.proxy.admin") - 1 */
 const ERC1967_ADMIN_SLOT = '0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103'
@@ -33,6 +35,25 @@ export function requireDeployer(env: Environment): string {
   if (!deployer) {
     throw new Error('No deployer account configured')
   }
+  return deployer
+}
+
+/**
+ * Address derived from the dummy private key (0x…001) used for status-only runs.
+ * Filtered out so status scripts don't mistake it for the real deployer.
+ */
+const DUMMY_DEPLOYER_ADDRESS = '0x7e5f4552091a69125d5dfcb7b8c2659029395bdf'
+
+/**
+ * Get deployer address if available (non-throwing).
+ *
+ * Returns undefined when the deploy key is not loaded (e.g. status-only runs
+ * where the keystore password is not prompted). Status scripts infer the real
+ * deployer from the ProxyAdmin owner on-chain instead.
+ */
+export function getDeployer(env: Environment): string | undefined {
+  const deployer = env.namedAccounts.deployer
+  if (!deployer || deployer.toLowerCase() === DUMMY_DEPLOYER_ADDRESS) return undefined
   return deployer
 }
 
@@ -117,7 +138,7 @@ export function showDeploymentStatus(
   if (result.newlyDeployed) {
     env.showMessage(`✓ ${contract.name} deployed at ${result.address}`)
   } else {
-    env.showMessage(`✓ ${contract.name} deployed at ${result.address}`)
+    env.showMessage(`✓ ${contract.name} unchanged at ${result.address}`)
   }
 }
 
@@ -145,7 +166,8 @@ export function showProxyDeploymentStatus(
 }
 
 /**
- * Update issuance address book with proxy deployment information
+ * Update address book with proxy deployment information.
+ * Routes to the correct address book based on contract.addressBook.
  */
 export async function updateProxyAddressBook(
   env: Environment,
@@ -156,14 +178,20 @@ export async function updateProxyAddressBook(
   proxyAdminAddress?: string,
   implementationDeployment?: DeploymentMetadata,
 ) {
-  await graphUtils.updateIssuanceAddressBook(env, {
+  const update = {
     name: contract.name,
     address: proxyAddress,
-    proxy: 'transparent',
+    proxy: 'transparent' as const,
     proxyAdmin: proxyAdminAddress,
     implementation: implAddress,
     implementationDeployment,
-  })
+  }
+
+  if (contract.addressBook === 'horizon') {
+    await graphUtils.updateHorizonAddressBook(env, update)
+  } else {
+    await graphUtils.updateIssuanceAddressBook(env, update)
+  }
 }
 
 /**
@@ -234,7 +262,8 @@ export interface ProxyDeployConfig {
  *
  * Uses OpenZeppelin v5's per-proxy ProxyAdmin pattern:
  * - Each proxy creates its own ProxyAdmin in the constructor
- * - Governor owns all per-proxy ProxyAdmins
+ * - Deployer is the initial ProxyAdmin owner (for post-deployment configuration)
+ * - Ownership is transferred to governor in the transfer-governance step
  * - No shared ProxyAdmin required
  *
  * Deployment scenarios:
@@ -270,11 +299,47 @@ export async function deployProxyContract(
 
   if (existingProxy) {
     if (sharedImplementation) {
-      // Shared implementation - just report status
+      // Shared implementation — detect if redeployed and set pendingImplementation
       env.showMessage(`✓ ${contract.name} proxy already deployed at ${existingProxy.address}`)
       env.showMessage(`   Uses shared implementation: ${sharedImplementation.name}`)
 
-      // Check current implementation status
+      const implDep = env.getOrNull(sharedImplementation.name)
+      if (implDep) {
+        const client = graph.getPublicClient(env)
+        const onChainImpl = await getOnChainImplementation(client, existingProxy.address, 'transparent')
+
+        if (onChainImpl.toLowerCase() !== implDep.address.toLowerCase()) {
+          // Shared implementation changed — store as pending for governance upgrade
+          const targetChainId = await getTargetChainIdFromEnv(env)
+          const addressBook: AnyAddressBookOps = contract.addressBook === 'horizon'
+            ? graph.getHorizonAddressBook(targetChainId)
+            : graph.getIssuanceAddressBook(targetChainId)
+
+          // Get deployment metadata from the shared implementation's address book entry
+          const implMetadata = addressBook.getDeploymentMetadata(sharedImplementation.name)
+          addressBook.setPendingImplementationWithMetadata(
+            contract.name,
+            implDep.address,
+            implMetadata ?? { txHash: '', bytecodeHash: '' },
+          )
+
+          env.showMessage(``)
+          env.showMessage(`⚠️  UPGRADE REQUIRED`)
+          env.showMessage(`   Proxy:               ${existingProxy.address}`)
+          env.showMessage(`   Current (on-chain):  ${onChainImpl}`)
+          env.showMessage(`   New implementation:  ${implDep.address}`)
+          env.showMessage(``)
+          env.showMessage(`   Stored as pending — run upgrade task to generate governance TX.`)
+
+          return {
+            address: existingProxy.address,
+            newlyDeployed: false,
+            upgraded: true,
+          }
+        }
+      }
+
+      // No change — check existing pending status
       const client = graph.getPublicClient(env)
       await checkPendingUpgrade(env, client, contract, existingProxy.address, 'transparent')
 
@@ -315,10 +380,10 @@ export async function deployProxyContract(
 
   // Fresh deployment - deploy implementation first, then OZ v5 proxy
   if (sharedImplementation) {
-    return deployProxyWithSharedImpl(env, contract, sharedImplementation, governor, actualInitializeArgs, deployer)
+    return deployProxyWithSharedImpl(env, contract, sharedImplementation, actualInitializeArgs, deployer)
   }
 
-  return deployProxyWithOwnImpl(env, contract, governor, constructorArgs, actualInitializeArgs, deployer)
+  return deployProxyWithOwnImpl(env, contract, constructorArgs, actualInitializeArgs, deployer)
 }
 
 /**
@@ -327,7 +392,6 @@ export async function deployProxyContract(
 async function deployProxyWithOwnImpl(
   env: Environment,
   contract: RegistryEntry,
-  governor: string,
   constructorArgs: unknown[],
   initializeArgs: unknown[],
   deployer: string,
@@ -348,16 +412,17 @@ async function deployProxyWithOwnImpl(
 
   env.showMessage(`   Implementation deployed at ${implResult.address}`)
 
-  // Encode initialize call
+  // Encode initialize call using the contract's own ABI
   const initCalldata = encodeFunctionData({
-    abi: INITIALIZE_GOVERNOR_ABI,
+    abi: implArtifact.abi,
     functionName: 'initialize',
     args: initializeArgs as [`0x${string}`],
   })
 
   // Deploy OZ v5 TransparentUpgradeableProxy
   // Constructor: (address _logic, address initialOwner, bytes memory _data)
-  // The proxy creates its own ProxyAdmin owned by initialOwner (governor)
+  // Deployer is the initial ProxyAdmin owner to allow post-deployment configuration.
+  // Ownership is transferred to the protocol governor in the transfer-governance step.
   // Use issuance-compiled proxy artifact (0.8.34) for consistent verification
   const proxyArtifact = loadTransparentProxyArtifact()
   const proxyResult = await deployFn(
@@ -365,7 +430,7 @@ async function deployProxyWithOwnImpl(
     {
       account: deployer,
       artifact: proxyArtifact,
-      args: [implResult.address, governor, initCalldata],
+      args: [implResult.address, deployer, initCalldata],
     },
     { skipIfAlreadyDeployed: true },
   )
@@ -405,7 +470,7 @@ async function deployProxyWithOwnImpl(
   if (proxyResult.newlyDeployed) {
     env.showMessage(`✓ ${contract.name} proxy deployed at ${proxyResult.address}`)
     env.showMessage(`   Implementation: ${implResult.address}`)
-    env.showMessage(`   ProxyAdmin (per-proxy): ${proxyAdminAddress}`)
+    env.showMessage(`   ProxyAdmin (per-proxy, deployer-owned): ${proxyAdminAddress}`)
   } else {
     env.showMessage(`✓ ${contract.name} already deployed at ${proxyResult.address}`)
   }
@@ -424,7 +489,6 @@ async function deployProxyWithSharedImpl(
   env: Environment,
   contract: RegistryEntry,
   sharedImplementation: RegistryEntry,
-  governor: string,
   initializeArgs: unknown[],
   deployer: string,
 ): Promise<{ address: string; newlyDeployed: boolean; upgraded: boolean }> {
@@ -447,6 +511,8 @@ async function deployProxyWithSharedImpl(
 
   // Deploy OZ v5 TransparentUpgradeableProxy
   // Constructor: (address _logic, address initialOwner, bytes memory _data)
+  // Deployer is the initial ProxyAdmin owner to allow post-deployment configuration.
+  // Ownership is transferred to the protocol governor in the transfer-governance step.
   // Use issuance-compiled proxy artifact (0.8.34) for consistent verification
   const proxyArtifact = loadTransparentProxyArtifact()
   const proxyResult = await deployFn(
@@ -454,7 +520,7 @@ async function deployProxyWithSharedImpl(
     {
       account: deployer,
       artifact: proxyArtifact,
-      args: [implDep.address, governor, initCalldata],
+      args: [implDep.address, deployer, initCalldata],
     },
     { skipIfAlreadyDeployed: true },
   )
@@ -475,7 +541,7 @@ async function deployProxyWithSharedImpl(
   if (proxyResult.newlyDeployed) {
     env.showMessage(`✓ ${contract.name} proxy deployed at ${proxyResult.address}`)
     env.showMessage(`   Implementation: ${implDep.address}`)
-    env.showMessage(`   ProxyAdmin (per-proxy): ${proxyAdminAddress}`)
+    env.showMessage(`   ProxyAdmin (per-proxy, deployer-owned): ${proxyAdminAddress}`)
   } else {
     env.showMessage(`✓ ${contract.name} already deployed at ${proxyResult.address}`)
   }
@@ -485,4 +551,75 @@ async function deployProxyWithSharedImpl(
     newlyDeployed: !!proxyResult.newlyDeployed,
     upgraded: false,
   }
+}
+
+/**
+ * Transfer ProxyAdmin ownership for an issuance contract from deployer to governor.
+ *
+ * Reads the per-proxy ProxyAdmin address from the address book entry's proxyAdmin field,
+ * checks current ownership, and transfers if needed. Idempotent: skips if already owned
+ * by the target governor.
+ *
+ * @param env - Deployment environment
+ * @param contract - Registry entry for the contract whose ProxyAdmin to transfer
+ * @returns Whether a transfer was executed
+ *
+ * @example
+ * ```typescript
+ * await transferProxyAdminOwnership(env, Contracts.issuance.IssuanceAllocator)
+ * ```
+ */
+export async function transferProxyAdminOwnership(env: Environment, contract: RegistryEntry): Promise<boolean> {
+  const deployer = requireDeployer(env)
+  const governor = await getGovernor(env)
+  const client = graph.getPublicClient(env) as PublicClient
+
+  // Get ProxyAdmin address from address book
+  const targetChainId = await getTargetChainIdFromEnv(env)
+  const ab = graph.getIssuanceAddressBook(targetChainId)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const entry = ab.getEntry(contract.name as any)
+  const proxyAdminAddress = entry?.proxyAdmin
+
+  if (!proxyAdminAddress) {
+    throw new Error(`No proxyAdmin found in address book for ${contract.name}`)
+  }
+
+  // Check current owner
+  const currentOwner = (await client.readContract({
+    address: proxyAdminAddress as `0x${string}`,
+    abi: OZ_PROXY_ADMIN_ABI,
+    functionName: 'owner',
+  })) as string
+
+  if (currentOwner.toLowerCase() === governor.toLowerCase()) {
+    env.showMessage(`  ProxyAdmin ownership already transferred to governor: ${proxyAdminAddress}`)
+    return false
+  }
+
+  if (currentOwner.toLowerCase() !== deployer.toLowerCase()) {
+    throw new Error(
+      `ProxyAdmin ${proxyAdminAddress} owned by ${currentOwner}, expected deployer ${deployer}. ` +
+        `Cannot transfer ownership.`,
+    )
+  }
+
+  // Transfer ownership to governor
+  env.showMessage(`  Transferring ProxyAdmin ownership to governor...`)
+  env.showMessage(`    ProxyAdmin: ${proxyAdminAddress}`)
+  env.showMessage(`    From: ${deployer}`)
+  env.showMessage(`    To: ${governor}`)
+
+  const executeFn = execute(env)
+  await executeFn(
+    { address: proxyAdminAddress as `0x${string}`, abi: OZ_PROXY_ADMIN_ABI },
+    {
+      account: deployer,
+      functionName: 'transferOwnership',
+      args: [governor as `0x${string}`],
+    },
+  )
+
+  env.showMessage(`  ✓ ProxyAdmin ownership transferred to governor`)
+  return true
 }

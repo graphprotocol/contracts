@@ -1,15 +1,13 @@
 /**
- * Deployment Tag Library - Standardized tags for deployment scripts
+ * Deployment Tag Library
  *
- * This module provides:
- * - Constants for all deployment tags
- * - Utilities to generate action-specific tags
- * - Type safety for tag usage
+ * Tags select components, skip functions gate actions:
+ * - Component tags: PascalCase contract name (e.g., 'IssuanceAllocator')
+ * - Action verbs: deploy, upgrade, configure, transfer, integrate, all
+ * - Phase scopes: GIP-NNNN:phase (e.g., 'GIP-0088:upgrade')
+ * - Activation goals: GIP-NNNN:phase-action (e.g., 'GIP-0088:eligibility-integrate')
  *
- * Tag Patterns:
- * - Component tags: Base identifier (e.g., 'issuance-allocator')
- * - Action tags: Component + suffix (e.g., 'issuance-allocator-deploy')
- * - Category tags: Grouping tags (e.g., 'issuance-core')
+ * Usage: --tags IssuanceAllocator,deploy → matches component, deploy runs, others skip
  */
 
 /**
@@ -21,42 +19,67 @@ export const DeploymentActions = {
   CONFIGURE: 'configure',
   TRANSFER: 'transfer',
   INTEGRATE: 'integrate',
-  VERIFY: 'verify',
+  ALL: 'all',
 } as const
 
 /**
- * Core component tags (base identifiers)
+ * Core component tags (PascalCase contract names matching the registry)
  */
 export const ComponentTags = {
   // Core contracts with full lifecycle (deploy + upgrade + configure)
-  ISSUANCE_ALLOCATOR: 'issuance-allocator',
-  PILOT_ALLOCATION: 'pilot-allocation',
-  REWARDS_RECLAIM: 'rewards-reclaim',
+  ISSUANCE_ALLOCATOR: 'IssuanceAllocator',
+  DEFAULT_ALLOCATION: 'DefaultAllocation',
+  REWARDS_RECLAIM: 'RewardsReclaim',
 
   // Implementations and support contracts
-  DIRECT_ALLOCATION_IMPL: 'direct-allocation-impl',
-  REWARDS_ELIGIBILITY: 'rewards-eligibility',
+  DIRECT_ALLOCATION_IMPL: 'DirectAllocation_Implementation',
+  REWARDS_ELIGIBILITY_A: 'RewardsEligibilityOracleA',
+  REWARDS_ELIGIBILITY_B: 'RewardsEligibilityOracleB',
+  REWARDS_ELIGIBILITY_MOCK: 'RewardsEligibilityOracleMock',
 
-  // Process tags (not contract deployments)
-  ISSUANCE_ACTIVATION: 'issuance-activation',
-  VERIFY_GOVERNANCE: 'verify-governance',
-
-  // External dependencies (Horizon contracts)
-  REWARDS_MANAGER: 'rewards-manager',
-  REWARDS_MANAGER_DEPLOY: 'rewards-manager-deploy',
-  REWARDS_MANAGER_UPGRADE: 'rewards-manager-upgrade',
+  // Horizon contracts
+  RECURRING_COLLECTOR: 'RecurringCollector',
+  REWARDS_MANAGER: 'RewardsManager',
+  HORIZON_STAKING: 'HorizonStaking',
+  PAYMENTS_ESCROW: 'PaymentsEscrow',
 
   // SubgraphService contracts
-  SUBGRAPH_SERVICE: 'subgraph-service',
+  SUBGRAPH_SERVICE: 'SubgraphService',
+  DISPUTE_MANAGER: 'DisputeManager',
+
+  // Legacy contracts (graph proxy, upgrade only)
+  L2_CURATION: 'L2Curation',
+
+  // Issuance agreement contracts
+  RECURRING_AGREEMENT_MANAGER: 'RecurringAgreementManager',
 } as const
 
 /**
- * Category tags for grouping deployments
+ * Goal tags - deployment goals that orchestrate component lifecycles
+ *
+ * Two-dimensional: phase scope × action verbs.
+ * - Phase scopes select which contracts (`GIP-0088:upgrade`, `GIP-0088:eligibility`, etc.)
+ * - Action verbs select which lifecycle step (`deploy`, `configure`, `transfer`, `upgrade`)
+ * - Activation goals are phase-scoped governance TXs (`GIP-0088:eligibility-integrate`)
+ * - Optional goals bypass the `all` wildcard
+ *
+ * Combined: `--tags GIP-0088:issuance,deploy`
  */
-export const CategoryTags = {
-  ISSUANCE_CORE: 'issuance-core',
-  ISSUANCE_GOVERNANCE: 'issuance-governance',
-  ISSUANCE: 'issuance',
+export const GoalTags = {
+  // Overall GIP scope (status + verification)
+  GIP_0088: 'GIP-0088',
+
+  // Upgrade phase (deploy, configure, transfer, upgrade — combined with action verbs)
+  GIP_0088_UPGRADE: 'GIP-0088:upgrade',
+
+  // Activation goals (governance TXs — after upgrade complete)
+  GIP_0088_ELIGIBILITY_INTEGRATE: 'GIP-0088:eligibility-integrate',
+  GIP_0088_ISSUANCE_CONNECT: 'GIP-0088:issuance-connect',
+  GIP_0088_ISSUANCE_ALLOCATE: 'GIP-0088:issuance-allocate',
+
+  // Optional goals (not activated by `all`)
+  GIP_0088_ELIGIBILITY_REVERT: 'GIP-0088:eligibility-revert',
+  GIP_0088_ISSUANCE_CLOSE_GUARD: 'GIP-0088:issuance-close-guard',
 } as const
 
 /**
@@ -67,74 +90,62 @@ export const SpecialTags = {
 } as const
 
 /**
- * Generate action tag from component and action
+ * Parse the value of --tags from argv.
+ *
+ * Supports both `--tags foo,bar` (space) and `--tags=foo,bar` (equals).
+ * Returns null when not present or when the space form has no following arg.
  */
-export function actionTag(
-  component: string,
-  action: (typeof DeploymentActions)[keyof typeof DeploymentActions],
-): string {
-  return `${component}-${action}`
+function parseTagsArg(): string[] | null {
+  const argv = process.argv
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i]
+    if (a === '--tags') {
+      if (i + 1 >= argv.length) return null
+      return argv[i + 1].split(',')
+    }
+    if (a.startsWith('--tags=')) {
+      return a.slice('--tags='.length).split(',')
+    }
+  }
+  return null
 }
 
 /**
- * Common tag patterns for deployment scripts
- * Note: Arrays are not readonly to match DeployScriptModule.tags type (string[])
+ * Check whether --tags was specified on the command line.
+ *
+ * Returns true (skip) when no --tags are present. Used by status modules
+ * to skip when the user didn't request any specific component.
  */
-export const Tags = {
-  // IssuanceAllocator lifecycle
-  issuanceAllocatorDeploy: [
-    actionTag(ComponentTags.ISSUANCE_ALLOCATOR, DeploymentActions.DEPLOY),
-    CategoryTags.ISSUANCE_CORE,
-  ] as string[],
-  issuanceAllocatorUpgrade: [actionTag(ComponentTags.ISSUANCE_ALLOCATOR, DeploymentActions.UPGRADE)] as string[],
-  issuanceAllocatorConfigure: [actionTag(ComponentTags.ISSUANCE_ALLOCATOR, DeploymentActions.CONFIGURE)] as string[],
-  issuanceTransfer: [actionTag(ComponentTags.ISSUANCE_ALLOCATOR, DeploymentActions.TRANSFER)] as string[],
-  issuanceAllocator: [ComponentTags.ISSUANCE_ALLOCATOR] as string[], // Aggregate
+export function noTagsRequested(): boolean {
+  return parseTagsArg() === null
+}
 
-  // PilotAllocation lifecycle
-  pilotAllocationDeploy: [
-    actionTag(ComponentTags.PILOT_ALLOCATION, DeploymentActions.DEPLOY),
-    CategoryTags.ISSUANCE_CORE,
-  ] as string[],
-  pilotAllocationUpgrade: [actionTag(ComponentTags.PILOT_ALLOCATION, DeploymentActions.UPGRADE)] as string[],
-  pilotAllocationConfigure: [actionTag(ComponentTags.PILOT_ALLOCATION, DeploymentActions.CONFIGURE)] as string[],
-  pilotAllocation: [ComponentTags.PILOT_ALLOCATION] as string[], // Aggregate
+/**
+ * Check whether a deploy script should skip based on action verbs in --tags.
+ *
+ * Returns true (skip) when:
+ * - No --tags specified at all (safety: require explicit tags for mutations)
+ * - The verb is not present in the requested tags
+ *
+ * The 'all' verb is a wildcard: `--tags Component,all` activates every action
+ * (deploy, upgrade, configure, transfer, integrate) plus the end verification.
+ *
+ * Used by script factories and custom deploy scripts to gate mutations.
+ */
+export function shouldSkipAction(verb: string): boolean {
+  const tags = parseTagsArg()
+  if (tags === null) return true
+  return !tags.includes(verb) && !tags.includes(DeploymentActions.ALL)
+}
 
-  // Rewards reclaim lifecycle
-  rewardsReclaimDeploy: [actionTag(ComponentTags.REWARDS_RECLAIM, DeploymentActions.DEPLOY)] as string[],
-  rewardsReclaimUpgrade: [actionTag(ComponentTags.REWARDS_RECLAIM, DeploymentActions.UPGRADE)] as string[],
-  rewardsReclaimConfigure: [actionTag(ComponentTags.REWARDS_RECLAIM, DeploymentActions.CONFIGURE)] as string[],
-  rewardsReclaim: [ComponentTags.REWARDS_RECLAIM] as string[], // Aggregate
-
-  // RewardsEligibilityOracle lifecycle
-  rewardsEligibilityDeploy: [actionTag(ComponentTags.REWARDS_ELIGIBILITY, DeploymentActions.DEPLOY)] as string[],
-  rewardsEligibilityUpgrade: [actionTag(ComponentTags.REWARDS_ELIGIBILITY, DeploymentActions.UPGRADE)] as string[],
-  rewardsEligibilityConfigure: [actionTag(ComponentTags.REWARDS_ELIGIBILITY, DeploymentActions.CONFIGURE)] as string[],
-  rewardsEligibilityTransfer: [actionTag(ComponentTags.REWARDS_ELIGIBILITY, DeploymentActions.TRANSFER)] as string[],
-  rewardsEligibilityIntegrate: [actionTag(ComponentTags.REWARDS_ELIGIBILITY, DeploymentActions.INTEGRATE)] as string[],
-  rewardsEligibility: [ComponentTags.REWARDS_ELIGIBILITY] as string[], // Aggregate
-
-  // Support contracts
-  directAllocationImpl: [ComponentTags.DIRECT_ALLOCATION_IMPL] as string[],
-
-  // Process steps
-  issuanceActivation: [ComponentTags.ISSUANCE_ACTIVATION] as string[],
-  verifyGovernance: [
-    ComponentTags.VERIFY_GOVERNANCE,
-    CategoryTags.ISSUANCE_GOVERNANCE,
-    CategoryTags.ISSUANCE,
-  ] as string[],
-
-  // Top-level aggregate
-  issuanceAllocation: ['issuance-allocation'] as string[],
-
-  // Horizon RewardsManager lifecycle
-  rewardsManagerDeploy: [ComponentTags.REWARDS_MANAGER_DEPLOY] as string[],
-  rewardsManagerUpgrade: [ComponentTags.REWARDS_MANAGER_UPGRADE] as string[],
-  rewardsManager: [ComponentTags.REWARDS_MANAGER] as string[],
-
-  // SubgraphService lifecycle
-  subgraphServiceDeploy: [actionTag(ComponentTags.SUBGRAPH_SERVICE, DeploymentActions.DEPLOY)] as string[],
-  subgraphServiceUpgrade: [actionTag(ComponentTags.SUBGRAPH_SERVICE, DeploymentActions.UPGRADE)] as string[],
-  subgraphService: [ComponentTags.SUBGRAPH_SERVICE] as string[],
+/**
+ * Check whether an optional goal should skip.
+ *
+ * Unlike `shouldSkipAction`, this does NOT respond to the `all` wildcard.
+ * Optional goals only run when their specific tag is explicitly requested.
+ */
+export function shouldSkipOptionalGoal(goalTag: string): boolean {
+  const tags = parseTagsArg()
+  if (tags === null) return true
+  return !tags.includes(goalTag)
 }

@@ -1,10 +1,13 @@
 import type { Artifact, Environment } from '@rocketh/core/types'
-import { getAddress } from 'viem'
+import { encodeAbiParameters, getAddress } from 'viem'
 
 import { getTargetChainIdFromEnv } from './address-book-utils.js'
 import type { AnyAddressBookOps } from './address-book-ops.js'
 import {
+  getLibraryResolver,
+  linkArtifactLibraries,
   loadContractsArtifact,
+  loadHorizonBuildArtifact,
   loadIssuanceArtifact,
   loadOpenZeppelinArtifact,
   loadSubgraphServiceArtifact,
@@ -100,11 +103,11 @@ export interface ImplementationDeployConfig {
 
   /**
    * Name of the proxy admin deployment record.
-   * e.g., 'GraphProxyAdmin', 'GraphIssuanceProxyAdmin'
+   * e.g., 'GraphProxyAdmin' for legacy GraphProxy contracts.
    *
    * Optional: If omitted, defaults to `${contractName}_ProxyAdmin`.
-   * This allows contracts with inline proxy admin addresses (stored in address book entry)
-   * to work without explicitly specifying the deployment record name.
+   * Per-proxy admins (OZ v5 TransparentUpgradeableProxy contracts) follow this
+   * default and store the admin address inline in their address book entry.
    */
   proxyAdminName?: string
 
@@ -144,6 +147,8 @@ export function loadArtifactFromSource(source: ArtifactSource): Artifact {
       return loadContractsArtifact(source.path, source.name)
     case 'subgraph-service':
       return loadSubgraphServiceArtifact(source.name)
+    case 'horizon':
+      return loadHorizonBuildArtifact(source.path)
     case 'issuance':
       return loadIssuanceArtifact(source.path)
     case 'openzeppelin':
@@ -236,6 +241,7 @@ export function hasImplementationConfig(addressBook: AddressBookType, contractNa
 export async function deployImplementation(
   env: Environment,
   config: ImplementationDeployConfig,
+  libraries?: Record<string, string>,
 ): Promise<ImplementationDeployResult> {
   const { contractName, proxyAdminName, constructorArgs = [], proxyType = 'graph', addressBook = 'horizon' } = config
 
@@ -270,8 +276,11 @@ export async function deployImplementation(
     throw new Error(`${proxyAdminDeploymentName} not imported. Run sync step first.`)
   }
 
-  // 2) Load artifact
-  const artifact = loadArtifactFromSource(artifactSource)
+  // 2) Load artifact (pre-link libraries so rocketh stores linked bytecode)
+  const rawArtifact = loadArtifactFromSource(artifactSource)
+  const artifact = libraries
+    ? linkArtifactLibraries(rawArtifact, libraries as Record<string, `0x${string}`>)
+    : rawArtifact
   const implDeploymentName = `${contractName}_Implementation`
 
   // Get address book to check pending implementation
@@ -284,16 +293,53 @@ export async function deployImplementation(
         : graph.getHorizonAddressBook(targetChainId)
 
   // Compute local artifact bytecode hash (for storing with deployment)
-  const localBytecodeHash = computeBytecodeHash(artifact.deployedBytecode ?? '0x')
+  const resolver = getLibraryResolver(artifactSource.type)
+  const localBytecodeHash = computeBytecodeHash(
+    artifact.deployedBytecode ?? '0x',
+    artifact.deployedLinkReferences,
+    resolver,
+  )
 
-  // 3) Deploy implementation - let rocketh decide based on its own records
+  // 3) Pre-check: skip deployment if bytecodeHash and constructor args match
+  // Rocketh's comparison can false-positive when sync creates bare records (e.g., wrong
+  // argsData, unlinked library bytecodes). The content-aware bytecodeHash handles both
+  // cases — it strips CBOR metadata and resolves library references by content hash.
+  const contractEntry = addressBookInstance.entryExists(contractName) ? addressBookInstance.getEntry(contractName) : null
+  const pendingImpl = contractEntry?.pendingImplementation
+  const storedMetadata = pendingImpl?.deployment ?? addressBookInstance.getDeploymentMetadata(contractName)
+
+  if (storedMetadata?.bytecodeHash && storedMetadata.bytecodeHash === localBytecodeHash) {
+    // Bytecode matches — also verify constructor args (immutable values)
+    let argsMatch = !storedMetadata.argsData // no stored args = can't compare, assume match
+    if (storedMetadata.argsData) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const constructorDef = (artifact.abi as any[])?.find((item: any) => item.type === 'constructor')
+      const localArgsData =
+        constructorDef?.inputs?.length && constructorArgs.length
+          ? encodeAbiParameters(constructorDef.inputs, constructorArgs as readonly unknown[])
+          : '0x'
+      argsMatch = localArgsData === storedMetadata.argsData
+    }
+
+    if (argsMatch) {
+      const existingAddress = pendingImpl?.address ?? contractEntry?.implementation
+      if (existingAddress) {
+        env.showMessage(`\n✓ ${contractName} implementation unchanged`)
+        return {
+          deployed: false,
+          address: existingAddress,
+          bytecodeChanged: false,
+        }
+      }
+    }
+  }
+
+  // 4) Deploy implementation - let rocketh decide based on its own records
   // Sync handles pending: if pending hash matches local, rocketh has bytecode to compare
   // If pending hash differs, sync skipped bytecode so rocketh will deploy fresh
-  const impl = await deployFn(implDeploymentName, {
-    account: deployer,
-    artifact,
-    args: constructorArgs,
-  })
+  // Libraries are pre-linked into the artifact (step 2) so rocketh stores linked
+  // bytecode — its CBOR-stripping comparison then matches on subsequent runs.
+  const impl = await deployFn(implDeploymentName, { account: deployer, artifact, args: constructorArgs })
 
   if (!impl.newlyDeployed) {
     env.showMessage(`\n✓ ${contractName} implementation unchanged`)
@@ -335,7 +381,7 @@ export async function deployImplementation(
   // Store with full deployment metadata for verification and reconstruction
   addressBookInstance.setPendingImplementationWithMetadata(contractName, impl.address, {
     txHash: impl.transaction?.hash ?? '',
-    argsData: impl.argsData ?? '0x',
+    argsData: impl.argsData,
     bytecodeHash: localBytecodeHash,
     ...(blockNumber !== undefined && { blockNumber }),
     ...(timestamp && { timestamp }),

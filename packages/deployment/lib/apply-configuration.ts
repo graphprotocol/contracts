@@ -17,7 +17,7 @@ import {
   type RoleCondition,
   checkConditions,
 } from './contract-checks.js'
-import { createGovernanceTxBuilder, executeTxBatchDirect, saveGovernanceTxAndExit } from './execute-governance.js'
+import { createGovernanceTxBuilder, executeTxBatchDirect, saveGovernanceTx } from './execute-governance.js'
 
 /**
  * Options for applyConfiguration
@@ -145,10 +145,8 @@ export async function applyConfiguration<T>(
     env.showMessage(`\n✅ ${contractName} configuration updated\n`)
     return { status, changesNeeded: true, executedDirectly: true }
   } else {
-    // Never returns - exits with code 1
-    saveGovernanceTxAndExit(env, builder, `${contractName} configuration`)
-    // TypeScript doesn't know saveGovernanceTxAndExit never returns
-    throw new Error('unreachable')
+    saveGovernanceTx(env, builder, `${contractName} configuration`)
+    return { status, changesNeeded: true, executedDirectly: false }
   }
 }
 

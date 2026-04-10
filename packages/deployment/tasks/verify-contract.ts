@@ -1,6 +1,6 @@
 import { spawn } from 'child_process'
 import fs from 'fs'
-import { configVariable, task } from 'hardhat/config'
+import { task } from 'hardhat/config'
 import { ArgumentType } from 'hardhat/types/arguments'
 import type { NewTaskActionFunction } from 'hardhat/types/tasks'
 import os from 'os'
@@ -8,6 +8,7 @@ import path from 'path'
 import { decodeAbiParameters } from 'viem'
 
 import type { AnyAddressBookOps } from '../lib/address-book-ops.js'
+import { getLibraryResolver } from '../lib/artifact-loaders.js'
 import { computeBytecodeHash } from '../lib/bytecode-utils.js'
 import {
   type AddressBookType,
@@ -17,7 +18,8 @@ import {
   getContractsByAddressBook,
 } from '../lib/contract-registry.js'
 import { loadArtifactFromSource } from '../lib/deploy-implementation.js'
-import { verifyOZProxy } from '../lib/oz-proxy-verify.js'
+import { checkEtherscanVerified, verifyOZProxy } from '../lib/oz-proxy-verify.js'
+import { resolveConfigVar } from '../lib/task-utils.js'
 import { graph } from '../rocketh/deploy.js'
 
 const ADDRESS_BOOK_TYPES: AddressBookType[] = ['horizon', 'subgraph-service', 'issuance']
@@ -31,6 +33,8 @@ function getPackageDir(artifactSource: ArtifactSource): string {
       return 'packages/contracts'
     case 'subgraph-service':
       return 'packages/subgraph-service'
+    case 'horizon':
+      return 'packages/horizon'
     case 'issuance':
       return 'packages/issuance'
     case 'openzeppelin':
@@ -50,6 +54,14 @@ function getFullyQualifiedContractName(artifactSource: ArtifactSource): string {
     case 'subgraph-service':
       // e.g., contracts/SubgraphService.sol:SubgraphService
       return `contracts/${artifactSource.name}.sol:${artifactSource.name}`
+    case 'horizon': {
+      // path is like 'contracts/staking/HorizonStaking.sol/HorizonStaking'
+      // Need to convert to 'contracts/staking/HorizonStaking.sol:HorizonStaking'
+      const parts = artifactSource.path.split('/')
+      const contractName = parts.pop()!
+      const solPath = parts.join('/')
+      return `${solPath}:${contractName}`
+    }
     case 'issuance': {
       // path is like 'contracts/allocate/IssuanceAllocator.sol/IssuanceAllocator'
       // Need to convert to 'contracts/allocate/IssuanceAllocator.sol:IssuanceAllocator'
@@ -74,8 +86,8 @@ function findContractAddressBook(
 
   for (const addressBook of ADDRESS_BOOK_TYPES) {
     const metadata = getContractMetadata(addressBook, contractName)
-    // Only consider entries that are deployable and have an artifact source
-    if (metadata?.deployable && metadata.artifact) {
+    // Consider entries that are deployable with an artifact, or proxy-only contracts (shared impl)
+    if (metadata?.deployable && (metadata.artifact || metadata.proxyType)) {
       matches.push({ addressBook, metadata })
     }
   }
@@ -107,7 +119,7 @@ function getAllDeployableContracts(): Array<{
 
   for (const addressBook of ADDRESS_BOOK_TYPES) {
     for (const [name, metadata] of getContractsByAddressBook(addressBook)) {
-      if (metadata.deployable && metadata.artifact) {
+      if (metadata.deployable && (metadata.artifact || metadata.proxyType)) {
         contracts.push({ name, addressBook, metadata })
       }
     }
@@ -116,32 +128,7 @@ function getAllDeployableContracts(): Array<{
   return contracts
 }
 
-/**
- * Resolve a configuration variable using Hardhat's hook chain (keystore + env fallback)
- */
-async function resolveConfigVar(hre: unknown, name: string): Promise<string | undefined> {
-  try {
-    const variable = configVariable(name)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const hooks = (hre as any).hooks
-
-    const value = await hooks.runHandlerChain(
-      'configurationVariables',
-      'fetchValue',
-      [variable],
-      async (_context: unknown, v: { name: string }) => {
-        const envValue = process.env[v.name]
-        if (typeof envValue !== 'string') {
-          throw new Error(`Environment variable ${v.name} not found`)
-        }
-        return envValue
-      },
-    )
-    return value
-  } catch {
-    return undefined
-  }
-}
+// resolveConfigVar imported from shared task-utils
 
 /**
  * Check if a package uses Hardhat v3 (which has different verify CLI options)
@@ -348,7 +335,9 @@ function checkBytecodeMatch(
     }
 
     // Compare local artifact bytecodeHash with stored hash
-    const localBytecodeHash = computeBytecodeHash(artifact.deployedBytecode)
+    // Must pass linkReferences and resolver to match how hash was computed at deployment
+    const resolver = getLibraryResolver(metadata.artifact!.type)
+    const localBytecodeHash = computeBytecodeHash(artifact.deployedBytecode, artifact.deployedLinkReferences, resolver)
     if (localBytecodeHash !== deploymentMetadata.bytecodeHash) {
       return {
         matches: false,
@@ -393,24 +382,23 @@ async function verifySingleContract(
   const isProxied = Boolean(metadata.proxyType)
   const implAddress = isProxied ? entry.implementation : entry.address
 
+  // Proxy-only contracts (shared implementation, no artifact) — only verify the proxy
+  // Implementation verification is handled by the shared _Implementation entry
+  const hasArtifact = Boolean(metadata.artifact)
+
   // Check bytecode matches for implementation (using stored bytecodeHash)
-  if (implAddress) {
+  // This is a warning, not a blocker — Etherscan is the ultimate arbiter
+  let bytecodeMatches = true
+  if (hasArtifact && implAddress) {
     const bytecodeCheck = checkBytecodeMatch(contractName, metadata, addressBook)
     if (!bytecodeCheck.matches) {
-      return {
-        contract: contractName,
-        addressBook: addressBookType,
-        status: 'skipped',
-        reason: bytecodeCheck.reason,
-      }
+      bytecodeMatches = false
+      console.log(`  ⚠️  ${bytecodeCheck.reason}`)
     }
   }
 
-  const packageDir = getPackageDir(metadata.artifact!)
-  const isHHv3 = isHardhatV3Package(metadata.artifact!)
-  const artifact = loadArtifactFromSource(metadata.artifact!)
-  const fullyQualifiedName = getFullyQualifiedContractName(metadata.artifact!)
   let implResult: { success: boolean; url?: string } = { success: true }
+  let verificationFailed = false
 
   // Get constructor args from deployment metadata
   const deploymentMetadata = addressBook.getDeploymentMetadata?.(contractName)
@@ -423,75 +411,106 @@ async function verifySingleContract(
     if (entry.proxyDeployment?.verified) {
       console.log(`  ✓ Proxy already verified: ${entry.proxyDeployment.verified}`)
     } else {
-      // Get proxy constructor args from address book (stored separately from implementation args)
-      const proxyArgsData = entry.proxyDeployment?.argsData
-      if (!proxyArgsData) {
-        console.log(`  ⏭️  Proxy verification skipped (no constructor args in address book)`)
+      // Check Etherscan before submitting — avoids redundant submissions
+      const existingUrl = await checkEtherscanVerified(entry.address, apiKey, chainId)
+      if (existingUrl) {
+        console.log(`  ✓ Proxy already verified: ${existingUrl}`)
+        addressBook.setVerified(contractName, existingUrl)
       } else {
-        console.log(`  📋 Verifying OZ TransparentUpgradeableProxy at: ${entry.address}`)
-        console.log(`    📦 Source: @openzeppelin/contracts v5.4.0 (from node_modules)`)
-
-        const proxyResult = await verifyOZProxy(entry.address, proxyArgsData, apiKey, chainId)
-
-        if (proxyResult.success && proxyResult.url) {
-          console.log(`    ✅ Proxy verification complete`)
-          // Record verification URL in address book (setVerified sets proxyDeployment.verified for proxied contracts)
-          addressBook.setVerified(contractName, proxyResult.url)
-        } else if (proxyResult.success) {
-          console.log(`    ✅ Proxy verification complete (${proxyResult.message || 'no URL returned'})`)
+        // Get proxy constructor args from address book (stored separately from implementation args)
+        const proxyArgsData = entry.proxyDeployment?.argsData
+        if (!proxyArgsData) {
+          console.log(`  ⏭️  Proxy verification skipped (no constructor args in address book)`)
         } else {
-          console.log(`    ⚠️  Proxy verification failed: ${proxyResult.message || 'unknown error'}`)
+          console.log(`  📋 Verifying OZ TransparentUpgradeableProxy at: ${entry.address}`)
+          console.log(`    📦 Source: @openzeppelin/contracts v5.4.0 (from node_modules)`)
+
+          const proxyResult = await verifyOZProxy(entry.address, proxyArgsData, apiKey, chainId)
+
+          if (proxyResult.success && proxyResult.url) {
+            console.log(`    ✅ Proxy verification complete`)
+            addressBook.setVerified(contractName, proxyResult.url)
+          } else if (proxyResult.success) {
+            console.log(`    ✅ Proxy verification complete (${proxyResult.message || 'no URL returned'})`)
+          } else {
+            console.log(`    ⚠️  Proxy verification failed: ${proxyResult.message || 'unknown error'}`)
+            verificationFailed = true
+          }
         }
       }
     }
   }
 
   // Verify implementation (if proxied and not proxy-only, or if not proxied)
-  if ((isProxied && !proxyOnly) || !isProxied) {
+  // Skip for proxy-only contracts with no artifact (shared implementation verified separately)
+  if (!hasArtifact) {
+    if (!proxyOnly) {
+      console.log(`  ⏭️  Implementation verification skipped (shared implementation)`)
+    }
+  } else if ((isProxied && !proxyOnly) || !isProxied) {
+    const packageDir = getPackageDir(metadata.artifact!)
+    const isHHv3 = isHardhatV3Package(metadata.artifact!)
+    const artifact = loadArtifactFromSource(metadata.artifact!)
+    const fullyQualifiedName = getFullyQualifiedContractName(metadata.artifact!)
+
     if (!implAddress) {
       console.log('  ⚠️  No implementation address found, skipping')
     } else {
-      // Skip if already verified
+      // Skip if already verified (local record)
       const implVerified = isProxied ? entry.implementationDeployment?.verified : entry.deployment?.verified
       if (implVerified) {
         const label = isProxied ? 'Implementation' : 'Contract'
         console.log(`  ✓ ${label} already verified: ${implVerified}`)
       } else {
-        const label = isProxied ? 'implementation' : 'contract'
-        console.log(`  📋 Verifying ${label} at: ${implAddress}`)
-        // Pass constructor args for implementation contracts
-        // Use fullyQualifiedName to ensure hardhat uses current build artifacts
-        implResult = await runVerify(
-          packageDir,
-          networkName,
-          implAddress,
-          apiKey,
-          constructorArgsData,
-          artifact,
-          isHHv3,
-          fullyQualifiedName,
-        )
-        if (implResult.success && implResult.url) {
-          console.log(`    ✅ ${label.charAt(0).toUpperCase() + label.slice(1)} verification complete`)
-          // Record verification URL in address book
+        // Check Etherscan before attempting local verify — catches contracts
+        // verified out-of-band or where previous attempts failed locally
+        const existingImplUrl = await checkEtherscanVerified(implAddress, apiKey, chainId)
+        if (existingImplUrl) {
+          const label = isProxied ? 'Implementation' : 'Contract'
+          console.log(`  ✓ ${label} already verified: ${existingImplUrl}`)
           if (isProxied) {
-            addressBook.setImplementationVerified(contractName, implResult.url)
+            addressBook.setImplementationVerified(contractName, existingImplUrl)
           } else {
-            addressBook.setVerified(contractName, implResult.url)
+            addressBook.setVerified(contractName, existingImplUrl)
           }
-        } else if (implResult.success) {
-          console.log(`    ✅ ${label.charAt(0).toUpperCase() + label.slice(1)} verification complete`)
+        } else if (!bytecodeMatches) {
+          // Bytecode mismatch and not verified on Etherscan — skip
+          const label = isProxied ? 'Implementation' : 'Contract'
+          console.log(`  ⏭️  ${label} verification skipped (bytecode mismatch)`)
         } else {
-          console.log(
-            `    ⚠️  ${label.charAt(0).toUpperCase() + label.slice(1)} verification failed (may already be verified)`,
+          const label = isProxied ? 'implementation' : 'contract'
+          console.log(`  📋 Verifying ${label} at: ${implAddress}`)
+          implResult = await runVerify(
+            packageDir,
+            networkName,
+            implAddress,
+            apiKey,
+            constructorArgsData,
+            artifact,
+            isHHv3,
+            fullyQualifiedName,
           )
+          if (implResult.success && implResult.url) {
+            console.log(`    ✅ ${label.charAt(0).toUpperCase() + label.slice(1)} verification complete`)
+            if (isProxied) {
+              addressBook.setImplementationVerified(contractName, implResult.url)
+            } else {
+              addressBook.setVerified(contractName, implResult.url)
+            }
+          } else if (implResult.success) {
+            console.log(`    ✅ ${label.charAt(0).toUpperCase() + label.slice(1)} verification complete`)
+          } else {
+            console.log(
+              `    ⚠️  ${label.charAt(0).toUpperCase() + label.slice(1)} verification failed (may already be verified)`,
+            )
+            verificationFailed = true
+          }
         }
       }
     }
   }
 
-  // Both failing or already verified is still "success" for the workflow
-  return { contract: contractName, addressBook: addressBookType, status: 'verified' }
+  return { contract: contractName, addressBook: addressBookType, status: verificationFailed ? 'failed' : 'verified' }
 }
 
 interface TaskArgs {
@@ -534,7 +553,11 @@ const action: NewTaskActionFunction<TaskArgs> = async (taskArgs, hre) => {
   // Get API key from keystore
   const apiKey = await resolveConfigVar(hre, 'ARBISCAN_API_KEY')
   if (!apiKey) {
-    throw new Error('ARBISCAN_API_KEY not found. Set it in keystore:\n  npx hardhat keystore set ARBISCAN_API_KEY')
+    throw new Error(
+      'No Arbiscan API key configured.\n' +
+        'Set via keystore: npx hardhat keystore set ARBISCAN_API_KEY\n' +
+        'Or environment: export ARBISCAN_API_KEY=...',
+    )
   }
 
   // Determine contracts to verify
@@ -548,7 +571,7 @@ const action: NewTaskActionFunction<TaskArgs> = async (taskArgs, hre) => {
     if (explicitAddressBook) {
       addressBookType = explicitAddressBook as AddressBookType
       const foundMetadata = getContractMetadata(addressBookType, contract)
-      if (!foundMetadata?.deployable || !foundMetadata.artifact) {
+      if (!foundMetadata?.deployable || (!foundMetadata.artifact && !foundMetadata.proxyType)) {
         throw new Error(`Contract ${contract} not found as deployable in ${addressBookType} registry`)
       }
       metadata = foundMetadata
