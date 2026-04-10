@@ -12,27 +12,32 @@ Unified deployment package for Graph Protocol contracts.
 
 ```
 packages/deployment/
-├── deploy/                       # hardhat-deploy scripts
-│   ├── common/                   # Validation, imports
-│   ├── issuance/                 # Issuance contracts
-│   ├── contracts/                # Core protocol (RewardsManager)
-│   └── subgraph-service/         # SubgraphService
+├── deploy/                       # hardhat-deploy / rocketh scripts
+│   ├── common/                   # 00_sync.ts
+│   ├── horizon/                  # RM, HS, PE, L2Curation, RC
+│   ├── service/                  # SubgraphService, DisputeManager
+│   ├── allocate/                 # IssuanceAllocator, DefaultAllocation, DirectAllocation
+│   ├── agreement/                # RecurringAgreementManager
+│   ├── rewards/                  # RewardsEligibilityOracle (A/B/mock), Reclaim
+│   └── gip/0088/                 # GIP-0088 goal orchestration (upgrade phase + activation)
+├── lib/                          # Shared utilities (preconditions, contract registry, tags, ABIs, ...)
 ├── tasks/                        # Hardhat tasks (deploy:*)
-├── governance/                   # Safe TX builders
-├── deployments/                  # Per-network artifacts
-└── test/                         # Integration tests
+├── docs/                         # This documentation
+└── test/                         # Unit tests (bytecode, registry, tx-builder, ...)
 ```
 
 ## Tags
 
-| Tag                    | Deploys                              |
-| ---------------------- | ------------------------------------ |
-| `sync`                 | Sync address books, import contracts |
-| `rewards-manager`      | RewardsManager implementation        |
-| `subgraph-service`     | SubgraphService implementation       |
-| `upgrade`              | Generate TX, execute upgrades        |
-| `issuance-proxy-admin` | GraphIssuanceProxyAdmin              |
-| `issuance-core`        | All issuance contracts               |
+Two-dimensional tag model. See [`lib/deployment-tags.ts`](../lib/deployment-tags.ts) for the source of truth.
+
+| Kind            | Examples                                                                                             | Purpose                                                       |
+| --------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Special         | `sync`                                                                                               | Sync address books, import contracts                          |
+| Component       | `IssuanceAllocator`, `RewardsManager`, `RecurringAgreementManager`, `RewardsEligibilityOracleA`, ... | One per deployable contract                                   |
+| Action verb     | `deploy`, `upgrade`, `configure`, `transfer`, `integrate`, `all`                                     | Combined with a component or goal tag to gate work            |
+| Goal scope      | `GIP-0088`, `GIP-0088:upgrade`                                                                       | Multi-component orchestration for a deployment                |
+| Activation goal | `GIP-0088:eligibility-integrate`, `GIP-0088:issuance-connect`, `GIP-0088:issuance-allocate`          | Per-step governance TX for the activation phases              |
+| Optional goal   | `GIP-0088:eligibility-revert`, `GIP-0088:issuance-close-guard`                                       | Excluded from `--tags ...,all` — must be requested explicitly |
 
 ## External Artifacts
 

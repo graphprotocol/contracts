@@ -1,0 +1,33 @@
+diff --git a/dist/executor/index.js b/dist/executor/index.js
+index 05324b861bfa25afe89da4afba244f92c17c9c1c..e3529b53f92e4657a160e899715216267a25f6af 100644
+--- a/dist/executor/index.js
++++ b/dist/executor/index.js
+@@ -338,19 +338,16 @@ Do you want to proceed (note that gas price can change for each tx)`,
+                 logger.info(`skipping ${deployScript.id} as migrations already executed and complete`);
+                 continue;
+             }
+-            let skip = false;
++            if (deployScript.func.skip) {
++                try {
++                    const skip = await deployScript.func.skip(external, args);
++                    if (skip) continue;
++                } catch (e) {
++                    throw e;
++                }
++            }
+             const spinner = spin(`- Executing ${deployScript.id}`);
+-            // if (deployScript.func.skip) {
+-            // 	const spinner = spin(`  - skip?()`);
+-            // 	try {
+-            // 		skip = await deployScript.func.skip(external, args);
+-            // 		spinner.succeed(skip ? `skipping ${filename}` : undefined);
+-            // 	} catch (e) {
+-            // 		spinner.fail();
+-            // 		throw e;
+-            // 	}
+-            // }
+-            if (!skip) {
++            {
+                 let result;
+                 try {
+                     result = await deployScript.func(external, args);

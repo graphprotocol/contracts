@@ -8,7 +8,7 @@ State is lost when the command exits. Good for quick testing.
 
 ```bash
 # Run full deployment flow against forked arbitrumSepolia
-FORK_NETWORK=arbitrumSepolia npx hardhat deploy --tags sync,rewards-manager-deploy --network fork
+FORK_NETWORK=arbitrumSepolia npx hardhat deploy --tags sync,RewardsManager:deploy --network fork
 ```
 
 ## Persistent Fork (multiple sessions)
@@ -23,12 +23,10 @@ anvil --fork-url https://sepolia-rollup.arbitrum.io/rpc --chain-id 31337
 
 ```bash
 # Terminal 2 - run deploys against it
-# FORK_NETWORK tells deploy scripts which address books to use
-export FORK_NETWORK=arbitrumSepolia
 npx hardhat deploy:reset-fork --network localhost
 npx hardhat deploy:status --network localhost
 npx hardhat deploy --network localhost --skip-prompts --tags sync
-npx hardhat deploy --network localhost --skip-prompts --tags rewards-manager
+npx hardhat deploy --network localhost --skip-prompts --tags RewardsManager
 npx hardhat deploy:execute-governance --network localhost
 ```
 
@@ -38,18 +36,22 @@ Or for Arbitrum One:
 anvil --fork-url https://arb1.arbitrum.io/rpc --chain-id 31337
 ```
 
-```bash
-export FORK_NETWORK=arbitrumOne
-# ...
-```
-
 **Important**:
 
 - Terminal 1: Use anvil (from Foundry) instead of `hardhat node` - Hardhat v3's node command doesn't properly support the `--fork` flag
 - Terminal 1: Use `--chain-id 31337` - anvil defaults to the forked chain's ID (421614) but hardhat's localhost expects 31337
-- Terminal 2: Set `FORK_NETWORK` env var - tells deploy scripts to:
-  - Load the correct network's address books (not localhost's empty ones)
-  - Generate Safe TX files with the correct chainId (421614, not 31337)
+
+### Fork Network Detection
+
+The fork network (which chain is being forked) is **auto-detected** from anvil's RPC metadata. When you run against localhost, deploy scripts query `anvil_nodeInfo` to get the fork URL and match it against known network RPC hostnames.
+
+You can also set `FORK_NETWORK` explicitly to override auto-detection:
+
+```bash
+export FORK_NETWORK=arbitrumSepolia
+```
+
+**Safe on real networks**: `FORK_NETWORK` is automatically ignored when running against real networks (`--network arbitrumSepolia`, `--network arbitrumOne`). Fork mode only activates on local networks (localhost, fork, hardhat), so you don't need to unset `FORK_NETWORK` when switching between fork testing and real deployments.
 
 ## Architecture
 
@@ -80,12 +82,12 @@ deployments/                  # Managed by rocketh (deployment records, .chain f
 
 ## Key Points
 
-| Setting               | Value                              | Purpose                          |
-| --------------------- | ---------------------------------- | -------------------------------- |
-| `FORK_NETWORK`        | `arbitrumSepolia` or `arbitrumOne` | Which network to fork            |
-| `SHOW_ADDRESSES`      | `0`, `1` (default), or `2`         | Address display: none/short/full |
-| `--network fork`      | in-process EDR                     | Ephemeral, fast startup          |
-| `--network localhost` | external node                      | Persistent state                 |
+| Setting               | Value                              | Purpose                                                        |
+| --------------------- | ---------------------------------- | -------------------------------------------------------------- |
+| `FORK_NETWORK`        | `arbitrumSepolia` or `arbitrumOne` | Override auto-detected fork network (ignored on real networks) |
+| `SHOW_ADDRESSES`      | `0`, `1` (default), or `2`         | Address display: none/short/full                               |
+| `--network fork`      | in-process EDR                     | Ephemeral, fast startup                                        |
+| `--network localhost` | external node                      | Persistent state                                               |
 
 ## Configuration
 
@@ -135,6 +137,33 @@ npx hardhat deploy:reset-fork --network fork
 ## Prerequisites
 
 - **Foundry**: Install via `curl -L https://foundry.paradigm.xyz | bash && foundryup`
+
+## Local Network (rem-local-network)
+
+The `localNetwork` network targets the Graph local network docker-compose stack (chain ID 1337).
+Unlike fork mode, contracts are deployed fresh from scratch.
+
+```bash
+# Deploy a single contract via its component lifecycle
+npx hardhat deploy --tags IssuanceAllocator,deploy --network localNetwork
+
+# Or run the full GIP-0088 upgrade phase
+npx hardhat deploy --tags GIP-0088:upgrade,deploy --network localNetwork
+```
+
+**Key differences from fork mode:**
+
+- Chain ID 1337 (not 31337)
+- No `FORK_NETWORK` env var needed
+- Address books use `addresses-local-network.json` files (symlinked to mounted config)
+- Deployer is also governor (direct execution, no governance batch files)
+- Uses standard test mnemonic (`test test test ... junk`)
+
+**Environment:**
+
+- RPC: `http://chain:8545` (override with `LOCAL_NETWORK_RPC`)
+- Address books are populated by Phase 1 (hardhat-graph-protocol deploys Horizon + SubgraphService)
+- Phase 2+ deployment scripts use this package to deploy additional contracts (e.g., issuance)
 
 ## See Also
 

@@ -4,7 +4,7 @@ import path from 'node:path'
 import { task } from 'hardhat/config'
 import type { NewTaskActionFunction } from 'hardhat/types/tasks'
 
-import { getForkNetwork, getForkStateDir } from '../lib/address-book-utils.js'
+import { autoDetectForkNetwork, getForkNetwork, getForkStateDir } from '../lib/address-book-utils.js'
 
 interface TaskArgs {
   // No arguments for this task
@@ -27,6 +27,8 @@ const action: NewTaskActionFunction<TaskArgs> = async (_taskArgs, hre) => {
   const conn = await (hre as any).network.connect()
   const networkName = conn.networkName
 
+  // Auto-detect fork network from anvil before checking
+  await autoDetectForkNetwork()
   const forkNetwork = getForkNetwork()
 
   if (!forkNetwork) {
