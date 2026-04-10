@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.33;
+pragma solidity ^0.8.27;
 
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceTarget.sol";
+import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationDistribution.sol";
 import {
     TargetIssuancePerBlock,
     DistributionState,
@@ -487,7 +488,7 @@ contract IssuanceAllocatorDistributionTest is IssuanceAllocatorSharedTest {
         _setIssuanceRate(ISSUANCE_PER_BLOCK);
 
         // Set up reentrant target
-        reentrantTarget.setIssuanceAllocator(address(allocator));
+        reentrantTarget.setIssuanceAllocator(IIssuanceAllocationDistribution(address(allocator)));
         reentrantTarget.setReentrantAction(MockReentrantTarget.ReentrantAction.SetTargetAllocation1Param);
 
         // Adding the target should fail due to reentrancy in notification callback

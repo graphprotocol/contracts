@@ -60,7 +60,7 @@ pnpm hardhat deploy --tags rewards-eligibility-integrate --network <network>
 
 ### Integration
 
-- [ ] `RewardsManager.getRewardsEligibilityOracle()` returns REO address
+- [ ] `RewardsManager.getProviderEligibilityOracle()` returns REO address
 
 ## Configuration Parameters
 

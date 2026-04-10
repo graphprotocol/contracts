@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.22;
 
+import { IDataServiceAgreements } from "../data-service/IDataServiceAgreements.sol";
 import { IDataServiceFees } from "../data-service/IDataServiceFees.sol";
 import { IGraphPayments } from "../horizon/IGraphPayments.sol";
 
+import { IRecurringCollector } from "../horizon/IRecurringCollector.sol";
+
 import { IAllocation } from "./internal/IAllocation.sol";
+import { IIndexingAgreement } from "./internal/IIndexingAgreement.sol";
 import { ILegacyAllocation } from "./internal/ILegacyAllocation.sol";
 
 /**
@@ -18,7 +22,7 @@ import { ILegacyAllocation } from "./internal/ILegacyAllocation.sol";
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */
-interface ISubgraphService is IDataServiceFees {
+interface ISubgraphService is IDataServiceAgreements, IDataServiceFees {
     /**
      * @notice Indexer details
      * @param url The URL where the indexer can be reached at for queries
@@ -69,10 +73,30 @@ interface ISubgraphService is IDataServiceFees {
     // solhint-disable-previous-line gas-indexed-events
 
     /**
+     * @notice Emitted when indexing fees cut is set
+     * @param indexingFeesCut The indexing fees cut
+     */
+    event IndexingFeesCutSet(uint256 indexingFeesCut);
+    // solhint-disable-previous-line gas-indexed-events
+
+    /**
+     * @notice Emitted when the block closing allocation with active agreement setting is toggled
+     * @param enabled Whether the setting is enabled
+     */
+    event BlockClosingAllocationWithActiveAgreementSet(bool enabled);
+    // solhint-disable-previous-line gas-indexed-events
+
+    /**
      * @notice Thrown when trying to set a curation cut that is not a valid PPM value
      * @param curationCut The curation cut value
      */
     error SubgraphServiceInvalidCurationCut(uint256 curationCut);
+
+    /**
+     * @notice Thrown when trying to set an indexing fees cut that is not a valid PPM value
+     * @param indexingFeesCut The indexing fees cut value
+     */
+    error SubgraphServiceInvalidIndexingFeesCut(uint256 indexingFeesCut);
 
     /**
      * @notice Thrown when an indexer tries to register with an empty URL
@@ -104,7 +128,7 @@ interface ISubgraphService is IDataServiceFees {
     error SubgraphServiceInconsistentCollection(uint256 balanceBefore, uint256 balanceAfter);
 
     /**
-     * @notice @notice Thrown when the service provider in the RAV does not match the expected indexer.
+     * @notice @notice Thrown when the service provider does not match the expected indexer.
      * @param providedIndexer The address of the provided indexer.
      * @param expectedIndexer The address of the expected indexer.
      */
@@ -125,13 +149,13 @@ interface ISubgraphService is IDataServiceFees {
     error SubgraphServiceInvalidRAV(address ravIndexer, address allocationIndexer);
 
     /**
-     * @notice Thrown when trying to force close an allocation that is not stale and the indexer is not over-allocated
+     * @notice Thrown when trying to resize a stale allocation but it is not stale
      * @param allocationId The id of the allocation
      */
     error SubgraphServiceCannotForceCloseAllocation(address allocationId);
 
     /**
-     * @notice Thrown when trying to force close an altruistic allocation
+     * @notice Thrown when trying to resize a stale allocation that is already altruistic (0 tokens)
      * @param allocationId The id of the allocation
      */
     error SubgraphServiceAllocationIsAltruistic(address allocationId);
@@ -146,6 +170,14 @@ interface ISubgraphService is IDataServiceFees {
      * @param collectionId The collectionId
      */
     error SubgraphServiceInvalidCollectionId(bytes32 collectionId);
+
+    /**
+     * @notice Thrown when trying to close an allocation that has an active indexing agreement
+     * and the close allocation guard is enabled
+     * @param allocationId The id of the allocation
+     * @param agreementId The id of the active agreement
+     */
+    error SubgraphServiceAllocationHasActiveAgreement(address allocationId, bytes16 agreementId);
 
     /**
      * @notice Initialize the contract
@@ -164,16 +196,21 @@ interface ISubgraphService is IDataServiceFees {
     ) external;
 
     /**
-     * @notice Force close a stale allocation
+     * @notice Resize a stale allocation to zero tokens
      * @dev This function can be permissionlessly called when the allocation is stale. This
      * ensures that rewards for other allocations are not diluted by an inactive allocation.
+     *
+     * The allocation stays open as a stakeless allocation (0 tokens) rather than being closed.
+     * Allocations are long-lived and track agreement bindings, so force-closing would
+     * inadvertently cancel the associated agreement. Any bound indexing agreement remains
+     * active.
      *
      * Requirements:
      * - Allocation must exist and be open
      * - Allocation must be stale
-     * - Allocation cannot be altruistic
+     * - Allocation cannot already be stakeless
      *
-     * Emits a {AllocationClosed} event.
+     * Emits a {AllocationResized} event.
      *
      * @param allocationId The id of the allocation
      */
@@ -196,16 +233,6 @@ interface ISubgraphService is IDataServiceFees {
      * @param tokens The new amount of tokens in the allocation
      */
     function resizeAllocation(address indexer, address allocationId, uint256 tokens) external;
-
-    /**
-     * @notice Imports a legacy allocation id into the subgraph service
-     * This is a governor only action that is required to prevent indexers from re-using allocation ids from the
-     * legacy staking contract.
-     * @param indexer The address of the indexer
-     * @param allocationId The id of the allocation
-     * @param subgraphDeploymentId The id of the subgraph deployment
-     */
-    function migrateLegacyAllocation(address indexer, address allocationId, bytes32 subgraphDeploymentId) external;
 
     /**
      * @notice Sets a pause guardian
@@ -247,11 +274,76 @@ interface ISubgraphService is IDataServiceFees {
     function setCurationCut(uint256 curationCut) external;
 
     /**
+     * @notice Sets the data service payment cut for indexing fees
+     * @dev Emits a {IndexingFeesCutSet} event
+     * @param indexingFeesCut The indexing fees cut for the payment type
+     */
+    function setIndexingFeesCut(uint256 indexingFeesCut) external;
+
+    /**
      * @notice Sets the payments destination for an indexer to receive payments
      * @dev Emits a {PaymentsDestinationSet} event
      * @param newPaymentsDestination The address where payments should be sent
      */
     function setPaymentsDestination(address newPaymentsDestination) external;
+
+    /**
+     * @notice Enables or disables blocking allocation closure when an active agreement exists.
+     * When enabled, closing an allocation that has an active indexing agreement will revert.
+     * @param enabled True to enable, false to disable
+     */
+    function setBlockClosingAllocationWithActiveAgreement(bool enabled) external;
+
+    /**
+     * @notice Whether closing an allocation with an active agreement is blocked
+     * @return enabled True if blocking is enabled
+     */
+    function getBlockClosingAllocationWithActiveAgreement() external view returns (bool enabled);
+
+    /**
+     * @notice Accept an indexing agreement.
+     * @dev If `signature` is non-empty it is treated as an ECDSA signature; if empty the payer
+     * must be a contract implementing {IAgreementOwner}.
+     * @param allocationId The id of the allocation
+     * @param rca The recurring collection agreement parameters
+     * @param signature ECDSA signature bytes, or empty for contract-approved agreements
+     * @return agreementId The ID of the accepted indexing agreement
+     */
+    function acceptIndexingAgreement(
+        address allocationId,
+        IRecurringCollector.RecurringCollectionAgreement calldata rca,
+        bytes calldata signature
+    ) external returns (bytes16);
+
+    /**
+     * @notice Update an indexing agreement.
+     * @dev If `signature` is non-empty it is treated as an ECDSA signature; if empty the payer
+     * must be a contract implementing {IAgreementOwner}.
+     * @param indexer The address of the indexer
+     * @param rcau The recurring collector agreement update to apply
+     * @param signature ECDSA signature bytes, or empty for contract-approved updates
+     */
+    function updateIndexingAgreement(
+        address indexer,
+        IRecurringCollector.RecurringCollectionAgreementUpdate calldata rcau,
+        bytes calldata signature
+    ) external;
+
+    /**
+     * @notice Cancel an indexing agreement by indexer / operator.
+     * @param indexer The address of the indexer
+     * @param agreementId The id of the indexing agreement
+     */
+    function cancelIndexingAgreement(address indexer, bytes16 agreementId) external;
+
+    /**
+     * @notice Get the indexing agreement for a given agreement ID.
+     * @param agreementId The id of the indexing agreement
+     * @return The indexing agreement details
+     */
+    function getIndexingAgreement(
+        bytes16 agreementId
+    ) external view returns (IIndexingAgreement.AgreementWrapper memory);
 
     /**
      * @notice Gets the details of an allocation

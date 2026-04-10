@@ -39,4 +39,31 @@ interface IRewardsEligibilityStatus {
      * @return True if eligibility validation is enabled, false otherwise
      */
     function getEligibilityValidation() external view returns (bool);
+
+    /**
+     * @notice Get the indexer retention period for tracked indexer cleanup
+     * @return The current indexer retention period in seconds
+     */
+    function getIndexerRetentionPeriod() external view returns (uint256);
+
+    /**
+     * @notice Get the number of tracked indexers
+     * @return count The number of indexers in the tracked set
+     */
+    function getIndexerCount() external view returns (uint256 count);
+
+    /**
+     * @notice Get all tracked indexer addresses
+     * @dev May be expensive for large sets — prefer the paginated overload for on-chain use.
+     * @return result Array of tracked indexer addresses
+     */
+    function getIndexers() external view returns (address[] memory result);
+
+    /**
+     * @notice Get a paginated slice of tracked indexer addresses
+     * @param offset The index to start from
+     * @param count Maximum number to return (clamped to available)
+     * @return result Array of tracked indexer addresses
+     */
+    function getIndexers(uint256 offset, uint256 count) external view returns (address[] memory result);
 }
