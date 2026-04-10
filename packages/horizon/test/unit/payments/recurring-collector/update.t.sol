@@ -2,7 +2,7 @@
 pragma solidity ^0.8.27;
 
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
-import { OFFER_TYPE_UPDATE } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
+import { OFFER_TYPE_UPDATE, VERSION_NEXT } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 
 import { RecurringCollectorSharedTest } from "./shared.t.sol";
 
@@ -366,7 +366,7 @@ contract RecurringCollectorUpdateTest is RecurringCollectorSharedTest {
 
         // Pre-condition: no pending offer staged, so update() takes the direct-apply branch.
         assertEq(
-            _recurringCollector.getAgreement(agreementId).pendingTermsHash,
+            _recurringCollector.getAgreementDetails(agreementId, VERSION_NEXT).versionHash,
             bytes32(0),
             "no pending before direct-apply"
         );

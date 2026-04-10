@@ -17,12 +17,12 @@ function loadAbi(artifactPath: string): Abi {
   return artifact.abi as Abi
 }
 
-// Interface IDs - these match the generated values from TypeChain factories
-// Verified by tests: packages/issuance/testing/tests/allocate/InterfaceIdStability.test.ts
-// and packages/contracts-test/tests/unit/rewards/rewards-interface.test.ts
+// Interface IDs - these mirror the values the compiler derives from the
+// corresponding ABI. Cross-checked by test/interface-id-stability.test.ts;
+// update both together whenever an interface changes.
 export const IERC165_INTERFACE_ID = '0x01ffc9a7' as const
-export const IISSUANCE_TARGET_INTERFACE_ID = '0xaee4dc43' as const
-export const IREWARDS_MANAGER_INTERFACE_ID = '0xa0a2f219' as const
+export const IISSUANCE_TARGET_INTERFACE_ID = '0x19f6601a' as const
+export const IREWARDS_MANAGER_INTERFACE_ID = '0x8469b577' as const
 
 export const REWARDS_MANAGER_ABI = loadAbi(
   '@graphprotocol/interfaces/artifacts/contracts/contracts/rewards/IRewardsManager.sol/IRewardsManager.json',
