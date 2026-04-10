@@ -25,6 +25,8 @@ contract RecurringCollectorAcceptTest is RecurringCollectorSharedTest {
     ) public {
         // Ensure non-empty signature so the signed path is taken (which checks deadline first)
         vm.assume(fuzzySignature.length > 0);
+        // Exclude ProxyAdmin address — TransparentProxy routes admin calls to ProxyAdmin, not implementation
+        vm.assume(fuzzyRCA.dataService != _proxyAdmin);
         // Generate deterministic agreement ID for validation
         bytes16 agreementId = _recurringCollector.generateAgreementId(
             fuzzyRCA.payer,
