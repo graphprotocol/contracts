@@ -3,8 +3,8 @@
 /**
  * Copy Addresses for Publishing
  *
- * This script copies the actual addresses.json files from horizon and subgraph-service
- * packages to replace the symlinks before npm publish.
+ * This script copies the actual addresses.json files from horizon, issuance, and
+ * subgraph-service packages to replace the symlinks before npm publish.
  *
  * Why we need this:
  * - Development uses symlinks (committed to git) for convenience
