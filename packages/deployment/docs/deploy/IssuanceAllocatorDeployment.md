@@ -1,160 +1,82 @@
 # IssuanceAllocator Deployment
 
-This document describes the deployment sequence for IssuanceAllocator. For contract architecture, behavior, and technical details, see [IssuanceAllocator.md](../../../../issuance/contracts/allocate/IssuanceAllocator.md).
+This document describes how `IssuanceAllocator` is deployed by this package. For contract architecture, behaviour, and technical details, see [IssuanceAllocator.md](../../../issuance/contracts/allocate/IssuanceAllocator.md).
 
-## Prerequisites
+For the goal-level GIP-0088 workflow that orchestrates IA together with the rest of the upgrade, see [Gip0088.md](../Gip0088.md).
 
-- GraphToken contract deployed
-- RewardsManager upgraded with `setIssuanceAllocator()` function
-- GraphIssuanceProxyAdmin deployed with protocol governance as owner
+## Component overview
 
-## Deployment Overview
+`IssuanceAllocator` is a deployable proxy in the `issuance` address book:
 
-The deployment strategy safely replicates existing issuance configuration during RewardsManager migration:
+- Pattern: OpenZeppelin v5 `TransparentUpgradeableProxy` with a per-proxy `ProxyAdmin` created in the constructor.
+- Access control: `BaseUpgradeable` (`GOVERNOR_ROLE`, `PAUSE_ROLE`).
+- Component tag: `IssuanceAllocator`. Lifecycle actions: `deploy`, `upgrade`, `configure`, `transfer`.
+- Default target: a separate `DefaultAllocation` proxy ([../../deploy/allocate/default/](../../deploy/allocate/default/)) that holds any unallocated issuance as a safety net.
 
-- Default target starts as `address(0)` (that will not be minted to), allowing initial configuration without minting to any targets
-- Deployment uses atomic initialization via proxy constructor (prevents front-running)
-- Deployment account performs initial configuration, then transfers control to governance
-- Granting of minter role can be delayed until replication of initial configuration with upgraded RewardsManager is verified to allow seamless transition to use of IssuanceAllocator
-- **Governance control**: This contract uses OpenZeppelin's TransparentUpgradeableProxy pattern (not custom GraphProxy). GraphIssuanceProxyAdmin (owned by protocol governance) controls upgrades, while GOVERNOR_ROLE controls operations. The same governance address should have both roles.
+## Lifecycle scripts
 
-For the general governance-gated upgrade workflow, see [GovernanceWorkflow.md](../../../docs/GovernanceWorkflow.md).
+| Script                                                                                 | Tag                           | Actor      | Purpose                                                                    |
+| -------------------------------------------------------------------------------------- | ----------------------------- | ---------- | -------------------------------------------------------------------------- |
+| [01_deploy.ts](../../deploy/allocate/allocator/01_deploy.ts)                           | `IssuanceAllocator,deploy`    | Deployer   | Deploy proxy + implementation, initialize with deployer as governor        |
+| [02_upgrade.ts](../../deploy/allocate/allocator/02_upgrade.ts)                         | `IssuanceAllocator,upgrade`   | Governance | Build governance TX batch upgrading the proxy to its pendingImplementation |
+| [04_configure.ts](../../deploy/allocate/allocator/04_configure.ts)                     | `IssuanceAllocator,configure` | Deployer   | Set issuance rate (matches RM), grant `GOVERNOR_ROLE` and `PAUSE_ROLE`     |
+| [06_transfer_governance.ts](../../deploy/allocate/allocator/06_transfer_governance.ts) | `IssuanceAllocator,transfer`  | Deployer   | Revoke deployer `GOVERNOR_ROLE`, transfer per-proxy ProxyAdmin to gov      |
+| [09_end.ts](../../deploy/allocate/allocator/09_end.ts)                                 | `IssuanceAllocator,all`       | -          | Aggregate end state — verifies upgrade has been executed                   |
+| [10_status.ts](../../deploy/allocate/allocator/10_status.ts)                           | `IssuanceAllocator`           | -          | Read-only status display                                                   |
 
-## Deployment Sequence
+`03_*`, `05_*`, and `07_08_*` slots are intentionally empty (per [ImplementationPrinciples.md](ImplementationPrinciples.md)).
 
-### Step 1: Deploy and Initialize (deployment account)
+## What does NOT happen here
 
-**Script:** [01_deploy.ts](./01_deploy.ts)
+The following operations are part of GIP-0088 activation, not the IA component lifecycle. They live in [../../deploy/gip/0088/](../../deploy/gip/0088/) and are governance TXs:
 
-- Deploy IssuanceAllocator implementation with GraphToken address
-- Deploy TransparentUpgradeableProxy with implementation, GraphIssuanceProxyAdmin, and initialization data
-- **Atomic initialization**: `initialize(deploymentAccountAddress)` called via proxy constructor
-- Deployment account receives GOVERNOR_ROLE (temporary, for configuration)
-- Automatically creates default target at `targetAddresses[0] = address(0)`
-- Sets `lastDistributionBlock = block.number`
-- **Security**: Front-running prevented by atomic deployment + initialization
+- `IA.setTargetAllocation(RM, 0, rate)` — registers RM as the 100% self-minting target
+- `IA.setDefaultTarget(DA)` — wires the safety net
+- `RM.setIssuanceAllocator(IA)` — RM starts querying IA for its issuance rate
+- `GraphToken.addMinter(IA)` — gives IA minter authority (only needed for allocator-minting targets)
+- `IA.setTargetAllocation(RAM, allocatorRate, selfRate)` — distributes issuance to `RecurringAgreementManager`
 
-### Step 2: Set Issuance Rate (deployment account)
+These are bundled into the `GIP-0088:upgrade,upgrade` and `GIP-0088:issuance-connect` / `GIP-0088:issuance-allocate` governance batches. See [Gip0088.md](../Gip0088.md) for the full picture.
 
-**Script:** [02_configure.ts](./02_configure.ts)
+## Single-component usage
 
-- Query current rate from RewardsManager: `rate = rewardsManager.issuancePerBlock()`
-- Call `setIssuancePerBlock(rate)` to replicate existing rate
-- All issuance allocated to default target (`address(0)`)
-- No tokens minted (default target cannot receive mints)
+```bash
+# Read-only status
+pnpm hardhat deploy --tags IssuanceAllocator --network <network>
 
-### Step 3: Assign RewardsManager Allocation (deployment account)
+# Lifecycle steps
+pnpm hardhat deploy --tags IssuanceAllocator,deploy --network <network>
+pnpm hardhat deploy --tags IssuanceAllocator,configure --network <network>
+pnpm hardhat deploy --tags IssuanceAllocator,transfer --network <network>
+pnpm hardhat deploy --tags IssuanceAllocator,upgrade --network <network>
+```
 
-**Script:** [02_configure.ts](./02_configure.ts)
+The same scripts run as part of the goal-level GIP-0088 flow when invoked via `--tags GIP-0088:upgrade,<verb>`.
 
-- Call `setTargetAllocation(rewardsManagerAddress, 0, issuancePerBlock)`
-- `allocatorMintingRate = 0` (RewardsManager will self-mint)
-- `selfMintingRate = issuancePerBlock` (RewardsManager receives 100% allocation)
-- Default target automatically adjusts to zero allocation
+## Verification checklist
 
-### Step 4: Verify Configuration Before Transfer (deployment account)
+Run `--tags IssuanceAllocator` (component status) or `--tags GIP-0088:upgrade` (goal status) to inspect on-chain state. The status output already covers everything below — this list is for reviewing a finished deployment by hand.
 
-**Script:** [02_configure.ts](./02_configure.ts)
+### Bytecode
 
-- Verify contract is not paused (`paused()` returns false)
-- Verify `getIssuancePerBlock()` returns expected rate (matches RewardsManager)
-- Verify `getTargetAllocation(rewardsManager)` shows correct self-minting configuration
-- Verify only two targets exist: `targetAddresses[0] = address(0)` and `targetAddresses[1] = rewardsManager`
-- Verify default target is `address(0)` with zero allocation
-- Contract is ready to transfer control to governance
+- Implementation bytecode matches the expected `IssuanceAllocator` contract
 
-### Step 5: Distribute Issuance (anyone - no role required)
+### Access control
 
-**Script:** [02_configure.ts](./02_configure.ts)
+- Protocol governor holds `GOVERNOR_ROLE`
+- Pause guardian holds `PAUSE_ROLE`
+- Deployer does **not** hold `GOVERNOR_ROLE` (asserted by `checkDeployerRevoked` in the transfer step)
+- Per-proxy `ProxyAdmin` is owned by the protocol governor
 
-- Call `distributeIssuance()` to bring contract to fully current state
-- Updates `lastDistributionBlock` to current block
-- Verifies distribution mechanism is functioning correctly
-- No tokens minted (no minter role yet, all allocation to self-minting RM)
+### Configuration
 
-### Step 6: Set Pause Controls and Transfer Governance (deployment account)
+- `getIssuancePerBlock()` matches `RewardsManager.issuancePerBlock()`
+- `paused()` is `false`
 
-**Script:** [03_transfer_governance.ts](./03_transfer_governance.ts)
+### Activation (GIP-0088)
 
-- Grant PAUSE_ROLE to pause guardian (same account as used for RewardsManager pause control)
-- Grant GOVERNOR_ROLE to actual governor address (protocol governance multisig)
-- Revoke GOVERNOR_ROLE from deployment account (MUST grant to governance first, then revoke)
-- **Note**: Upgrade control (via GraphIssuanceProxyAdmin) is separate from GOVERNOR_ROLE
-
-### Step 7: Verify Deployment and Configuration (governor)
-
-**Script:** [04_verify.ts](./04_verify.ts)
-
-**Bytecode verification:**
-
-- Verify deployed implementation bytecode matches expected contract
-
-**Access control:**
-
-- Verify governance address has GOVERNOR_ROLE
-- Verify deployment account does NOT have GOVERNOR_ROLE
-- Verify pause guardian has PAUSE_ROLE
-- **Off-chain**: Review all RoleGranted events since deployment to verify no other addresses have GOVERNOR_ROLE or PAUSE_ROLE
-
-**Pause state:**
-
-- Verify contract is not paused (`paused()` returns false)
-
-**Issuance rate:**
-
-- Verify `getIssuancePerBlock()` matches RewardsManager rate exactly
-
-**Target configuration:**
-
-- Verify only two targets exist: `targetAddresses[0] = address(0)` and `targetAddresses[1] = rewardsManager`
-- Verify default target is `address(0)` with zero allocation
-- Verify `getTargetAllocation(rewardsManager)` shows correct self-minting allocation (100%)
-
-**Proxy configuration:**
-
-- Verify GraphIssuanceProxyAdmin controls the proxy
-- Verify GraphIssuanceProxyAdmin owner is protocol governance
-
-### Step 8: Configure RewardsManager (governor)
-
-**Script:** [05_configure_rewards_manager.ts](./05_configure_rewards_manager.ts)
-
-- Call `rewardsManager.setIssuanceAllocator(issuanceAllocatorAddress)`
-- RewardsManager will now query IssuanceAllocator for its issuance rate
-- RewardsManager continues to mint tokens itself (self-minting)
-
-### Step 9: Grant Minter Role (governor, only when configuration verified)
-
-**Script:** [06_grant_minter.ts](./06_grant_minter.ts)
-
-- Grant minter role to IssuanceAllocator on Graph Token
-
-### Step 10: Set Default Target (governor, optional, recommended)
-
-**Script:** [07_set_default_target.ts](./07_set_default_target.ts)
-
-- Call `setDefaultTarget()` to receive future unallocated issuance
-
-## Normal Operation
-
-After deployment:
-
-1. Targets or external actors call `distributeIssuance()` periodically
-2. Governor adjusts issuance rates as needed via `setIssuancePerBlock()`
-3. Governor adds/removes/modifies targets via `setTargetAllocation()` overloads
-4. Self-minting targets query their allocation via `getTargetIssuancePerBlock()`
-
-## Emergency Scenarios
-
-- **Gas limit issues**: Use pause, individual notifications, and `minDistributedBlock` parameters with `distributePendingIssuance()`
-- **Target failures**: Use `forceTargetNoChangeNotificationBlock()` to skip notification, then remove problematic targets by setting both rates to 0
-- **Configuration while paused**: Call `distributePendingIssuance(blockNumber)` first, then use `minDistributedBlock` parameter in setter functions
-
-## L1 Bridge Integration
-
-When `setIssuancePerBlock()` is called, the L1GraphTokenGateway's `updateL2MintAllowance()` function must be called to ensure the bridge can mint the correct amount of tokens on L2.
-
-## See Also
-
-- [IssuanceAllocator.md](../../../../issuance/contracts/allocate/IssuanceAllocator.md) - Contract architecture and technical details
-- [GovernanceWorkflow.md](../../../docs/GovernanceWorkflow.md) - General governance-gated upgrade workflow
+- `RewardsManager.getIssuanceAllocator()` returns the IA address
+- `GraphToken.isMinter(IA)` is `true` (only when allocator-minting targets exist)
+- `getTargetAllocation(RM)` shows `selfMintingRate == issuancePerBlock`, `allocatorMintingRate == 0`
+- `getTargetAllocation(RAM)` matches `config/<network>.json5` rates
+- Default target points at `DefaultAllocation`

@@ -6,6 +6,7 @@ import { execute, read, tx } from '@rocketh/read-execute'
 import { createPublicClient, custom } from 'viem'
 
 import {
+  autoDetectForkNetwork,
   getForkTargetChainId,
   getHorizonAddressBook,
   getIssuanceAddressBook,
@@ -16,9 +17,9 @@ import {
 import { accounts, data } from './config.js'
 
 /**
- * Options for updating issuance address book after deployment
+ * Options for updating an address book after deployment
  */
-export interface IssuanceDeploymentUpdate {
+export interface DeploymentUpdate {
   /** Contract name in the address book */
   name: string
   /** Deployed address (proxy address if proxied) */
@@ -29,9 +30,14 @@ export interface IssuanceDeploymentUpdate {
   implementation?: string
   /** Proxy type if this is a proxied contract */
   proxy?: 'transparent' | 'graph'
-  /** Implementation deployment metadata (for verification) */
+  /** Implementation deployment metadata (for verification of proxied contracts) */
   implementationDeployment?: DeploymentMetadata
+  /** Deployment metadata (for verification of non-proxied contracts) */
+  deployment?: DeploymentMetadata
 }
+
+/** @deprecated Use DeploymentUpdate */
+export type IssuanceDeploymentUpdate = DeploymentUpdate
 
 /**
  * Graph Protocol deployment helpers
@@ -56,6 +62,13 @@ export interface IssuanceDeploymentUpdate {
  * ```
  */
 export const graph = {
+  /**
+   * Auto-detect fork network by querying anvil.
+   * Call at the top of any task that needs fork awareness.
+   * No-op if FORK_NETWORK is already set or node isn't an anvil fork.
+   */
+  autoDetect: () => autoDetectForkNetwork(),
+
   /**
    * Get a viem public client for on-chain queries
    */
@@ -91,6 +104,42 @@ export const graph = {
   getIssuanceAddressBook: (chainId?: number) => getIssuanceAddressBook(chainId),
 
   /**
+   * Update horizon address book after deploying a contract.
+   * Supports both standalone and proxied contracts.
+   *
+   * @param env - Rocketh environment (used to get chain ID from provider)
+   * @param update - Deployment update details
+   */
+  updateHorizonAddressBook: async (env: Environment, update: DeploymentUpdate) => {
+    const chainId = await getTargetChainIdFromEnv(env)
+    const addressBook = getHorizonAddressBook(chainId)
+
+    if (update.proxy) {
+      addressBook.setProxy(
+        update.name as Parameters<typeof addressBook.setProxy>[0],
+        update.address,
+        update.implementation!,
+        update.proxyAdmin!,
+        update.proxy,
+      )
+      if (update.implementationDeployment) {
+        addressBook.setImplementationDeploymentMetadata(
+          update.name as Parameters<typeof addressBook.setImplementationDeploymentMetadata>[0],
+          update.implementationDeployment,
+        )
+      }
+    } else {
+      addressBook.setContract(update.name as Parameters<typeof addressBook.setContract>[0], update.address)
+      if (update.deployment) {
+        addressBook.setDeploymentMetadata(
+          update.name as Parameters<typeof addressBook.setDeploymentMetadata>[0],
+          update.deployment,
+        )
+      }
+    }
+  },
+
+  /**
    * Update issuance address book after deploying a contract.
    * Call this after rocketh's deployViaProxy or deploy to sync the address book.
    *
@@ -118,6 +167,12 @@ export const graph = {
       }
     } else {
       addressBook.setContract(update.name as Parameters<typeof addressBook.setContract>[0], update.address)
+      if (update.deployment) {
+        addressBook.setDeploymentMetadata(
+          update.name as Parameters<typeof addressBook.setDeploymentMetadata>[0],
+          update.deployment,
+        )
+      }
     }
   },
 }

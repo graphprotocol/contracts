@@ -35,7 +35,7 @@ interface SafeTxBatch {
  * @param networkName - Network name (e.g., 'fork', 'localhost', 'arbitrumSepolia')
  */
 export function getGovernanceTxDir(networkName: string): string {
-  const forkNetwork = getForkNetwork()
+  const forkNetwork = getForkNetwork(networkName)
   if (forkNetwork) {
     return path.join(getForkStateDir(networkName, forkNetwork), 'txs')
   }
@@ -117,41 +117,42 @@ export async function createGovernanceTxBuilder(
  * Save governance TX batch and exit with code 1
  *
  * Standard completion pattern for scripts that generate governance TX batches.
- * This function:
- * 1. Saves the TX batch to file
- * 2. Displays appropriate messages
- * 3. Exits with code 1 to prevent subsequent deployment steps
+ * Saves the TX batch to file and displays a message.
+ * Returns the saved file path so the caller can continue.
+ *
+ * Subsequent scripts that depend on this TX being executed should check
+ * their own preconditions and exit if not met.
  *
  * @param env - Deployment environment
  * @param builder - TX builder with batched transactions
- * @param contractName - Optional contract name for contextual message (e.g., "IssuanceAllocator activation")
- * @returns Never returns (exits process)
+ * @param contractName - Optional contract name for contextual message
+ * @returns Path to the saved TX file
+ */
+export function saveGovernanceTx(
+  env: Environment,
+  builder: { saveToFile: () => string },
+  contractName?: string,
+): string {
+  const txFile = builder.saveToFile()
+  env.showMessage(`   ✓ Governance TX saved: ${txFile}`)
+
+  if (contractName) {
+    env.showMessage(`   ${contractName} requires governance execution`)
+  }
+  env.showMessage(`   Run: npx hardhat deploy:execute-governance --network ${env.name}`)
+
+  return txFile
+}
+
+/**
+ * @deprecated Use `saveGovernanceTx` instead. This function exits the process.
  */
 export function saveGovernanceTxAndExit(
   env: Environment,
   builder: { saveToFile: () => string },
   contractName?: string,
 ): never {
-  const txFile = builder.saveToFile()
-  env.showMessage(`\n✓ TX batch saved: ${txFile}`)
-
-  env.showMessage('\n📋 GOVERNANCE ACTION REQUIRED:')
-  if (contractName) {
-    env.showMessage(`   ${contractName} requires governance execution`)
-  }
-  env.showMessage(`   TX batch: ${txFile}`)
-  env.showMessage('\nNext steps:')
-  env.showMessage('   1. Execute governance TX (see options below)')
-  env.showMessage('   2. Run: npx hardhat deploy --tags sync --network ' + env.name)
-  env.showMessage('   3. Continue deployment')
-  env.showMessage('\nExecution options:')
-  env.showMessage('   • Fork testing: npx hardhat deploy:execute-governance --network fork')
-  env.showMessage('   • EOA governor: Set GOVERNOR_PRIVATE_KEY and run deploy:execute-governance')
-  env.showMessage('   • Safe multisig: https://app.safe.global/ → Transaction Builder → Upload JSON')
-  env.showMessage('\nSee: packages/deployment/docs/GovernanceWorkflow.md\n')
-
-  // Exit with code 1 to prevent subsequent steps from running until governance TX is executed
-  // This is expected prerequisite state, not an error
+  saveGovernanceTx(env, builder, contractName)
   process.exit(1)
 }
 
@@ -219,12 +220,14 @@ export interface ExecuteGovernanceOptions {
   name?: string
   /** Governor private key (from keystore or env var) */
   governorPrivateKey?: string
+  /** Lazy resolver for governor key - defers keystore access until actually needed */
+  resolveGovernorKey?: () => Promise<string | undefined>
 }
 
 export async function executeGovernanceTxs(env: Environment, options?: ExecuteGovernanceOptions): Promise<number> {
-  const { name, governorPrivateKey } = options ?? {}
+  const { name, governorPrivateKey, resolveGovernorKey } = options ?? {}
   // Determine TX directory - in fork mode, also check source network's TX directory
-  const forkNetwork = getForkNetwork()
+  const forkNetwork = getForkNetwork(env.name)
   let txDir = getGovernanceTxDir(env.name)
   let sourceNetworkFallback = false
 
@@ -278,8 +281,8 @@ export async function executeGovernanceTxs(env: Environment, options?: ExecuteGo
     transport: custom(env.network.provider),
   })
 
-  // Check if in fork mode
-  const inForkMode = isForkMode()
+  // Check if in fork mode (network-aware: ignores FORK_NETWORK on real networks)
+  const inForkMode = isForkMode(env.name)
 
   if (!inForkMode) {
     // Not in fork mode - check if governor is EOA or Safe
@@ -310,8 +313,9 @@ export async function executeGovernanceTxs(env: Environment, options?: ExecuteGo
       return 0
     }
 
-    // Governor is an EOA
-    if (!governorPrivateKey) {
+    // Governor is an EOA - resolve key now (deferred to avoid keystore prompt in fork mode)
+    const resolvedKey = governorPrivateKey ?? (await resolveGovernorKey?.())
+    if (!resolvedKey) {
       const keyName = `${networkToEnvPrefix(env.name)}_GOVERNOR_KEY`
       env.showMessage(`\n❌ Cannot execute governance TXs on ${env.name}`)
       env.showMessage(`   Governor address: ${governor} (EOA)`)
@@ -333,7 +337,7 @@ export async function executeGovernanceTxs(env: Environment, options?: ExecuteGo
     // Have private key - execute as EOA
     env.showMessage(`\n🔓 Executing ${files.length} governance TX batch(es)...`)
     env.showMessage(`   Governor: ${governor} (EOA)`)
-    return await executeWithEOA(env, publicClient, files, txDir, governorPrivateKey)
+    return await executeWithEOA(env, publicClient, files, txDir, resolvedKey)
   }
 
   // Fork mode - use impersonation

@@ -17,8 +17,14 @@ export const accounts = {
   deployer: {
     default: 0,
   },
-  // Note: Governor address is queried from Controller contract via Controller.getGovernor()
-  // See lib/controller-utils.ts for helper functions
+  // Governor — second mnemonic account on local/test networks.
+  // On mainnet, governance is a multisig (not available via mnemonic).
+  // The on-chain source of truth is Controller.getGovernor() — see lib/controller-utils.ts.
+  // This named account exists so rocketh registers a signer, allowing deploy
+  // scripts to send TXs as governor via tx().
+  governor: {
+    default: 1,
+  },
 } as const satisfies UserConfig['accounts']
 
 // Network-specific data (can be extended as needed)
@@ -30,6 +36,14 @@ const hardhatLocalChain: ChainInfo = {
   name: 'Hardhat Local',
   nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   rpcUrls: { default: { http: ['http://127.0.0.1:8545'] } },
+  testnet: true,
+}
+
+const graphLocalNetworkChain: ChainInfo = {
+  id: 1337,
+  name: 'Graph Local Network',
+  nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+  rpcUrls: { default: { http: ['http://chain:8545'] } },
   testnet: true,
 }
 
@@ -58,6 +72,7 @@ export const config: UserConfig<typeof accounts, typeof data> = {
   deployments: 'deployments',
   scripts: ['deploy'],
   chains: {
+    1337: { info: graphLocalNetworkChain },
     31337: { info: hardhatLocalChain },
     421614: { info: arbitrumSepoliaChain },
     42161: { info: arbitrumOneChain },
@@ -68,6 +83,7 @@ export const config: UserConfig<typeof accounts, typeof data> = {
     hardhat: { chain: 31337 },
     localhost: { chain: 31337 },
     fork: { chain: 31337 },
+    localNetwork: { chain: 1337 },
     arbitrumSepolia: { chain: 421614 },
     arbitrumOne: { chain: 42161 },
   },

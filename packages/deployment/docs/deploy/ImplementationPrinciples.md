@@ -16,104 +16,134 @@ This document defines the core principles and patterns for writing deployment sc
 
 **Standard step objectives:**
 
-- **01_deploy.ts** - Deploy proxy + implementation, initialize with deployer or governor
-  - MUST explicitly depend on `SpecialTags.SYNC` (even if also available transitively through other dependencies)
+- **01_deploy.ts** - Deploy proxy + implementation, initialize with deployer
+  - Sync the contract being deployed (and any contracts it reads) immediately
+    before acting via `syncComponentFromRegistry` /
+    `syncComponentsFromRegistry`. The script factories
+    (`createProxyDeployModule`, `createImplementationDeployModule`,
+    `createUpgradeModule`, etc.) handle this automatically.
+  - For a global pre-deploy reconciliation, use `npx hardhat deploy:sync`
+    explicitly — it is no longer pulled in as an automatic dependency.
   - Each script should declare its own prerequisites explicitly, not rely on transitive dependencies
 - **02_upgrade.ts** - Handle proxy upgrades via governance (generates TX batch)
-- **03-08 (flexible)** - Intermediate steps vary by component:
-  - Configure integration with other contracts
-  - Verify governance state
-  - Transfer governance roles
-  - Generate activation TX batches
-  - Deploy shared implementations
+- **04_configure.ts** - Deployer-only configure: role grants and params on contracts where the deployer is governor
+- **05_transfer_governance.ts** - Revoke deployer GOVERNOR_ROLE; transfer ProxyAdmin to protocol governor
+- **06_integrate.ts** (optional) - Wire the contract into the rest of the protocol
 - **09_end.ts** - End state aggregate (only has dependencies and verification, no execution)
+- **10_status.ts** - Read-only status display (see below)
+
+The `03_*` slot is intentionally left empty so that `02_upgrade` can be inserted as a clearly distinct phase without renumbering. The `04_configure` numbering is the actual convention used throughout the tree.
+
+### Principle: Status Scripts Are Read-Only
+
+**Rule**: `10_status.ts` scripts MUST be purely read-only. They MUST NOT make on-chain changes, write transactions, or modify any state.
+
+**Why**: When `--tags <scope>` is run without an action verb, only status scripts execute. Users rely on this for safe inspection of deployment state at any time — during planning, mid-deployment, and in production. Any mutation in a status script would violate this trust and could cause unintended state changes.
+
+**How it works**:
+
+1. Status scripts use `createStatusModule()`, which gates on `noTagsRequested()` — they only run when tags are present but no action verb is included
+2. Stage scripts (01-08) use `shouldSkipAction(verb)` — they skip when their action verb is absent from `--tags`
+3. Combined: `--tags GIP-0088` alone runs only `10_status.ts` (status reads on-chain directly and does not need a global sync first)
+
+**Pattern**:
+
+```typescript
+// Component status — delegates to showDetailedComponentStatus (reads only)
+export default createStatusModule(Contracts.issuance.IssuanceAllocator)
+
+// Goal status — custom handler, must only use readContract/getCode
+export default createStatusModule(GoalTags.GIP_0088, async (env) => {
+  const client = graph.getPublicClient(env) as PublicClient
+  // ✅ Read on-chain state and display
+  const value = await client.readContract({ ... })
+  env.showMessage(`  ${value ? '✓' : '✗'} check description`)
+  // ❌ NEVER: execute(), tx(), deploy(), process.exit(1), TxBuilder
+})
+```
+
+**Invariant**: If a script is named `10_status.ts`, it contains zero writes. No exceptions.
 
 #### Example: RewardsEligibilityOracle (simple - 4 steps)
 
 ```
-01_deploy.ts      - Deploy proxy + implementation, initialize with governor
-02_upgrade.ts     - Handle upgrades
-03_configure.ts   - Integrate with RewardsManager
+01_deploy.ts      - Deploy proxy + implementation
+02_upgrade.ts     - Handle proxy upgrades (governance TX batch)
+04_configure.ts   - Deployer-only configure (params, role grants)
 09_end.ts         - End state aggregate
+10_status.ts      - Read-only status display
 ```
 
-#### Example: IssuanceAllocator (complex - 8 steps)
+#### Example: RewardsEligibilityOracle (full lifecycle)
 
 ```
 01_deploy.ts                - Deploy proxy + implementation
-02_upgrade.ts               - Handle upgrades
-03_deploy.ts                - Deploy DirectAllocation implementation
-04_configure.ts             - Configure issuance rate and allocations
-05_verify_governance.ts     - Verify governance state
-06_transfer_governance.ts   - Transfer roles to governance
-07_activate.ts              - Generate activation TX batch
+02_upgrade.ts               - Handle proxy upgrades
+04_configure.ts             - Configure params + role grants
+05_transfer_governance.ts   - Revoke deployer role + transfer ProxyAdmin
+06_integrate.ts             - Wire into RewardsManager (governance TX)
 09_end.ts                   - End state aggregate
+10_status.ts                - Read-only status display
 ```
 
-**Note:** Steps 04-08 are flexible and vary by component. Always use `09_end.ts` for the final aggregate.
+**Note:** Step `03_*` is intentionally left empty so `02_upgrade` stays a clearly separate phase. Steps 04-08 are flexible and vary by component. Always use `09_end.ts` for the aggregate and `10_status.ts` for read-only status.
 
 #### Tag structure in deployment-tags.ts
 
 ```typescript
-// Example: RewardsEligibilityOracle lifecycle
-rewardsEligibilityDeploy: [actionTag(ComponentTags.REWARDS_ELIGIBILITY, DeploymentActions.DEPLOY)],
-rewardsEligibilityUpgrade: [actionTag(ComponentTags.REWARDS_ELIGIBILITY, DeploymentActions.UPGRADE)],
-rewardsEligibilityConfigure: [actionTag(ComponentTags.REWARDS_ELIGIBILITY, DeploymentActions.CONFIGURE)],
-rewardsEligibility: [ComponentTags.REWARDS_ELIGIBILITY], // Aggregate end state
+// Component tags are PascalCase contract names matching the registry
+ComponentTags = {
+  REWARDS_ELIGIBILITY_A: 'RewardsEligibilityOracleA',
+  // ...
+}
+
+// Action verbs are appended via --tags Component,verb
+// e.g. --tags RewardsEligibilityOracleA,deploy
 ```
 
 ## Exit Codes and Flow Control
 
-### Principle: Clean Exits for Expected Prerequisites
+### Principle: Scripts Are Goal-Seeking, Not Sequential Steps
 
-**Rule**: When a deployment step cannot complete due to an expected prerequisite state (NOT an exception), it MUST exit with code 1 to prevent subsequent steps from running.
+**Rule**: Each script checks its own preconditions and skips if not met. Scripts return (not exit) when work cannot proceed — subsequent scripts check their own state independently.
 
-**Rationale**: Steps should be able to rely on prerequisite steps stopping if not complete. This prevents cascading failures and incorrect state.
+**Rationale**: Scripts run in sequence but must not assume a particular starting state. Each script is idempotent and goal-seeking: it checks on-chain state, does what's needed, and returns.
 
 **Examples**:
 
 ```typescript
-// CORRECT: Exit with code 1 when prerequisite not met
-export async function requireRewardsManagerUpgraded(
-  client: PublicClient,
-  rmAddress: string,
-  env: Environment,
-): Promise<void> {
-  const upgraded = await isRewardsManagerUpgraded(client, rmAddress)
-  if (!upgraded) {
-    env.showMessage(`\n❌ RewardsManager has not been upgraded yet`)
-    env.showMessage(`   Run: npx hardhat deploy:execute-governance --network ${env.name}`)
-    process.exit(1) // Clean exit - prevents next steps
-  }
+// CORRECT: Save governance TX and return (allows subsequent scripts to run)
+saveGovernanceTx(env, builder, `ContractName activation`)
+// Returns — subsequent scripts check their own preconditions
+
+// CORRECT: Skip when precondition not met
+if (!prerequisiteMet) {
+  env.showMessage('  ○ Prerequisite not met — skipping')
+  return
 }
 
-// CORRECT: Exit after generating governance TX
-const txFile = builder.saveToFile()
-env.showMessage(`\n✓ TX batch saved: ${txFile}`)
-env.showMessage('\n📋 GOVERNANCE ACTION REQUIRED')
-process.exit(1) // Prevents next steps until governance TX executed
-
-// WRONG: Returning allows next steps to run
-if (!prerequisiteMet) {
-  env.showMessage('⚠️  Prerequisite not met')
-  return // ❌ Next step will still run!
+// CORRECT: Use shared precondition check to skip if done
+const precondition = await checkIAConfigured(client, ia.address, rm.address)
+if (precondition.done) {
+  env.showMessage('✅ Already configured')
+  return
 }
 ```
 
 ### When to Use Exit Code 1
 
-Use `process.exit(1)` when:
+Use `process.exit(1)` only for:
 
-- Waiting for a governance TX to be executed
-- Waiting for a contract upgrade to complete
-- Checking a required prerequisite state
-- External action needed before continuing
+- **Migration invariant violations** (data corruption risk, e.g. IA rate != RM rate before connection)
+- **Verification failures** in `09_end` scripts
+- **Sync failures** (can't proceed without address books)
 
-Do NOT use `process.exit(1)` when:
+Do NOT use `process.exit(1)` for:
 
+- Governance TX generation (use `saveGovernanceTx` which returns)
+- Preconditions not met (return/skip, let subsequent scripts check their own preconditions)
 - Configuration already correct (idempotent check passed)
 - Script successfully completed its work
-- Skipping optional steps
 
 ### When to Throw Exceptions
 
@@ -274,15 +304,17 @@ const value = (await client.readContract({
 **Pattern**:
 
 ```typescript
-import { createGovernanceTxBuilder, saveGovernanceTxAndExit } from '@graphprotocol/deployment/lib/execute-governance.js'
-import { getGovernor } from '@graphprotocol/deployment/lib/controller-utils.js'
-import { Contracts } from '@graphprotocol/deployment/lib/contract-registry.js'
+import {
+  createGovernanceTxBuilder,
+  executeTxBatchDirect,
+  saveGovernanceTx,
+} from '@graphprotocol/deployment/lib/execute-governance.js'
+import { canSignAsGovernor } from '@graphprotocol/deployment/lib/controller-utils.js'
 
-// Get protocol governor
-const governor = await getGovernor(env)
+const { governor, canSign } = await canSignAsGovernor(env)
 
 // Create TX builder (handles chainId, outputDir, template automatically)
-const builder = createGovernanceTxBuilder(env, `action-${Contracts.ContractName.name}`, {
+const builder = await createGovernanceTxBuilder(env, `action-${contractName}`, {
   name: 'Human Readable Name',
   description: 'What this TX batch does',
 })
@@ -291,9 +323,13 @@ const builder = createGovernanceTxBuilder(env, `action-${Contracts.ContractName.
 builder.addTx({ to: contractAddress, value: '0', data: encodedCalldata })
 env.showMessage(`  + ContractName.functionName(args)`)
 
-// Save and exit using utility
-saveGovernanceTxAndExit(env, builder, `${Contracts.ContractName.name} activation`)
-// Never returns - exits with code 1 to prevent next steps
+// Execute directly if possible, otherwise save for governance
+if (canSign) {
+  await executeTxBatchDirect(env, builder, governor)
+} else {
+  saveGovernanceTx(env, builder, `${contractName} activation`)
+}
+// Returns — does NOT exit. Subsequent scripts check their own preconditions.
 ```
 
 ### Metadata Standards
@@ -485,7 +521,7 @@ const contract = requireContract(env, 'RewardsManager')
 ```
 deploy/                              docs/deploy/
   allocate/                            IssuanceAllocatorDeployment.md
-    allocator/                         PilotAllocationDeployment.md
+    allocator/                         DirectAllocationDeployment.md
       01_deploy.ts                   rewards/
       02_upgrade.ts                    RewardsEligibilityOracleDeployment.md
       09_end.ts
@@ -541,7 +577,7 @@ For contract architecture and technical details, see [IssuanceAllocator.md](../.
 
 For every deployment script:
 
-- [ ] Uses `process.exit(1)` for expected prerequisite states
+- [ ] Uses `return` (not `process.exit`) for precondition skips and governance TX saves
 - [ ] Throws exceptions only for unexpected errors
 - [ ] Is idempotent (checks state, skips if done)
 - [ ] Uses package imports (`@graphprotocol/deployment`) not relative paths
@@ -551,13 +587,15 @@ For every deployment script:
 - [ ] Works in both fork and production modes
 - [ ] Has clear, actionable error messages with dynamic values
 - [ ] Includes comprehensive documentation
-- [ ] Follows standard script structure (01_deploy, 02_upgrade, ..., 09_end)
+- [ ] Follows standard script structure (01_deploy, 02_upgrade, ..., 09_end, 10_status)
 - [ ] Properly configures tags and dependencies
 - [ ] End state script is always `09_end.ts` with only dependencies
+- [ ] `10_status.ts` is purely read-only (zero writes, zero TXs, zero exits)
 
 ### Anti-Patterns to Avoid
 
-❌ Returning early without exit code when prerequisite not met
+❌ Using `process.exit(1)` for precondition skips or governance TX saves (use `return`)
+❌ Duplicating precondition checks instead of using shared functions from `lib/preconditions.ts`
 ❌ Duplicating code instead of using shared utilities
 ❌ Using relative imports (`../../lib/`) instead of package imports
 ❌ Using string literals instead of `Contracts` registry
@@ -568,5 +606,5 @@ For every deployment script:
 ❌ Direct address book imports instead of `graph.get*AddressBook()`
 ❌ Vague error messages without actionable next steps
 ❌ Non-idempotent scripts that fail on re-run
-❌ Generating governance TXs without exiting with code 1
 ❌ Using non-standard end script numbering (use `09_end.ts` always)
+❌ Any mutation (write, TX, deploy, exit) in a `10_status.ts` script

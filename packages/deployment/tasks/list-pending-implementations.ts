@@ -5,6 +5,7 @@ import type { NewTaskActionFunction } from 'hardhat/types/tasks'
 
 import type { AddressBookEntry, AddressBookOps } from '../lib/address-book-ops.js'
 import {
+  autoDetectForkNetwork,
   getForkTargetChainId,
   getHorizonAddressBook,
   getIssuanceAddressBook,
@@ -32,6 +33,9 @@ const action: NewTaskActionFunction = async (_taskArgs, hre) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const conn = await (hre as any).network.connect()
   const networkName = conn.networkName
+
+  // Auto-detect fork network from anvil before checking
+  await autoDetectForkNetwork()
 
   // Get target chain ID (fork mode or provider)
   const forkChainId = getForkTargetChainId()

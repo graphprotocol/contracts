@@ -1,4 +1,4 @@
-import { configVariable, task } from 'hardhat/config'
+import { task } from 'hardhat/config'
 import { ArgumentType } from 'hardhat/types/arguments'
 import type { NewTaskActionFunction } from 'hardhat/types/tasks'
 import {
@@ -19,8 +19,13 @@ import {
   getRoleHash,
   hasAdminRole,
 } from '../lib/contract-checks.js'
-import { type AddressBookType, CONTRACT_REGISTRY } from '../lib/contract-registry.js'
 import { createGovernanceTxBuilder } from '../lib/execute-governance.js'
+import {
+  getContractAddress,
+  getDeployerKeyName,
+  resolveConfigVar,
+  resolveContractFromRegistry,
+} from '../lib/task-utils.js'
 import { graph } from '../rocketh/deploy.js'
 
 interface TaskArgs {
@@ -28,73 +33,6 @@ interface TaskArgs {
   address: string
   role: string
   account: string
-}
-
-/**
- * Convert network name to env var prefix: arbitrumSepolia → ARBITRUM_SEPOLIA
- */
-function networkToEnvPrefix(networkName: string): string {
-  return networkName.replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase()
-}
-
-/**
- * Resolve a configuration variable using Hardhat's hook chain (keystore + env fallback)
- */
-async function resolveConfigVar(hre: unknown, name: string): Promise<string | undefined> {
-  try {
-    const variable = configVariable(name)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const hooks = (hre as any).hooks
-
-    const value = await hooks.runHandlerChain(
-      'configurationVariables',
-      'fetchValue',
-      [variable],
-      async (_context: unknown, v: { name: string }) => {
-        const envValue = process.env[v.name]
-        if (typeof envValue !== 'string') {
-          throw new Error(`Variable ${v.name} not found`)
-        }
-        return envValue
-      },
-    )
-    return value
-  } catch {
-    return undefined
-  }
-}
-
-/**
- * Resolve contract from registry by name
- */
-function resolveContractFromRegistry(
-  contractName: string,
-): { addressBook: AddressBookType; roles: readonly string[] } | null {
-  for (const [book, contracts] of Object.entries(CONTRACT_REGISTRY)) {
-    const contract = contracts[contractName as keyof typeof contracts] as { roles?: readonly string[] } | undefined
-    if (contract?.roles) {
-      return { addressBook: book as AddressBookType, roles: contract.roles }
-    }
-  }
-  return null
-}
-
-/**
- * Get contract address from address book
- */
-function getContractAddress(addressBook: AddressBookType, contractName: string, chainId: number): string | null {
-  const book =
-    addressBook === 'issuance'
-      ? graph.getIssuanceAddressBook(chainId)
-      : addressBook === 'horizon'
-        ? graph.getHorizonAddressBook(chainId)
-        : graph.getSubgraphServiceAddressBook(chainId)
-
-  if (!book.entryExists(contractName)) {
-    return null
-  }
-
-  return book.getEntry(contractName)?.address ?? null
 }
 
 const action: NewTaskActionFunction<TaskArgs> = async (taskArgs, hre) => {
@@ -128,6 +66,7 @@ const action: NewTaskActionFunction<TaskArgs> = async (taskArgs, hre) => {
   }) as PublicClient
 
   const actualChainId = await client.getChainId()
+  await graph.autoDetect()
   const forkChainId = graph.getForkTargetChainId()
   const targetChainId = forkChainId ?? actualChainId
 
@@ -184,7 +123,7 @@ const action: NewTaskActionFunction<TaskArgs> = async (taskArgs, hre) => {
   console.log(`   Admin holders: ${adminInfo.adminMembers.length > 0 ? adminInfo.adminMembers.join(', ') : '(none)'}`)
 
   // Get deployer account
-  const keyName = `${networkToEnvPrefix(networkName === 'fork' ? (process.env.HARDHAT_FORK ?? 'arbitrumSepolia') : networkName)}_DEPLOYER_KEY`
+  const keyName = getDeployerKeyName(networkName)
   const deployerKey = await resolveConfigVar(hre, keyName)
 
   let deployer: string | undefined
@@ -206,7 +145,8 @@ const action: NewTaskActionFunction<TaskArgs> = async (taskArgs, hre) => {
     console.log(`\n   Deployer has ${adminInfo.adminRoleName ?? 'admin role'}, executing directly...`)
 
     // Execute directly
-    const hash = await walletClient.writeContract({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const hash = await (walletClient as any).writeContract({
       address: contractAddress as `0x${string}`,
       abi: ACCESS_CONTROL_ENUMERABLE_ABI,
       functionName: 'revokeRole',
@@ -266,12 +206,12 @@ const action: NewTaskActionFunction<TaskArgs> = async (taskArgs, hre) => {
  * Revoke a role from an account on a BaseUpgradeable contract
  *
  * Examples:
- *   npx hardhat roles:revoke --contract RewardsEligibilityOracle --role ORACLE_ROLE --account 0x... --network arbitrumSepolia
+ *   npx hardhat roles:revoke --contract RewardsEligibilityOracleA --role ORACLE_ROLE --account 0x... --network arbitrumSepolia
  */
 const revokeRoleTask = task('roles:revoke', 'Revoke a role from an account')
   .addOption({
     name: 'contract',
-    description: 'Contract name from registry (e.g., RewardsEligibilityOracle)',
+    description: 'Contract name from registry (e.g., RewardsEligibilityOracleA)',
     type: ArgumentType.STRING,
     defaultValue: '',
   })
