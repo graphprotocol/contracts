@@ -2,7 +2,6 @@
 
 pragma solidity ^0.7.6 || ^0.8.0;
 
-import { IIssuanceAllocationDistribution } from "../../issuance/allocate/IIssuanceAllocationDistribution.sol";
 import { IRewardsIssuer } from "./IRewardsIssuer.sol";
 
 /**
@@ -178,13 +177,6 @@ interface IRewardsManager {
      * @return The subgraph service contract
      */
     function subgraphService() external view returns (IRewardsIssuer);
-
-    /**
-     * @notice Get the issuance allocator address
-     * @dev When set, this allocator controls issuance distribution instead of issuancePerBlock
-     * @return The issuance allocator contract (zero address if not set)
-     */
-    function getIssuanceAllocator() external view returns (IIssuanceAllocationDistribution);
 
     /**
      * @notice Get the reclaim address for a specific reason

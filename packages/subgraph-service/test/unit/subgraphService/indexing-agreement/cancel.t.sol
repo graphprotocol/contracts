@@ -250,9 +250,7 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
     // solhint-disable-next-line graph/func-name-mixedcase
     /// @notice An indexer whose provision drops below minimum should still be able
     /// to cancel their indexing agreement. Cancel is an exit path.
-    function test_SubgraphService_CancelIndexingAgreement_OK_WhenProvisionBelowMinimum(
-        Seed memory seed
-    ) public {
+    function test_SubgraphService_CancelIndexingAgreement_OK_WhenProvisionBelowMinimum(Seed memory seed) public {
         Context storage ctx = _newCtx(seed);
         IndexerState memory indexerState = _withIndexer(ctx);
         (

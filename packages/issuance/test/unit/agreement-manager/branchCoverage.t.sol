@@ -7,6 +7,7 @@ import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringAgreementManagement } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreementManagement.sol";
+import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationDistribution.sol";
 import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 
 import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
@@ -36,7 +37,7 @@ contract RecurringAgreementManagerBranchCoverageTest is RecurringAgreementManage
                 address(recurringCollector)
             )
         );
-        agreementManager.setIssuanceAllocator(address(recurringCollector));
+        agreementManager.setIssuanceAllocator(IIssuanceAllocationDistribution(address(recurringCollector)));
     }
 
     /// @notice Setting allocator to an EOA (no code) also fails ERC165 check.
@@ -44,7 +45,7 @@ contract RecurringAgreementManagerBranchCoverageTest is RecurringAgreementManage
         address eoa = makeAddr("randomEOA");
         vm.prank(governor);
         vm.expectRevert(abi.encodeWithSelector(RecurringAgreementManager.InvalidIssuanceAllocator.selector, eoa));
-        agreementManager.setIssuanceAllocator(eoa);
+        agreementManager.setIssuanceAllocator(IIssuanceAllocationDistribution(eoa));
     }
 
     // ══════════════════════════════════════════════════════════════════════

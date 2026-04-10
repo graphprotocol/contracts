@@ -2,6 +2,7 @@
 pragma solidity ^0.8.27;
 
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
+import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationDistribution.sol";
 
 import { RecurringAgreementManagerSharedTest } from "./shared.t.sol";
 import { MockIssuanceAllocator } from "./mocks/MockIssuanceAllocator.sol";
@@ -36,7 +37,7 @@ contract RecurringAgreementManagerCallbackGasTest is RecurringAgreementManagerSh
         vm.label(address(mockAllocator), "MockIssuanceAllocator");
 
         vm.prank(governor);
-        agreementManager.setIssuanceAllocator(address(mockAllocator));
+        agreementManager.setIssuanceAllocator(IIssuanceAllocationDistribution(address(mockAllocator)));
     }
 
     // ==================== beforeCollection gas ====================
