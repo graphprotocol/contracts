@@ -92,17 +92,16 @@
     "RewardsManager": {
       "address": "0x1F49caE7669086c8ba53CC35d1E9f80176d67E79",
       "proxy": "graph",
-      "implementation": "0xd681431502e7f9780f14576c17f4459074fc2360",
+      "implementation": "0x4946332c0743a848d66ae10efa65fa226d82bf2f",
       "proxyDeployment": {
         "verified": "https://sepolia.arbiscan.io/address/0x1F49caE7669086c8ba53CC35d1E9f80176d67E79#code"
       },
       "implementationDeployment": {
-        "txHash": "0x09b9cea7f67a55bf81fc92b08d4bb6c7a34f0471d4d1987ef3d914d76ea3f351",
+        "txHash": "0x48000c64255c968ae765263c4c57b228cc47645897e32fa998107606cf0c4a10",
         "argsData": "0x",
-        "bytecodeHash": "0xee210d0ea0a5e1a46622eb4da78d621523e3efcae872d8a844a69b9677c704ef",
-        "blockNumber": 240022327,
-        "timestamp": "2026-02-05T19:03:01.000Z",
-        "verified": "https://sepolia.arbiscan.io/address/0xd681431502e7f9780f14576c17f4459074fc2360#code"
+        "bytecodeHash": "0x9cee99fc8f8e3ed8ce5a804b519117743d62b42f3cb0b2fd7d9687ccc134bdc4",
+        "blockNumber": 250570693,
+        "timestamp": "2026-03-16T09:47:05.000Z"
       }
     },
     "HorizonStaking": {

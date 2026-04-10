@@ -46,9 +46,6 @@
         "blockNumber": 250569166
       }
     },
-    "RewardsEligibilityOracleMock": {
-      "address": "0x5FB23365F8cf643D5f1459E9793EfF7254522400"
-    },
     "IssuanceAllocator": {
       "address": "0x76a0d75651d4db83f74ac502b86a0ae4e19ac38b",
       "proxy": "transparent",
