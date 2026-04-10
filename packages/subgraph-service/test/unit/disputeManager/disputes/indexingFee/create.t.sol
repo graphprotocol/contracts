@@ -39,7 +39,8 @@ contract DisputeManagerIndexingFeeCreateDisputeTest is SubgraphServiceIndexingAg
                 tokens: 0,
                 dataServiceCut: 0,
                 receiverDestination: indexerState.addr,
-                maxSlippage: type(uint256).max
+                maxSlippage: type(uint256).max,
+                collectionContext: bytes32(0)
             })
         );
         vm.mockCall(
@@ -48,7 +49,9 @@ contract DisputeManagerIndexingFeeCreateDisputeTest is SubgraphServiceIndexingAg
             abi.encode(tokensCollected)
         );
 
-        skip(1); // Make agreement collectable
+        // Skip past minSecondsPerCollection to make agreement collectable
+        IRecurringCollector.AgreementData memory preCollectData = recurringCollector.getAgreement(acceptedAgreementId);
+        skip(uint256(preCollectData.minSecondsPerCollection) + 1);
 
         // Collect to set lastCollectionAt > 0
         subgraphService.collect(

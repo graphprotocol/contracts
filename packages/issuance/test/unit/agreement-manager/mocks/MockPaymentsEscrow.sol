@@ -118,6 +118,7 @@ contract MockPaymentsEscrow is IPaymentsEscrow {
     function initialize() external {}
     function depositTo(address, address, address, uint256) external {}
     function collect(IGraphPayments.PaymentTypes, address, address, uint256, address, uint256, address) external {}
+    function collect(IGraphPayments.PaymentTypes, address, address, uint256, address, uint256, address, bytes32) external {}
     function MAX_WAIT_PERIOD() external pure returns (uint256) {
         return 0;
     }
