@@ -46,6 +46,11 @@ export const ComponentTags = {
   REWARDS_MANAGER_DEPLOY: 'rewards-manager-deploy',
   REWARDS_MANAGER_UPGRADE: 'rewards-manager-upgrade',
 
+  // L2GNS contracts
+  L2GNS: 'l2gns',
+  L2GNS_DEPLOY: 'l2gns-deploy',
+  L2GNS_UPGRADE: 'l2gns-upgrade',
+
   // SubgraphService contracts
   SUBGRAPH_SERVICE: 'subgraph-service',
 } as const
@@ -132,6 +137,11 @@ export const Tags = {
   rewardsManagerDeploy: [ComponentTags.REWARDS_MANAGER_DEPLOY] as string[],
   rewardsManagerUpgrade: [ComponentTags.REWARDS_MANAGER_UPGRADE] as string[],
   rewardsManager: [ComponentTags.REWARDS_MANAGER] as string[],
+
+  // L2GNS lifecycle
+  l2gnsDeploy: [ComponentTags.L2GNS_DEPLOY] as string[],
+  l2gnsUpgrade: [ComponentTags.L2GNS_UPGRADE] as string[],
+  l2gns: [ComponentTags.L2GNS] as string[],
 
   // SubgraphService lifecycle
   subgraphServiceDeploy: [actionTag(ComponentTags.SUBGRAPH_SERVICE, DeploymentActions.DEPLOY)] as string[],
