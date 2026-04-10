@@ -1,5 +1,3 @@
-import '@nomiclabs/hardhat-ethers'
-
 import { Contract } from 'ethers'
 import { task } from 'hardhat/config'
 
@@ -35,15 +33,13 @@ task('data:craft', 'Build calldata')
   .addParam('selector', 'Selector name')
   .addParam('data', 'Call data to post')
   .setAction(async (taskArgs, hre) => {
-    // parse input
     const edgeAddress = taskArgs.edge
     const calldata = taskArgs.data
     const selector = taskArgs.selector
 
-    // build data
     const abi = getAbiForSelector(selector)
     const contract = getContract(edgeAddress, abi, hre.ethers.provider)
-    const tx = await contract.populateTransaction[selector](calldata)
+    const tx = await contract[selector].populateTransaction(calldata)
     const txData = tx.data
     console.log(txData)
   })

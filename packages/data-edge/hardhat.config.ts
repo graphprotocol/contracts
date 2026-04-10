@@ -1,15 +1,12 @@
 import '@typechain/hardhat'
-// Plugins
-import '@nomiclabs/hardhat-ethers'
-import '@nomiclabs/hardhat-etherscan'
-import '@nomiclabs/hardhat-waffle'
+import '@nomicfoundation/hardhat-ethers'
+import '@nomicfoundation/hardhat-chai-matchers'
+import '@nomicfoundation/hardhat-verify'
 import 'hardhat-abi-exporter'
 import 'hardhat-gas-reporter'
 import 'hardhat-contract-sizer'
-import '@openzeppelin/hardhat-upgrades'
 import 'solidity-coverage'
-import '@tenderly/hardhat-tenderly'
-import 'hardhat-secure-accounts' // for graph config
+import 'hardhat-secure-accounts'
 // Tasks
 import './tasks/craft-calldata'
 import './tasks/post-calldata'
@@ -29,19 +26,11 @@ interface NetworkConfig {
 
 const networkConfigs: NetworkConfig[] = [
   { network: 'mainnet', chainId: 1 },
-  { network: 'ropsten', chainId: 3 },
-  { network: 'rinkeby', chainId: 4 },
-  { network: 'kovan', chainId: 42 },
   { network: 'sepolia', chainId: 11155111 },
   {
     network: 'arbitrum-one',
     chainId: 42161,
     url: 'https://arb1.arbitrum.io/rpc',
-  },
-  {
-    network: 'arbitrum-goerli',
-    chainId: 421613,
-    url: 'https://goerli-rollup.arbitrum.io/rpc',
   },
   {
     network: 'arbitrum-sepolia',
@@ -89,10 +78,6 @@ task('accounts', 'Prints the list of accounts', async (_, bre) => {
 
 // Config
 const config: HardhatUserConfig = {
-  graph: {
-    addressBook: process.env.ADDRESS_BOOK || 'addresses.json',
-    disableSecureAccounts: true,
-  },
   paths: {
     sources: './contracts',
     tests: './test',
@@ -140,10 +125,8 @@ const config: HardhatUserConfig = {
   etherscan: {
     apiKey: {
       mainnet: process.env.ETHERSCAN_API_KEY,
-      goerli: process.env.ETHERSCAN_API_KEY,
       sepolia: process.env.ETHERSCAN_API_KEY,
       arbitrumOne: process.env.ARBISCAN_API_KEY,
-      arbitrumGoerli: process.env.ARBISCAN_API_KEY,
       arbitrumSepolia: process.env.ARBISCAN_API_KEY,
     },
   },
@@ -155,16 +138,12 @@ const config: HardhatUserConfig = {
   },
   typechain: {
     outDir: 'build/types',
-    target: 'ethers-v5',
+    target: 'ethers-v6',
   },
   abiExporter: {
     path: './build/abis',
     clear: false,
     flat: true,
-  },
-  tenderly: {
-    project: process.env.TENDERLY_PROJECT,
-    username: process.env.TENDERLY_USERNAME,
   },
   contractSizer: {
     alphaSort: true,

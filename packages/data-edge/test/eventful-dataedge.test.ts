@@ -1,63 +1,47 @@
-import '@nomiclabs/hardhat-ethers'
-
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
 
-import { EventfulDataEdge, EventfulDataEdge__factory } from '../build/types'
-
-const { getContractFactory, getSigners } = ethers
-const { id, hexConcat, randomBytes, hexlify, defaultAbiCoder } = ethers.utils
+import { EventfulDataEdge } from '../build/types'
 
 describe('EventfulDataEdge', () => {
   let edge: EventfulDataEdge
-  let me: SignerWithAddress
+  let me: Awaited<ReturnType<typeof ethers.getSigners>>[0]
 
   beforeEach(async () => {
-    ;[me] = await getSigners()
+    ;[me] = await ethers.getSigners()
 
-    const factory = (await getContractFactory('EventfulDataEdge', me)) as EventfulDataEdge__factory
+    const factory = await ethers.getContractFactory('EventfulDataEdge', me)
     edge = await factory.deploy()
-    await edge.deployed()
+    await edge.waitForDeployment()
   })
 
   describe('submit data', () => {
     it('post any arbitrary data as selector', async () => {
-      // virtual function call
       const txRequest = {
         data: '0x123123',
-        to: edge.address,
+        to: await edge.getAddress(),
       }
-      // send transaction
       const tx = await me.sendTransaction(txRequest)
       const rx = await tx.wait()
-      // transaction must work - it just stores data
-      expect(rx.status).eq(1)
-      // emit log event
-      const event = edge.interface.parseLog(rx.logs[0]).args
-      expect(event.data).eq(txRequest.data)
+      expect(rx!.status).eq(1)
+      const event = edge.interface.parseLog({ topics: rx!.logs[0].topics as string[], data: rx!.logs[0].data })
+      expect(event!.args.data).eq(txRequest.data)
     })
 
     it('post long calldata', async () => {
-      // virtual function call
-      const selector = id('setEpochBlocksPayload(bytes)').slice(0, 10)
-      // calldata payload
-      const messageBlocks = hexlify(randomBytes(1000))
-      const txCalldata = defaultAbiCoder.encode(['bytes'], [messageBlocks]) // we abi encode to allow the subgraph to decode it properly
-      const txData = hexConcat([selector, txCalldata])
-      // craft full transaction
+      const selector = ethers.id('setEpochBlocksPayload(bytes)').slice(0, 10)
+      const messageBlocks = ethers.hexlify(ethers.randomBytes(1000))
+      const txCalldata = ethers.AbiCoder.defaultAbiCoder().encode(['bytes'], [messageBlocks])
+      const txData = ethers.concat([selector, txCalldata])
       const txRequest = {
         data: txData,
-        to: edge.address,
+        to: await edge.getAddress(),
       }
-      // send transaction
       const tx = await me.sendTransaction(txRequest)
       const rx = await tx.wait()
-      // transaction must work - it just stores data
-      expect(rx.status).eq(1)
-      // emit log event
-      const event = edge.interface.parseLog(rx.logs[0]).args
-      expect(event.data).eq(txRequest.data)
+      expect(rx!.status).eq(1)
+      const event = edge.interface.parseLog({ topics: rx!.logs[0].topics as string[], data: rx!.logs[0].data })
+      expect(event!.args.data).eq(txRequest.data)
     })
   })
 })
