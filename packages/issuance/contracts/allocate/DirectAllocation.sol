@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.27;
 
+import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationDistribution.sol";
 import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceTarget.sol";
 import { ISendTokens } from "@graphprotocol/interfaces/contracts/issuance/allocate/ISendTokens.sol";
 import { BaseUpgradeable } from "../common/BaseUpgradeable.sol";
@@ -24,6 +25,36 @@ import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/int
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any bugs. We might have an active bug bounty program.
  */
 contract DirectAllocation is BaseUpgradeable, IIssuanceTarget, ISendTokens {
+    // -- Namespaced Storage --
+
+    /// @notice ERC-7201 storage location for DirectAllocation
+    bytes32 private constant DIRECT_ALLOCATION_STORAGE_LOCATION =
+        // solhint-disable-next-line gas-small-strings
+        keccak256(abi.encode(uint256(keccak256("graphprotocol.storage.DirectAllocation")) - 1)) &
+            ~bytes32(uint256(0xff));
+
+    /// @notice Main storage structure for DirectAllocation using ERC-7201 namespaced storage
+    /// @param issuanceAllocator The issuance allocator that distributes tokens to this contract
+    /// @custom:storage-location erc7201:graphprotocol.storage.DirectAllocation
+    struct DirectAllocationData {
+        IIssuanceAllocationDistribution issuanceAllocator;
+    }
+
+    /**
+     * @notice Returns the storage struct for DirectAllocation
+     * @return $ contract storage
+     */
+    function _getDirectAllocationStorage() private pure returns (DirectAllocationData storage $) {
+        // solhint-disable-previous-line use-natspec
+        // Solhint does not support $ return variable in natspec
+
+        bytes32 slot = DIRECT_ALLOCATION_STORAGE_LOCATION;
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            $.slot := slot
+        }
+    }
+
     // -- Custom Errors --
 
     /// @notice Thrown when token transfer fails
@@ -89,9 +120,19 @@ contract DirectAllocation is BaseUpgradeable, IIssuanceTarget, ISendTokens {
      */
     function beforeIssuanceAllocationChange() external virtual override {}
 
-    /**
-     * @dev No-op for DirectAllocation; issuanceAllocator is not stored.
-     * @inheritdoc IIssuanceTarget
-     */
-    function setIssuanceAllocator(address issuanceAllocator) external virtual override onlyRole(GOVERNOR_ROLE) {}
+    /// @inheritdoc IIssuanceTarget
+    function getIssuanceAllocator() external view virtual override returns (IIssuanceAllocationDistribution) {
+        return _getDirectAllocationStorage().issuanceAllocator;
+    }
+
+    /// @inheritdoc IIssuanceTarget
+    function setIssuanceAllocator(
+        IIssuanceAllocationDistribution newIssuanceAllocator
+    ) external virtual override onlyRole(GOVERNOR_ROLE) {
+        DirectAllocationData storage $ = _getDirectAllocationStorage();
+        if (address(newIssuanceAllocator) == address($.issuanceAllocator)) return;
+
+        emit IssuanceAllocatorSet($.issuanceAllocator, newIssuanceAllocator);
+        $.issuanceAllocator = newIssuanceAllocator;
+    }
 }

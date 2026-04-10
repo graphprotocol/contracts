@@ -9,6 +9,7 @@ import { RecurringCollector } from "horizon/payments/collectors/RecurringCollect
 import { IssuanceAllocator } from "issuance/allocate/IssuanceAllocator.sol";
 import { RecurringAgreementManager } from "issuance/agreement/RecurringAgreementManager.sol";
 import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceTarget.sol";
+import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationDistribution.sol";
 
 // Use the issuance IGraphToken for RAM/allocator (IERC20 + mint)
 import { IGraphToken as IssuanceIGraphToken } from "issuance/common/IGraphToken.sol";
@@ -123,7 +124,7 @@ abstract contract RealStackHarness is Test {
         ram.grantRole(OPERATOR_ROLE, operator);
         ram.grantRole(DATA_SERVICE_ROLE, dataService);
         ram.grantRole(COLLECTOR_ROLE, address(recurringCollector));
-        ram.setIssuanceAllocator(address(issuanceAllocator));
+        ram.setIssuanceAllocator(IIssuanceAllocationDistribution(address(issuanceAllocator)));
         // Configure allocator: set total issuance rate, then allocate to RAM
         issuanceAllocator.setIssuancePerBlock(1 ether);
         issuanceAllocator.setTargetAllocation(IIssuanceTarget(address(ram)), 1 ether);

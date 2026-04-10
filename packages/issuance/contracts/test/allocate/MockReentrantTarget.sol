@@ -85,8 +85,13 @@ contract MockReentrantTarget is IIssuanceTarget, ERC165 {
     }
 
     /// @inheritdoc IIssuanceTarget
-    function setIssuanceAllocator(address _issuanceAllocator) external override {
-        issuanceAllocator = _issuanceAllocator;
+    function getIssuanceAllocator() external view override returns (IIssuanceAllocationDistribution) {
+        return IIssuanceAllocationDistribution(issuanceAllocator);
+    }
+
+    /// @inheritdoc IIssuanceTarget
+    function setIssuanceAllocator(IIssuanceAllocationDistribution _issuanceAllocator) external override {
+        issuanceAllocator = address(_issuanceAllocator);
     }
 
     /// @inheritdoc ERC165
