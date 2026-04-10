@@ -84,7 +84,7 @@
     "L2GNS": {
       "address": "0x3133948342F35b8699d8F94aeE064AbB76eDe965",
       "proxy": "graph",
-      "implementation": "0x00CBF5024d454255577Bf2b0fB6A43328a6828c9"
+      "implementation": "0x3c20C9009c830956eB7439DEBac854Ec4925f7F0"
     },
     "SubgraphNFT": {
       "address": "0xF21Df5BbA7EB9b54D8F60C560aFb9bA63e6aED1A"
