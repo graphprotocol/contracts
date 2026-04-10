@@ -71,7 +71,18 @@
       "address": "0x4b5D3Da463F7E076bb7CDF5030960bf123245681",
       "proxy": "transparent",
       "proxyAdmin": "0x36dFE73C38e0340C8925BA6a68aE706b74340156",
-      "implementation": "0x36a194135E41a556ad6F4Dbad6b7F8F0e884ba1d"
+      "implementation": "0x25cf4a6ccd1f829d346cfda69112cd66639aaaa8",
+      "implementationDeployment": {
+        "txHash": "0x38c2d58d65e7ba66779cc2c45a9348d6ecb8ecedf80703be5769a3259311db02",
+        "argsData": "0x0000000000000000000000009db3ee191681f092607035d9bda6e59fbeaca6950000000000000000000000000000000000000000000000000000000000002a30",
+        "bytecodeHash": "0xc422e0b089ad8479e55a9a768d5bbea929745c83067496ff60a8f47dc2a08d90",
+        "blockNumber": 258351112,
+        "timestamp": "2026-04-10T15:30:13.000Z",
+        "verified": "https://sepolia.arbiscan.io/address/0x25cf4a6ccd1f829d346cfda69112cd66639aaaa8#code"
+      },
+      "proxyDeployment": {
+        "verified": "https://sepolia.arbiscan.io/address/0x4b5D3Da463F7E076bb7CDF5030960bf123245681#code"
+      }
     },
     "Controller": {
       "address": "0x9DB3ee191681f092607035d9BDA6e59FbEaCa695"
@@ -79,7 +90,18 @@
     "L2Curation": {
       "address": "0xDe761f075200E75485F4358978FB4d1dC8644FD5",
       "proxy": "graph",
-      "implementation": "0xbC8F4355f346e47eef8A0DBFF4a58616ACf7DaCA"
+      "implementation": "0x42e7b4b418672e890b460ca5e83ff47ad5717f02",
+      "implementationDeployment": {
+        "txHash": "0x774d6402b982c6a04245715efa92d0d40d47bf06ba95f3e02bc3d2dea3cba409",
+        "argsData": "0x",
+        "bytecodeHash": "0xaad16b82ef09b39624235fcc47361da5bd2c6cb0f3926a4aa2d9d11f88a3e238",
+        "blockNumber": 258322205,
+        "timestamp": "2026-04-10T13:12:51.000Z",
+        "verified": "https://sepolia.arbiscan.io/address/0x42e7b4b418672e890b460ca5e83ff47ad5717f02#code"
+      },
+      "proxyDeployment": {
+        "verified": "https://sepolia.arbiscan.io/address/0xDe761f075200E75485F4358978FB4d1dC8644FD5#code"
+      }
     },
     "L2GNS": {
       "address": "0x3133948342F35b8699d8F94aeE064AbB76eDe965",
@@ -92,22 +114,34 @@
     "RewardsManager": {
       "address": "0x1F49caE7669086c8ba53CC35d1E9f80176d67E79",
       "proxy": "graph",
-      "implementation": "0x4946332c0743a848d66ae10efa65fa226d82bf2f",
+      "implementation": "0xeffc5bb9b46dfbda6f8b0f297d12880674a6717e",
       "proxyDeployment": {
         "verified": "https://sepolia.arbiscan.io/address/0x1F49caE7669086c8ba53CC35d1E9f80176d67E79#code"
       },
       "implementationDeployment": {
-        "txHash": "0x48000c64255c968ae765263c4c57b228cc47645897e32fa998107606cf0c4a10",
+        "txHash": "0x9be5cd5335eec0ae8305d149f13d79ff4015d2327bbeed0a47d444e29fbbfd7a",
         "argsData": "0x",
-        "bytecodeHash": "0x9cee99fc8f8e3ed8ce5a804b519117743d62b42f3cb0b2fd7d9687ccc134bdc4",
-        "blockNumber": 250570693,
-        "timestamp": "2026-03-16T09:47:05.000Z"
+        "bytecodeHash": "0xd0cd3f4b7ce4ce4fe6ea8ee8ecd4e74bb683c64de2696c9e5ad7f74ef4c16f4e",
+        "blockNumber": 258336594,
+        "timestamp": "2026-04-10T14:19:51.000Z",
+        "verified": "https://sepolia.arbiscan.io/address/0xeffc5bb9b46dfbda6f8b0f297d12880674a6717e#code"
       }
     },
     "HorizonStaking": {
       "address": "0x865365C425f3A593Ffe698D9c4E6707D14d51e08",
       "proxy": "graph",
-      "implementation": "0x2AF6F51e119A79497C3A3FFf012B5889da489764"
+      "implementation": "0x2333c59d080c5641c804579165641d0162a7249b",
+      "implementationDeployment": {
+        "txHash": "0x0cb033e6595517c53daf5e0c736c9a8b49e92e830a894ac05f9fdd81acd6fcfb",
+        "argsData": "0x0000000000000000000000009db3ee191681f092607035d9bda6e59fbeaca695000000000000000000000000c24a3dac5d06d771f657a48b20ce1a671b78f26b",
+        "bytecodeHash": "0x4fcc568f70748b19c8a90480ea1521870bac358681074768388098ef263ed559",
+        "blockNumber": 258348283,
+        "timestamp": "2026-04-10T15:16:25.000Z",
+        "verified": "https://sepolia.arbiscan.io/address/0x2333c59d080c5641c804579165641d0162a7249b#code"
+      },
+      "proxyDeployment": {
+        "verified": "https://sepolia.arbiscan.io/address/0x865365C425f3A593Ffe698D9c4E6707D14d51e08#code"
+      }
     },
     "GraphTallyCollector": {
       "address": "0x382863e7B662027117449bd2c49285582bbBd21B"
@@ -129,6 +163,27 @@
       "address": "0xB24Ce0f8c18c4DdDa584A7EeC132F49C966813bb",
       "proxy": "graph",
       "implementation": "0x3C2eB5E561f70c0573E5f6c92358e988E32cb5eC"
+    },
+    "RecurringCollector": {
+      "address": "0x0b18befc60455121ad66ae6e4a647955fcde3900",
+      "proxy": "transparent",
+      "proxyAdmin": "0x59d83d4bd5f880c5e635273e4fb12e0a8e827f1d",
+      "implementation": "0xf4f75d6e1021db1b83b8bccfefa1a0ea06989fa1",
+      "implementationDeployment": {
+        "txHash": "0x579640729801f30ddec1e85b7ae6b7b9c51cc2502c1d96a0b698dbb553a1dafa",
+        "argsData": "0x0000000000000000000000009db3ee191681f092607035d9bda6e59fbeaca6950000000000000000000000000000000000000000000000000000000000007080",
+        "bytecodeHash": "0xe475513d113bac487d6c2a5504f73e8c1a7962dd611aa981e09cf04ebb0c5486",
+        "blockNumber": 258348301,
+        "timestamp": "2026-04-10T15:16:30.000Z",
+        "verified": "https://sepolia.arbiscan.io/address/0xf4f75d6e1021db1b83b8bccfefa1a0ea06989fa1#code"
+      },
+      "proxyDeployment": {
+        "txHash": "0x6fb822cdafa22542bed36045d77705c1354770feed50d67ef69ecde1bf668e28",
+        "argsData": "0x000000000000000000000000763a83af638f1ea6a4033868bc24994f9bd62617000000000000000000000000ade6b8eb69a49b56929c1d4f4b428d791861db6f000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000c44cd88b76000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000012526563757272696e67436f6c6c6563746f7200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001310000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "bytecodeHash": "0x6b4ba3015667741610274b7c196ec5d7767235d85865912f7ac680eac3011c54",
+        "blockNumber": 258322094,
+        "verified": "https://sepolia.arbiscan.io/address/0x0b18befc60455121ad66ae6e4a647955fcde3900#code"
+      }
     }
   }
 }
