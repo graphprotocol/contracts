@@ -264,6 +264,11 @@ contract RecurringAgreementManager is
     function beforeIssuanceAllocationChange() external virtual override {}
 
     /// @inheritdoc IIssuanceTarget
+    function getIssuanceAllocator() external view virtual override returns (IIssuanceAllocationDistribution) {
+        return _getStorage().issuanceAllocator;
+    }
+
+    /// @inheritdoc IIssuanceTarget
     /// @dev The allocator is expected to call distributeIssuance() (bringing distribution up to
     /// the current block) before any configuration change. As a result, the same-block dedup in
     /// {_ensureIncomingDistributionToCurrentBlock} is harmless: if a prior call already set the
@@ -271,21 +276,23 @@ contract RecurringAgreementManager is
     /// in a standalone transaction to avoid interleaving with collection in the same block.
     /// Even if interleaved, the only effect is a one-block lag before the new allocator's
     /// distribution is picked up — corrected automatically on the next block.
-    function setIssuanceAllocator(address newIssuanceAllocator) external virtual override onlyRole(GOVERNOR_ROLE) {
-        RecurringAgreementManagerStorage storage _s = _getStorage();
-        if (address(_s.issuanceAllocator) == newIssuanceAllocator) return;
+    function setIssuanceAllocator(
+        IIssuanceAllocationDistribution newIssuanceAllocator
+    ) external virtual override onlyRole(GOVERNOR_ROLE) {
+        RecurringAgreementManagerStorage storage $ = _getStorage();
+        if (address($.issuanceAllocator) == address(newIssuanceAllocator)) return;
 
-        if (newIssuanceAllocator != address(0))
+        if (address(newIssuanceAllocator) != address(0))
             require(
                 ERC165Checker.supportsInterface(
-                    newIssuanceAllocator,
+                    address(newIssuanceAllocator),
                     type(IIssuanceAllocationDistribution).interfaceId
                 ),
-                InvalidIssuanceAllocator(newIssuanceAllocator)
+                InvalidIssuanceAllocator(address(newIssuanceAllocator))
             );
 
-        emit IssuanceAllocatorSet(address(_s.issuanceAllocator), newIssuanceAllocator);
-        _s.issuanceAllocator = IIssuanceAllocationDistribution(newIssuanceAllocator);
+        emit IssuanceAllocatorSet($.issuanceAllocator, newIssuanceAllocator);
+        $.issuanceAllocator = newIssuanceAllocator;
     }
 
     // -- IAgreementOwner --

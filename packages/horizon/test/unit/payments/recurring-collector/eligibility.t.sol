@@ -250,7 +250,11 @@ contract RecurringCollectorEligibilityTest is RecurringCollectorSharedTest {
         _setupValidProvision(rca.serviceProvider, rca.dataService);
 
         vm.prank(address(approver));
-        IRecurringCollector.AgreementDetails memory result = _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0);
+        IRecurringCollector.AgreementDetails memory result = _recurringCollector.offer(
+            OFFER_TYPE_NEW,
+            abi.encode(rca),
+            0
+        );
         assertTrue(result.agreementId != bytes16(0));
     }
 
@@ -280,7 +284,11 @@ contract RecurringCollectorEligibilityTest is RecurringCollectorSharedTest {
         _setupValidProvision(rca.serviceProvider, rca.dataService);
 
         vm.prank(address(approver));
-        IRecurringCollector.AgreementDetails memory result = _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0);
+        IRecurringCollector.AgreementDetails memory result = _recurringCollector.offer(
+            OFFER_TYPE_NEW,
+            abi.encode(rca),
+            0
+        );
         assertTrue(result.agreementId != bytes16(0));
     }
 

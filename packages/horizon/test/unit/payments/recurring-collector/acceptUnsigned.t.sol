@@ -85,7 +85,11 @@ contract RecurringCollectorAcceptUnsignedTest is RecurringCollectorSharedTest {
 
         _setupValidProvision(rca.serviceProvider, rca.dataService);
         vm.prank(eoa);
-        IRecurringCollector.AgreementDetails memory result = _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0);
+        IRecurringCollector.AgreementDetails memory result = _recurringCollector.offer(
+            OFFER_TYPE_NEW,
+            abi.encode(rca),
+            0
+        );
         assertTrue(result.agreementId != bytes16(0));
     }
 

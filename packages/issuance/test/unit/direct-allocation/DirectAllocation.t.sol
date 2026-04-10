@@ -8,6 +8,7 @@ import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.so
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
+import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationDistribution.sol";
 import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceTarget.sol";
 import { ISendTokens } from "@graphprotocol/interfaces/contracts/issuance/allocate/ISendTokens.sol";
 
@@ -133,15 +134,58 @@ contract DirectAllocationTest is Test {
         directAlloc.beforeIssuanceAllocationChange();
     }
 
-    function test_SetIssuanceAllocator_NoOp() public {
+    function test_GetIssuanceAllocator_InitiallyZero() public view {
+        assertEq(address(directAlloc.getIssuanceAllocator()), address(0));
+    }
+
+    function test_SetIssuanceAllocator_UpdatesGetter() public {
+        address allocator = makeAddr("allocator");
         vm.prank(governor);
-        directAlloc.setIssuanceAllocator(makeAddr("allocator"));
+        directAlloc.setIssuanceAllocator(IIssuanceAllocationDistribution(allocator));
+        assertEq(address(directAlloc.getIssuanceAllocator()), allocator);
+    }
+
+    function test_SetIssuanceAllocator_EmitsEvent() public {
+        address allocator = makeAddr("allocator");
+        vm.prank(governor);
+        vm.expectEmit(address(directAlloc));
+        emit IIssuanceTarget.IssuanceAllocatorSet(
+            IIssuanceAllocationDistribution(address(0)),
+            IIssuanceAllocationDistribution(allocator)
+        );
+        directAlloc.setIssuanceAllocator(IIssuanceAllocationDistribution(allocator));
+    }
+
+    function test_SetIssuanceAllocator_EmitsEventWithOldValue() public {
+        address first = makeAddr("first");
+        address second = makeAddr("second");
+        vm.prank(governor);
+        directAlloc.setIssuanceAllocator(IIssuanceAllocationDistribution(first));
+
+        vm.prank(governor);
+        vm.expectEmit(address(directAlloc));
+        emit IIssuanceTarget.IssuanceAllocatorSet(
+            IIssuanceAllocationDistribution(first),
+            IIssuanceAllocationDistribution(second)
+        );
+        directAlloc.setIssuanceAllocator(IIssuanceAllocationDistribution(second));
+    }
+
+    function test_SetIssuanceAllocator_SkipsWhenSameValue() public {
+        address allocator = makeAddr("allocator");
+        vm.prank(governor);
+        directAlloc.setIssuanceAllocator(IIssuanceAllocationDistribution(allocator));
+
+        vm.prank(governor);
+        vm.recordLogs();
+        directAlloc.setIssuanceAllocator(IIssuanceAllocationDistribution(allocator));
+        assertEq(vm.getRecordedLogs().length, 0);
     }
 
     function test_Revert_SetIssuanceAllocator_NonGovernor() public {
         vm.expectRevert();
         vm.prank(unauthorized);
-        directAlloc.setIssuanceAllocator(makeAddr("allocator"));
+        directAlloc.setIssuanceAllocator(IIssuanceAllocationDistribution(makeAddr("allocator")));
     }
 
     // ==================== ERC-165 Interface Support ====================
