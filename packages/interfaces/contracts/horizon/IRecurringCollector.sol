@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.8.33;
+pragma solidity ^0.8.22;
 
 import { IAgreementCollector } from "./IAgreementCollector.sol";
 import { IGraphPayments } from "./IGraphPayments.sol";
