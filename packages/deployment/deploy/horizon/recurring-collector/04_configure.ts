@@ -41,7 +41,7 @@ export default createActionModule(Contracts.horizon.RecurringCollector, Deployme
     return
   }
 
-  const { governor, canSign } = await canSignAsGovernor(env)
+  const { canSign } = await canSignAsGovernor(env)
   if (!canSign) {
     env.showMessage(`  ○ Pause guardian not set — will be configured in upgrade step (governance TX)\n`)
     return
@@ -50,7 +50,7 @@ export default createActionModule(Contracts.horizon.RecurringCollector, Deployme
   env.showMessage('\n🔨 Setting pause guardian as governor...\n')
   const txFn = tx(env)
   await txFn({
-    account: governor as `0x${string}`,
+    account: 'governor',
     to: rc.address as `0x${string}`,
     data: encodeFunctionData({
       abi: RECURRING_COLLECTOR_PAUSE_ABI,

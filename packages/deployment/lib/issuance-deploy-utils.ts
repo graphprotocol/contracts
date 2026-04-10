@@ -311,9 +311,10 @@ export async function deployProxyContract(
         if (onChainImpl.toLowerCase() !== implDep.address.toLowerCase()) {
           // Shared implementation changed — store as pending for governance upgrade
           const targetChainId = await getTargetChainIdFromEnv(env)
-          const addressBook: AnyAddressBookOps = contract.addressBook === 'horizon'
-            ? graph.getHorizonAddressBook(targetChainId)
-            : graph.getIssuanceAddressBook(targetChainId)
+          const addressBook: AnyAddressBookOps =
+            contract.addressBook === 'horizon'
+              ? graph.getHorizonAddressBook(targetChainId)
+              : graph.getIssuanceAddressBook(targetChainId)
 
           // Get deployment metadata from the shared implementation's address book entry
           const implMetadata = addressBook.getDeploymentMetadata(sharedImplementation.name)

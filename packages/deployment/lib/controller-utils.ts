@@ -19,6 +19,19 @@ export async function canSignAsGovernor(env: Environment): Promise<{ governor: s
   const governor = await getGovernor(env)
   const accounts = (await env.network.provider.request({ method: 'eth_accounts' })) as string[]
   const canSign = accounts.some((a) => a.toLowerCase() === governor.toLowerCase())
+
+  // Verify the rocketh named account 'governor' matches the on-chain governor.
+  // If they disagree, tx({ account: 'governor' }) would send from the wrong address.
+  if (canSign && env.namedAccounts['governor']) {
+    const named = env.namedAccounts['governor'] as string
+    if (named.toLowerCase() !== governor.toLowerCase()) {
+      throw new Error(
+        `Named account 'governor' (${named}) does not match Controller.getGovernor() (${governor}). ` +
+          `Check rocketh account config — mnemonic index may not match the on-chain governor.`,
+      )
+    }
+  }
+
   return { governor, canSign }
 }
 
