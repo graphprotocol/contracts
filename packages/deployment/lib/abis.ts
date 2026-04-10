@@ -1,86 +1,86 @@
 /**
  * Shared ABI definitions for contract interactions
  *
- * These ABIs are loaded from @graphprotocol/interfaces artifacts to ensure they stay in sync
- * with the actual contract interfaces. The interfaces package is the canonical source for ABIs.
+ * Generated ABIs are produced by `pnpm generate:abis` from contract artifacts.
+ * The contract registry drives which ABIs and interface IDs are generated.
+ * Only ACCESS_CONTROL_ENUMERABLE_ABI is hand-maintained (generic role queries).
  */
 
-import { readFileSync } from 'node:fs'
-import { createRequire } from 'node:module'
-import type { Abi } from 'viem'
+// Re-export all generated typed ABIs, aliases, and interface IDs
+export {
+  CONTROLLER_ABI,
+  DIRECT_ALLOCATION_ABI,
+  GRAPH_PROXY_ADMIN_ABI,
+  GRAPH_TOKEN_ABI,
+  IERC165_ABI,
+  IERC165_INTERFACE_ID,
+  IISSUANCE_TARGET_INTERFACE_ID,
+  INITIALIZE_GOVERNOR_ABI,
+  IREWARDS_MANAGER_INTERFACE_ID,
+  ISSUANCE_ALLOCATOR_ABI,
+  ISSUANCE_TARGET_ABI,
+  OZ_PROXY_ADMIN_ABI,
+  PROVIDER_ELIGIBILITY_MANAGEMENT_ABI,
+  REWARDS_ELIGIBILITY_ORACLE_ABI,
+  REWARDS_MANAGER_ABI,
+  REWARDS_MANAGER_DEPRECATED_ABI,
+  SET_TARGET_ALLOCATION_ABI,
+} from './generated/abis.js'
 
-const require = createRequire(import.meta.url)
+// ============================================================================
+// Hand-rolled minimal ABIs (not in @graphprotocol/interfaces)
+// ============================================================================
 
-// Helper to load ABI from interface artifact
-function loadAbi(artifactPath: string): Abi {
-  const artifact = JSON.parse(readFileSync(require.resolve(artifactPath), 'utf-8'))
-  return artifact.abi as Abi
-}
+/**
+ * Minimal ABI for RecurringCollector pause guardian management
+ *
+ * RC's pause guardian functions are not part of an interface in
+ * @graphprotocol/interfaces. Used by RC configure and the GIP-0088 upgrade
+ * batch to manage `setPauseGuardian` / `pauseGuardians`.
+ */
+export const RECURRING_COLLECTOR_PAUSE_ABI = [
+  {
+    inputs: [{ name: '_pauseGuardian', type: 'address' }],
+    name: 'pauseGuardians',
+    outputs: [{ type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: '_pauseGuardian', type: 'address' },
+      { name: '_allowed', type: 'bool' },
+    ],
+    name: 'setPauseGuardian',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+] as const
 
-// Interface IDs - these mirror the values the compiler derives from the
-// corresponding ABI. Cross-checked by test/interface-id-stability.test.ts;
-// update both together whenever an interface changes.
-export const IERC165_INTERFACE_ID = '0x01ffc9a7' as const
-export const IISSUANCE_TARGET_INTERFACE_ID = '0x19f6601a' as const
-export const IREWARDS_MANAGER_INTERFACE_ID = '0x8469b577' as const
-
-export const REWARDS_MANAGER_ABI = loadAbi(
-  '@graphprotocol/interfaces/artifacts/contracts/contracts/rewards/IRewardsManager.sol/IRewardsManager.json',
-)
-
-// Deprecated interface includes legacy functions like issuancePerBlock()
-export const REWARDS_MANAGER_DEPRECATED_ABI = loadAbi(
-  '@graphprotocol/interfaces/artifacts/contracts/contracts/rewards/IRewardsManagerDeprecated.sol/IRewardsManagerDeprecated.json',
-)
-
-export const CONTROLLER_ABI = loadAbi(
-  '@graphprotocol/interfaces/artifacts/contracts/toolshed/IControllerToolshed.sol/IControllerToolshed.json',
-)
-
-// Core interfaces
-export const GRAPH_TOKEN_ABI = loadAbi(
-  '@graphprotocol/interfaces/artifacts/contracts/contracts/token/IGraphToken.sol/IGraphToken.json',
-)
-
-export const GRAPH_PROXY_ADMIN_ABI = loadAbi(
-  '@graphprotocol/interfaces/artifacts/contracts/contracts/upgrades/IGraphProxyAdmin.sol/IGraphProxyAdmin.json',
-)
-
-export const IERC165_ABI = loadAbi(
-  '@graphprotocol/interfaces/artifacts/@openzeppelin/contracts/introspection/IERC165.sol/IERC165.json',
-)
-
-// Issuance interfaces
-export const ISSUANCE_TARGET_ABI = loadAbi(
-  '@graphprotocol/interfaces/artifacts/contracts/issuance/allocate/IIssuanceTarget.sol/IIssuanceTarget.json',
-)
-
-// --- ABIs loaded from @graphprotocol/horizon (OZ contracts) ---
-// These are not in interfaces package, load from horizon build
-
-export const OZ_PROXY_ADMIN_ABI = loadAbi(
-  '@graphprotocol/horizon/artifacts/@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol/ProxyAdmin.json',
-)
-
-// --- ABIs loaded from @graphprotocol/issuance ---
-// Full contract ABIs for deployment operations that need access to all methods
-
-export const ISSUANCE_ALLOCATOR_ABI = loadAbi(
-  '@graphprotocol/issuance/artifacts/contracts/allocate/IssuanceAllocator.sol/IssuanceAllocator.json',
-)
-
-export const DIRECT_ALLOCATION_ABI = loadAbi(
-  '@graphprotocol/issuance/artifacts/contracts/allocate/DirectAllocation.sol/DirectAllocation.json',
-)
-
-export const REWARDS_ELIGIBILITY_ORACLE_ABI = loadAbi(
-  '@graphprotocol/issuance/artifacts/contracts/eligibility/RewardsEligibilityOracle.sol/RewardsEligibilityOracle.json',
-)
-
-// Convenience re-exports for specific function subsets
-// These reference the full ABIs above - viem will find the right function by name
-export { ISSUANCE_ALLOCATOR_ABI as SET_TARGET_ALLOCATION_ABI }
-export { DIRECT_ALLOCATION_ABI as INITIALIZE_GOVERNOR_ABI }
+/**
+ * Minimal ABI for SubgraphService allocation close guard
+ *
+ * `blockClosingAllocationWithActiveAgreement` is part of the SS interface but
+ * not generated yet. Used by `GIP-0088:issuance-close-guard` and the goal
+ * status display.
+ */
+export const SUBGRAPH_SERVICE_CLOSE_GUARD_ABI = [
+  {
+    inputs: [],
+    name: 'getBlockClosingAllocationWithActiveAgreement',
+    outputs: [{ type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'enabled', type: 'bool' }],
+    name: 'setBlockClosingAllocationWithActiveAgreement',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+] as const
 
 // ============================================================================
 // Generic ABIs for role enumeration

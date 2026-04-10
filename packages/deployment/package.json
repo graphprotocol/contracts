@@ -4,9 +4,11 @@
   "description": "Unified deployment for Graph Protocol contracts",
   "private": true,
   "scripts": {
-    "build": "pnpm build:deps",
+    "build": "pnpm build:deps && pnpm build:self",
+    "build:self": "pnpm generate:abis",
     "build:deps": "pnpm --filter @graphprotocol/deployment^... build",
     "build:clean": "pnpm --filter @graphprotocol/contracts clean && pnpm build:deps",
+    "generate:abis": "tsx scripts/generate-abis.ts",
     "deploy": "pnpm build:clean && hardhat deploy",
     "deploy:sync": "hardhat deploy --tags sync",
     "deploy:status": "hardhat deploy:deployment-status",
@@ -21,6 +23,7 @@
   "dependencies": {
     "@graphprotocol/contracts": "workspace:*",
     "@graphprotocol/horizon": "workspace:*",
+    "@graphprotocol/interfaces": "workspace:*",
     "@graphprotocol/issuance": "workspace:*",
     "@graphprotocol/subgraph-service": "workspace:*",
     "@graphprotocol/toolshed": "workspace:*",

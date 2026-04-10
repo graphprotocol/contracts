@@ -91,6 +91,7 @@ task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon cont
           subgraphServiceProxyAddress: proxiesDeployment.Transparent_Proxy_SubgraphService.target as string,
           subgraphServiceProxyAdminAddress: proxiesDeployment.Transparent_ProxyAdmin_SubgraphService.target as string,
           graphTallyCollectorAddress: horizonDeployment.GraphTallyCollector.target as string,
+          recurringCollectorAddress: horizonDeployment.Transparent_Proxy_RecurringCollector.target as string,
           gnsProxyAddress: horizonDeployment.Graph_Proxy_L2GNS.target as string,
           gnsImplementationAddress: horizonDeployment.Implementation_L2GNS.target as string,
           subgraphNFTAddress: horizonDeployment.SubgraphNFT.target as string,

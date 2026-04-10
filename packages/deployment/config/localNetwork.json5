@@ -1,0 +1,16 @@
+{
+  // Deployment configuration for local-network (docker-compose dev stack)
+  // Local network uses generous rates for fast iteration and testing.
+
+  "IssuanceAllocator": {
+    // RAM allocation: how much issuance flows to RecurringAgreementManager
+    // Local network uses a high rate so agreements accumulate meaningful rewards quickly
+    "ramAllocatorMintingGrtPerBlock": "6",
+    "ramSelfMintingGrtPerBlock": "0"
+  },
+
+  "RewardsManager": {
+    // Revert reward claims for ineligible indexers (strict mode for testing)
+    "revertOnIneligible": false
+  }
+}
