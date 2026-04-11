@@ -31,4 +31,10 @@ contract RecurringCollectorAuthorizableTest is AuthorizableTest {
         // RC overrides _isAuthorized to treat address(this) (the proxy) as always authorized
         vm.assume(addr != address(authorizable));
     }
+
+    /// @dev RC treats itself as always authorized, so exclude the proxy address from the signer fuzz space
+    function test_IsAuthorized_Revert_WhenZero(address signer) public view override {
+        vm.assume(signer != address(authorizable));
+        super.test_IsAuthorized_Revert_WhenZero(signer);
+    }
 }
