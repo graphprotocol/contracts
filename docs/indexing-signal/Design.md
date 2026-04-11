@@ -20,22 +20,22 @@ Indexing Signal is analogous to Curation Signal in its role of directing protoco
 
 ## Design Decisions
 
-| Decision           | Choice                                  | Rationale                                                                                 |
-| ------------------ | --------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Signal pricing     | 1:1 GRT to signal                       | Simpler than bonding curve; no early-mover advantage needed for indexing payments         |
-| Deposit mechanism  | Lock with immediate withdraw            | Simple; thawing adds complexity without concrete requirement                              |
-| Issuance source    | Self-minting, reads rate from RM        | Uses same per-signal issuance rate as RewardsManager                                      |
-| Signal aggregation | RM reads both Curation + IndexingSignal | RewardsManager updated to query combined total signal                                     |
-| Issuance split     | Global split                            | total_indexing_signal / total_signal determines IndexingSignal's share of issuance        |
-| Escrow model       | Virtual (no physical deposits)          | IS computes balances from accumulators; GRT minted only on collect; no deposit/thaw/withdraw lifecycle |
-| Escrow routing     | Router with governance-controlled overrides | Thin router in front of PaymentsEscrow; override mapping delegates IS-backed flows to IS  |
-| Indexer count      | Depositor-chosen, protocol minimum      | Depositor sets desired count at deposit; protocol enforces minimum; privileged role exempt |
-| Indexer count changes | Mutable over time                     | Depositor can increase/decrease indexer count and signal amount within constraints         |
-| Indexer selection   | Off-chain                               | Selection performed off-chain; on-chain contract records and enforces the matched set     |
-| Issuance per indexer | Equal split across set                 | Depositor's issuance divided equally among matched indexers (signal / N per indexer)      |
-| RCA matching       | Automatic per depositor-indexer         | Protocol creates RCA entries for each depositor-indexer pair per subgraph                 |
-| RCA acceptance     | Signed and offered off-chain            | RCA signed by payer-side, offered to indexer; indexer accepts by posting on-chain before deadline |
-| RCA cancellation   | Out of scope for IS                     | IS responds to cancellation (settles uncollected issuance) but does not cause or control it |
+| Decision              | Choice                                      | Rationale                                                                                              |
+| --------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Signal pricing        | 1:1 GRT to signal                           | Simpler than bonding curve; no early-mover advantage needed for indexing payments                      |
+| Deposit mechanism     | Lock with immediate withdraw                | Simple; thawing adds complexity without concrete requirement                                           |
+| Issuance source       | Self-minting, reads rate from RM            | Uses same per-signal issuance rate as RewardsManager                                                   |
+| Signal aggregation    | RM reads both Curation + IndexingSignal     | RewardsManager updated to query combined total signal                                                  |
+| Issuance split        | Global split                                | total_indexing_signal / total_signal determines IndexingSignal's share of issuance                     |
+| Escrow model          | Virtual (no physical deposits)              | IS computes balances from accumulators; GRT minted only on collect; no deposit/thaw/withdraw lifecycle |
+| Escrow routing        | Router with governance-controlled overrides | Thin router in front of PaymentsEscrow; override mapping delegates IS-backed flows to IS               |
+| Indexer count         | Depositor-chosen, protocol minimum          | Depositor sets desired count at deposit; protocol enforces minimum; privileged role exempt             |
+| Indexer count changes | Mutable over time                           | Depositor can increase/decrease indexer count and signal amount within constraints                     |
+| Indexer selection     | Off-chain                                   | Selection performed off-chain; on-chain contract records and enforces the matched set                  |
+| Issuance per indexer  | Equal split across set                      | Depositor's issuance divided equally among matched indexers (signal / N per indexer)                   |
+| RCA matching          | Automatic per depositor-indexer             | Protocol creates RCA entries for each depositor-indexer pair per subgraph                              |
+| RCA acceptance        | Signed and offered off-chain                | RCA signed by payer-side, offered to indexer; indexer accepts by posting on-chain before deadline      |
+| RCA cancellation      | Out of scope for IS                         | IS responds to cancellation (settles uncollected issuance) but does not cause or control it            |
 
 ## Architecture
 
@@ -140,6 +140,7 @@ IndexingSignal acts as a virtual escrow — no GRT is physically deposited or he
 ```
 
 **Virtual escrow operations:**
+
 - `getBalance(depositor, collector, indexer)` → computed from accumulators (no storage read of a "balance" field)
 - `collect(depositor, subgraph, indexer, amount)` → IS mints GRT, sends to GraphPayments for distribution
 - No `deposit()`, `thaw()`, or `withdraw()` — balance is virtual, GRT only exists at collection time
@@ -294,11 +295,7 @@ function setPrivilegedSignaler(address account, bool privileged) external;
 /// Register the matched indexer set for a depositor's position (authorized off-chain role).
 /// indexers.length must equal the depositor's indexerCount.
 /// Creates RCAs for added indexers, cancels RCAs for removed indexers.
-function setDepositorIndexerSet(
-  address depositor,
-  bytes32 subgraphDeploymentID,
-  address[] calldata indexers
-) external;
+function setDepositorIndexerSet(address depositor, bytes32 subgraphDeploymentID, address[] calldata indexers) external;
 
 // --- Issuance ---
 

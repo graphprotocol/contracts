@@ -1,6 +1,7 @@
 import { createPublicClient, http } from 'viem'
-import { computeBytecodeHash } from '../lib/bytecode-utils.js'
+
 import { loadSubgraphServiceArtifact } from '../lib/artifact-loaders.js'
+import { computeBytecodeHash } from '../lib/bytecode-utils.js'
 import { graph } from '../rocketh/deploy.js'
 
 async function main() {
@@ -38,9 +39,15 @@ async function main() {
     console.log('On-chain implementation hash:', onChainHash)
 
     console.log('\n🔍 Comparison:')
-    console.log('Local vs Address Book:', localHash === (deploymentMetadata?.bytecodeHash ?? '') ? '✓ MATCH' : '✗ DIFFERENT')
+    console.log(
+      'Local vs Address Book:',
+      localHash === (deploymentMetadata?.bytecodeHash ?? '') ? '✓ MATCH' : '✗ DIFFERENT',
+    )
     console.log('Local vs On-chain:', localHash === onChainHash ? '✓ MATCH' : '✗ DIFFERENT')
-    console.log('Address Book vs On-chain:', (deploymentMetadata?.bytecodeHash ?? '') === onChainHash ? '✓ MATCH' : '✗ DIFFERENT (or missing)')
+    console.log(
+      'Address Book vs On-chain:',
+      (deploymentMetadata?.bytecodeHash ?? '') === onChainHash ? '✓ MATCH' : '✗ DIFFERENT (or missing)',
+    )
   }
 }
 

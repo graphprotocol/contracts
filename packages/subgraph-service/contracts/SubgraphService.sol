@@ -473,12 +473,13 @@ contract SubgraphService is
         onlyRegisteredIndexer(rca.serviceProvider)
         returns (bytes16)
     {
-        return IndexingAgreement._getStorageManager().acceptFromContract(
-            _allocations,
-            allocationId,
-            rca,
-            contractApprover
-        );
+        return
+            IndexingAgreement._getStorageManager().acceptFromContract(
+                _allocations,
+                allocationId,
+                rca,
+                contractApprover
+            );
     }
 
     /**

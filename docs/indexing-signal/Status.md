@@ -8,14 +8,14 @@ No open items.
 
 ## Decisions Made
 
-| #   | Decision | Date | Rationale |
-| --- | -------- | ---- | --------- |
-| 2   | IS minting is part of RM allocation. IA has no awareness of IS, does not need to be deployed. RM does not under-mint — IS minting is RM-owned. | 2026-02-12 | Shared denominator ensures RM mints curation fraction, IS mints indexing fraction, total = full allocation. |
-| 1   | EscrowRouter (option A): thin standalone contract implementing IPaymentsEscrow, registered as "PaymentsEscrow" in Controller. Default = standard escrow, override mapping per-payer delegates collect()/getBalance() to IS. | 2026-02-12 | IS virtual escrow needs to be callable through standard collect chain. Router avoids modifying RC/PE. |
-| 3   | ~~RCA lifecycle: off-chain Dipper signs RCAs~~ **Superseded by #5/#6.** IS-as-payer + contract approver is now the primary RCA path. Operator prepares agreements on-chain via IS.prepareAgreement(); indexer accepts via SS.acceptIndexingAgreementFromContract(). EOA/Dipper path still works but is secondary. | 2026-02-12 (superseded 2026-02-16) | Original: RC's Authorizable supports delegated signing. Current: IS is the payer, contract approver bypasses ECDSA. |
-| 5   | Contract approver support (Option B): IContractApprover (single callback) + RC.acceptFromContract() — no Authorizable changes. IS implements IContractApprover, prepareAgreement() stores hashes, isAuthorizedAgreement() confirms them. Indexer accepts via SS.acceptIndexingAgreementFromContract(). | 2026-02-16 | Removes ECDSA requirement for IS-originated agreements. On-chain, auditable authorization chain. EOA path unchanged. See [ContractAuthorization.md](./ContractAuthorization.md). |
-| 6   | Per-agreement escrow model: escrow layer keyed on (subgraph, indexer), not (depositor, subgraph, indexer). AgreementEscrow { signal, accIssuanceSnapshot, accruedIssuance }. IS is the payer, not individual depositors. Signal layer (per-depositor positions and sets) unchanged. | 2026-02-16 | Removes per-depositor escrow complexity. One agreement per (subgraph, indexer). Standard reward-per-share pattern. |
-| 4   | Escrow key mapping: overloaded `IPaymentsEscrow.collect()` with `bytes32 collectionContext`. IS interprets as subgraphDeploymentID. Existing signature unchanged. Caller context (msg.sender) not needed by IS — virtual escrow has no per-collector dimension. | 2026-02-12 | See [CollectionContext.md](./CollectionContext.md). RC threads context from CollectParams. GraphTallyCollector unchanged. |
+| #   | Decision                                                                                                                                                                                                                                                                                                          | Date                               | Rationale                                                                                                                                                                        |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2   | IS minting is part of RM allocation. IA has no awareness of IS, does not need to be deployed. RM does not under-mint — IS minting is RM-owned.                                                                                                                                                                    | 2026-02-12                         | Shared denominator ensures RM mints curation fraction, IS mints indexing fraction, total = full allocation.                                                                      |
+| 1   | EscrowRouter (option A): thin standalone contract implementing IPaymentsEscrow, registered as "PaymentsEscrow" in Controller. Default = standard escrow, override mapping per-payer delegates collect()/getBalance() to IS.                                                                                       | 2026-02-12                         | IS virtual escrow needs to be callable through standard collect chain. Router avoids modifying RC/PE.                                                                            |
+| 3   | ~~RCA lifecycle: off-chain Dipper signs RCAs~~ **Superseded by #5/#6.** IS-as-payer + contract approver is now the primary RCA path. Operator prepares agreements on-chain via IS.prepareAgreement(); indexer accepts via SS.acceptIndexingAgreementFromContract(). EOA/Dipper path still works but is secondary. | 2026-02-12 (superseded 2026-02-16) | Original: RC's Authorizable supports delegated signing. Current: IS is the payer, contract approver bypasses ECDSA.                                                              |
+| 5   | Contract approver support (Option B): IContractApprover (single callback) + RC.acceptFromContract() — no Authorizable changes. IS implements IContractApprover, prepareAgreement() stores hashes, isAuthorizedAgreement() confirms them. Indexer accepts via SS.acceptIndexingAgreementFromContract().            | 2026-02-16                         | Removes ECDSA requirement for IS-originated agreements. On-chain, auditable authorization chain. EOA path unchanged. See [ContractAuthorization.md](./ContractAuthorization.md). |
+| 6   | Per-agreement escrow model: escrow layer keyed on (subgraph, indexer), not (depositor, subgraph, indexer). AgreementEscrow { signal, accIssuanceSnapshot, accruedIssuance }. IS is the payer, not individual depositors. Signal layer (per-depositor positions and sets) unchanged.                               | 2026-02-16                         | Removes per-depositor escrow complexity. One agreement per (subgraph, indexer). Standard reward-per-share pattern.                                                               |
+| 4   | Escrow key mapping: overloaded `IPaymentsEscrow.collect()` with `bytes32 collectionContext`. IS interprets as subgraphDeploymentID. Existing signature unchanged. Caller context (msg.sender) not needed by IS — virtual escrow has no per-collector dimension.                                                   | 2026-02-12                         | See [CollectionContext.md](./CollectionContext.md). RC threads context from CollectParams. GraphTallyCollector unchanged.                                                        |
 
 ## What's Done
 
@@ -46,6 +46,7 @@ These are actual gaps — code that doesn't exist or hasn't been validated.
 ### Collection chain untested end-to-end
 
 The collection path SS → IA → RC → EscrowRouter → IS → GraphPayments has never been run as a connected chain. Each piece compiles and has unit tests, but:
+
 - No integration test exercises the full path
 - EscrowRouter override for IS has never been configured in a test
 - The RCA `payer` field must be IS's address for EscrowRouter routing — no test validates this
@@ -53,6 +54,7 @@ The collection path SS → IA → RC → EscrowRouter → IS → GraphPayments h
 ### Contract approver flow untested end-to-end
 
 IS.prepareAgreement → SS.acceptIndexingAgreementFromContract → RC.acceptFromContract → IS.isAuthorizedAgreement has never been run as a chain. Specifically:
+
 - No test constructs a valid RCA, hashes it, and exercises the full acceptance flow
 - No test validates that RC.acceptFromContract correctly calls back IS
 
@@ -70,11 +72,11 @@ Resolved. Decision #3 updated to note supersession by #5/#6. IS-as-payer + contr
 
 ## Contract Status
 
-| Contract                                                | File                                                                    | Status                                  |
-| ------------------------------------------------------- | ----------------------------------------------------------------------- | --------------------------------------- |
+| Contract                                                | File                                                                    | Status                                                                  |
+| ------------------------------------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------- |
 | [IndexingSignal](./contracts/IndexingSignal.md)         | `packages/issuance/contracts/signal/IndexingSignal.sol`                 | Per-agreement escrow, IContractApprover, access-controlled, unit tested |
-| [RewardsManager](./contracts/RewardsManager.md)         | `packages/contracts/contracts/rewards/RewardsManager.sol`               | Updated, combined signal works          |
-| [EscrowRouter](./contracts/EscrowRouter.md)             | `packages/horizon/contracts/payments/EscrowRouter.sol`                  | Implemented with collectionContext      |
-| [SubgraphService](./contracts/SubgraphService.md)       | `packages/subgraph-service/contracts/SubgraphService.sol`               | acceptFromContract path added           |
-| [RecurringCollector](./contracts/RecurringCollector.md) | `packages/horizon/contracts/payments/collectors/RecurringCollector.sol` | acceptFromContract + refactored accept  |
-| [PaymentsEscrow](./contracts/PaymentsEscrow.md)         | `packages/horizon/contracts/payments/PaymentsEscrow.sol`                | Overloaded collect() added              |
+| [RewardsManager](./contracts/RewardsManager.md)         | `packages/contracts/contracts/rewards/RewardsManager.sol`               | Updated, combined signal works                                          |
+| [EscrowRouter](./contracts/EscrowRouter.md)             | `packages/horizon/contracts/payments/EscrowRouter.sol`                  | Implemented with collectionContext                                      |
+| [SubgraphService](./contracts/SubgraphService.md)       | `packages/subgraph-service/contracts/SubgraphService.sol`               | acceptFromContract path added                                           |
+| [RecurringCollector](./contracts/RecurringCollector.md) | `packages/horizon/contracts/payments/collectors/RecurringCollector.sol` | acceptFromContract + refactored accept                                  |
+| [PaymentsEscrow](./contracts/PaymentsEscrow.md)         | `packages/horizon/contracts/payments/PaymentsEscrow.sol`                | Overloaded collect() added                                              |

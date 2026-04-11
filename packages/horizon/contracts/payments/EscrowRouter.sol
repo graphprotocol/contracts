@@ -168,7 +168,16 @@ contract EscrowRouter is Initializable, MulticallUpgradeable, GraphDirectory, IP
         uint256 dataServiceCut,
         address receiverDestination
     ) external override notPaused {
-        _collectRouted(paymentType, payer, receiver, tokens, dataService, dataServiceCut, receiverDestination, bytes32(0));
+        _collectRouted(
+            paymentType,
+            payer,
+            receiver,
+            tokens,
+            dataService,
+            dataServiceCut,
+            receiverDestination,
+            bytes32(0)
+        );
     }
 
     /// @inheritdoc IPaymentsEscrow
@@ -182,7 +191,16 @@ contract EscrowRouter is Initializable, MulticallUpgradeable, GraphDirectory, IP
         address receiverDestination,
         bytes32 collectionContext
     ) external override notPaused {
-        _collectRouted(paymentType, payer, receiver, tokens, dataService, dataServiceCut, receiverDestination, collectionContext);
+        _collectRouted(
+            paymentType,
+            payer,
+            receiver,
+            tokens,
+            dataService,
+            dataServiceCut,
+            receiverDestination,
+            collectionContext
+        );
     }
 
     /// @inheritdoc IPaymentsEscrow
@@ -211,7 +229,14 @@ contract EscrowRouter is Initializable, MulticallUpgradeable, GraphDirectory, IP
         IPaymentsEscrow escrowOverride = escrowOverrides[_payer];
         if (address(escrowOverride) != address(0)) {
             escrowOverride.collect(
-                _paymentType, _payer, _receiver, _tokens, _dataService, _dataServiceCut, _receiverDestination, _collectionContext
+                _paymentType,
+                _payer,
+                _receiver,
+                _tokens,
+                _dataService,
+                _dataServiceCut,
+                _receiverDestination,
+                _collectionContext
             );
             return;
         }

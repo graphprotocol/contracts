@@ -34,16 +34,16 @@ privilegedSignalers[address]   — can bypass minimum indexer count
 
 ## Key Functions
 
-| Function | Role |
-|----------|------|
-| `deposit(subgraph, tokens, indexerCount)` | Lock GRT, create position |
-| `addSignal(subgraph, tokens)` | Add to existing position |
-| `withdraw(subgraph, tokens)` | Immediate withdrawal |
-| `setIndexerCount(subgraph, count)` | Change desired indexer count |
+| Function                                                  | Role                                 |
+| --------------------------------------------------------- | ------------------------------------ |
+| `deposit(subgraph, tokens, indexerCount)`                 | Lock GRT, create position            |
+| `addSignal(subgraph, tokens)`                             | Add to existing position             |
+| `withdraw(subgraph, tokens)`                              | Immediate withdrawal                 |
+| `setIndexerCount(subgraph, count)`                        | Change desired indexer count         |
 | `setDepositorIndexerSet(depositor, subgraph, indexers[])` | Register matched set (operator role) |
-| `collect(depositor, subgraph, indexer, amount)` | Mint issuance for indexer |
-| `onRCACancelled(depositor, subgraph, indexer)` | Settle on RCA cancellation |
-| `getVirtualBalance(depositor, subgraph, indexer)` | Computed collectible amount |
+| `collect(depositor, subgraph, indexer, amount)`           | Mint issuance for indexer            |
+| `onRCACancelled(depositor, subgraph, indexer)`            | Settle on RCA cancellation           |
+| `getVirtualBalance(depositor, subgraph, indexer)`         | Computed collectible amount          |
 
 ## Open Questions
 

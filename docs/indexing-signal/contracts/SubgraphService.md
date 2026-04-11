@@ -10,11 +10,11 @@ Orchestrates collection flows for different payment types. Entry point for index
 
 ## Current Payment Types
 
-| Type | Path |
-|------|------|
-| QueryFee | → `_collectQueryFees()` → GraphTallyCollector → PaymentsEscrow → GraphPayments |
-| IndexingRewards | → `_collectIndexingRewards()` → RewardsManager mint |
-| IndexingFee | → `_collectIndexingFees()` → IndexingAgreement → RecurringCollector → PaymentsEscrow → GraphPayments |
+| Type            | Path                                                                                                 |
+| --------------- | ---------------------------------------------------------------------------------------------------- |
+| QueryFee        | → `_collectQueryFees()` → GraphTallyCollector → PaymentsEscrow → GraphPayments                       |
+| IndexingRewards | → `_collectIndexingRewards()` → RewardsManager mint                                                  |
+| IndexingFee     | → `_collectIndexingFees()` → IndexingAgreement → RecurringCollector → PaymentsEscrow → GraphPayments |
 
 ## Relevance to IS
 
@@ -23,6 +23,7 @@ The `IndexingFee` path exists and works for standard (physically-escrowed) index
 ## Changes Needed
 
 Depends on [EscrowRouter decision](./EscrowRouter.md):
+
 - **Router approach**: Possibly no SS changes — router intercepts at escrow level
 - **Direct IS call**: SS may need a new payment type or branch in `_collectIndexingFees` to detect IS-backed agreements
 - **New collector**: SS routes IS fees to a different collector

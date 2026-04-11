@@ -212,9 +212,7 @@ contract RecurringCollectorSharedTest is Test, Bounder {
             _rca.nonce
         );
 
-        bytes memory data = _generateCollectData(
-            _generateCollectParams(_rca, agreementId, _fuzzyParams, tokens)
-        );
+        bytes memory data = _generateCollectData(_generateCollectParams(_rca, agreementId, _fuzzyParams, tokens));
 
         return (data, collectionSeconds, tokens);
     }

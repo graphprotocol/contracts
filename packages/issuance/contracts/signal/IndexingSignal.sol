@@ -137,10 +137,7 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
      * @param governor Address that will have the GOVERNOR_ROLE
      * @param minimumIndexerCount_ Initial minimum indexer count
      */
-    function initialize(
-        address governor,
-        uint256 minimumIndexerCount_
-    ) external virtual initializer {
+    function initialize(address governor, uint256 minimumIndexerCount_) external virtual initializer {
         __BaseUpgradeable_init(governor);
 
         // Set up indexer set operator role (admin'd by governor)
@@ -179,7 +176,10 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
 
         // Enforce minimum indexer count (unless privileged)
         if (!$.privilegedSignalers[msg.sender]) {
-            require(indexerCount >= $.minimumIndexerCount, IndexerCountBelowMinimum(indexerCount, $.minimumIndexerCount));
+            require(
+                indexerCount >= $.minimumIndexerCount,
+                IndexerCountBelowMinimum(indexerCount, $.minimumIndexerCount)
+            );
         }
 
         // Update global accumulator before signal changes
@@ -287,16 +287,16 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
     /**
      * @inheritdoc IIndexingSignal
      */
-    function setIndexerCount(
-        bytes32 subgraphDeploymentID,
-        uint256 indexerCount
-    ) external override whenNotPaused {
+    function setIndexerCount(bytes32 subgraphDeploymentID, uint256 indexerCount) external override whenNotPaused {
         IndexingSignalData storage $ = _getStorage();
         DepositorPosition storage pos = $.positions[msg.sender][subgraphDeploymentID];
         require(pos.tokens > 0, NoExistingPosition(msg.sender, subgraphDeploymentID));
 
         if (!$.privilegedSignalers[msg.sender]) {
-            require(indexerCount >= $.minimumIndexerCount, IndexerCountBelowMinimum(indexerCount, $.minimumIndexerCount));
+            require(
+                indexerCount >= $.minimumIndexerCount,
+                IndexerCountBelowMinimum(indexerCount, $.minimumIndexerCount)
+            );
         }
 
         uint256 oldCount = pos.indexerCount;
@@ -417,15 +417,7 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
      * @notice Collect via the escrow interface without context. Reverts — context is required
      * for virtual escrow to resolve the subgraph deployment.
      */
-    function collect(
-        IGraphPayments.PaymentTypes,
-        address,
-        address,
-        uint256,
-        address,
-        uint256,
-        address
-    ) external pure {
+    function collect(IGraphPayments.PaymentTypes, address, address, uint256, address, uint256, address) external pure {
         revert CollectionContextRequired();
     }
 
@@ -454,7 +446,14 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
             // Mint GRT to this contract, then distribute via GraphPayments
             GRAPH_TOKEN.mint(address(this), collectedTokens);
             GRAPH_TOKEN.approve(address(GRAPH_PAYMENTS), collectedTokens);
-            GRAPH_PAYMENTS.collect(paymentType, receiver, collectedTokens, dataService, dataServiceCut, receiverDestination);
+            GRAPH_PAYMENTS.collect(
+                paymentType,
+                receiver,
+                collectedTokens,
+                dataService,
+                dataServiceCut,
+                receiverDestination
+            );
         }
 
         emit IssuanceCollected(collectionContext, receiver, collectedTokens);
@@ -533,10 +532,7 @@ contract IndexingSignal is BaseUpgradeable, IIndexingSignal, IContractApprover {
     /**
      * @inheritdoc IIndexingSignal
      */
-    function getVirtualBalance(
-        bytes32 subgraphDeploymentID,
-        address indexer
-    ) external view override returns (uint256) {
+    function getVirtualBalance(bytes32 subgraphDeploymentID, address indexer) external view override returns (uint256) {
         IndexingSignalData storage $ = _getStorage();
         uint256 currentAcc = $.accIssuancePerSignal + _getNewIssuancePerSignal($);
         return _calcVirtualBalance($.agreementEscrows[subgraphDeploymentID][indexer], currentAcc);

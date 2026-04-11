@@ -627,12 +627,13 @@ library IndexingAgreement {
         address _allocationId,
         IRecurringCollector.RecurringCollectionAgreement calldata _rca
     ) private returns (bytes16) {
-        IAllocation.State memory allocation = _requireValidAllocation(_allocations, _allocationId, _rca.serviceProvider);
-
-        require(
-            _rca.dataService == address(this),
-            IndexingAgreementWrongDataService(address(this), _rca.dataService)
+        IAllocation.State memory allocation = _requireValidAllocation(
+            _allocations,
+            _allocationId,
+            _rca.serviceProvider
         );
+
+        require(_rca.dataService == address(this), IndexingAgreementWrongDataService(address(this), _rca.dataService));
 
         AcceptIndexingAgreementMetadata memory metadata = IndexingAgreementDecoder.decodeRCAMetadata(_rca.metadata);
 

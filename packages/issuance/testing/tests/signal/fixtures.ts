@@ -3,9 +3,9 @@
  * Deployment and setup functions for IndexingSignal contracts
  */
 
+import { ethers as ethersLib } from 'ethers'
 import fs from 'fs'
 import { createRequire } from 'module'
-import { ethers as ethersLib } from 'ethers'
 
 import { getEthers, type HardhatEthersSigner } from '../common/ethersHelper'
 import { deployTestGraphToken, getTestAccounts, type TestAccounts } from '../common/fixtures'

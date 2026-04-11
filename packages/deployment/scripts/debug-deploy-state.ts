@@ -1,6 +1,5 @@
-import { createPublicClient, http } from 'viem'
-import { computeBytecodeHash } from '../lib/bytecode-utils.js'
 import { loadSubgraphServiceArtifact } from '../lib/artifact-loaders.js'
+import { computeBytecodeHash } from '../lib/bytecode-utils.js'
 
 async function main() {
   console.log('\n📋 Investigating Deploy "Unchanged" Message\n')
