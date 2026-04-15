@@ -34,10 +34,23 @@ export default buildModule('SubgraphService', (m) => {
   // indexing-agreement logic into stand-alone libraries; these must be
   // deployed and link-passed to the implementation so the bytecode's
   // placeholder slots resolve at deploy time.
+  //
+  // Ordering matters: IndexingAgreement calls into IndexingAgreementDecoder,
+  // which in turn calls into IndexingAgreementDecoderRaw, so the deeper
+  // libraries have to be deployed and linked first.
   const StakeClaims = m.library('StakeClaims')
   const AllocationHandler = m.library('AllocationHandler')
-  const IndexingAgreement = m.library('IndexingAgreement')
-  const IndexingAgreementDecoder = m.library('IndexingAgreementDecoder')
+  const IndexingAgreementDecoderRaw = m.library('IndexingAgreementDecoderRaw')
+  const IndexingAgreementDecoder = m.library('IndexingAgreementDecoder', {
+    libraries: {
+      IndexingAgreementDecoderRaw,
+    },
+  })
+  const IndexingAgreement = m.library('IndexingAgreement', {
+    libraries: {
+      IndexingAgreementDecoder,
+    },
+  })
 
   // Deploy implementation
   const SubgraphServiceImplementation = deployImplementation(
