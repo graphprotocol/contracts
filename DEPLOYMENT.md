@@ -32,12 +32,12 @@ feature/* ────────────────┐
 
 ## Branches
 
-| Branch | Purpose | Contains |
-|--------|---------|----------|
-| `feature/*` | Active development | Work-in-progress, not yet deployment-ready |
-| `main` | Development head | Latest **deployment-ready** code |
+| Branch             | Purpose                     | Contains                                    |
+| ------------------ | --------------------------- | ------------------------------------------- |
+| `feature/*`        | Active development          | Work-in-progress, not yet deployment-ready  |
+| `main`             | Development head            | Latest **deployment-ready** code            |
 | `deployed/testnet` | Testnet deployment tracking | Exactly what's deployed on Arbitrum Sepolia |
-| `deployed/mainnet` | Mainnet deployment tracking | Exactly what's deployed on Arbitrum One |
+| `deployed/mainnet` | Mainnet deployment tracking | Exactly what's deployed on Arbitrum One     |
 
 ### Finding deployed code
 
