@@ -138,3 +138,9 @@ PRs to `main` that modify Solidity contract files require an `audited` label bef
 - **Label:** `audited`
 
 This enforces principle #2: code in `main` must be audited.
+
+### Artifact Backporting
+
+When deployment artifacts are committed to a deployment branch, a PR is automatically created to backport them to `main` (`.github/workflows/backport-artifacts.yml`).
+
+This ensures `main` stays in sync with deployed artifacts (e.g., updated `addresses.json`) without manual backporting.
