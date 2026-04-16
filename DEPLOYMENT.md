@@ -82,12 +82,13 @@ feature/new-stuff ──PR──► main
 When ready to deploy to testnet:
 
 1. Create a PR from `main` to `deployed/testnet`
-2. Review and merge the PR
-3. Create tag `deploy/testnet/YYYY-MM-DD`
-4. Deploy the contracts to Arbitrum Sepolia
+2. Deploy the contracts to Arbitrum Sepolia
+3. Commit any deployment artifacts (e.g., updated `addresses.json`) to the PR
+4. Review and merge the PR
+5. Tag is created automatically
 
 ```
-main ──PR──► deployed/testnet ──► tag: deploy/testnet/YYYY-MM-DD
+main ──PR──► deploy ──► commit artifacts ──► merge ──► tag: deploy/testnet/YYYY-MM-DD
 ```
 
 ### Mainnet Deployment
@@ -95,12 +96,13 @@ main ──PR──► deployed/testnet ──► tag: deploy/testnet/YYYY-MM-DD
 When ready to deploy to mainnet (typically after testnet validation and audit):
 
 1. Create a PR from `deployed/testnet` to `deployed/mainnet`
-2. Review and merge the PR
-3. Create tag `deploy/mainnet/YYYY-MM-DD`
-4. Deploy the contracts to Arbitrum One
+2. Deploy the contracts to Arbitrum One
+3. Commit any deployment artifacts to the PR
+4. Review and merge the PR
+5. Tag is created automatically
 
 ```
-deployed/testnet ──PR──► deployed/mainnet ──► tag: deploy/mainnet/YYYY-MM-DD
+deployed/testnet ──PR──► deploy ──► commit artifacts ──► merge ──► tag: deploy/mainnet/YYYY-MM-DD
 ```
 
 ### Emergency Hotfix
