@@ -23,6 +23,7 @@ const coder = ethers.AbiCoder.defaultAbiCoder()
     maxOngoingTokensPerSecond: 1n * 10n ** 15n,
     minSecondsPerCollection: 3600n,
     maxSecondsPerCollection: 86400n,
+    conditions: 0n,
     nonce: 42n,
     metadata: '0xdeadbeef',
   }
@@ -30,7 +31,7 @@ const coder = ethers.AbiCoder.defaultAbiCoder()
 
   const encoded = coder.encode(
     [
-      'tuple(tuple(uint64 deadline, uint64 endsAt, address payer, address dataService, address serviceProvider, uint256 maxInitialTokens, uint256 maxOngoingTokensPerSecond, uint32 minSecondsPerCollection, uint32 maxSecondsPerCollection, uint256 nonce, bytes metadata) rca, bytes signature)',
+      'tuple(tuple(uint64 deadline, uint64 endsAt, address payer, address dataService, address serviceProvider, uint256 maxInitialTokens, uint256 maxOngoingTokensPerSecond, uint32 minSecondsPerCollection, uint32 maxSecondsPerCollection, uint16 conditions, uint256 nonce, bytes metadata) rca, bytes signature)',
     ],
     [{ rca, signature }],
   )
@@ -46,6 +47,7 @@ const coder = ethers.AbiCoder.defaultAbiCoder()
   assert.equal(decoded.rca.maxOngoingTokensPerSecond, rca.maxOngoingTokensPerSecond)
   assert.equal(decoded.rca.minSecondsPerCollection, rca.minSecondsPerCollection)
   assert.equal(decoded.rca.maxSecondsPerCollection, rca.maxSecondsPerCollection)
+  assert.equal(decoded.rca.conditions, rca.conditions)
   assert.equal(decoded.rca.nonce, rca.nonce)
   assert.equal(decoded.rca.metadata, rca.metadata)
   assert.equal(decoded.signature, signature)
@@ -65,6 +67,7 @@ const coder = ethers.AbiCoder.defaultAbiCoder()
     maxOngoingTokensPerSecond: 0n,
     minSecondsPerCollection: 0n,
     maxSecondsPerCollection: 0n,
+    conditions: 0n,
     nonce: 0n,
     metadata: '0x',
   }
@@ -72,7 +75,7 @@ const coder = ethers.AbiCoder.defaultAbiCoder()
 
   const encoded = coder.encode(
     [
-      'tuple(tuple(uint64 deadline, uint64 endsAt, address payer, address dataService, address serviceProvider, uint256 maxInitialTokens, uint256 maxOngoingTokensPerSecond, uint32 minSecondsPerCollection, uint32 maxSecondsPerCollection, uint256 nonce, bytes metadata) rca, bytes signature)',
+      'tuple(tuple(uint64 deadline, uint64 endsAt, address payer, address dataService, address serviceProvider, uint256 maxInitialTokens, uint256 maxOngoingTokensPerSecond, uint32 minSecondsPerCollection, uint32 maxSecondsPerCollection, uint16 conditions, uint256 nonce, bytes metadata) rca, bytes signature)',
     ],
     [{ rca, signature }],
   )
