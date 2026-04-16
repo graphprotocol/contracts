@@ -3,7 +3,7 @@ import { BytesLike, ethers } from 'ethers'
 // -- ABI tuple types for decoding --
 
 const RCA_TUPLE =
-  'tuple(uint64 deadline, uint64 endsAt, address payer, address dataService, address serviceProvider, uint256 maxInitialTokens, uint256 maxOngoingTokensPerSecond, uint32 minSecondsPerCollection, uint32 maxSecondsPerCollection, uint256 nonce, bytes metadata)'
+  'tuple(uint64 deadline, uint64 endsAt, address payer, address dataService, address serviceProvider, uint256 maxInitialTokens, uint256 maxOngoingTokensPerSecond, uint32 minSecondsPerCollection, uint32 maxSecondsPerCollection, uint16 conditions, uint256 nonce, bytes metadata)'
 
 const SIGNED_RCA_TUPLE = `tuple(${RCA_TUPLE} rca, bytes signature)`
 
@@ -23,6 +23,7 @@ export interface RecurringCollectionAgreement {
   maxOngoingTokensPerSecond: bigint
   minSecondsPerCollection: bigint
   maxSecondsPerCollection: bigint
+  conditions: bigint
   nonce: bigint
   metadata: string
 }
@@ -58,6 +59,7 @@ export function decodeSignedRCA(data: BytesLike): SignedRCA {
       maxOngoingTokensPerSecond: decoded.rca.maxOngoingTokensPerSecond,
       minSecondsPerCollection: decoded.rca.minSecondsPerCollection,
       maxSecondsPerCollection: decoded.rca.maxSecondsPerCollection,
+      conditions: decoded.rca.conditions,
       nonce: decoded.rca.nonce,
       metadata: decoded.rca.metadata,
     },
