@@ -121,6 +121,18 @@ deployed/mainnet ◄── hotfix/critical-fix
        └──► PR to main (backport)
 ```
 
-## Auto-tagging
+## Automation
+
+### Auto-tagging
 
 A GitHub Action (`.github/workflows/deployment-tag.yml`) automatically creates deployment tags when PRs are merged to deployment branches. No manual tagging is required.
+
+### Audit Label Requirement
+
+PRs to `main` that modify Solidity contract files require an `audited` label before merging (`.github/workflows/require-audit-label.yml`).
+
+- **Applies to:** `.sol` files outside of test directories
+- **Excludes:** Files in `/test/`, `/tests/`, or ending in `.t.sol`
+- **Label:** `audited`
+
+This enforces principle #2: code in `main` must be audited.
