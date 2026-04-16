@@ -783,7 +783,7 @@ interface IHorizonStakingMain {
      * - `newServiceProvider` and `newVerifier` must not be the zero address.
      * - `newServiceProvider` must have previously provisioned stake to `newVerifier`.
      *
-     * Emits {ThawRequestFulfilled}, {ThawRequestsFulfilled} and {DelegatedTokensWithdrawn} events.
+     * Emits {ThawRequestFulfilled} and {ThawRequestsFulfilled} events.
      *
      * @param oldServiceProvider The old service provider address
      * @param oldVerifier The old verifier address

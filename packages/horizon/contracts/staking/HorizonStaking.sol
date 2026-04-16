@@ -216,6 +216,11 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         require(prov.createdAt != 0, HorizonStakingInvalidProvision(serviceProvider, verifier));
 
         if ((prov.maxVerifierCutPending != prov.maxVerifierCut) || (prov.thawingPeriodPending != prov.thawingPeriod)) {
+            // Re-validate thawing period in case governor reduced _maxThawingPeriod after staging
+            require(
+                prov.thawingPeriodPending <= _maxThawingPeriod,
+                HorizonStakingInvalidThawingPeriod(prov.thawingPeriodPending, _maxThawingPeriod)
+            );
             prov.maxVerifierCut = prov.maxVerifierCutPending;
             prov.thawingPeriod = prov.thawingPeriodPending;
             emit ProvisionParametersSet(serviceProvider, verifier, prov.maxVerifierCut, prov.thawingPeriod);
@@ -837,8 +842,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @dev The parameter `nThawRequests` can be set to a non zero value to fulfill a specific number of thaw
      * requests in the event that fulfilling all of them results in a gas limit error. Otherwise, the function
      * will attempt to fulfill all thaw requests until the first one that is not yet expired is found.
-     * @dev If the delegation pool was completely slashed before withdrawing, calling this function will fulfill
-     * the thaw requests with an amount equal to zero.
+     * @dev If the delegation pool was completely slashed before withdrawing, calling this function will revert
+     * until the pool state is repaired with {IHorizonStakingMain-addToDelegationPool}.
      * @param _serviceProvider The service provider address
      * @param _verifier The verifier address
      * @param _newServiceProvider The new service provider address
@@ -1123,10 +1128,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
 
         // Validation
         uint256 tokensToWithdraw = 0;
-        uint256 currentEpoch = _graphEpochManager().currentEpoch();
-        if (
-            delegation.__DEPRECATED_tokensLockedUntil > 0 && currentEpoch >= delegation.__DEPRECATED_tokensLockedUntil
-        ) {
+        if (delegation.__DEPRECATED_tokensLockedUntil > 0) {
             tokensToWithdraw = delegation.__DEPRECATED_tokensLocked;
         }
         require(tokensToWithdraw > 0, HorizonStakingNothingToWithdraw());

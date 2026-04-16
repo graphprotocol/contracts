@@ -182,14 +182,26 @@ abstract contract HorizonStakingBase is
         }
 
         uint256 thawedTokens = 0;
-        Provision storage prov = _provisions[serviceProvider][verifier];
-        uint256 tokensThawing = prov.tokensThawing;
-        uint256 sharesThawing = prov.sharesThawing;
+        uint256 tokensThawing;
+        uint256 sharesThawing;
+        uint256 thawingNonce;
+
+        if (requestType == ThawRequestType.Provision) {
+            Provision storage prov = _provisions[serviceProvider][verifier];
+            tokensThawing = prov.tokensThawing;
+            sharesThawing = prov.sharesThawing;
+            thawingNonce = prov.thawingNonce;
+        } else {
+            DelegationPoolInternal storage pool = _getDelegationPool(serviceProvider, verifier);
+            tokensThawing = pool.tokensThawing;
+            sharesThawing = pool.sharesThawing;
+            thawingNonce = pool.thawingNonce;
+        }
 
         bytes32 thawRequestId = thawRequestList.head;
         while (thawRequestId != bytes32(0)) {
             ThawRequest storage thawRequest = _getThawRequest(requestType, thawRequestId);
-            if (thawRequest.thawingNonce == prov.thawingNonce) {
+            if (thawRequest.thawingNonce == thawingNonce) {
                 if (thawRequest.thawingUntil <= block.timestamp) {
                     // sharesThawing cannot be zero if there is a valid thaw request so the next division is safe
                     uint256 tokens = (thawRequest.shares * tokensThawing) / sharesThawing;
