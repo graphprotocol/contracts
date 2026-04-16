@@ -7,6 +7,22 @@ import { requireContract } from './issuance-deploy-utils.js'
 import { graph } from '../rocketh/deploy.js'
 
 /**
+ * Check if the provider can sign as the protocol governor
+ *
+ * With a mnemonic (local network), all derived accounts are available via eth_accounts.
+ * With explicit keys (production), only configured accounts are available.
+ *
+ * @param env - Deployment environment
+ * @returns Governor address and whether the provider can sign as governor
+ */
+export async function canSignAsGovernor(env: Environment): Promise<{ governor: string; canSign: boolean }> {
+  const governor = await getGovernor(env)
+  const accounts = (await env.network.provider.request({ method: 'eth_accounts' })) as string[]
+  const canSign = accounts.some((a) => a.toLowerCase() === governor.toLowerCase())
+  return { governor, canSign }
+}
+
+/**
  * Get the protocol governor address from the Controller contract
  *
  * The Controller contract is the governance registry for the Graph Protocol.

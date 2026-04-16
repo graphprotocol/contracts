@@ -2,9 +2,13 @@ import { GRAPH_TOKEN_ABI, ISSUANCE_TARGET_ABI, REWARDS_MANAGER_ABI } from '@grap
 import { getTargetChainIdFromEnv } from '@graphprotocol/deployment/lib/address-book-utils.js'
 import { requireRewardsManagerUpgraded } from '@graphprotocol/deployment/lib/contract-checks.js'
 import { Contracts } from '@graphprotocol/deployment/lib/contract-registry.js'
-import { getGovernor } from '@graphprotocol/deployment/lib/controller-utils.js'
+import { canSignAsGovernor } from '@graphprotocol/deployment/lib/controller-utils.js'
 import { ComponentTags, Tags } from '@graphprotocol/deployment/lib/deployment-tags.js'
-import { createGovernanceTxBuilder, saveGovernanceTxAndExit } from '@graphprotocol/deployment/lib/execute-governance.js'
+import {
+  createGovernanceTxBuilder,
+  executeTxBatchDirect,
+  saveGovernanceTxAndExit,
+} from '@graphprotocol/deployment/lib/execute-governance.js'
 import { requireContracts, requireDeployer } from '@graphprotocol/deployment/lib/issuance-deploy-utils.js'
 import { graph } from '@graphprotocol/deployment/rocketh/deploy.js'
 import type { DeployScriptModule } from '@rocketh/core/types'
@@ -20,8 +24,8 @@ import { encodeFunctionData } from 'viem'
  * - (Optional) Set default target for unallocated issuance
  *
  * Idempotent: checks on-chain state, skips if already activated.
- * Generates Safe TX batch for governance execution.
- * Does NOT execute - governance must execute via Safe or deploy:execute-governance.
+ * If the provider has access to the governor key, executes directly.
+ * Otherwise generates governance TX file.
  *
  * Usage:
  *   pnpm hardhat deploy --tags issuance-activation --network <network>
@@ -29,8 +33,8 @@ import { encodeFunctionData } from 'viem'
 const func: DeployScriptModule = async (env) => {
   const deployer = requireDeployer(env)
 
-  // Get protocol governor from Controller
-  const governor = await getGovernor(env)
+  // Check if the provider can sign as the protocol governor
+  const { governor, canSign } = await canSignAsGovernor(env)
 
   const [issuanceAllocator, rewardsManager, graphToken] = requireContracts(env, [
     Contracts.issuance.IssuanceAllocator,
@@ -120,7 +124,13 @@ const func: DeployScriptModule = async (env) => {
     env.showMessage(`  + GraphToken.addMinter(${iaAddress})`)
   }
 
-  saveGovernanceTxAndExit(env, builder, `${Contracts.issuance.IssuanceAllocator.name} activation`)
+  if (canSign) {
+    env.showMessage('\n🔨 Executing activation TX batch...\n')
+    await executeTxBatchDirect(env, builder, governor)
+    env.showMessage(`\n✅ ${Contracts.issuance.IssuanceAllocator.name} activation complete!\n`)
+  } else {
+    saveGovernanceTxAndExit(env, builder, `${Contracts.issuance.IssuanceAllocator.name} activation`)
+  }
 }
 
 func.tags = Tags.issuanceActivation

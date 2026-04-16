@@ -13,8 +13,10 @@ import checkDeployerTask from './tasks/check-deployer.js'
 import deploymentStatusTask from './tasks/deployment-status.js'
 import executeGovernanceTask from './tasks/execute-governance.js'
 import grantRoleTask from './tasks/grant-role.js'
+import { grtBalanceTask, grtMintTask, grtStatusTask, grtTransferTask } from './tasks/grt-tasks.js'
 import listPendingTask from './tasks/list-pending-implementations.js'
 import listRolesTask from './tasks/list-roles.js'
+import { reoDisableTask, reoEnableTask, reoStatusTask } from './tasks/reo-tasks.js'
 import resetForkTask from './tasks/reset-fork.js'
 import revokeRoleTask from './tasks/revoke-role.js'
 import verifyContractTask from './tasks/verify-contract.js'
@@ -25,6 +27,14 @@ const __dirname = path.dirname(__filename)
 
 // Package paths
 const packageRoot = __dirname
+
+// Hardhat v3 does not auto-set HARDHAT_NETWORK (v2 did).
+// isLocalNetworkMode() in address-book-utils.ts relies on this env var to
+// select addresses-local-network.json over addresses.json.
+const networkArg = process.argv.find((_, i, a) => a[i - 1] === '--network')
+if (networkArg === 'localNetwork') {
+  process.env.HARDHAT_NETWORK = 'localNetwork'
+}
 
 // RPC URLs with defaults
 const ARBITRUM_ONE_RPC = process.env.ARBITRUM_ONE_RPC || 'https://arb1.arbitrum.io/rpc'
@@ -50,7 +60,14 @@ function getDeployerKeyName(networkName: string): string {
 }
 
 /**
- * Get accounts config for a network using configVariable for lazy resolution
+ * Get accounts config for a network.
+ *
+ * Uses configVariable for lazy resolution. If the key is not set (env var or keystore),
+ * read-only operations will still work but signing will fail with HHE7 error.
+ *
+ * To enable signing, set the key via:
+ * - Environment: export ARBITRUM_SEPOLIA_DEPLOYER_KEY=0x...
+ * - Keystore: npx hardhat keystore set ARBITRUM_SEPOLIA_DEPLOYER_KEY
  */
 const getNetworkAccounts = (networkName: string) => {
   return [configVariable(getDeployerKeyName(networkName))]
@@ -69,8 +86,15 @@ const config: HardhatUserConfig = {
     deploymentStatusTask,
     executeGovernanceTask,
     grantRoleTask,
+    grtBalanceTask,
+    grtMintTask,
+    grtStatusTask,
+    grtTransferTask,
     listPendingTask,
     listRolesTask,
+    reoDisableTask,
+    reoEnableTask,
+    reoStatusTask,
     resetForkTask,
     revokeRoleTask,
     verifyContractTask,
@@ -78,6 +102,17 @@ const config: HardhatUserConfig = {
 
   // Chain descriptors for fork execution and local development
   chainDescriptors: {
+    // Graph Local Network (rem-local-network, docker-compose stack)
+    1337: {
+      name: 'Graph Local Network',
+      hardforkHistory: {
+        berlin: { blockNumber: 0 },
+        london: { blockNumber: 0 },
+        merge: { blockNumber: 0 },
+        shanghai: { blockNumber: 0 },
+        cancun: { blockNumber: 0 },
+      },
+    },
     // Local hardhat network (for non-fork runs)
     31337: {
       name: 'Hardhat Local',
@@ -154,6 +189,17 @@ const config: HardhatUserConfig = {
             enabled: true,
           }
         : undefined,
+    },
+    // Graph Local Network (rem-local-network docker-compose stack)
+    // Contracts deployed fresh with hardhat-graph-protocol (Phase 1)
+    // Address books use addresses-local-network.json files
+    localNetwork: {
+      type: 'http',
+      url: process.env.LOCAL_NETWORK_RPC || 'http://chain:8545',
+      chainId: 1337,
+      accounts: {
+        mnemonic: 'test test test test test test test test test test test junk',
+      },
     },
     arbitrumOne: {
       type: 'http',

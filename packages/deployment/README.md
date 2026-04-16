@@ -64,7 +64,8 @@ FORK_NETWORK=arbitrumSepolia ARBITRUM_SEPOLIA_RPC=<url> pnpm test
 
 ## See Also
 
-- [docs/DeploymentDesignPrinciples.md](./docs/DeploymentDesignPrinciples.md) - Core design principles and patterns
+- [docs/deploy/ImplementationPrinciples.md](./docs/deploy/ImplementationPrinciples.md) - Core design principles and patterns
 - [docs/Architecture.md](./docs/Architecture.md) - Package structure and tags
 - [docs/GovernanceWorkflow.md](./docs/GovernanceWorkflow.md) - Detailed governance workflow
-- [Design.md](./docs/Design.md) - Technical design documentation
+- [docs/Design.md](./docs/Design.md) - Technical design documentation
+- [docs/LocalForkTesting.md](./docs/LocalForkTesting.md) - Fork-based and local network testing

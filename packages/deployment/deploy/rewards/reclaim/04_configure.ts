@@ -6,11 +6,15 @@ import {
   type ReclaimReasonKey,
 } from '@graphprotocol/deployment/lib/contract-checks.js'
 import { Contracts } from '@graphprotocol/deployment/lib/contract-registry.js'
-import { getGovernor } from '@graphprotocol/deployment/lib/controller-utils.js'
+import { canSignAsGovernor } from '@graphprotocol/deployment/lib/controller-utils.js'
 import { actionTag, ComponentTags, DeploymentActions, Tags } from '@graphprotocol/deployment/lib/deployment-tags.js'
-import { createGovernanceTxBuilder } from '@graphprotocol/deployment/lib/execute-governance.js'
+import {
+  createGovernanceTxBuilder,
+  executeTxBatchDirect,
+  saveGovernanceTxAndExit,
+} from '@graphprotocol/deployment/lib/execute-governance.js'
 import { requireContract } from '@graphprotocol/deployment/lib/issuance-deploy-utils.js'
-import { execute, graph } from '@graphprotocol/deployment/rocketh/deploy.js'
+import { graph } from '@graphprotocol/deployment/rocketh/deploy.js'
 import type { DeployScriptModule } from '@rocketh/core/types'
 import { encodeFunctionData } from 'viem'
 
@@ -28,17 +32,17 @@ import { encodeFunctionData } from 'viem'
  * - CLOSE_ALLOCATION → ReclaimedRewardsForCloseAllocation
  *
  * Idempotent: checks if already configured, skips if so.
- * Generates Safe TX batch if direct execution fails.
+ * If the provider has access to the governor key, executes directly.
+ * Otherwise generates governance TX file.
  *
  * Usage:
  *   pnpm hardhat deploy --tags rewards-reclaim-configure --network <network>
  */
 const func: DeployScriptModule = async (env) => {
-  const executeFn = execute(env)
   const client = graph.getPublicClient(env)
 
-  // Get protocol governor from Controller
-  const governor = await getGovernor(env)
+  // Check if the provider can sign as the protocol governor
+  const { governor, canSign } = await canSignAsGovernor(env)
 
   const rewardsManager = requireContract(env, Contracts.horizon.RewardsManager)
 
@@ -97,45 +101,21 @@ const func: DeployScriptModule = async (env) => {
   for (const reclaim of needsConfiguration) {
     const reason = RECLAIM_REASONS[reclaim.reasonKey]
 
-    try {
-      const data = encodeFunctionData({
-        abi: REWARDS_MANAGER_ABI,
-        functionName: 'setReclaimAddress',
-        args: [reason as `0x${string}`, reclaim.address as `0x${string}`],
-      })
-      builder.addTx({ to: rewardsManager.address, value: '0', data })
-      env.showMessage(`  + setReclaimAddress(${reclaim.reasonKey}, ${reclaim.address})`)
-    } catch {
-      env.showMessage(`  ⚠️  setReclaimAddress not available on RewardsManager interface`)
-      return
-    }
+    const data = encodeFunctionData({
+      abi: REWARDS_MANAGER_ABI,
+      functionName: 'setReclaimAddress',
+      args: [reason as `0x${string}`, reclaim.address as `0x${string}`],
+    })
+    builder.addTx({ to: rewardsManager.address, value: '0', data })
+    env.showMessage(`  + setReclaimAddress(${reclaim.reasonKey}, ${reclaim.address})`)
   }
 
-  const txFile = builder.saveToFile()
-  env.showMessage(`\n✓ TX batch saved: ${txFile}`)
-
-  // Try direct execution
-  env.showMessage(`\n🔐 Attempting direct execution...`)
-  try {
-    for (const reclaim of needsConfiguration) {
-      const reason = RECLAIM_REASONS[reclaim.reasonKey]
-
-      await executeFn(rewardsManager, {
-        account: governor,
-        functionName: 'setReclaimAddress',
-        args: [reason, reclaim.address],
-      })
-      env.showMessage(`  ✓ setReclaimAddress(${reclaim.reasonKey}, ${reclaim.address}) executed`)
-    }
-
+  if (canSign) {
+    env.showMessage('\n🔨 Executing configuration TX batch...\n')
+    await executeTxBatchDirect(env, builder, governor)
     env.showMessage(`\n✅ ${Contracts.horizon.RewardsManager.name} reclaim configuration complete!`)
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error)
-    env.showMessage(`\n⚠️  Direct execution failed: ${errorMessage.slice(0, 100)}...`)
-    env.showMessage(`\n📋 GOVERNANCE ACTION REQUIRED:`)
-    env.showMessage(`   The ${Contracts.horizon.RewardsManager.name} reclaim configuration must be executed via Safe.`)
-    env.showMessage(`   TX batch file: ${txFile}`)
-    env.showMessage(`   Import this file into Safe Transaction Builder.`)
+  } else {
+    saveGovernanceTxAndExit(env, builder, `${Contracts.horizon.RewardsManager.name} reclaim configuration`)
   }
 }
 
