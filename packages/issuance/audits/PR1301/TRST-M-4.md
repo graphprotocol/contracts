@@ -22,3 +22,12 @@ Replace the affected high-level call sites with inline assembly that performs th
 TBD
 
 ---
+
+## Fix
+
+Replaced all three call sites with inline assembly that bounds returndata copy:
+
+- **Eligibility staticcall**: copies at most 32 bytes into scratch space (0x00), reads the `uint256` result from there.
+- **beforeCollection / afterCollection**: copy 0 bytes (`retSize=0`), only the `bool success` from the CALL opcode is used.
+
+This prevents a malicious payer from forcing RETURNDATACOPY of ~850 KB per callback.
