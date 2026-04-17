@@ -143,7 +143,11 @@ contract RecurringAgreementManager is
     /**
      * @notice Per-(collector, provider) pair tracking data
      * @param sumMaxNextClaim Sum of maxNextClaim for all agreements in this pair
-     * @param escrowSnap Last known escrow balance (for snapshot diff)
+     * @param escrowSnap Snapshot of escrow balance at the last _setEscrowSnap call.
+     * Input to totalEscrowDeficit accounting, not a guarantee of the live balance — it can
+     * drift between reconciliations (e.g. after beforeCollection's JIT deposit) until the
+     * next _reconcileProviderEscrow resyncs it. Read the live balance via _fetchEscrowAccount
+     * when actual solvency matters.
      * @param agreements Set of agreement IDs for this pair (stored as bytes32 for EnumerableSet)
      */
     struct CollectorProviderData {
@@ -176,8 +180,9 @@ contract RecurringAgreementManager is
         /// @notice Total unfunded escrow: sum of max(0, sumMaxNextClaim[c][p] - escrowSnap[c][p])
         uint256 totalEscrowDeficit;
         /// @notice The issuance allocator that mints GRT to this contract (20 bytes)
-        /// @dev Packed slot (28/32 bytes): issuanceAllocator (20) + ensuredIncomingDistributedToBlock (4) +
-        /// escrowBasis (1) + minOnDemandBasisThreshold (1) + minFullBasisMargin (1) + minThawFraction (1).
+        /// @dev Packed slot (29/32 bytes): issuanceAllocator (20) + ensuredIncomingDistributedToBlock (4) +
+        /// escrowBasis (1) + minOnDemandBasisThreshold (1) + minFullBasisMargin (1) + minThawFraction (1) +
+        /// minResidualEscrowFactor (1).
         /// All read together in _reconcileProviderEscrow / beforeCollection.
         IIssuanceAllocationDistribution issuanceAllocator;
         /// @notice Block number when _ensureIncomingDistributionToCurrentBlock last ran
@@ -194,6 +199,12 @@ contract RecurringAgreementManager is
         /// per (collector, provider) pair is skipped as operationally insignificant.
         /// Governance-configured.
         uint8 minThawFraction;
+        /// @notice Minimum residual escrow factor: when a (collector, provider) pair has no agreements
+        /// and the escrow balance is below 2^value, tracking is dropped; the residual is not worth
+        /// the gas cost of further thaw/withdraw cycles. Funds remain in PaymentsEscrow but are no
+        /// longer actively managed by RAM. 0 = drop only at zero balance. Governance-configured.
+        /// Default 50 ≈ 0.001 GRT.
+        uint8 minResidualEscrowFactor;
         /// @notice Optional oracle for checking payment eligibility of service providers (20/32 bytes in slot)
         IProviderEligibility providerEligibilityOracle;
     }
@@ -231,6 +242,7 @@ contract RecurringAgreementManager is
         $.minOnDemandBasisThreshold = 128;
         $.minFullBasisMargin = 16;
         $.minThawFraction = 16;
+        $.minResidualEscrowFactor = 50; // 2^50 ≈ 10^15 ≈ 0.001 GRT
     }
 
     // -- ERC165 --
@@ -435,6 +447,16 @@ contract RecurringAgreementManager is
         emit MinThawFractionSet(oldFraction, fraction);
     }
 
+    /// @inheritdoc IRecurringEscrowManagement
+    function setMinResidualEscrowFactor(uint8 value) external onlyRole(OPERATOR_ROLE) {
+        RecurringAgreementManagerStorage storage $ = _getStorage();
+        if ($.minResidualEscrowFactor == value) return;
+
+        uint8 oldValue = $.minResidualEscrowFactor;
+        $.minResidualEscrowFactor = value;
+        emit MinResidualEscrowFactorSet(oldValue, value);
+    }
+
     // -- IProviderEligibilityManagement --
 
     /// @inheritdoc IProviderEligibilityManagement
@@ -540,6 +562,11 @@ contract RecurringAgreementManager is
     /// @inheritdoc IRecurringAgreements
     function getMinThawFraction() external view returns (uint8) {
         return _getStorage().minThawFraction;
+    }
+
+    /// @inheritdoc IRecurringAgreements
+    function getMinResidualEscrowFactor() external view returns (uint8) {
+        return _getStorage().minResidualEscrowFactor;
     }
 
     /// @inheritdoc IRecurringAgreements
@@ -683,9 +710,17 @@ contract RecurringAgreementManager is
     }
 
     /**
-     * @notice Reconcile escrow then remove (collector, provider) tracking if fully drained.
-     * @dev Calls {_reconcileProviderEscrow} to withdraw completed thaws, then removes the pair from
-     * tracking only when both agreement count and escrowSnap are zero.
+     * @notice Reconcile escrow then remove (collector, provider) tracking if below residual threshold.
+     * @dev For tracked pairs (in providerSet): runs {_reconcileProviderEscrow}, then drops tracking
+     * when no agreements remain and escrow balance is at or below the residual threshold.
+     * For untracked pairs: performs a blind drain (withdraw matured thaw, thaw remainder) without
+     * re-creating tracking state.
+     *
+     * The residual threshold = 2^minResidualEscrowFactor. Below this, the residual is not worth
+     * the gas cost of further thaw/withdraw cycles, so tracking is dropped. Funds remain in
+     * PaymentsEscrow, just no longer actively managed by RAM. A subsequent {_offerAgreement}
+     * for the same pair will re-add tracking naturally.
+     *
      * Cascades to remove the collector when it has no remaining providers.
      * @param $ The storage reference
      * @param collector The collector contract address
@@ -698,11 +733,22 @@ contract RecurringAgreementManager is
         address collector,
         address provider
     ) private returns (bool tracked) {
+        if (!$.collectors[collector].providerSet.contains(provider)) {
+            // Not tracked — blind drain without re-creating tracking state.
+            _drainUntracked(collector, provider);
+            return false;
+        }
+
         _reconcileProviderEscrow($, collector, provider);
         CollectorProviderData storage cpd = $.collectors[collector].providers[provider];
 
-        if (cpd.agreements.length() != 0 || cpd.escrowSnap != 0) tracked = true;
-        else if ($.collectors[collector].providerSet.remove(provider)) {
+        // Drop tracking when no agreements and escrow is below residual threshold.
+        // Funds remain in PaymentsEscrow; deficit contribution is already 0 (sumMaxNextClaim == 0).
+        // Read real balance (escrowSnap is already cleared when sumMaxNextClaim == 0).
+        tracked =
+            cpd.agreements.length() != 0 ||
+            (2 ** uint256($.minResidualEscrowFactor) <= _fetchEscrowAccount(collector, provider).balance);
+        if (!tracked && $.collectors[collector].providerSet.remove(provider)) {
             emit ProviderRemoved(collector, provider);
             if ($.collectors[collector].providerSet.length() == 0) {
                 // Provider agreement count will already be zero at this point.
@@ -710,6 +756,24 @@ contract RecurringAgreementManager is
                 emit CollectorRemoved(collector);
             }
         }
+    }
+
+    /**
+     * @notice Blind drain for an untracked (collector, provider) escrow pair.
+     * @dev Withdraws matured thaw if any, then starts a new thaw for remaining balance.
+     * Does not read or write any RAM tracking state. Only acts when no thaw is active
+     * (after withdraw or if none was started), so thaw() is safe — no timer to reset.
+     * @param collector The collector contract address
+     * @param provider Service provider address
+     */
+    function _drainUntracked(address collector, address provider) private {
+        IPaymentsEscrow.EscrowAccount memory account = _fetchEscrowAccount(collector, provider);
+        if (0 < account.tokensThawing && account.thawEndTimestamp < block.timestamp) {
+            PAYMENTS_ESCROW.withdraw(collector, provider);
+            account = _fetchEscrowAccount(collector, provider);
+        }
+        if (account.tokensThawing == 0 && 0 < account.balance)
+            PAYMENTS_ESCROW.thaw(collector, provider, account.balance);
     }
 
     /**
@@ -928,7 +992,8 @@ contract RecurringAgreementManager is
         address provider
     ) private {
         uint256 oldEscrow = cpd.escrowSnap;
-        uint256 newEscrow = _fetchEscrowAccount(collector, provider).balance;
+        // No need to track escrow when no claims remain (deficit is 0 regardless).
+        uint256 newEscrow = cpd.sumMaxNextClaim != 0 ? _fetchEscrowAccount(collector, provider).balance : 0;
         if (oldEscrow == newEscrow) return;
 
         uint256 oldDeficit = _providerEscrowDeficit(cpd);

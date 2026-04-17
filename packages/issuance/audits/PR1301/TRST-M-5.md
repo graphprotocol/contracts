@@ -22,3 +22,7 @@ Gate the check on the incremental amount being added to `thawingTarget` in the c
 TBD
 
 ---
+
+RAM always calls `adjustThaw(..., evenIfTimerReset=false)`. When a thaw is already active, any increase to `thawingTarget` that would change `thawEndTimestamp` is silently rejected by PaymentsEscrow so the timer is never reset. The "bootstrap + repeated 1 wei" attack does not work as described?
+
+The actual vector is narrower: indefinite postponement of pair tracking cleanup when `sumMaxNextClaim = 0`. Addressed by `minResidualEscrowFactor` in the fix for TRST-M-1.

@@ -76,6 +76,13 @@ interface IRecurringEscrowManagement {
      */
     event MinThawFractionSet(uint8 oldFraction, uint8 newFraction);
 
+    /**
+     * @notice Emitted when the minimum residual escrow is changed
+     * @param oldValue The previous value
+     * @param newValue The new value
+     */
+    event MinResidualEscrowFactorSet(uint8 oldValue, uint8 newValue);
+
     // solhint-enable gas-indexed-events
 
     // -- Functions --
@@ -124,4 +131,20 @@ interface IRecurringEscrowManagement {
      * @param fraction The numerator over 256 for the dust threshold
      */
     function setMinThawFraction(uint8 fraction) external;
+
+    /**
+     * @notice Set the minimum residual escrow factor for pair tracking cleanup.
+     * @dev Requires OPERATOR_ROLE. When a (collector, provider) pair has no remaining agreements
+     * and the escrow balance is below 2^value, tracking is dropped because the residual is not worth
+     * the gas cost of further thaw/withdraw cycles. Funds remain in PaymentsEscrow but are no
+     * longer actively managed by RAM.
+     *
+     * - 0: 2^0 = 1 (drop only at zero balance)
+     * - 50: 2^50 ≈ 10^15 (0.001 GRT, default)
+     * - 60: 2^60 ≈ 10^18 (1 GRT)
+     * - 255: 2^255 (effectively never drop)
+     *
+     * @param value The exponent (threshold = 2^value)
+     */
+    function setMinResidualEscrowFactor(uint8 value) external;
 }
