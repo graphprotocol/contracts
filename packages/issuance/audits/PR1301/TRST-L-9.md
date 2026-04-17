@@ -20,3 +20,14 @@ Add explicit buffer constants to the precheck so that the comparison accounts fo
 TBD
 
 ---
+
+Added `CALLBACK_GAS_OVERHEAD = 3_000` constant. All three prechecks now use:
+
+```solidity
+if (gasleft() < (MAX_PAYER_CALLBACK_GAS * 64) / 63 + CALLBACK_GAS_OVERHEAD)
+    revert RecurringCollectorInsufficientCallbackGas();
+```
+
+Sized to cover the worst-case pre-opcode cost. The eligibility STATICCALL is the first access to the payer account on the collect path, so the EIP-2929 cold-account access cost (2_600) dominates; the remaining headroom covers `abi.encodeCall` and stack/memory setup. Subsequent `beforeCollection` / `afterCollection` calls hit the payer warm (100 gas access), so the buffer is generous there.
+
+Follows the Optimism buffer-constant pattern as suggested.
