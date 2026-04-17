@@ -3,7 +3,7 @@
 - **Severity:** Medium
 - **Category:** Logical flaw
 - **Source:** RecurringAgreementManager.sol
-- **Status:** Open
+- **Status:** Fixed
 
 ## Description
 
@@ -19,7 +19,11 @@ The original intention cannot be truly fulfilled without major redesign of multi
 
 ## Team Response
 
-TBD
+Fixed.
+
+## Mitigation Review
+
+The new setup is schematically sound. Admin intervention to trigger JustInTime may still be required to satisfy requests when the system is in OnDemand but insufficient liquidity is being thawed or minted into the contract.
 
 ---
 

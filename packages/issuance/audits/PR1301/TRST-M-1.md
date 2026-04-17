@@ -23,7 +23,11 @@ Add a minimum thaw threshold in `_updateEscrow()`. Amounts below the threshold s
 
 ## Team Response
 
-TBD
+Fixed.
+
+## Mitigation Review
+
+The griefing path remains reachable. Before any agreement is offered, a 1 wei donation to the (collector, provider) escrow account, followed by a permissionless call to `_reconcilePairTracking()` reaches `_updateEscrow()` with min and max at zero, and the thaw threshold is also at zero. Any positive excess passes the `thawThreshold <= excess` check, causing an `adjustThaw(thawTarget = 1)`. The same sequence also occurs after the final collection of an agreement, when `sumMaxNextClaim` transitions to zero via `afterCollection()` -> `_reconcileAndUpdateEscrow()` -> `_reconcileAgreement()`. There should be a nominal, non-negligible minimum thaw amount on top of the fraction check, applied in both `_reconcileProviderEscrow()` and `_withdrawAndRebalance()`. When `escrowBasis` is JustInTime, override the nominal skip so that dust can still be thawed out for solvency.
 
 ---
 

@@ -3,7 +3,7 @@
 - **Severity:** High
 - **Category:** Type confusion
 - **Source:** RecurringCollector.sol
-- **Status:** Open
+- **Status:** Fixed
 
 ## Description
 
@@ -21,7 +21,11 @@ Record whether the payer had code at agreement acceptance time by adding a bool 
 
 ## Team Response
 
-TBD
+Fixed.
+
+## Mitigation Review
+
+Fixed under the assumption that a provider setting `CONDITION_ELIGIBILITY_CHECK` to true must trust the payer contract. The statement in the fix comment that "An EOA cannot pass this check, so an EOA cannot create an agreement with eligibility gating enabled" is inaccurate, because an EOA can always change its code back and forth via EIP-7702 to pass interface checks. The correct security boundary is that the provider trusts the payer contract when opting into eligibility, not that the payer cannot be an EOA.
 
 ---
 

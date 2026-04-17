@@ -3,7 +3,7 @@
 - **Severity:** Medium
 - **Category:** Logical flaw
 - **Source:** RecurringAgreementManager.sol
-- **Status:** Open
+- **Status:** Acknowledged
 
 ## Description
 
@@ -19,7 +19,7 @@ Add a separate configuration flag (e.g., `allowModeDegradation`) that must be ex
 
 ## Team Response
 
-TBD
+Acknowledged. The risk is documented, including the operator caution about pre-offer headroom checks.
 
 ---
 
