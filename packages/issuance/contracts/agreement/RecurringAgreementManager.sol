@@ -54,11 +54,15 @@ import { ReentrancyGuardTransient } from "@openzeppelin/contracts/utils/Reentran
  * and {cancelAgreement} call collectors directly. Discovery calls `getAgreementDetails`;
  * reconciliation calls `getMaxNextClaim` — these return values drive escrow accounting.
  * A broken or malicious collector can cause reconciliation to revert; use
- * {forceRemoveAgreement} as an operator escape hatch. Once tracked, reconciliation proceeds
- * even if COLLECTOR_ROLE is later revoked, ensuring orderly settlement.
+ * {forceRemoveAgreement} as an operator escape hatch.
  *
  * Collectors own agreement uniqueness, replay protection, and state transitions; this
  * contract does not re-check them.
+ *
+ * Role changes are not retroactive. Revoking COLLECTOR_ROLE or DATA_SERVICE_ROLE does not
+ * invalidate agreements that were offered or accepted while the roles were held. Once
+ * tracked, reconciliation proceeds to orderly settlement. Role changes only gate *new*
+ * {offerAgreement} calls and discovery inside {_reconcileAgreement}.
  *
  * {offerAgreement} and {cancelAgreement} forward to the collector then reconcile locally.
  * The collector does not callback to `msg.sender`, so these methods own the full call
