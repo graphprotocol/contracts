@@ -4,26 +4,24 @@ pragma solidity ^0.8.22;
 import { IPaymentsCollector } from "./IPaymentsCollector.sol";
 
 // -- Agreement state flags --
-// REGISTERED, ACCEPTED are monotonic (once set, never cleared).
-// All other flags are clearable — cleared when pending terms are accepted.
 
 /// @dev Offer exists in storage
 uint16 constant REGISTERED = 1;
 /// @dev Provider accepted terms
 uint16 constant ACCEPTED = 2;
-/// @dev collectableUntil has been reduced, collection capped (clearable)
+/// @dev The agreement's collection window has been truncated (e.g. by cancellation).
+/// Paired with a BY_* flag identifying the origin.
 uint16 constant NOTICE_GIVEN = 4;
-/// @dev Nothing to collect in current state (clearable — cleared on new terms promotion)
+/// @dev Nothing to collect under this version's terms (per-version: scoped to active claim
+/// for VERSION_CURRENT, pending claim for VERSION_NEXT).
 uint16 constant SETTLED = 8;
 
-// -- Who-initiated flags (clearable, meaningful when NOTICE_GIVEN is set) --
+// -- Who-initiated flags (meaningful when NOTICE_GIVEN is set) --
 
-/// @dev Notice given by payer
+/// @dev NOTICE_GIVEN originated from the payer.
 uint16 constant BY_PAYER = 16;
-/// @dev Notice given by provider (forfeit — immediate SETTLED)
+/// @dev NOTICE_GIVEN originated from the service provider.
 uint16 constant BY_PROVIDER = 32;
-/// @dev Notice given by data service
-uint16 constant BY_DATA_SERVICE = 64;
 
 // -- Update-origin flag --
 
@@ -31,16 +29,6 @@ uint16 constant BY_DATA_SERVICE = 64;
 /// Set on agreement state when active terms come from an accepted or pre-acceptance update.
 /// ORed into returned state by getAgreementDetails for pending versions (index 1).
 uint16 constant UPDATE = 128;
-
-// -- Togglable option flags (set via accept options parameter) --
-
-/// @dev Provider opts in to automatic update on final collect
-uint16 constant AUTO_UPDATE = 256;
-
-// -- Lifecycle flags (set by the collector during auto-update, clearable) --
-
-/// @dev Active terms were promoted via auto-update (not explicit provider accept)
-uint16 constant AUTO_UPDATED = 512;
 
 // -- Offer type constants --
 
@@ -58,13 +46,6 @@ uint8 constant OFFER_TYPE_UPDATE = 2;
 uint8 constant SCOPE_ACTIVE = 1;
 /// @dev Cancel targets pending offers
 uint8 constant SCOPE_PENDING = 2;
-
-// -- Offer option constants (for unsigned offer path) --
-
-/// @dev Reduce collectableUntil and set NOTICE_GIVEN | BY_PAYER on the agreement
-uint16 constant WITH_NOTICE = 1;
-/// @dev Revert if the targeted version has already been accepted
-uint16 constant IF_NOT_ACCEPTED = 2;
 
 /**
  * @title Base interface for agreement-based payment collectors
@@ -115,7 +96,8 @@ interface IAgreementCollector is IPaymentsCollector {
      * @notice Offer a new agreement or update an existing one.
      * @param offerType The type of offer (OFFER_TYPE_NEW or OFFER_TYPE_UPDATE)
      * @param data ABI-encoded offer data
-     * @param options Bitmask of offer options
+     * @param options Bitmask reserved for implementation-specific options; pass 0 when none apply.
+     * No flags are defined at the interface level.
      * @return Agreement details including participants and version hash
      */
     function offer(uint8 offerType, bytes calldata data, uint16 options) external returns (AgreementDetails memory);
