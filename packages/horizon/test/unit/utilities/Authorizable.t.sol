@@ -326,7 +326,11 @@ contract AuthorizableTest is Test, Bounder {
         authorizable.revokeAuthorizedSigner(signer);
     }
 
-    function test_IsAuthorized_Revert_WhenZero(address signer) public view {
+    function test_IsAuthorized_Revert_WhenZero(address signer) public {
+        // Subclasses (e.g. RecurringCollector) may treat specific addresses — notably
+        // the contract itself — as authorized regardless of the authorizer, so rely on
+        // assumeValidFuzzAddress to exclude those.
+        assumeValidFuzzAddress(signer);
         authHelper.assertNotAuthorized(address(0), signer);
     }
 }
