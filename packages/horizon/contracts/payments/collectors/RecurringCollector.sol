@@ -35,6 +35,11 @@ import { PPMMath } from "../../libraries/PPMMath.sol";
  * @author Edge & Node
  * @dev Implements the {IRecurringCollector} interface.
  * @notice A payments collector contract that can be used to collect payments using a RCA (Recurring Collection Agreement).
+ *
+ * @custom:security Self-authorization: RC overrides {_isAuthorized} to return true whenever
+ * `signer == address(this)`, so RC itself must perform the appropriate authorization check
+ * before any external call.
+ *
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */
