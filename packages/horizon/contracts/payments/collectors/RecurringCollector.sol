@@ -15,6 +15,7 @@ import { IPaymentsCollector } from "@graphprotocol/interfaces/contracts/horizon/
 import { IAgreementOwner } from "@graphprotocol/interfaces/contracts/horizon/IAgreementOwner.sol";
 import {
     IAgreementCollector,
+    OFFER_TYPE_NONE,
     OFFER_TYPE_NEW,
     OFFER_TYPE_UPDATE,
     ACCEPTED,
