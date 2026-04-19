@@ -30,7 +30,8 @@ import {
     VERSION_CURRENT,
     VERSION_NEXT,
     SCOPE_ACTIVE,
-    SCOPE_PENDING
+    SCOPE_PENDING,
+    SCOPE_SIGNED
 } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
@@ -115,6 +116,9 @@ contract RecurringCollector is
         /// @notice Decoded agreement terms, keyed by EIP-712 hash.
         /// Referenced by AgreementData.activeTermsHash and pendingTermsHash.
         mapping(bytes32 termsHash => AgreementTerms terms) terms;
+        /// @notice Cancelled offer hashes, keyed by signer then EIP-712 hash.
+        /// Stores the agreementId that is blocked; bytes16(0) means not cancelled.
+        mapping(address signer => mapping(bytes32 hash => bytes16 agreementId)) cancelledOffers;
     }
 
     /// @dev keccak256(abi.encode(uint256(keccak256("graphprotocol.storage.RecurringCollector")) - 1)) & ~bytes32(uint256(0xff))
@@ -491,9 +495,27 @@ contract RecurringCollector is
     }
 
     /// @inheritdoc IAgreementCollector
+    /// @dev This implementation targets only the payer side of the agreement.
+    /// SCOPE_PENDING and SCOPE_ACTIVE enforce `msg.sender == agreement.payer`.
+    /// SCOPE_SIGNED has no caller check in this function; the entry it writes is
+    /// self-keyed by msg.sender and is consulted only later, during payer
+    /// authorization of a signed accept or update. Extending cancel to data-service
+    /// or service-provider callers is left for a future revision.
     function cancel(bytes16 agreementId, bytes32 termsHash, uint16 options) external whenNotPaused {
         RecurringCollectorStorage storage $ = _getStorage();
         AgreementData storage agreement = $.agreements[agreementId];
+
+        // Signed scope: record cancelledOffers[msg.sender][termsHash] = agreementId.
+        // Self-authenticating — only blocks when msg.sender matches the recovered ECDSA signer.
+        // The stored agreementId is checked in _requireAuthorization (!=); calling again
+        // with bytes16(0) undoes the cancellation, calling with a different agreementId
+        // redirects it.
+        if (options & SCOPE_SIGNED != 0) {
+            if ($.cancelledOffers[msg.sender][termsHash] != agreementId) {
+                $.cancelledOffers[msg.sender][termsHash] = agreementId;
+                emit OfferCancelled(msg.sender, agreementId, termsHash);
+            }
+        }
 
         // Pending / active scopes: revert if on-chain data exists but caller is not the payer.
         // No-op if nothing exists on-chain (nothing to cancel).
@@ -1065,11 +1087,15 @@ contract RecurringCollector is
         bytes16 _agreementId,
         uint8 _offerType
     ) private view {
-        if (0 < _signature.length)
-            require(_isAuthorized(_payer, ECDSA.recover(_hash, _signature)), RecurringCollectorInvalidSigner());
-        else {
+        RecurringCollectorStorage storage $ = _getStorage();
+
+        if (0 < _signature.length) {
+            address signer = ECDSA.recover(_hash, _signature);
+            require(_isAuthorized(_payer, signer), RecurringCollectorInvalidSigner());
+            require($.cancelledOffers[signer][_hash] != _agreementId, RecurringCollectorOfferCancelled(signer, _hash));
+        } else {
             // Pre-approval: the hash must match the expected version of this agreement.
-            AgreementData storage agreement = _getStorage().agreements[_agreementId];
+            AgreementData storage agreement = $.agreements[_agreementId];
             bytes32 versionHash = _offerType == OFFER_TYPE_NEW ? agreement.activeTermsHash : agreement.pendingTermsHash;
             require(versionHash == _hash, RecurringCollectorInvalidSigner());
         }

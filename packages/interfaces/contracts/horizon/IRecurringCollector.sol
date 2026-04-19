@@ -403,6 +403,13 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
     error RecurringCollectorPauseGuardianNoChange(address account, bool allowed);
 
     /**
+     * @notice Thrown when accepting or updating with a hash that the signer cancelled via SCOPE_SIGNED
+     * @param signer The signer who cancelled the offer
+     * @param hash The cancelled EIP-712 hash
+     */
+    error RecurringCollectorOfferCancelled(address signer, bytes32 hash);
+
+    /**
      * @notice Emitted when a pause guardian is set
      * @param account The address of the pause guardian
      * @param allowed The allowed status
