@@ -29,4 +29,4 @@ Fixed under the assumption that a provider setting `CONDITION_ELIGIBILITY_CHECK`
 
 ---
 
-Eligibility checks are now opt-in via the `CONDITION_ELIGIBILITY_CHECK` flag, set explicitly in the agreement terms. Providers agree to eligibility gating by accepting an agreement that includes this condition. When the flag is set, the payer must pass an ERC-165 `supportsInterface` check for `IProviderEligibility` at offer time. An EOA cannot pass this check, so an EOA cannot create an agreement with eligibility gating enabled.
+Agreed; the security boundary is that a provider opts into `CONDITION_ELIGIBILITY_CHECK` to trust the payer contract.
