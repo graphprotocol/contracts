@@ -22,6 +22,10 @@ import {
     OFFER_TYPE_UPDATE,
     ACCEPTED,
     REGISTERED,
+    NOTICE_GIVEN,
+    SETTLED,
+    BY_PAYER,
+    BY_PROVIDER,
     UPDATE,
     VERSION_CURRENT,
     VERSION_NEXT,
@@ -566,6 +570,12 @@ contract RecurringCollector is
             details.state |= ACCEPTED;
 
         if (offerType == OFFER_TYPE_UPDATE) details.state |= UPDATE;
+
+        if (agreementState == AgreementState.CanceledByPayer) details.state |= NOTICE_GIVEN | BY_PAYER;
+        else if (agreementState == AgreementState.CanceledByServiceProvider)
+            details.state |= NOTICE_GIVEN | BY_PROVIDER;
+
+        if (_getMaxNextClaimScoped(agreementId, 0) == 0) details.state |= SETTLED;
     }
 
     /**
