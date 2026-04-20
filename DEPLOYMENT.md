@@ -77,6 +77,21 @@ Features are developed in feature branches and merged to `main` when complete.
 feature/new-stuff ──PR──► main
 ```
 
+### Merging Audited Code
+
+Audits are performed on specific commits in feature branches. To preserve commit SHAs so audit reports remain valid, use **fast-forward merges** when merging audited code to `main`:
+
+```bash
+git checkout main
+git pull origin main
+git merge --ff-only feature/audited-branch
+git push origin main
+```
+
+If `main` has diverged (FF not possible), you must rebase and re-audit since rebasing changes commit SHAs.
+
+**Note:** GitHub's "Squash and merge" changes SHAs and breaks audit traceability. Use "Rebase and merge" (if no divergence) or merge locally with `--ff-only`.
+
 ### Testnet Deployment
 
 When ready to deploy to testnet:
