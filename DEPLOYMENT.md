@@ -4,34 +4,28 @@ This document outlines the branching and deployment strategy for Solidity contra
 
 ## Overview
 
-We use a **per-release deployment branch** model. Each release under preparation has a `deployment/YYYY-MM-DD/<release-name>` branch: testnet deploys iterate on it, it rebases onto `main` when ready, deploys to mainnet, and merges back. Tags capture each deploy as a self-contained snapshot; a branch may accumulate several testnet tags before reaching mainnet.
-
-Only one deployment branch should be active at a time. During release preparation, earlier iterations may be abandoned and replaced by fresh branches.
+We use **per-environment deployment branches**. Each deploy to an environment gets its own `deployment/<env>/YYYY-MM-DD/<name>` branch, branched from `main`, used to run the deploy and capture artifacts, then fast-forward merged back. Every testnet and mainnet deploy is tagged as a self-contained snapshot. Testnet is staging, not development — see principle #4.
 
 ```mermaid
-flowchart TD
-    main["main<br/>(always audited)"]
-    branch["deployment/YYYY-MM-DD/&lt;release-name&gt;<br/>branched from main"]
-    testnet["deploy to testnet<br/>tag: deploy/testnet/YYYY-MM-DD/&lt;name&gt;"]
-    ready{"code ready for<br/>mainnet?"}
-    ff{"fast-forwards<br/>onto main?"}
-    mainnet["deploy to mainnet<br/>tag: deploy/mainnet/YYYY-MM-DD/&lt;name&gt;"]
+flowchart LR
+    main1["main<br/>(always audited)"]
+    branch["deployment/&lt;env&gt;/YYYY-MM-DD/&lt;name&gt;<br/>branched from main"]
+    deploy["deploy to &lt;env&gt;<br/>tag: deploy/&lt;env&gt;/YYYY-MM-DD/&lt;name&gt;"]
     merge["FF merge back to main<br/>delete branch"]
+    main2["main"]
 
-    main -->|branch| branch
-    branch --> testnet
-    testnet --> ready
-    ready -->|no: iterate| branch
-    ready -->|yes| ff
-    ff -->|no: rebase<br/>or fresh branch| branch
-    ff -->|yes| mainnet
-    mainnet --> merge
+    main1 -->|branch| branch
+    branch --> deploy
+    deploy --> merge
+    merge --> main2
 ```
+
+A release typically flows through environments in sequence — local/scratch for development, then testnet, then mainnet — but each environment uses its own independent branch cut from `main`. There is no single long-lived branch cascading from testnet to mainnet; the audited `main` is the only shared substrate.
 
 For hotfixes, branch from the tag in production instead of from `main`:
 
 ```
-deploy/mainnet/YYYY-MM-DD/<name> ──branch──► deployment/YYYY-MM-DD/<name>-hotfix
+deploy/mainnet/YYYY-MM-DD/<name> ──branch──► deployment/mainnet/YYYY-MM-DD/<name>-hotfix
                                                     │
                                                     ├─► fix + audit
                                                     ├─► deploy ──► tag: deploy/mainnet/YYYY-MM-DD/<name>-hotfix
@@ -40,36 +34,38 @@ deploy/mainnet/YYYY-MM-DD/<name> ──branch──► deployment/YYYY-MM-DD/<na
 
 ## Key Principles
 
-1. **Work in feature branches.** All development happens in `feature/*` branches. Merge to `main` only when the work is complete.
+1. **Work in feat branches.** Development happens in `feat/*` branches, merged to `main` when complete.
 
-2. **`main` is always audited; mainnet is the audit-complete gate.** PRs modifying production Solidity require the `audited` label to merge to `main`. A deployment branch may carry interim, not-yet-audited contract edits and non-contract changes (artifacts, deployment script tweaks) while testnet iteration is ongoing — that's expected. Mainnet deploys happen only from a deployment branch rebased onto audited `main`, which means every contract change reaching mainnet has passed through the `main` audit gate.
+2. **`main` is always audited.** PRs modifying production Solidity require the `audited` label to merge to `main`.
 
-3. **Deployment branches are dated and named by release.** Each release has a `deployment/YYYY-MM-DD/<release-name>` branch (e.g. `deployment/2026-04-19/reward-manager-and-subgraph-service`) branched from `main` at start. It may iterate for weeks, rebasing onto an advancing `main`, until it reaches mainnet (merged back, deleted) or is abandoned (deleted).
+3. **Deployment branches are per-environment.** Each deploy creates a `deployment/<env>/YYYY-MM-DD/<name>` branch (e.g. `deployment/testnet/2026-04-19/rewards-manager-and-subgraph-service`), branched from `main`. For testnet and mainnet the branch is short-lived (hours to days) and carries only artifacts and script tweaks — no contract changes. For scratch it may persist longer and host Solidity iteration, with any changes reaching `main` only via a `feat/*` PR.
 
-4. **Only one active deployment branch at a time, plus any hotfix in parallel.** A superseded branch is deleted before (or as) its replacement starts; its testnet tags remain as historical record.
+4. **Testnet is staging, not development.** Testnet is a pre-production mirror of mainnet, not a place to iterate on contract design. Redeploying updated contracts to testnet pollutes its historical state and can force custom off-chain handling (e.g. subgraph code for events that were later removed pre-mainnet) that then has to be maintained indefinitely. Iterate on the local network or scratch deployments instead (see [Pre-deployment Testing](#pre-deployment-testing)); graduate to testnet only with high confidence that the same contracts will reach mainnet.
 
-5. **Hotfix branches are branched from the tag they patch.** A hotfix branches from the `deploy/mainnet/YYYY-MM-DD/<name>` tag currently in production, not from `main`. This keeps the hotfix diff minimal (against running code only) and avoids shipping accumulated but undeployed work on `main`.
+5. **Hotfix branches are branched from the tag they patch.** A hotfix branches from the `deploy/mainnet/YYYY-MM-DD/<name>` tag currently in production, not from `main`. Keeps the hotfix diff minimal and avoids shipping accumulated but undeployed work on `main`.
 
-6. **Tag every deployment.** Each deploy (testnet or mainnet) creates an immutable `deploy/<env>/YYYY-MM-DD/<name>` tag, reproducing the full state at that moment: source code, deployment scripts, and artifacts. A branch typically accumulates several testnet tags across iterations; the mainnet tag is the release.
+6. **Tag every testnet and mainnet deploy.** Each deploy to testnet or mainnet creates an immutable `deploy/<env>/YYYY-MM-DD/<name>` tag reproducing the full state at that moment: source, scripts, and artifacts. The tag is the release record. Tagging in other environments (e.g. scratch) is optional and used at the operator's discretion — useful when a scratch state is worth pinning, unnecessary for throwaway iteration.
 
-7. **Prefer rebase and FF merge to keep deployment branches linear on `main`.** When `main` advances during a release's iteration (other merges, audit sign-offs, etc.), rebase the deployment branch onto current `main` rather than merging main into it. This preserves the "audited bytes flow in unchanged" property and keeps the eventual merge-back a fast-forward. Non-FF merges create tree states nobody read before they existed and weaken the link between audit-hash and what actually deploys.
+7. **Prefer rebase and FF merge for testnet and mainnet.** Testnet and mainnet branches should FF back to `main` to preserve the audit-hash → deployed-bytes link. If `main` advances during the deploy window, rebase before merging.
 
 ## Branches
 
-| Branch                            | Purpose                                              | Lifetime                                                                                 |
-| --------------------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `feature/*`                       | Active development                                   | Until merged to `main`                                                                   |
-| `main`                            | Audited, deployment-ready code                       | Permanent                                                                                |
-| `deployment/YYYY-MM-DD/<release>` | Workspace for one release's iteration and deployment | Until mainnet (then merged back and deleted) or abandoned (deleted; testnet tags remain) |
+| Branch                               | Purpose                                     | Lifetime                                                                   |
+| ------------------------------------ | ------------------------------------------- | -------------------------------------------------------------------------- |
+| `feat/*`                             | Active development                          | Until merged to `main`                                                     |
+| `main`                               | Audited, deployment-ready code              | Permanent                                                                  |
+| `deployment/<env>/YYYY-MM-DD/<name>` | Workspace for one deploy to one environment | Hours to days for testnet/mainnet; may persist for scratch while iterating |
+
+Environments in active use today are `testnet` (Arbitrum Sepolia) and `mainnet` (Arbitrum One). The scheme accommodates additional environments (e.g. a dedicated pre-release staging chain) by adding further `<env>` tokens — no change to the mechanics.
 
 ## Tags
 
-For each deployment create an immutable annotated tag:
+Testnet and mainnet deploys are always tagged with an immutable annotated tag. Other environments may be tagged at operator discretion using the same format.
 
 - `deploy/testnet/YYYY-MM-DD/<name>` — testnet deployment snapshot (Arbitrum Sepolia)
 - `deploy/mainnet/YYYY-MM-DD/<name>` — mainnet deployment snapshot (Arbitrum One)
 
-Including a descriptive `<name>` is recommended. A short hyphenated identifier (e.g. `reward-manager-and-subgraph-service`, `fix-activation`, `retry-subgraph-service`) makes tags self-describing, gives operators something meaningful to search on, and naturally prevents collisions when multiple deploys happen on the same day. The date segment ensures chronological sort regardless.
+Including a descriptive `<name>` is recommended. A short hyphenated identifier (e.g. `rewards-manager-and-subgraph-service`, `fix-activation`) makes tags self-describing, gives operators something meaningful to search on, and naturally prevents collisions when multiple deploys happen on the same day. The date segment ensures chronological sort regardless.
 
 Each tag is self-contained: its tree includes the deployed `.sol` sources, the deployment scripts used, and the resulting artifacts (`addresses.json`, etc.). The annotated tag body additionally records deployer identity and the list of changed contracts. Reproducing a past deploy is `git checkout <tag>` and nothing else.
 
@@ -99,45 +95,50 @@ Diff between last mainnet deploy and current main:
 git diff "$(git tag -l 'deploy/mainnet/*' | sort | tail -1)"..main
 ```
 
-Check whether a deployment branch is active:
+List active deployment branches (per environment):
 
 ```bash
-git branch -a --list 'deployment/*'
+git branch -a --list 'deployment/testnet/*'
+git branch -a --list 'deployment/mainnet/*'
 ```
 
 ## Workflows
 
-### Feature Development
+### Pre-deployment Testing
 
-Features are developed in feature branches and merged to `main` when complete. PRs modifying Solidity contracts require the `audited` label.
+Iteration on contract design happens on environments that don't pollute the canonical testnet state:
 
-```
-feature/new-stuff ──PR (audited)──► main
-```
+- **Local network**: a self-contained network run locally as docker containers, bundling chain node, contracts, and off-chain services. The default for development and integration testing.
+- **Scratch deployments**: a fresh, separate protocol instance on Arbitrum Sepolia — same chain as the canonical testnet, but distinct protocol instance. A `deployment/scratch/...` branch may persist across multiple iterations and carry contract changes as development progresses; anything worth keeping lands on `main` via a `feat/*` PR, and the scratch branch can be discarded.
 
-### Release Deployment
+The deployment scripts are written to be network- and instance-agnostic, so the same code path runs against local, scratch, testnet, and mainnet. A release only graduates to testnet once local and scratch testing give high confidence that no further contract changes are needed.
 
-A release typically goes through several testnet iterations before reaching mainnet. The flow:
+Terminology: "testnet" always refers to the canonical Graph Protocol testnet instance on Arbitrum Sepolia. A scratch deployment on Sepolia is not "testnet" — same chain, different protocol instance.
 
-1. **Branch.** Branch `deployment/YYYY-MM-DD/<release-name>` from current `main` and push it.
-2. **Iterate on testnet.** Deploy to testnet from the branch, commit artifacts, push. Tag each deploy with `tag-deployment.sh --network arbitrumSepolia --name <name> ...` (see [Tagging](#tagging)). Open a tracking PR from the branch to `main` after the first commit lands. Take audit feedback, amend code, redeploy, tag again. There can be multiple testnet deploy tags on a release branch.
-3. **Keep up with `main`.** If `main` advances during iteration, rebase the deployment branch onto current `main` prior to mainnet deployment. This keeps the branch a linear extension of the audited base rather than accumulating divergent history.
-4. **Deploy to mainnet.** Once the code is ready and has been rebased onto `main`, deploy to mainnet. Commit artifacts, push, and tag with `tag-deployment.sh --network arbitrumOne --name <name> ...`.
-5. **Merge to `main`.** Fast-forward merge the PR back into `main`. Delete the branch. Tags remain as the permanent record.
+### Testnet and Mainnet Deployment
 
-A release may be superseded or abandoned at any point before mainnet. Delete the branch; its testnet tags remain as historical record of what was tried. A fresh `deployment/YYYY-MM-DD/<new-release-name>` can then be started from current `main`.
+Testnet deploys happen against a release already expected to reach mainnet unchanged (principle #4). Mainnet follows with the same contract source; typical differences between the two deploys are artifact files and operational parameters that vary by environment.
+
+The two deploys use the same procedure, each on its own branch cut from the current `main` (the mainnet branch is cut after the testnet merge-back, so it already includes testnet artifacts):
+
+1. **Branch.** From current `main`, create `deployment/<env>/YYYY-MM-DD/<name>` and push it. Open a tracking PR back to `main`.
+2. **Deploy.** Run the deployment scripts against the target network. Commit artifacts, push.
+3. **Tag.** Run `tag-deployment.sh --network <network> --name <name> ...` to create `deploy/<env>/YYYY-MM-DD/<name>`. Push the tag.
+4. **Merge.** Fast-forward merge the PR back into `main`. Delete the branch. If `main` advanced during the window, rebase before merging.
+
+Network mapping: testnet → `arbitrumSepolia`, mainnet → `arbitrumOne`.
 
 ### Emergency Hotfix
 
 For critical mainnet issues:
 
-1. Branch `deployment/YYYY-MM-DD/<name>-hotfix` from the current `deploy/mainnet/YYYY-MM-DD/<name>` tag and push it.
+1. Branch `deployment/mainnet/YYYY-MM-DD/<name>-hotfix` from the current `deploy/mainnet/YYYY-MM-DD/<name>` tag and push it.
 2. Apply the fix. If it touches contract source, it must be audited before deploy. Commit and push; open a PR back to `main` at this point — it stays open for the duration of the hotfix as the review/tracking thread and becomes the merge-back PR.
-3. Run the deployment scripts against mainnet (ideally testnet first as a dry run). Commit artifacts and push.
-4. Run `tag-deployment.sh --network arbitrumOne --name <name> ...` to create the `deploy/mainnet/YYYY-MM-DD/<name>` tag. Push the tag.
+3. Run the deployment scripts against mainnet. If the fix warrants pre-mainnet verification, run it against the local network or a scratch deployment first (per [Pre-deployment Testing](#pre-deployment-testing)) rather than cutting a separate testnet deploy, which would otherwise race the mainnet hotfix. Commit artifacts and push.
+4. Run `tag-deployment.sh --network arbitrumOne --name <name>-hotfix ...` to create the `deploy/mainnet/YYYY-MM-DD/<name>-hotfix` tag. Push the tag.
 5. Review and merge the open PR back into `main`. The `audited` label applies to any contract changes in this PR.
 6. Delete the hotfix branch.
-7. If another deployment branch is active at hotfix time, incorporate the hotfix into that branch (rebase or cherry-pick) before mainnet deployment.
+7. If other deployment branches are active at hotfix time, incorporate the hotfix into them (rebase or cherry-pick) before their deploys.
 
 ## Audit Integrity
 
@@ -145,25 +146,25 @@ Audits certify that specific files have specific content. The operational questi
 
 > For every file in the audit scope, do its current bytes match the audited version's bytes?
 
-This scheme preserves that property by construction. Deployment branches are branched from `main` (or from a deploy tag for hotfixes) and only move forward; audited bytes on `main` flow into the deployment branch unchanged unless a release-specific fix modifies them — in which case the fix passes through the `main` audit gate when it lands there (directly or via merge-back).
+Principles #2, #3, and #7 preserve this for testnet and mainnet by construction: audited bytes reach `main` via `feat/*` PRs, their deployment branches carry no contract changes, and FF merges keep the audit-hash → deployed-bytes link intact. Scratch branches may hold in-progress contract work, but none of it reaches testnet or mainnet without first landing on audited `main`.
 
-The audit scope is a transitive closure — a reviewed contract's imports are implicitly in scope even if the PR didn't touch them — and the audit reference is a pinned commit SHA, not a PR number or label. A CI check can be added to provide a mechanical floor under the cultural FF-preference: diff the audited paths between the last audit tag and `HEAD`, and either require the diff to be empty or require a fresh audit. See [Appendix A: Audit Integrity CI Check](#appendix-a-audit-integrity-ci-check) for the sketch and the design decisions it depends on.
+The audit scope is a transitive closure — a reviewed contract's imports are implicitly in scope even if the PR didn't touch them — and the audit reference is a pinned commit SHA, not a PR number or label. A CI check can back up this cultural preference with a mechanical one: diff the audited paths between the last audit tag and `HEAD`, and require either an empty diff or a fresh audit. See [Appendix A: Audit Integrity CI Check](#appendix-a-audit-integrity-ci-check).
 
 ## Automation
 
 ### Tagging
 
-Tag creation is a **scripted operator step**, run after the deploy. The script captures context a CI workflow couldn't — which deploy script ran, with what flags, by whom, which contracts changed — baked into an annotated tag body, optionally signed. Deployments are infrequent enough that full automation wouldn't pay off anyway.
+Tag creation is a **scripted operator step**, run after the deploy. The script captures context a CI workflow couldn't — which deploy script ran, with what flags, by whom, which contracts changed — baked into an annotated tag body, optionally signed.
 
-Implementation: [`packages/deployment/scripts/tag-deployment.sh`](packages/deployment/scripts/tag-deployment.sh). It takes `--deployer`, `--network`, `--name` (recommended), and `--base`; diffs each address book (`packages/horizon/addresses.json`, `packages/subgraph-service/addresses.json`, `packages/issuance/addresses.json`) against the base ref to enumerate new / updated / removed contracts; and creates the annotated tag in the `deploy/<env>/YYYY-MM-DD/<name>` format defined above (or the bare-date fallback when no name is given). Network names map `arbitrumOne` → `mainnet` and `arbitrumSepolia` → `testnet`.
+Implementation: [`packages/deployment/scripts/tag-deployment.sh`](packages/deployment/scripts/tag-deployment.sh). It takes `--deployer`, `--network`, `--name` (recommended), and `--base`; diffs each address book (`packages/horizon/addresses.json`, `packages/subgraph-service/addresses.json`, `packages/issuance/addresses.json`) against the base ref to enumerate new / updated / removed contracts; and creates the annotated tag in the `deploy/<env>/YYYY-MM-DD/<name>` format defined above (or the bare-date fallback when no name is given).
 
-Typical invocation after the artifact commit is pushed, first create tag:
+Typical invocation after the artifact commit is pushed:
 
 ```bash
 packages/deployment/scripts/tag-deployment.sh \
   --deployer "packages/deployment --tags RewardsManager,SubgraphService" \
   --network arbitrumSepolia \
-  --name reward-manager-and-subgraph-service
+  --name rewards-manager-and-subgraph-service
 ```
 
 The script prints a preview (tag name, commit, annotation body), asks for confirmation, and creates a signed annotated tag. Run `tag-deployment.sh --help` for the full option list (`--dry-run`, `--yes`, `--no-sign`, `--base`, …).
@@ -174,7 +175,7 @@ Then push:
 git push origin <tag>
 ```
 
-The diff against `--base` is what populates the tag body's "contracts" section. The default of the previous deploy tag for the same environment is normally be correct. For an initial deploy on an environment (no prior tag exists), pass `--base` explicitly.
+The diff against `--base` is what populates the tag body's "contracts" section. The default of the previous deploy tag for the same environment is normally correct. For an initial deploy on an environment (no prior tag exists), pass `--base` explicitly.
 
 ### Audit Label Requirement
 
