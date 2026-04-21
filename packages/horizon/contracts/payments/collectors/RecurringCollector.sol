@@ -238,7 +238,6 @@ contract RecurringCollector is
         bytes16 agreementId,
         bytes32 _rcaHash
     ) private returns (bytes16) {
-        require(agreementId != bytes16(0), RecurringCollectorAgreementIdZero());
         require(msg.sender == _rca.dataService, RecurringCollectorUnauthorizedCaller(msg.sender, _rca.dataService));
 
         require(
