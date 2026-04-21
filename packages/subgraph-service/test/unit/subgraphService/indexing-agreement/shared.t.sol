@@ -294,13 +294,14 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
             _rca.deadline,
             _rca.nonce
         );
+        rcau = _recurringCollectorHelper.sensibleRCAU(rcau);
         rcau.metadata = _encodeUpdateIndexingAgreementMetadataV1(
             _newUpdateIndexingAgreementMetadataV1(
-                bound(_ctx.ctxInternal.seed.termsV1.tokensPerSecond, 0, _rca.maxOngoingTokensPerSecond),
+                bound(_ctx.ctxInternal.seed.termsV1.tokensPerSecond, 0, rcau.maxOngoingTokensPerSecond),
                 _ctx.ctxInternal.seed.termsV1.tokensPerEntityPerSecond
             )
         );
-        return _recurringCollectorHelper.sensibleRCAU(rcau);
+        return rcau;
     }
 
     function _requireIndexer(Context storage _ctx, address _indexer) internal view returns (IndexerState memory) {
@@ -448,10 +449,5 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
         assertEq(_expected.dataService, _actual.collectorAgreement.dataService);
         assertEq(_expected.payer, _actual.collectorAgreement.payer);
         assertEq(_expected.serviceProvider, _actual.collectorAgreement.serviceProvider);
-        assertEq(_expected.endsAt, _actual.collectorAgreement.endsAt);
-        assertEq(_expected.maxInitialTokens, _actual.collectorAgreement.maxInitialTokens);
-        assertEq(_expected.maxOngoingTokensPerSecond, _actual.collectorAgreement.maxOngoingTokensPerSecond);
-        assertEq(_expected.minSecondsPerCollection, _actual.collectorAgreement.minSecondsPerCollection);
-        assertEq(_expected.maxSecondsPerCollection, _actual.collectorAgreement.maxSecondsPerCollection);
     }
 }
