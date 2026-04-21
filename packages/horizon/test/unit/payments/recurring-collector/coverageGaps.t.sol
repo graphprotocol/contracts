@@ -850,16 +850,14 @@ contract RecurringCollectorCoverageGapsTest is RecurringCollectorSharedTest {
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    // Gap 16 — _requirePayer: agreement not found (L528)
+    // Gap 16 — cancel: silent no-op when agreement not found
     // ══════════════════════════════════════════════════════════════════════
 
-    function test_Cancel_Revert_WhenAgreementNotFound() public {
+    function test_Cancel_NoOp_WhenAgreementNotFound() public {
         bytes16 fakeId = bytes16(keccak256("nonexistent"));
         address caller = makeAddr("randomCaller");
 
-        vm.expectRevert(
-            abi.encodeWithSelector(IRecurringCollector.RecurringCollectorAgreementNotFound.selector, fakeId)
-        );
+        // Should not revert — nothing exists on-chain, so cancel is a no-op
         vm.prank(caller);
         _recurringCollector.cancel(fakeId, bytes32(0), SCOPE_ACTIVE);
     }

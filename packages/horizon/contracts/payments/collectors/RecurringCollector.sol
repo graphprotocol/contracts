@@ -228,6 +228,8 @@ contract RecurringCollector is
         _validateAndStoreAgreement(rca, agreementId, rcaHash);
 
         AgreementData storage agreement = _getStorage().agreements[agreementId];
+        // Idempotent: already accepted → return silently
+        if (agreement.state == AgreementState.Accepted) return agreementId;
         require(
             agreement.state == AgreementState.NotAccepted,
             RecurringCollectorAgreementIncorrectState(agreementId, agreement.state)
@@ -325,14 +327,18 @@ contract RecurringCollector is
     function update(RecurringCollectionAgreementUpdate calldata rcau, bytes calldata signature) external whenNotPaused {
         AgreementData storage agreement = _requireValidUpdateTarget(rcau.agreementId);
 
+        bytes32 rcauHash = _hashRCAU(rcau);
+
+        // Idempotent: already at this version (state is Accepted per _requireValidUpdateTarget).
+        // Skip deadline + auth since no state change happens.
+        if (agreement.activeTermsHash == rcauHash) return;
+
         /* solhint-disable gas-strict-inequalities */
         require(
             rcau.deadline >= block.timestamp,
             RecurringCollectorAgreementDeadlineElapsed(block.timestamp, rcau.deadline)
         );
         /* solhint-enable gas-strict-inequalities */
-
-        bytes32 rcauHash = _hashRCAU(rcau);
 
         _requireAuthorization(agreement.payer, rcauHash, signature, rcau.agreementId, OFFER_TYPE_UPDATE);
 
@@ -532,7 +538,7 @@ contract RecurringCollector is
             require(msg.sender == rca.payer, RecurringCollectorUnauthorizedCaller(msg.sender, rca.payer));
             return;
         }
-        if (agreement.payer == address(0)) revert RecurringCollectorAgreementNotFound(agreementId);
+        if (agreement.payer == address(0)) return;
 
         revert RecurringCollectorUnauthorizedCaller(msg.sender, agreement.payer);
     }
