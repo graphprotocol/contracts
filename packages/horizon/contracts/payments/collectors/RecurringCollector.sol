@@ -429,6 +429,8 @@ contract RecurringCollector is
         if (offerType == OFFER_TYPE_NEW) details = _offerNew(data);
         else if (offerType == OFFER_TYPE_UPDATE) details = _offerUpdate(data);
         else revert RecurringCollectorInvalidCollectData(data);
+
+        require(msg.sender == details.payer, RecurringCollectorUnauthorizedCaller(msg.sender, details.payer));
     }
 
     /**
@@ -439,7 +441,6 @@ contract RecurringCollector is
     function _offerNew(bytes calldata _data) private returns (AgreementDetails memory details) {
         RecurringCollectorStorage storage $ = _getStorage();
         RecurringCollectionAgreement memory rca = abi.decode(_data, (RecurringCollectionAgreement));
-        require(msg.sender == rca.payer, RecurringCollectorUnauthorizedCaller(msg.sender, rca.payer));
         _requirePayerToSupportEligibilityCheck(rca.payer, rca.conditions);
 
         (bytes16 agreementId, bytes32 rcaHash) = _rcaIdAndHash(rca);
@@ -486,7 +487,6 @@ contract RecurringCollector is
             details.dataService = agreement.dataService;
             details.serviceProvider = agreement.serviceProvider;
         }
-        require(msg.sender == payer, RecurringCollectorUnauthorizedCaller(msg.sender, payer));
         _requirePayerToSupportEligibilityCheck(payer, rcau.conditions);
 
         bytes32 offerHash = _hashRCAU(rcau);
