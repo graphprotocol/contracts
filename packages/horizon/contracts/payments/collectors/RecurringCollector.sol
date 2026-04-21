@@ -244,9 +244,6 @@ contract RecurringCollector is
             RecurringCollectorAgreementAddressNotSet()
         );
 
-        _requireValidCollectionWindowParams(_rca.endsAt, _rca.minSecondsPerCollection, _rca.maxSecondsPerCollection);
-        _requirePayerToSupportEligibilityCheck(_rca.payer, _rca.conditions);
-
         AgreementData storage agreement = _getAgreementStorage(agreementId);
         // check that the agreement is not already accepted
         require(
@@ -254,8 +251,10 @@ contract RecurringCollector is
             RecurringCollectorAgreementIncorrectState(agreementId, agreement.state)
         );
 
-        // Reverts on overflow — rejecting excessive terms that could prevent collection
-        _rca.maxOngoingTokensPerSecond * _rca.maxSecondsPerCollection * 1024;
+        _requireValidTerms(
+            _rca.endsAt, _rca.minSecondsPerCollection, _rca.maxSecondsPerCollection,
+            _rca.payer, _rca.conditions, _rca.maxOngoingTokensPerSecond
+        );
 
         // accept the agreement
         agreement.acceptedAt = uint64(block.timestamp);
@@ -817,6 +816,30 @@ contract RecurringCollector is
     }
 
     /**
+     * @notice Validates offer terms: collection window, eligibility support, and overflow.
+     * @dev Called by _validateAndStoreAgreement and _validateAndStoreUpdate.
+     * @param _endsAt The end time of the agreement
+     * @param _minSecondsPerCollection The minimum seconds per collection
+     * @param _maxSecondsPerCollection The maximum seconds per collection
+     * @param _payer The payer address (for eligibility validation)
+     * @param _conditions The conditions bitmask
+     * @param _maxOngoingTokensPerSecond The maximum ongoing tokens per second
+     */
+    function _requireValidTerms(
+        uint64 _endsAt,
+        uint32 _minSecondsPerCollection,
+        uint32 _maxSecondsPerCollection,
+        address _payer,
+        uint16 _conditions,
+        uint256 _maxOngoingTokensPerSecond
+    ) private view {
+        _requireValidCollectionWindowParams(_endsAt, _minSecondsPerCollection, _maxSecondsPerCollection);
+        _requirePayerToSupportEligibilityCheck(_payer, _conditions);
+        // Reverts on overflow — rejecting excessive terms that could prevent collection
+        _maxOngoingTokensPerSecond * _maxSecondsPerCollection * 1024;
+    }
+
+    /**
      * @notice Validates temporal constraints and caps the requested token amount.
      * @dev Enforces `minSecondsPerCollection` (unless canceled/elapsed) and returns the lesser of
      * the requested amount and the RCA payer's per-collection cap
@@ -1014,11 +1037,10 @@ contract RecurringCollector is
             RecurringCollectorInvalidUpdateNonce(_rcau.agreementId, expectedNonce, _rcau.nonce)
         );
 
-        _requireValidCollectionWindowParams(_rcau.endsAt, _rcau.minSecondsPerCollection, _rcau.maxSecondsPerCollection);
-        _requirePayerToSupportEligibilityCheck(_agreement.payer, _rcau.conditions);
-
-        // Reverts on overflow — rejecting excessive terms that could prevent collection
-        _rcau.maxOngoingTokensPerSecond * _rcau.maxSecondsPerCollection * 1024;
+        _requireValidTerms(
+            _rcau.endsAt, _rcau.minSecondsPerCollection, _rcau.maxSecondsPerCollection,
+            _agreement.payer, _rcau.conditions, _rcau.maxOngoingTokensPerSecond
+        );
 
         // Clean up stored replaced offer. oldHash is always non-zero for accepted agreements
         // and can only ever survive in rcaOffers.
