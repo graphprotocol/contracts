@@ -25,6 +25,8 @@ contract RecurringCollectorAcceptTest is RecurringCollectorSharedTest {
     ) public {
         // Ensure non-empty signature so the signed path is taken (which checks deadline first)
         vm.assume(fuzzySignature.length > 0);
+        // Pranking as the proxy admin hits ProxyDeniedAdminAccess before the deadline check.
+        vm.assume(fuzzyRCA.dataService != _proxyAdmin);
         // Generate deterministic agreement ID for validation
         bytes16 agreementId = _recurringCollector.generateAgreementId(
             fuzzyRCA.payer,
@@ -47,7 +49,7 @@ contract RecurringCollectorAcceptTest is RecurringCollectorSharedTest {
         _recurringCollector.accept(fuzzyRCA, fuzzySignature);
     }
 
-    function test_Accept_Revert_WhenAlreadyAccepted(FuzzyTestAccept calldata fuzzyTestAccept) public {
+    function test_Accept_Idempotent_WhenAlreadyAccepted(FuzzyTestAccept calldata fuzzyTestAccept) public {
         (
             IRecurringCollector.RecurringCollectionAgreement memory acceptedRca,
             bytes memory signature,
@@ -55,14 +57,12 @@ contract RecurringCollectorAcceptTest is RecurringCollectorSharedTest {
             bytes16 agreementId
         ) = _sensibleAuthorizeAndAccept(fuzzyTestAccept);
 
-        bytes memory expectedErr = abi.encodeWithSelector(
-            IRecurringCollector.RecurringCollectorAgreementIncorrectState.selector,
-            agreementId,
-            IRecurringCollector.AgreementState.Accepted
-        );
-        vm.expectRevert(expectedErr);
+        // Re-accepting the same RCA is a no-op — succeeds without reverting or re-emitting.
+        vm.recordLogs();
         vm.prank(acceptedRca.dataService);
-        _recurringCollector.accept(acceptedRca, signature);
+        bytes16 returnedId = _recurringCollector.accept(acceptedRca, signature);
+        assertEq(returnedId, agreementId);
+        assertEq(vm.getRecordedLogs().length, 0, "no event emitted on idempotent re-accept");
     }
 
     /* solhint-enable graph/func-name-mixedcase */

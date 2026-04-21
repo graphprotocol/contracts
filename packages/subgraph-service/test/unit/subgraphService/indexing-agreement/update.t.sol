@@ -227,5 +227,29 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
         resetPrank(indexerState.addr);
         subgraphService.updateIndexingAgreement(indexerState.addr, acceptableRcau, authData);
     }
+
+    function test_SubgraphService_UpdateIndexingAgreement_Idempotent_WhenAlreadyAtActiveHash(Seed memory seed) public {
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+        (IRecurringCollector.RecurringCollectionAgreement memory acceptedRca, ) = _withAcceptedIndexingAgreement(
+            ctx,
+            indexerState
+        );
+        (
+            IRecurringCollector.RecurringCollectionAgreementUpdate memory acceptableRcau,
+            bytes memory authData
+        ) = _generateAcceptableSignedRCAU(ctx, acceptedRca);
+
+        // First update sets activeTermsHash = hash(rcau) on the collector and applies SS terms.
+        resetPrank(indexerState.addr);
+        subgraphService.updateIndexingAgreement(indexerState.addr, acceptableRcau, authData);
+
+        // Re-submitting the same RCAU is a no-op at the SS layer:
+        // the hash match short-circuits before re-emitting or re-writing terms.
+        vm.recordLogs();
+        resetPrank(indexerState.addr);
+        subgraphService.updateIndexingAgreement(indexerState.addr, acceptableRcau, authData);
+        assertEq(vm.getRecordedLogs().length, 0, "no event emitted on idempotent re-update");
+    }
     /* solhint-enable graph/func-name-mixedcase */
 }

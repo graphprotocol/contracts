@@ -313,5 +313,38 @@ contract RecurringCollectorUpdateTest is RecurringCollectorSharedTest {
         assertEq(updatedAgreement2.updateNonce, 2);
     }
 
+    function test_Update_Idempotent_WhenAlreadyAtActiveHash(FuzzyTestUpdate calldata fuzzyTestUpdate) public {
+        (
+            IRecurringCollector.RecurringCollectionAgreement memory acceptedRca,
+            ,
+            uint256 signerKey,
+            bytes16 agreementId
+        ) = _sensibleAuthorizeAndAccept(fuzzyTestUpdate.fuzzyTestAccept);
+
+        IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _recurringCollectorHelper.sensibleRCAU(
+            fuzzyTestUpdate.rcau
+        );
+        rcau.agreementId = agreementId;
+        rcau.nonce = 1;
+        (, bytes memory signature) = _recurringCollectorHelper.generateSignedRCAU(rcau, signerKey);
+
+        // First update consumes nonce 1 and sets activeTermsHash = hash(rcau).
+        vm.prank(acceptedRca.dataService);
+        _recurringCollector.update(rcau, signature);
+
+        IRecurringCollector.AgreementData memory afterFirst = _recurringCollector.getAgreement(agreementId);
+        assertEq(afterFirst.updateNonce, 1, "nonce advanced to 1 after first update");
+
+        // Re-submitting the same RCAU is a no-op — nonce does NOT advance, no event, no revert.
+        vm.recordLogs();
+        vm.prank(acceptedRca.dataService);
+        _recurringCollector.update(rcau, signature);
+        assertEq(vm.getRecordedLogs().length, 0, "no event emitted on idempotent re-update");
+
+        IRecurringCollector.AgreementData memory afterSecond = _recurringCollector.getAgreement(agreementId);
+        assertEq(afterSecond.updateNonce, 1, "nonce unchanged on idempotent re-update");
+        assertEq(afterSecond.activeTermsHash, afterFirst.activeTermsHash, "activeTermsHash unchanged");
+    }
+
     /* solhint-enable graph/func-name-mixedcase */
 }
