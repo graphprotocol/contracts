@@ -225,27 +225,47 @@ contract RecurringCollector is
 
         _requireAuthorization(rca.payer, rcaHash, signature, agreementId, OFFER_TYPE_NEW);
 
-        return _validateAndStoreAgreement(rca, agreementId, rcaHash);
+        _validateAndStoreAgreement(rca, agreementId, rcaHash);
+
+        AgreementData storage agreement = _getStorage().agreements[agreementId];
+        require(
+            agreement.state == AgreementState.NotAccepted,
+            RecurringCollectorAgreementIncorrectState(agreementId, agreement.state)
+        );
+        agreement.acceptedAt = uint64(block.timestamp);
+        agreement.state = AgreementState.Accepted;
+
+        emit AgreementAccepted(
+            rca.dataService,
+            rca.payer,
+            rca.serviceProvider,
+            agreementId,
+            rca.endsAt,
+            rca.maxInitialTokens,
+            rca.maxOngoingTokensPerSecond,
+            rca.minSecondsPerCollection,
+            rca.maxSecondsPerCollection
+        );
     }
 
     /**
-     * @notice Validates RCA fields and stores the agreement.
+     * @notice Validates RCA fields and registers the agreement (identity + terms).
+     * Does not flip state to Accepted — caller handles the accept step.
      * @param _rca The Recurring Collection Agreement to validate and store
-     * @return agreementId The deterministically generated agreement ID
+     * @param agreementId The deterministic agreement ID
+     * @param _rcaHash The EIP-712 hash of the RCA
      */
-    /* solhint-disable function-max-lines */
     function _validateAndStoreAgreement(
         RecurringCollectionAgreement memory _rca,
         bytes16 agreementId,
         bytes32 _rcaHash
-    ) private returns (bytes16) {
+    ) private {
         require(
             _rca.dataService != address(0) && _rca.payer != address(0) && _rca.serviceProvider != address(0),
             RecurringCollectorAgreementAddressNotSet()
         );
 
         AgreementData storage agreement = _getAgreementStorage(agreementId);
-        // check that the agreement is not already accepted
         require(
             agreement.state == AgreementState.NotAccepted,
             RecurringCollectorAgreementIncorrectState(agreementId, agreement.state)
@@ -256,9 +276,6 @@ contract RecurringCollector is
             _rca.payer, _rca.conditions, _rca.maxOngoingTokensPerSecond
         );
 
-        // accept the agreement
-        agreement.acceptedAt = uint64(block.timestamp);
-        agreement.state = AgreementState.Accepted;
         agreement.dataService = _rca.dataService;
         agreement.payer = _rca.payer;
         agreement.serviceProvider = _rca.serviceProvider;
@@ -270,22 +287,7 @@ contract RecurringCollector is
         agreement.conditions = _rca.conditions;
         agreement.activeTermsHash = _rcaHash;
         agreement.updateNonce = 0;
-
-        emit AgreementAccepted(
-            agreement.dataService,
-            agreement.payer,
-            agreement.serviceProvider,
-            agreementId,
-            agreement.endsAt,
-            agreement.maxInitialTokens,
-            agreement.maxOngoingTokensPerSecond,
-            agreement.minSecondsPerCollection,
-            agreement.maxSecondsPerCollection
-        );
-
-        return agreementId;
     }
-    /* solhint-enable function-max-lines */
 
     /**
      * @inheritdoc IRecurringCollector
