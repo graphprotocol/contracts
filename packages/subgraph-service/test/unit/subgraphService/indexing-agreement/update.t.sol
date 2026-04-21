@@ -166,10 +166,10 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
             indexerState
         );
 
-        // Create update with tokensPerSecond exceeding the RCA's maxOngoingTokensPerSecond
-        uint256 excessiveTokensPerSecond = acceptedRca.maxOngoingTokensPerSecond + 1;
+        // Create update with tokensPerSecond exceeding the RCAU's maxOngoingTokensPerSecond
         IRecurringCollector.RecurringCollectionAgreementUpdate
             memory rcau = _generateAcceptableRecurringCollectionAgreementUpdate(ctx, acceptedRca);
+        uint256 excessiveTokensPerSecond = rcau.maxOngoingTokensPerSecond + 1;
         rcau.metadata = _encodeUpdateIndexingAgreementMetadataV1(
             IndexingAgreement.UpdateIndexingAgreementMetadata({
                 version: IIndexingAgreement.IndexingAgreementVersion.V1,
@@ -190,7 +190,7 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
         bytes memory expectedErr = abi.encodeWithSelector(
             IndexingAgreement.IndexingAgreementInvalidTerms.selector,
             excessiveTokensPerSecond,
-            acceptedRca.maxOngoingTokensPerSecond
+            rcau.maxOngoingTokensPerSecond
         );
         vm.expectRevert(expectedErr);
         resetPrank(indexerState.addr);

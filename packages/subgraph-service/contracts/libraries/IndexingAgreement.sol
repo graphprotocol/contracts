@@ -396,7 +396,7 @@ library IndexingAgreement {
             metadata.version == IIndexingAgreement.IndexingAgreementVersion.V1,
             IndexingAgreementInvalidVersion(metadata.version)
         );
-        _setTermsV1(self, rcau.agreementId, metadata.terms, wrapper.collectorAgreement.maxOngoingTokensPerSecond);
+        _setTermsV1(self, rcau.agreementId, metadata.terms, rcau.maxOngoingTokensPerSecond);
 
         emit IndexingAgreementUpdated({
             indexer: wrapper.collectorAgreement.serviceProvider,
