@@ -218,6 +218,7 @@ contract RecurringCollector is
             RecurringCollectorAgreementDeadlineElapsed(block.timestamp, rca.deadline)
         );
         /* solhint-enable gas-strict-inequalities */
+        require(msg.sender == rca.dataService, RecurringCollectorUnauthorizedCaller(msg.sender, rca.dataService));
 
         bytes32 rcaHash;
         (agreementId, rcaHash) = _rcaIdAndHash(rca);
@@ -238,8 +239,6 @@ contract RecurringCollector is
         bytes16 agreementId,
         bytes32 _rcaHash
     ) private returns (bytes16) {
-        require(msg.sender == _rca.dataService, RecurringCollectorUnauthorizedCaller(msg.sender, _rca.dataService));
-
         require(
             _rca.dataService != address(0) && _rca.payer != address(0) && _rca.serviceProvider != address(0),
             RecurringCollectorAgreementAddressNotSet()
