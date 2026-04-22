@@ -274,7 +274,7 @@ contract RecurringCollector is
         );
 
         _requireValidTerms(
-            _rca.endsAt, _rca.minSecondsPerCollection, _rca.maxSecondsPerCollection,
+            _rca.deadline, _rca.endsAt, _rca.minSecondsPerCollection, _rca.maxSecondsPerCollection,
             _rca.payer, _rca.conditions, _rca.maxOngoingTokensPerSecond
         );
 
@@ -809,18 +809,23 @@ contract RecurringCollector is
 
     /**
      * @notice Requires that the collection window parameters are valid.
-     *
+     * @dev Validated against `_deadline` (the offer's acceptance deadline) rather than
+     * `block.timestamp`, making this check time-independent: if terms pass here they remain
+     * valid for any acceptance that happens on or before `_deadline`. Callers must enforce
+     * `block.timestamp <= _deadline` at the acceptance entry point.
+     * @param _deadline The offer's acceptance deadline
      * @param _endsAt The end time of the agreement
      * @param _minSecondsPerCollection The minimum seconds per collection
      * @param _maxSecondsPerCollection The maximum seconds per collection
      */
     function _requireValidCollectionWindowParams(
+        uint64 _deadline,
         uint64 _endsAt,
         uint32 _minSecondsPerCollection,
         uint32 _maxSecondsPerCollection
-    ) private view {
-        // Agreement needs to end in the future
-        require(_endsAt > block.timestamp, RecurringCollectorAgreementElapsedEndsAt(block.timestamp, _endsAt));
+    ) private pure {
+        // Agreement must end after the deadline
+        require(_deadline < _endsAt, RecurringCollectorAgreementEndsBeforeDeadline(_deadline, _endsAt));
 
         // Collection window needs to be at least MIN_SECONDS_COLLECTION_WINDOW
         require(
@@ -833,19 +838,21 @@ contract RecurringCollector is
             )
         );
 
-        // Agreement needs to last at least one min collection window
+        // Even if accepted at the deadline at least one min collection window must remain
         require(
-            _endsAt - block.timestamp >= _minSecondsPerCollection + MIN_SECONDS_COLLECTION_WINDOW,
+            _minSecondsPerCollection + MIN_SECONDS_COLLECTION_WINDOW <= _endsAt - _deadline,
             RecurringCollectorAgreementInvalidDuration(
                 _minSecondsPerCollection + MIN_SECONDS_COLLECTION_WINDOW,
-                _endsAt - block.timestamp
+                _endsAt - _deadline
             )
         );
     }
 
     /**
      * @notice Validates offer terms: collection window, eligibility support, and overflow.
-     * @dev Called by _validateAndStoreAgreement and _validateAndStoreUpdate.
+     * @dev Called by _validateAndStoreAgreement and _validateAndStoreUpdate. Time-independent —
+     * validates against the offer's deadline so the check is stable across the offer's lifetime.
+     * @param _deadline The offer's acceptance deadline
      * @param _endsAt The end time of the agreement
      * @param _minSecondsPerCollection The minimum seconds per collection
      * @param _maxSecondsPerCollection The maximum seconds per collection
@@ -854,6 +861,7 @@ contract RecurringCollector is
      * @param _maxOngoingTokensPerSecond The maximum ongoing tokens per second
      */
     function _requireValidTerms(
+        uint64 _deadline,
         uint64 _endsAt,
         uint32 _minSecondsPerCollection,
         uint32 _maxSecondsPerCollection,
@@ -861,7 +869,7 @@ contract RecurringCollector is
         uint16 _conditions,
         uint256 _maxOngoingTokensPerSecond
     ) private view {
-        _requireValidCollectionWindowParams(_endsAt, _minSecondsPerCollection, _maxSecondsPerCollection);
+        _requireValidCollectionWindowParams(_deadline, _endsAt, _minSecondsPerCollection, _maxSecondsPerCollection);
         _requirePayerToSupportEligibilityCheck(_payer, _conditions);
         // Reverts on overflow — rejecting excessive terms that could prevent collection
         _maxOngoingTokensPerSecond * _maxSecondsPerCollection * 1024;
@@ -1058,7 +1066,7 @@ contract RecurringCollector is
         RecurringCollectorStorage storage $ = _getStorage();
 
         _requireValidTerms(
-            _rcau.endsAt, _rcau.minSecondsPerCollection, _rcau.maxSecondsPerCollection,
+            _rcau.deadline, _rcau.endsAt, _rcau.minSecondsPerCollection, _rcau.maxSecondsPerCollection,
             _agreement.payer, _rcau.conditions, _rcau.maxOngoingTokensPerSecond
         );
 
