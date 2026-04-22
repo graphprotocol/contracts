@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.27;
 
+// solhint-disable gas-strict-inequalities
+
 import { EIP712Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
@@ -212,12 +214,10 @@ contract RecurringCollector is
         RecurringCollectionAgreement calldata rca,
         bytes calldata signature
     ) external whenNotPaused returns (bytes16 agreementId) {
-        /* solhint-disable gas-strict-inequalities */
         require(
-            rca.deadline >= block.timestamp,
+            block.timestamp <= rca.deadline,
             RecurringCollectorAgreementDeadlineElapsed(block.timestamp, rca.deadline)
         );
-        /* solhint-enable gas-strict-inequalities */
         require(msg.sender == rca.dataService, RecurringCollectorUnauthorizedCaller(msg.sender, rca.dataService));
 
         bytes32 rcaHash;
@@ -333,12 +333,10 @@ contract RecurringCollector is
         // Skip deadline + auth since no state change happens.
         if (agreement.activeTermsHash == rcauHash) return;
 
-        /* solhint-disable gas-strict-inequalities */
         require(
-            rcau.deadline >= block.timestamp,
+            block.timestamp <= rcau.deadline,
             RecurringCollectorAgreementDeadlineElapsed(block.timestamp, rcau.deadline)
         );
-        /* solhint-enable gas-strict-inequalities */
 
         _requireAuthorization(agreement.payer, rcauHash, signature, rcau.agreementId, OFFER_TYPE_UPDATE);
 
@@ -441,6 +439,10 @@ contract RecurringCollector is
     function _offerNew(bytes calldata _data) private returns (AgreementDetails memory details) {
         RecurringCollectorStorage storage $ = _getStorage();
         RecurringCollectionAgreement memory rca = abi.decode(_data, (RecurringCollectionAgreement));
+        require(
+            block.timestamp <= rca.deadline,
+            RecurringCollectorAgreementDeadlineElapsed(block.timestamp, rca.deadline)
+        );
         _requirePayerToSupportEligibilityCheck(rca.payer, rca.conditions);
 
         (bytes16 agreementId, bytes32 rcaHash) = _rcaIdAndHash(rca);
@@ -465,6 +467,10 @@ contract RecurringCollector is
     function _offerUpdate(bytes calldata _data) private returns (AgreementDetails memory details) {
         RecurringCollectorStorage storage $ = _getStorage();
         RecurringCollectionAgreementUpdate memory rcau = abi.decode(_data, (RecurringCollectionAgreementUpdate));
+        require(
+            block.timestamp <= rcau.deadline,
+            RecurringCollectorAgreementDeadlineElapsed(block.timestamp, rcau.deadline)
+        );
         bytes16 agreementId = rcau.agreementId;
 
         // Payer check: look up the existing agreement or the stored RCA offer
@@ -663,12 +669,10 @@ contract RecurringCollector is
 
         if (_params.tokens != 0) {
             uint256 slippage = _params.tokens - tokensToCollect;
-            /* solhint-disable gas-strict-inequalities */
             require(
                 slippage <= _params.maxSlippage,
                 RecurringCollectorExcessiveSlippage(_params.tokens, tokensToCollect, _params.maxSlippage)
             );
-            /* solhint-enable gas-strict-inequalities */
         }
         agreement.lastCollectionAt = uint64(block.timestamp);
 
@@ -821,7 +825,6 @@ contract RecurringCollector is
         // Collection window needs to be at least MIN_SECONDS_COLLECTION_WINDOW
         require(
             _maxSecondsPerCollection > _minSecondsPerCollection &&
-                // solhint-disable-next-line gas-strict-inequalities
                 (_maxSecondsPerCollection - _minSecondsPerCollection >= MIN_SECONDS_COLLECTION_WINDOW),
             RecurringCollectorAgreementInvalidCollectionWindow(
                 MIN_SECONDS_COLLECTION_WINDOW,
@@ -832,7 +835,6 @@ contract RecurringCollector is
 
         // Agreement needs to last at least one min collection window
         require(
-            // solhint-disable-next-line gas-strict-inequalities
             _endsAt - block.timestamp >= _minSecondsPerCollection + MIN_SECONDS_COLLECTION_WINDOW,
             RecurringCollectorAgreementInvalidDuration(
                 _minSecondsPerCollection + MIN_SECONDS_COLLECTION_WINDOW,
@@ -886,7 +888,6 @@ contract RecurringCollector is
             block.timestamp > _agreement.endsAt;
         if (!canceledOrElapsed) {
             require(
-                // solhint-disable-next-line gas-strict-inequalities
                 _collectionSeconds >= _agreement.minSecondsPerCollection,
                 RecurringCollectorCollectionTooSoon(
                     _agreementId,
@@ -1264,7 +1265,6 @@ contract RecurringCollector is
         uint256 maxOngoingTokensPerSecond,
         uint256 maxInitialTokens
     ) private pure returns (uint256) {
-        // solhint-disable-next-line gas-strict-inequalities
         if (windowEnd <= windowStart) return 0;
         uint256 windowSeconds = windowEnd - windowStart;
         uint256 effectiveSeconds = windowSeconds < maxSecondsPerCollection ? windowSeconds : maxSecondsPerCollection;
