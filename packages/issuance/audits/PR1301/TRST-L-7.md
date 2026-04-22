@@ -20,3 +20,14 @@ Extend `_requirePayer()` to also check `rcauOffers` for a payer match when neith
 TBD
 
 ---
+
+Resolved by restructuring offer storage so cancellation authorization no longer depends on
+the stored RCA offer. In the current design, `agreement.payer` is a persistent field set at
+first registration (via `_registerAgreement`) and is not cleared on cancel. The authorization
+helper (`_requirePayerIfExists`) reads `agreement.payer` directly rather than falling back
+through stored offer entries.
+
+As a consequence, cancelling a pre-acceptance RCA offer and cancelling a pending RCAU offer
+are fully independent operations that may be performed in either order. Neither path leaves
+the other unreachable, because the persistent `agreement.payer` continues to authorize the
+surviving offer.

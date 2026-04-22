@@ -153,11 +153,7 @@ contract RecurringCollectorUpdateTest is RecurringCollectorSharedTest {
         _recurringCollector.update(rcau, signature);
 
         IRecurringCollector.AgreementData memory agreement = _recurringCollector.getAgreement(agreementId);
-        assertEq(rcau.endsAt, agreement.endsAt);
-        assertEq(rcau.maxInitialTokens, agreement.maxInitialTokens);
-        assertEq(rcau.maxOngoingTokensPerSecond, agreement.maxOngoingTokensPerSecond);
-        assertEq(rcau.minSecondsPerCollection, agreement.minSecondsPerCollection);
-        assertEq(rcau.maxSecondsPerCollection, agreement.maxSecondsPerCollection);
+        assertEq(agreement.activeTermsHash, _recurringCollector.hashRCAU(rcau));
         assertEq(rcau.nonce, agreement.updateNonce);
     }
 
