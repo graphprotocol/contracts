@@ -210,8 +210,9 @@ contract RecurringAgreementManager is
         /// @notice Minimum residual escrow factor: when a (collector, provider) pair has no agreements
         /// and the escrow balance is below 2^value, tracking is dropped; the residual is not worth
         /// the gas cost of further thaw/withdraw cycles. Funds remain in PaymentsEscrow but are no
-        /// longer actively managed by RAM. 0 = drop only at zero balance. Governance-configured.
-        /// Default 50 ≈ 0.001 GRT.
+        /// longer actively managed by RAM. Higher values drop more aggressively:
+        /// 0 = drop only at zero balance (effectively never drop); 255 = always drop when no
+        /// agreements remain. Governance-configured. Default 50 ≈ 0.001 GRT.
         uint8 minResidualEscrowFactor;
         /// @notice Optional oracle for checking payment eligibility of service providers (20/32 bytes in slot)
         IProviderEligibility providerEligibilityOracle;

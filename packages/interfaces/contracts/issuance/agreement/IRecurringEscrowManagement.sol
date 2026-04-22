@@ -137,12 +137,12 @@ interface IRecurringEscrowManagement {
      * @dev Requires OPERATOR_ROLE. When a (collector, provider) pair has no remaining agreements
      * and the escrow balance is below 2^value, tracking is dropped because the residual is not worth
      * the gas cost of further thaw/withdraw cycles. Funds remain in PaymentsEscrow but are no
-     * longer actively managed by RAM.
+     * longer actively managed by RAM. Higher values drop tracking more aggressively.
      *
-     * - 0: 2^0 = 1 (drop only at zero balance)
+     * - 0: 2^0 = 1 wei (drop only at zero balance — effectively never drop)
      * - 50: 2^50 ≈ 10^15 (0.001 GRT, default)
      * - 60: 2^60 ≈ 10^18 (1 GRT)
-     * - 255: 2^255 (effectively never drop)
+     * - 255: 2^255 (always drop when no agreements remain — effectively disables residual tracking)
      *
      * @param value The exponent (threshold = 2^value)
      */
