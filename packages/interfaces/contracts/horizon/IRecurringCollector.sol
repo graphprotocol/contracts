@@ -164,7 +164,6 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
      * @param payer The address of the payer
      * @param serviceProvider The address of the service provider
      * @param agreementId The agreement ID
-     * @param acceptedAt The timestamp when the agreement was accepted
      * @param endsAt The timestamp when the agreement ends
      * @param maxInitialTokens The maximum amount of tokens that can be collected in the first collection
      * @param maxOngoingTokensPerSecond The maximum amount of tokens that can be collected per second
@@ -176,7 +175,6 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
         address indexed payer,
         address indexed serviceProvider,
         bytes16 agreementId,
-        uint64 acceptedAt,
         uint64 endsAt,
         uint256 maxInitialTokens,
         uint256 maxOngoingTokensPerSecond,
@@ -190,7 +188,6 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
      * @param payer The address of the payer
      * @param serviceProvider The address of the service provider
      * @param agreementId The agreement ID
-     * @param canceledAt The timestamp when the agreement was canceled
      * @param canceledBy The party that canceled the agreement
      */
     event AgreementCanceled(
@@ -198,7 +195,6 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
         address indexed payer,
         address indexed serviceProvider,
         bytes16 agreementId,
-        uint64 canceledAt,
         CancelAgreementBy canceledBy
     );
 
@@ -208,7 +204,6 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
      * @param payer The address of the payer
      * @param serviceProvider The address of the service provider
      * @param agreementId The agreement ID
-     * @param updatedAt The timestamp when the agreement was updated
      * @param endsAt The timestamp when the agreement ends
      * @param maxInitialTokens The maximum amount of tokens that can be collected in the first collection
      * @param maxOngoingTokensPerSecond The maximum amount of tokens that can be collected per second
@@ -220,7 +215,6 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
         address indexed payer,
         address indexed serviceProvider,
         bytes16 agreementId,
-        uint64 updatedAt,
         uint64 endsAt,
         uint256 maxInitialTokens,
         uint256 maxOngoingTokensPerSecond,

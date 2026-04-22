@@ -139,7 +139,6 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
             acceptedRca.payer,
             acceptedRca.serviceProvider,
             agreementId,
-            uint64(block.timestamp),
             IRecurringCollector.CancelAgreementBy.Payer
         );
 
