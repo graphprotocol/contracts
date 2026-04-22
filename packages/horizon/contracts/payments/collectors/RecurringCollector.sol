@@ -231,23 +231,26 @@ contract RecurringCollector is
         RecurringCollectionAgreement calldata rca,
         bytes calldata signature
     ) external whenNotPaused returns (bytes16 agreementId) {
-        require(
-            block.timestamp <= rca.deadline,
-            RecurringCollectorAgreementDeadlineElapsed(block.timestamp, rca.deadline)
-        );
         require(msg.sender == rca.dataService, RecurringCollectorUnauthorizedCaller(msg.sender, rca.dataService));
 
         bytes32 rcaHash;
         (agreementId, rcaHash) = _rcaIdAndHash(rca);
+
+        AgreementData storage agreement = _getStorage().agreements[agreementId];
+        // Idempotent: already accepted at this hash → return silently, no state change.
+        // Short-circuits before deadline + auth; callable after the RCA deadline.
+        if (agreement.state == AgreementState.Accepted && agreement.activeTermsHash == rcaHash) return agreementId;
+
+        require(
+            block.timestamp <= rca.deadline,
+            RecurringCollectorAgreementDeadlineElapsed(block.timestamp, rca.deadline)
+        );
 
         _requireAuthorization(rca.payer, rcaHash, signature, agreementId, OFFER_TYPE_NEW);
 
         if (_validateAndStoreTerms(agreementId, rcaHash, _termsFromRCA(rca), rca.payer, VERSION_CURRENT, rca.deadline))
             _storeAgreement(agreementId, rca);
 
-        AgreementData storage agreement = _getStorage().agreements[agreementId];
-        // Idempotent: already accepted → return silently
-        if (agreement.state == AgreementState.Accepted) return agreementId;
         require(
             agreement.state == AgreementState.NotAccepted,
             RecurringCollectorAgreementIncorrectState(agreementId, agreement.state)
@@ -460,12 +463,8 @@ contract RecurringCollector is
 
         (bytes16 agreementId, bytes32 rcaHash) = _rcaIdAndHash(rca);
 
-        if (
-            _validateAndStoreTerms(agreementId, rcaHash, _termsFromRCA(rca), rca.payer, VERSION_CURRENT, rca.deadline)
-        ) {
+        if (_validateAndStoreTerms(agreementId, rcaHash, _termsFromRCA(rca), rca.payer, VERSION_CURRENT, rca.deadline))
             _storeAgreement(agreementId, rca);
-            emit OfferStored(agreementId, rca.payer, OFFER_TYPE_NEW, rcaHash);
-        }
 
         return _getAgreementDetails(_getStorage(), agreementId, rcaHash);
     }
@@ -488,8 +487,7 @@ contract RecurringCollector is
 
         bytes32 offerHash = _hashRCAU(rcau);
 
-        if (_validateAndStoreTerms(agreementId, offerHash, _termsFromRCAU(rcau), payer, VERSION_NEXT, rcau.deadline))
-            emit OfferStored(agreementId, payer, OFFER_TYPE_UPDATE, offerHash);
+        _validateAndStoreTerms(agreementId, offerHash, _termsFromRCAU(rcau), payer, VERSION_NEXT, rcau.deadline);
 
         return _getAgreementDetails(_getStorage(), agreementId, offerHash);
     }
@@ -1164,6 +1162,7 @@ contract RecurringCollector is
             if (agreement.activeTermsHash != bytes32(0)) delete $.terms[agreement.activeTermsHash];
             agreement.activeTermsHash = hash;
         }
+        emit OfferStored(agreementId, payer, newTerms.offerType, hash);
         return true;
     }
 
