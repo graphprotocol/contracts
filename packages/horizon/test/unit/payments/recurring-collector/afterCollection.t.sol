@@ -166,7 +166,7 @@ contract RecurringCollectorAfterCollectionTest is RecurringCollectorSharedTest {
         assertTrue(triggered, "Should have triggered InsufficientCallbackGas at some gas limit");
     }
 
-    /// @notice TRST-L-9: the CALLBACK_GAS_OVERHEAD precheck also guards the eligibility staticcall
+    /// @notice The CALLBACK_GAS_OVERHEAD precheck also guards the eligibility staticcall
     /// (first of three callback prechecks). Binary-search for a gas limit that reaches the
     /// eligibility precheck and trips it, confirming the buffer logic applies there too.
     function test_Collect_Revert_WhenInsufficientCallbackGas_EligibilityPrecheck() public {

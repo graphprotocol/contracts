@@ -505,5 +505,189 @@ contract RecurringCollectorGetMaxNextClaimTest is RecurringCollectorSharedTest {
         assertLt(windowSeconds, maxSecondsPerCollection, "Window should be smaller than maxSecondsPerCollection");
     }
 
+    /// @notice Symmetry of the pending-deadline fix for the pre-acceptance active branch.
+    /// An agreement that has been offered but not yet accepted (state == NotAccepted, but
+    /// activeTermsHash set) is admissible for acceptance at exactly `terms.deadline` because
+    /// accept() gates on `block.timestamp <= rca.deadline`. RAM's reservation envelope must
+    /// therefore still cover the potential claim window at that block. One second past, accept()
+    /// would revert and the agreement is unreachable, so max-claim drops to zero.
+    function test_GetMaxNextClaim_PreAcceptanceActiveAtExactDeadline_StillCounts() public {
+        MockAgreementOwner approver = new MockAgreementOwner();
+
+        // Build RCA manually so we control the exact deadline.
+        uint64 rcaDeadline = uint64(block.timestamp + 1 hours);
+        IRecurringCollector.RecurringCollectionAgreement memory rca = IRecurringCollector.RecurringCollectionAgreement({
+            deadline: rcaDeadline,
+            endsAt: uint64(block.timestamp + 365 days),
+            payer: address(approver),
+            dataService: makeAddr("ds"),
+            serviceProvider: makeAddr("sp"),
+            maxInitialTokens: 100 ether,
+            maxOngoingTokensPerSecond: 1 ether,
+            minSecondsPerCollection: 600,
+            maxSecondsPerCollection: 3600,
+            conditions: 0,
+            nonce: 1,
+            metadata: ""
+        });
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0);
+
+        bytes16 agreementId = _recurringCollector.generateAgreementId(
+            rca.payer,
+            rca.dataService,
+            rca.serviceProvider,
+            rca.deadline,
+            rca.nonce
+        );
+        // Agreement is in NotAccepted state — activeTermsHash is set (by offer) but no accept() yet.
+        assertEq(
+            uint8(_recurringCollector.getAgreement(agreementId).state),
+            uint8(IRecurringCollector.AgreementState.NotAccepted),
+            "precondition: NotAccepted"
+        );
+
+        // One second before the deadline: pre-acceptance active counts.
+        vm.warp(uint256(rcaDeadline) - 1);
+        assertGt(_recurringCollector.getMaxNextClaim(agreementId, 1), 0, "active counts before deadline");
+
+        // At the exact deadline: accept() is still admissible (<=), so the pre-acceptance window
+        // must still count in the reservation envelope.
+        vm.warp(uint256(rcaDeadline));
+        assertGt(_recurringCollector.getMaxNextClaim(agreementId, 1), 0, "active should still count at exact deadline");
+
+        // One second past the deadline: accept() would revert, so max-claim drops to zero.
+        vm.warp(uint256(rcaDeadline) + 1);
+        assertEq(_recurringCollector.getMaxNextClaim(agreementId, 1), 0, "active zero one second past deadline");
+    }
+
+    /// @notice Boundary: the guard uses `block.timestamp <= terms.deadline` (inclusive) to match
+    /// {update}'s admissibility — at the exact deadline block, update() can still promote the
+    /// pending to active, so RAM must keep reserving for it. One second past the deadline, the
+    /// pending is no longer admissible and drops to zero.
+    function test_GetMaxNextClaim_PendingAtExactDeadline_StillCounts() public {
+        MockAgreementOwner approver = new MockAgreementOwner();
+        IRecurringCollector.RecurringCollectionAgreement memory rca = _recurringCollectorHelper.sensibleRCA(
+            IRecurringCollector.RecurringCollectionAgreement({
+                deadline: uint64(block.timestamp + 1 hours),
+                endsAt: uint64(block.timestamp + 365 days),
+                payer: address(approver),
+                dataService: makeAddr("ds"),
+                serviceProvider: makeAddr("sp"),
+                maxInitialTokens: 100 ether,
+                maxOngoingTokensPerSecond: 1 ether,
+                minSecondsPerCollection: 600,
+                maxSecondsPerCollection: 3600,
+                conditions: 0,
+                nonce: 1,
+                metadata: ""
+            })
+        );
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0);
+        _setupValidProvision(rca.serviceProvider, rca.dataService);
+        vm.prank(rca.dataService);
+        bytes16 agreementId = _recurringCollector.accept(rca, "");
+
+        // Build RCAU manually (not via sensibleRCAU, which overrides deadline to a tight window)
+        // so we can pick a deadline we control and warp exactly to its boundary.
+        uint64 pendingDeadline = uint64(block.timestamp + 1 hours);
+        IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = IRecurringCollector
+            .RecurringCollectionAgreementUpdate({
+                agreementId: agreementId,
+                deadline: pendingDeadline,
+                endsAt: uint64(block.timestamp + 730 days),
+                maxInitialTokens: 200 ether,
+                maxOngoingTokensPerSecond: 10 ether,
+                minSecondsPerCollection: 600,
+                maxSecondsPerCollection: 7200,
+                conditions: 0,
+                nonce: 1,
+                metadata: ""
+            });
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
+
+        // One second before the deadline: pending counts.
+        vm.warp(uint256(pendingDeadline) - 1);
+        assertGt(_recurringCollector.getMaxNextClaim(agreementId, 2), 0, "pending counts before deadline");
+
+        // At the exact deadline: guard is inclusive `<=`, matching update()'s admissibility.
+        // update() can still promote the pending to active on this block, so RAM must keep it
+        // in the reservation envelope.
+        vm.warp(uint256(pendingDeadline));
+        assertGt(_recurringCollector.getMaxNextClaim(agreementId, 2), 0, "pending counts at exact deadline");
+
+        // One second past the deadline: update() would revert, so pending drops to zero.
+        vm.warp(uint256(pendingDeadline) + 1);
+        assertEq(_recurringCollector.getMaxNextClaim(agreementId, 2), 0, "pending zero one second past deadline");
+    }
+
+    /// @notice An expired pending offer (deadline in the past, endsAt still in the future) must not
+    /// contribute to max-claim. {update} rejects past-deadline RCAUs so the pending can never be
+    /// promoted to active; counting it would over-reserve escrow in RAM.
+    function test_GetMaxNextClaim_PendingIgnored_AfterDeadline() public {
+        MockAgreementOwner approver = new MockAgreementOwner();
+        IRecurringCollector.RecurringCollectionAgreement memory rca = _recurringCollectorHelper.sensibleRCA(
+            IRecurringCollector.RecurringCollectionAgreement({
+                deadline: uint64(block.timestamp + 1 hours),
+                endsAt: uint64(block.timestamp + 365 days),
+                payer: address(approver),
+                dataService: makeAddr("ds"),
+                serviceProvider: makeAddr("sp"),
+                maxInitialTokens: 100 ether,
+                maxOngoingTokensPerSecond: 1 ether,
+                minSecondsPerCollection: 600,
+                maxSecondsPerCollection: 3600,
+                conditions: 0,
+                nonce: 1,
+                metadata: ""
+            })
+        );
+
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0);
+        _setupValidProvision(rca.serviceProvider, rca.dataService);
+        vm.prank(rca.dataService);
+        bytes16 agreementId = _recurringCollector.accept(rca, "");
+
+        // Pending RCAU with higher rate + short acceptance deadline but long endsAt. Build manually
+        // so we control the deadline exactly (sensibleRCAU would override it to a bounded window).
+        uint64 pendingDeadline = uint64(block.timestamp + 1 hours);
+        IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = IRecurringCollector
+            .RecurringCollectionAgreementUpdate({
+                agreementId: agreementId,
+                deadline: pendingDeadline,
+                endsAt: uint64(block.timestamp + 730 days),
+                maxInitialTokens: 200 ether,
+                maxOngoingTokensPerSecond: 10 ether,
+                minSecondsPerCollection: 600,
+                maxSecondsPerCollection: 7200,
+                conditions: 0,
+                nonce: 1,
+                metadata: ""
+            });
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
+
+        uint256 activeClaim = _recurringCollector.getMaxNextClaim(agreementId, 1); // SCOPE_ACTIVE
+
+        // Before deadline: higher-rate pending dominates the combined claim.
+        uint256 beforeDeadline = _recurringCollector.getMaxNextClaim(agreementId);
+        assertGt(beforeDeadline, activeClaim, "live pending dominates before its deadline");
+
+        // Warp one second past the pending's deadline. endsAt is still well in the future, so
+        // _maxClaimForTerms would still return a large number — but the pending can no longer
+        // be accepted via update(), so it must not contribute.
+        vm.warp(uint256(pendingDeadline) + 1);
+
+        uint256 pendingScopeAfter = _recurringCollector.getMaxNextClaim(agreementId, 2); // SCOPE_PENDING
+        assertEq(pendingScopeAfter, 0, "expired pending returns 0 under SCOPE_PENDING");
+
+        uint256 combinedAfter = _recurringCollector.getMaxNextClaim(agreementId);
+        uint256 activeAfter = _recurringCollector.getMaxNextClaim(agreementId, 1);
+        assertEq(combinedAfter, activeAfter, "combined scope falls back to active-only after pending expires");
+    }
+
     /* solhint-enable graph/func-name-mixedcase */
 }
