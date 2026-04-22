@@ -177,8 +177,8 @@ contract RecurringCollectorHashRoundTripTest is RecurringCollectorSharedTest {
         IRecurringCollector.AgreementData memory agreement = _recurringCollector.getAgreement(agreementId);
         assertEq(agreement.activeTermsHash, rcauHash, "activeTermsHash should be RCAU hash after update");
 
-        // Stored update offer persists after update
-        _verifyOfferRoundTrip(agreementId, 1, rcauHash);
+        // After update, RCAU becomes the active version (VERSION_CURRENT = 0)
+        _verifyOfferRoundTrip(agreementId, 0, rcauHash);
     }
 
     // ==================== Cancel pending, active stays ====================

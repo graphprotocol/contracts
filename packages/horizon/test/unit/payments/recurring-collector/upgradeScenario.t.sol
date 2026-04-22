@@ -129,7 +129,7 @@ contract RecurringCollectorUpgradeScenarioTest is Test, Bounder {
         assertEq(v2Agreement.payer, payer, "payer lost");
         assertEq(v2Agreement.serviceProvider, rca.serviceProvider, "serviceProvider lost");
         assertEq(v2Agreement.dataService, rca.dataService, "dataService lost");
-        assertEq(v2Agreement.maxOngoingTokensPerSecond, rca.maxOngoingTokensPerSecond, "terms lost");
+        assertEq(v2Agreement.activeTermsHash, _recurringCollector.hashRCA(rca), "terms hash lost");
         assertTrue(_recurringCollector.pauseGuardians(makeAddr("guardian")), "pause guardian lost");
     }
 

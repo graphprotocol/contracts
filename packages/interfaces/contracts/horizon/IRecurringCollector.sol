@@ -103,41 +103,31 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
     /**
      * @notice The data for an agreement
      * @dev This struct is used to store the data of an agreement in the contract.
-     * Fields are ordered for optimal storage packing (7 slots).
+     * Fields are ordered for optimal storage packing (5 slots).
      * @param dataService The address of the data service
      * @param acceptedAt The timestamp when the agreement was accepted
-     * @param minSecondsPerCollection The minimum amount of seconds that must pass between collections
+     * @param updateNonce The current nonce for updates (prevents replay attacks)
      * @param payer The address of the payer
      * @param lastCollectionAt The timestamp when the agreement was last collected at
-     * @param maxSecondsPerCollection The maximum seconds of service that can be collected in a single collection
      * @param serviceProvider The address of the service provider
-     * @param endsAt The timestamp when the agreement ends
-     * @param updateNonce The current nonce for updates (prevents replay attacks)
-     * @param maxInitialTokens The maximum amount of tokens that can be collected in the first collection
-     * on top of the amount allowed for subsequent collections
-     * @param maxOngoingTokensPerSecond The maximum amount of tokens that can be collected per second
-     * except for the first collection
-     * @param activeTermsHash EIP-712 hash of the currently active terms (RCA or RCAU)
      * @param canceledAt The timestamp when the agreement was canceled
-     * @param conditions Bitmask of payer-declared conditions
      * @param state The state of the agreement
+     * @param activeTermsHash EIP-712 hash of the current version. For accepted agreements this
+     * is the active terms (RCA or RCAU) hash. For pre-acceptance agreements this is the stored
+     * RCA offer hash. Use `state` to distinguish accepted from pre-acceptance.
+     * @param pendingTermsHash EIP-712 hash of the queued pending update (RCAU), or 0 if none.
      */
     struct AgreementData {
-        address dataService; //        20 bytes ─┐ slot 0 (32/32)
-        uint64 acceptedAt; //           8 bytes ─┤
-        uint32 minSecondsPerCollection; // 4 bytes ─┘
-        address payer; //              20 bytes ─┐ slot 1 (32/32)
-        uint64 lastCollectionAt; //     8 bytes ─┤
-        uint32 maxSecondsPerCollection; // 4 bytes ─┘
-        address serviceProvider; //    20 bytes ─┐ slot 2 (32/32)
-        uint64 endsAt; //              8 bytes ─┤
-        uint32 updateNonce; //          4 bytes ─┘
-        uint256 maxInitialTokens; //   32 bytes ─── slot 3
-        uint256 maxOngoingTokensPerSecond; // 32 bytes ─── slot 4
-        bytes32 activeTermsHash; //    32 bytes ─── slot 5
-        uint64 canceledAt; //           8 bytes ─┐ slot 6 (11/32)
-        uint16 conditions; //           2 bytes ─┤
-        AgreementState state; //        1 byte  ─┘
+        address dataService; //    20 bytes ─┐ slot 0 (32/32)
+        uint64 acceptedAt; //       8 bytes ─┤
+        uint32 updateNonce; //      4 bytes ─┘
+        address payer; //          20 bytes ─┐ slot 1 (28/32)
+        uint64 lastCollectionAt; //  8 bytes ─┘
+        address serviceProvider; // 20 bytes ─┐ slot 2 (29/32)
+        uint64 canceledAt; //       8 bytes ─┤
+        AgreementState state; //    1 byte  ─┘
+        bytes32 activeTermsHash; // 32 bytes ── slot 3
+        bytes32 pendingTermsHash; // 32 bytes ── slot 4
     }
 
     /**
@@ -249,11 +239,6 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
     error RecurringCollectorAgreementNotFound(bytes16 agreementId);
 
     /**
-     * @notice Thrown when accepting an agreement with a zero ID
-     */
-    error RecurringCollectorAgreementIdZero();
-
-    /**
      * @notice Thrown when interacting with an agreement not owned by the message sender
      * @param agreementId The agreement ID
      * @param unauthorizedDataService The address of the unauthorized data service
@@ -316,14 +301,14 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
     error RecurringCollectorAgreementAddressNotSet();
 
     /**
-     * @notice Thrown when an agreement's endsAt is not strictly after its acceptance deadline.
-     * @param deadline The offer acceptance deadline
+     * @notice Thrown when an agreement's endsAt is not strictly after its deadline
+     * @param deadline The offer's acceptance deadline
      * @param endsAt The agreement end timestamp
      */
     error RecurringCollectorAgreementEndsBeforeDeadline(uint64 deadline, uint64 endsAt);
 
     /**
-     * @notice Thrown when accepting or upgrading an agreement with an elapsed endsAt
+     * @notice Thrown when an agreement's collection window is below the minimum
      * @param allowedMinCollectionWindow The allowed minimum collection window
      * @param minSecondsPerCollection The minimum seconds per collection
      * @param maxSecondsPerCollection The maximum seconds per collection
@@ -443,6 +428,14 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
      * @param offerHash The EIP-712 hash of the stored offer
      */
     event OfferStored(bytes16 indexed agreementId, address indexed payer, uint8 indexed offerType, bytes32 offerHash);
+
+    /**
+     * @notice Emitted when an offer is cancelled via SCOPE_SIGNED or SCOPE_PENDING
+     * @param caller The address that cancelled the offer (msg.sender)
+     * @param agreementId The agreement ID
+     * @param hash The EIP-712 hash that was cancelled
+     */
+    event OfferCancelled(address indexed caller, bytes16 indexed agreementId, bytes32 hash);
 
     /**
      * @notice Pauses the collector, blocking accept, update, collect, and cancel.

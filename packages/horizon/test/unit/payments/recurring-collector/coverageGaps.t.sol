@@ -849,6 +849,79 @@ contract RecurringCollectorCoverageGapsTest is RecurringCollectorSharedTest {
         assertEq(dataAfter.length, 0, "Offer data should be empty after cancel");
     }
 
+    function test_Cancel_PendingRcaAndRcau_IndependentOrder() public {
+        MockAgreementOwner approver = new MockAgreementOwner();
+
+        IRecurringCollector.RecurringCollectionAgreement memory rca = IRecurringCollector.RecurringCollectionAgreement({
+            deadline: uint64(block.timestamp + 1 hours),
+            endsAt: uint64(block.timestamp + 365 days),
+            payer: address(approver),
+            dataService: makeAddr("ds"),
+            serviceProvider: makeAddr("sp"),
+            maxInitialTokens: 100 ether,
+            maxOngoingTokensPerSecond: 1 ether,
+            minSecondsPerCollection: 600,
+            maxSecondsPerCollection: 3600,
+            conditions: 0,
+            nonce: 1,
+            metadata: ""
+        });
+
+        // Offer RCA (not yet accepted)
+        vm.prank(address(approver));
+        IAgreementCollector.AgreementDetails memory details = _recurringCollector.offer(
+            OFFER_TYPE_NEW,
+            abi.encode(rca),
+            0
+        );
+        bytes16 agreementId = details.agreementId;
+        bytes32 rcaHash = details.versionHash;
+
+        // Offer RCAU on top of the pending RCA
+        IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = IRecurringCollector
+            .RecurringCollectionAgreementUpdate({
+                agreementId: agreementId,
+                deadline: uint64(block.timestamp + 1 hours),
+                endsAt: uint64(block.timestamp + 365 days),
+                maxInitialTokens: 200 ether,
+                maxOngoingTokensPerSecond: 2 ether,
+                minSecondsPerCollection: 600,
+                maxSecondsPerCollection: 3600,
+                conditions: 0,
+                nonce: 1,
+                metadata: ""
+            });
+        vm.prank(address(approver));
+        IAgreementCollector.AgreementDetails memory updateDetails = _recurringCollector.offer(
+            OFFER_TYPE_UPDATE,
+            abi.encode(rcau),
+            0
+        );
+        bytes32 rcauHash = updateDetails.versionHash;
+
+        // Cancel the RCA offer first — pending RCAU survives independently
+        vm.expectEmit(true, true, false, true);
+        emit IRecurringCollector.OfferCancelled(address(approver), agreementId, rcaHash);
+        vm.prank(address(approver));
+        _recurringCollector.cancel(agreementId, rcaHash, SCOPE_PENDING);
+
+        IRecurringCollector.AgreementData memory after1 = _recurringCollector.getAgreement(agreementId);
+        assertEq(after1.activeTermsHash, bytes32(0), "active should be cleared");
+        assertEq(after1.pendingTermsHash, rcauHash, "pending RCAU should survive RCA cancel");
+        assertEq(after1.payer, address(approver), "agreement.payer persists for subsequent auth");
+
+        // Now cancel the pending RCAU — payer auth still works via persistent agreement.payer
+        vm.expectEmit(true, true, false, true);
+        emit IRecurringCollector.OfferCancelled(address(approver), agreementId, rcauHash);
+        vm.prank(address(approver));
+        _recurringCollector.cancel(agreementId, rcauHash, SCOPE_PENDING);
+
+        (uint8 activeType, ) = _recurringCollector.getAgreementOfferAt(agreementId, 0);
+        assertEq(activeType, 0, "Active offer should be gone");
+        (uint8 pendingType, ) = _recurringCollector.getAgreementOfferAt(agreementId, 1);
+        assertEq(pendingType, 0, "Pending offer should be gone");
+    }
+
     // ══════════════════════════════════════════════════════════════════════
     // Gap 16 — cancel: silent no-op when agreement not found
     // ══════════════════════════════════════════════════════════════════════
