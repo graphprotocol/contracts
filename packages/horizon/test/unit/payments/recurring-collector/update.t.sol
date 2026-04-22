@@ -143,7 +143,6 @@ contract RecurringCollectorUpdateTest is RecurringCollectorSharedTest {
             acceptedRca.payer,
             acceptedRca.serviceProvider,
             rcau.agreementId,
-            uint64(block.timestamp),
             rcau.endsAt,
             rcau.maxInitialTokens,
             rcau.maxOngoingTokensPerSecond,

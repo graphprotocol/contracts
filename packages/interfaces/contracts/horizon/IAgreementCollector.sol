@@ -3,11 +3,13 @@ pragma solidity ^0.8.22;
 
 import { IPaymentsCollector } from "./IPaymentsCollector.sol";
 
-// -- Agreement state flags --
+// -- State flags for AgreementDetails --
+// Describe the queried version in context of its agreement; returned by both
+// offer() and getAgreementDetails(). See AgreementDetails.state NatSpec.
 
-/// @dev Offer exists in storage
+/// @dev Offer exists in storage. Implied by ACCEPTED.
 uint16 constant REGISTERED = 1;
-/// @dev Provider accepted terms
+/// @dev Provider accepted terms. Always returned with REGISTERED set (accepted terms were stored).
 uint16 constant ACCEPTED = 2;
 /// @dev The agreement's collection window has been truncated (e.g. by cancellation).
 /// Paired with a BY_* flag identifying the origin.
@@ -25,9 +27,8 @@ uint16 constant BY_PROVIDER = 32;
 
 // -- Update-origin flag --
 
-/// @dev Terms originated from an RCAU (update), not the initial RCA.
-/// Set on agreement state when active terms come from an accepted or pre-acceptance update.
-/// ORed into returned state by getAgreementDetails for pending versions (index 1).
+/// @dev This version's terms originated from an update, not the initial agreement offer.
+/// Describes the version's provenance; set wherever the update-derived version is returned.
 uint16 constant UPDATE = 128;
 
 // -- Offer type constants --
@@ -47,6 +48,19 @@ uint8 constant SCOPE_ACTIVE = 1;
 /// @dev Cancel targets pending offers
 uint8 constant SCOPE_PENDING = 2;
 
+// -- Version indices (shared by getAgreementDetails and getAgreementOfferAt) --
+//
+// Versions are enumerated starting at 0. Implementations may expose any number of versions;
+// callers iterate until an empty result signals no further versions. These named aliases
+// cover the two versions every collector is expected to expose.
+
+/// @dev The currently-active version: the accepted terms if the agreement is accepted,
+/// otherwise the pre-acceptance offer (if any). Empty when no agreement or offer exists.
+uint256 constant VERSION_CURRENT = 0;
+/// @dev The next queued version: a pending update offer waiting to be accepted.
+/// Empty when no queued update exists.
+uint256 constant VERSION_NEXT = 1;
+
 /**
  * @title Base interface for agreement-based payment collectors
  * @notice Base interface for agreement-based payment collectors.
@@ -64,12 +78,21 @@ interface IAgreementCollector is IPaymentsCollector {
     /**
      * @notice Agreement details: participants, version hash, and state flags.
      * Returned by {offer} and {getAgreementDetails}.
+     *
+     * The `state` field describes the version identified by `versionHash` in the
+     * context of its agreement. Version-specific flags (REGISTERED, ACCEPTED,
+     * UPDATE, SETTLED) are set only when they apply to that specific version;
+     * agreement-wide flags (NOTICE_GIVEN, BY_PAYER, BY_PROVIDER) reflect the
+     * current agreement state. Identical semantics whether returned by {offer}
+     * or {getAgreementDetails} — the returned flags always describe the queried
+     * version.
+     *
      * @param agreementId The agreement ID
      * @param payer The address of the payer
      * @param dataService The address of the data service
      * @param serviceProvider The address of the service provider
      * @param versionHash The EIP-712 hash of the terms at the requested version
-     * @param state Agreement state flags, with UPDATE set when applicable
+     * @param state State flags describing the queried version in context of its agreement
      */
     // solhint-disable-next-line gas-struct-packing
     struct AgreementDetails {
@@ -94,6 +117,11 @@ interface IAgreementCollector is IPaymentsCollector {
 
     /**
      * @notice Offer a new agreement or update an existing one.
+     * @dev Returns {AgreementDetails} for the just-stored offer. The `state` field
+     * describes that version in context of its agreement (see {AgreementDetails}):
+     * version-specific flags (REGISTERED, ACCEPTED, UPDATE, SETTLED) are set when
+     * they apply to the offered version; agreement-wide flags (NOTICE_GIVEN, BY_*)
+     * reflect current agreement state.
      * @param offerType The type of offer (OFFER_TYPE_NEW or OFFER_TYPE_UPDATE)
      * @param data ABI-encoded offer data
      * @param options Bitmask reserved for implementation-specific options; pass 0 when none apply.
@@ -103,17 +131,23 @@ interface IAgreementCollector is IPaymentsCollector {
     function offer(uint8 offerType, bytes calldata data, uint16 options) external returns (AgreementDetails memory);
 
     /**
-     * @notice Cancel an agreement or revoke a pending update, determined by termsHash.
+     * @notice Cancel an agreement or revoke a pending offer.
+     * @dev Scopes can be combined. SCOPE_PENDING and SCOPE_ACTIVE require payer authorization
+     * and no-op if nothing exists on-chain.
      * @param agreementId The agreement's ID.
-     * @param termsHash EIP-712 hash identifying which terms to cancel (active or pending).
-     * @param options Bitmask — SCOPE_ACTIVE (1) targets active terms, SCOPE_PENDING (2) targets pending offers.
+     * @param termsHash EIP-712 hash identifying which terms to cancel.
+     * @param options Bitmask — SCOPE_ACTIVE (1) active terms, SCOPE_PENDING (2) pending offers.
      */
     function cancel(bytes16 agreementId, bytes32 termsHash, uint16 options) external;
 
     /**
      * @notice Get agreement details at a given version index.
+     * @dev Versions are enumerated from 0. VERSION_CURRENT is the active version (or
+     * pre-acceptance offer); VERSION_NEXT is the queued pending update, if any. Empty
+     * details are returned when no version exists at the requested index — callers can
+     * iterate versions until reaching an empty result.
      * @param agreementId The ID of the agreement
-     * @param index The zero-based version index
+     * @param index Version index (VERSION_CURRENT, VERSION_NEXT, or higher if the implementation supports more)
      * @return Agreement details including participants, version hash, and state flags
      */
     function getAgreementDetails(bytes16 agreementId, uint256 index) external view returns (AgreementDetails memory);
@@ -134,11 +168,13 @@ interface IAgreementCollector is IPaymentsCollector {
     function getMaxNextClaim(bytes16 agreementId) external view returns (uint256);
 
     /**
-     * @notice Original offer for a given version, enabling independent access and hash verification.
-     * @dev Returns the offer type (OFFER_TYPE_NEW or OFFER_TYPE_UPDATE) and the ABI-encoded
-     * original struct. Callers can decode and hash to verify the stored version hash.
+     * @notice Original offer data for a given version index, enabling independent access and hash verification.
+     * @dev Returns the offer type and the ABI-encoded original struct so callers can decode
+     * and rehash to verify the version hash returned by getAgreementDetails. Version semantics
+     * mirror getAgreementDetails, but empty data is returned when the version's offer was not
+     * stored (e.g. signed acceptance without a prior offer(), or overwritten by a later update).
      * @param agreementId The ID of the agreement
-     * @param index The zero-based version index
+     * @param index Version index (VERSION_CURRENT, VERSION_NEXT, or higher if supported)
      * @return offerType OFFER_TYPE_NEW, OFFER_TYPE_UPDATE, or OFFER_TYPE_NONE when no offer is stored
      * @return offerData ABI-encoded original offer struct, or empty when offerType is OFFER_TYPE_NONE
      */
