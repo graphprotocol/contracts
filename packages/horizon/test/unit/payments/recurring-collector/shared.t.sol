@@ -120,7 +120,6 @@ contract RecurringCollectorSharedTest is Test, Bounder {
             _rca.payer,
             _rca.serviceProvider,
             expectedAgreementId,
-            uint64(block.timestamp),
             _rca.endsAt,
             _rca.maxInitialTokens,
             _rca.maxOngoingTokensPerSecond,
@@ -165,7 +164,6 @@ contract RecurringCollectorSharedTest is Test, Bounder {
             _rca.payer,
             _rca.serviceProvider,
             _agreementId,
-            uint64(block.timestamp),
             _by
         );
         vm.prank(_rca.dataService);
