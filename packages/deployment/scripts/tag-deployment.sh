@@ -2,17 +2,34 @@
 #
 # tag-deployment.sh - Create annotated git tag for a contract deployment
 #
+# Produces tags in the format `deploy/<env>/YYYY-MM-DD/<name>` as defined by
+# DEPLOYMENT.md (the bare-date form `deploy/<env>/YYYY-MM-DD` is permitted as a
+# fallback when --name is omitted, but a descriptive name is recommended). The
+# tag body records the deployer, network, commit, and a list of changed
+# contracts per address book (detected by diffing address-book JSON against a
+# base ref).
+#
 # Usage:
-#   ./scripts/tag-deployment.sh --deployer <description> --network <network> --name <short-name> [options]
+#   ./scripts/tag-deployment.sh --deployer <desc> --network <network> [--name <short-name>] [options]
 #
 # Options:
 #   --deployer <desc>   What performed the deployment (free-form, e.g., "packages/deployment --tags RewardsManager")
-#   --network <name>    Network: arbitrumOne or arbitrumSepolia
-#   --name <short-name> Upgrade short name for the tag (e.g., "reward-manager-and-subgraph-service")
-#   --base <ref>        Git ref to diff against (default: HEAD~1)
-#   --dry-run           Preview tag without creating it
-#   --sign              Force-sign the tag with -s
+#   --network <name>    Network: arbitrumOne (→ mainnet) or arbitrumSepolia (→ testnet)
+#   --name <short-name> Recommended release/upgrade short name appended to the tag as a further path segment
+#                       (e.g. "reward-manager-and-subgraph-service" → deploy/<env>/YYYY-MM-DD/<name>).
+#                       If omitted, the tag is the bare-date form deploy/<env>/YYYY-MM-DD — permitted as a
+#                       fallback but exceptional; prefer a name that describes the deploy.
+#   --base <ref>        Git ref to diff address books against. Defaults to the latest `deploy/<env>/*`
+#                       tag for the target environment. If none exists (initial deploy), pass --base
+#                       explicitly (e.g. --base HEAD~1 or the empty-tree sentinel).
+#   --dry-run           Print the preview and exit without creating the tag.
+#   --yes, -y           Skip the interactive confirmation prompt (required for non-interactive use).
+#   --no-sign           Create an unsigned annotated tag. Default is signed (-s).
 #   --help              Show this help
+#
+# By default the script prints a preview (tag name, commit, annotation body) and
+# then asks for confirmation before creating the tag. Use --yes to skip the
+# prompt, or --dry-run to stop after the preview.
 #
 set -euo pipefail
 
@@ -30,9 +47,10 @@ REPO_ROOT="$(git rev-parse --show-toplevel)"
 DEPLOYER=""
 NETWORK=""
 UPGRADE_NAME=""
-BASE_REF="HEAD~1"
+BASE_REF=""   # Empty means "auto: use latest deploy/<env>/* tag". Overridden by --base.
 DRY_RUN=false
-SIGN_FLAG="-a"
+ASSUME_YES=false
+SIGN_FLAG="-s"   # Signed by default. --no-sign switches to -a (annotated, unsigned).
 
 # --- Address books managed by packages/deployment ---
 ADDRESS_BOOKS=(
@@ -68,7 +86,7 @@ network_to_display() {
 
 # --- Parse arguments ---
 usage() {
-  sed -n '3,14p' "$0" | sed 's/^# \?//'
+  sed -n '3,32p' "$0" | sed 's/^# \?//'
   exit "${1:-0}"
 }
 
@@ -79,7 +97,8 @@ while [[ $# -gt 0 ]]; do
     --name)     UPGRADE_NAME="$2"; shift 2 ;;
     --base)     BASE_REF="$2"; shift 2 ;;
     --dry-run)  DRY_RUN=true; shift ;;
-    --sign)     SIGN_FLAG="-s"; shift ;;
+    --yes|-y)   ASSUME_YES=true; shift ;;
+    --no-sign)  SIGN_FLAG="-a"; shift ;;
     --help)     usage 0 ;;
     *) echo "Unknown option: $1"; usage 1 ;;
   esac
@@ -95,15 +114,15 @@ if [[ -z "$NETWORK" ]]; then
   usage 1
 fi
 
-if [[ -z "$UPGRADE_NAME" ]]; then
-  echo "Error: --name is required"
-  usage 1
-fi
-
-# Validate upgrade name: lowercase, digits, hyphens only
-if [[ ! "$UPGRADE_NAME" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]; then
-  echo "Error: --name must be lowercase alphanumeric with hyphens (e.g., 'reward-manager-and-subgraph-service')"
-  exit 1
+# --name is recommended but not required. When provided, validate format: lowercase, digits, hyphens only.
+if [[ -n "$UPGRADE_NAME" ]]; then
+  if [[ ! "$UPGRADE_NAME" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]; then
+    echo "Error: --name must be lowercase alphanumeric with hyphens (e.g., 'reward-manager-and-subgraph-service')"
+    exit 1
+  fi
+else
+  echo "Warning: --name not provided; creating bare-date tag (fallback form)."
+  echo "         Prefer a descriptive --name (e.g. 'reward-manager', 'fix-activation') for self-describing tags."
 fi
 
 CHAIN_ID="$(network_to_chain_id "$NETWORK")"
@@ -113,6 +132,21 @@ DISPLAY="$(network_to_display "$NETWORK")"
 if [[ "$CHAIN_ID" == "unknown" ]]; then
   echo "Error: unknown network '$NETWORK' (expected arbitrumOne or arbitrumSepolia)"
   exit 1
+fi
+
+# --- Resolve --base default ---
+# If --base was not provided, use the latest deploy/<label>/* tag as the diff base.
+# This is the common case: every deploy's "contracts changed" section is the diff
+# against the previous deploy on the same environment.
+if [[ -z "$BASE_REF" ]]; then
+  BASE_REF="$(git tag -l "deploy/${LABEL}/*" | sort | tail -1)"
+  if [[ -z "$BASE_REF" ]]; then
+    echo "Error: no previous deploy/${LABEL}/* tag found to use as --base default."
+    echo "  For an initial deploy on ${LABEL}, pass --base explicitly"
+    echo "  (e.g. --base HEAD~1, or --base \$(git hash-object -t tree /dev/null) for an empty-tree diff)."
+    exit 1
+  fi
+  echo "Using latest deploy/${LABEL}/* tag as --base: ${BASE_REF}"
 fi
 
 # --- Preconditions ---
@@ -215,30 +249,34 @@ if [[ "$has_changes" == false ]]; then
 fi
 
 # --- Generate tag name ---
+# Format matches DEPLOYMENT.md: deploy/<env>/YYYY-MM-DD[/<name>]
 TAG_DATE="$(date +%Y-%m-%d)"
-TAG_BASE="deploy/${LABEL}/${TAG_DATE}/${UPGRADE_NAME}"
+if [[ -n "$UPGRADE_NAME" ]]; then
+  TAG_BASE="deploy/${LABEL}/${TAG_DATE}/${UPGRADE_NAME}"
+else
+  TAG_BASE="deploy/${LABEL}/${TAG_DATE}"
+fi
 TAG_NAME="$TAG_BASE"
 
-# Handle suffix for multiple deploys with the same name on the same day
+# Collisions are resolved by choosing a more specific --name, not by automatic suffixes.
 if git tag -l "$TAG_NAME" | grep -q .; then
-  for suffix in b c d e f; do
-    candidate="${TAG_BASE}-${suffix}"
-    if ! git tag -l "$candidate" | grep -q .; then
-      TAG_NAME="$candidate"
-      break
-    fi
-  done
-  if [[ "$TAG_NAME" == "$TAG_BASE" ]]; then
-    echo "Error: too many deployment tags for ${TAG_DATE}/${UPGRADE_NAME}"
-    exit 1
+  echo "Error: tag '${TAG_NAME}' already exists."
+  if [[ -n "$UPGRADE_NAME" ]]; then
+    echo "  Choose a more specific --name (e.g. 'fix-...', 'retry-...') to disambiguate."
+  else
+    echo "  Provide a --name to disambiguate (the name is the only disambiguator; letter suffixes are not used)."
   fi
+  exit 1
 fi
 
 # --- Build annotation ---
-ANNOTATION="upgrade: ${UPGRADE_NAME}
-network: ${DISPLAY} (${CHAIN_ID})
+ANNOTATION="network: ${DISPLAY} (${CHAIN_ID})
 deployed-by: ${DEPLOYER}
 commit: ${COMMIT_SHA}"
+if [[ -n "$UPGRADE_NAME" ]]; then
+  ANNOTATION="upgrade: ${UPGRADE_NAME}
+${ANNOTATION}"
+fi
 
 for book_name in $(echo "${!BOOK_CHANGES[@]}" | tr ' ' '\n' | sort); do
   changes="${BOOK_CHANGES[$book_name]}"
@@ -274,6 +312,19 @@ echo ""
 if [[ "$DRY_RUN" == true ]]; then
   echo "[dry-run] Tag not created"
   exit 0
+fi
+
+# Confirm before creating the tag (unless --yes was given).
+if [[ "$ASSUME_YES" == false ]]; then
+  if [[ ! -t 0 ]]; then
+    echo "Error: stdin is not a TTY; re-run with --yes to confirm non-interactively, or from a terminal."
+    exit 1
+  fi
+  read -r -p "Create this tag? [y/N] " answer
+  case "$answer" in
+    y|Y|yes|YES) ;;
+    *) echo "Aborted."; exit 1 ;;
+  esac
 fi
 
 MSG_FILE="$(mktemp)"
