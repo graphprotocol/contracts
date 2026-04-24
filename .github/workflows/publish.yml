@@ -38,6 +38,10 @@ jobs:
           submodules: recursive
       - name: Set up environment
         uses: ./.github/actions/setup
+      - name: Upgrade npm for OIDC trusted publishing
+        # pnpm publish delegates registry auth to the underlying npm CLI;
+        # npm >= 11.5.1 is required to support OIDC trusted publishing.
+        run: npm install -g npm@latest
       - name: Read package info
         id: pkg
         shell: bash
