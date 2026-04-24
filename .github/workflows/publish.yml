@@ -10,12 +10,19 @@ on:
         options:
           - address-book
           - contracts
+          - interfaces
           - sdk
+          - toolshed
       tag:
         description: 'Tag to publish'
         required: true
         type: string
         default: latest
+      dry_run:
+        description: 'Dry-run (validate only, no publish or git tag)'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   publish:
@@ -41,8 +48,9 @@ jobs:
         shell: bash
         run: |
           pushd packages/${{ inputs.package }}
-          pnpm publish --tag ${{ inputs.tag }} --access public --no-git-checks
+          pnpm publish --tag ${{ inputs.tag }} --access public --no-git-checks ${{ inputs.dry_run && '--dry-run' || '' }}
       - name: Tag release
+        if: ${{ !inputs.dry_run }}
         run: |
           git tag ${{ steps.pkg.outputs.tag }}
           git push origin ${{ steps.pkg.outputs.tag }}
