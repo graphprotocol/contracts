@@ -28,6 +28,9 @@ jobs:
   publish:
     name: Publish package
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -35,8 +38,6 @@ jobs:
           submodules: recursive
       - name: Set up environment
         uses: ./.github/actions/setup
-      - name: Set npm token for publishing
-        run: pnpm config set //registry.npmjs.org/:_authToken ${{ secrets.GRAPHPROTOCOL_NPM_TOKEN }}
       - name: Read package info
         id: pkg
         shell: bash
@@ -48,7 +49,7 @@ jobs:
         shell: bash
         run: |
           pushd packages/${{ inputs.package }}
-          pnpm publish --tag ${{ inputs.tag }} --access public --no-git-checks ${{ inputs.dry_run && '--dry-run' || '' }}
+          pnpm publish --provenance --tag ${{ inputs.tag }} --access public --no-git-checks ${{ inputs.dry_run && '--dry-run' || '' }}
       - name: Tag release
         if: ${{ !inputs.dry_run }}
         run: |
