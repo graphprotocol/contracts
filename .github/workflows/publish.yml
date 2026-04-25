@@ -39,9 +39,10 @@ jobs:
       - name: Set up environment
         uses: ./.github/actions/setup
       - name: Upgrade npm for OIDC trusted publishing
-        # pnpm publish delegates registry auth to the underlying npm CLI;
-        # npm >= 11.5.1 is required to support OIDC trusted publishing.
-        run: npm install -g npm@latest
+        # pnpm publish delegates registry auth to the underlying npm CLI.
+        # OIDC trusted publishing requires npm >= 11.5.1; pinned to a known-good
+        # version for reproducibility — safe to bump as long as it stays >= 11.5.1.
+        run: npm install -g npm@11.13.0
       - name: Read package info
         id: pkg
         shell: bash
