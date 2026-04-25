@@ -445,6 +445,15 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
     event OfferStored(bytes16 indexed agreementId, address indexed payer, uint8 indexed offerType, bytes32 offerHash);
 
     /**
+     * @notice Emitted when a stored offer is cancelled via {IAgreementCollector.cancel}.
+     * @dev Fired for SCOPE_PENDING cancellations that delete a stored RCA or RCAU offer entry.
+     * @param caller The msg.sender of the cancel call (the payer for SCOPE_PENDING)
+     * @param agreementId The agreement ID
+     * @param hash The EIP-712 hash of the cancelled offer
+     */
+    event OfferCancelled(address indexed caller, bytes16 indexed agreementId, bytes32 indexed hash);
+
+    /**
      * @notice Pauses the collector, blocking accept, update, collect, and cancel.
      * @dev Only callable by a pause guardian. Uses OpenZeppelin Pausable.
      */

@@ -538,8 +538,13 @@ contract RecurringCollector is
         if (agreement.activeTermsHash != termsHash || agreement.state == AgreementState.NotAccepted) {
             if (options & SCOPE_PENDING != 0) {
                 // Pending scope: delete stored offer if hash matches and terms are not currently active
-                if ($.rcaOffers[agreementId].offerHash == termsHash) delete $.rcaOffers[agreementId];
-                else if ($.rcauOffers[agreementId].offerHash == termsHash) delete $.rcauOffers[agreementId];
+                if ($.rcaOffers[agreementId].offerHash == termsHash) {
+                    delete $.rcaOffers[agreementId];
+                    emit OfferCancelled(msg.sender, agreementId, termsHash);
+                } else if ($.rcauOffers[agreementId].offerHash == termsHash) {
+                    delete $.rcauOffers[agreementId];
+                    emit OfferCancelled(msg.sender, agreementId, termsHash);
+                }
             }
         } else if (options & SCOPE_ACTIVE != 0 && agreement.state == AgreementState.Accepted)
             // Active scope and hash matches: cancel accepted agreement
