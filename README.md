@@ -11,8 +11,8 @@
   <a href="https://github.com/graphprotocol/contracts/actions/workflows/build.yml">
     <img src="https://github.com/graphprotocol/contracts/actions/workflows/build.yml/badge.svg" alt="Build">
   </a>
-  <a href="https://github.com/graphprotocol/contracts/actions/workflows/ci-contracts.yml">
-    <img src="https://github.com/graphprotocol/contracts/actions/workflows/ci-contracts.yml/badge.svg" alt="CI-Contracts">
+  <a href="https://github.com/graphprotocol/contracts/actions/workflows/lint.yml">
+    <img src="https://github.com/graphprotocol/contracts/actions/workflows/lint.yml/badge.svg" alt="Lint">
   </a>
 </p>
 
@@ -178,9 +178,10 @@ See [docs/Linting.md](docs/Linting.md) for detailed configuration, inline suppre
 
 ## Documentation
 
-> Coming soon
+- [Deployment Strategy](DEPLOYMENT.md) — Branching model and deployment workflow for Solidity contracts
+- [Linting](docs/Linting.md) — Linting configuration and troubleshooting
 
-For now, each package has its own README with more specific documentation you can check out.
+Each package also has its own README with package-specific documentation.
 
 ## Contributing
 

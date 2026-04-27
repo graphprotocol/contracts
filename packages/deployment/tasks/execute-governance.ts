@@ -1,50 +1,11 @@
 import fs from 'fs'
-import { configVariable, task } from 'hardhat/config'
+import { task } from 'hardhat/config'
 import type { NewTaskActionFunction } from 'hardhat/types/tasks'
 import path from 'path'
 
+import { autoDetectForkNetwork } from '../lib/address-book-utils.js'
 import { executeGovernanceTxs } from '../lib/execute-governance.js'
-
-/**
- * Convert network name to env var prefix: arbitrumSepolia → ARBITRUM_SEPOLIA
- */
-function networkToEnvPrefix(networkName: string): string {
-  return networkName.replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase()
-}
-
-/**
- * Resolve a configuration variable using Hardhat's hook chain (keystore + env fallback)
- *
- * Uses hre.hooks.runHandlerChain to go through the configurationVariables fetchValue
- * hook chain, which includes the keystore plugin.
- */
-async function resolveConfigVar(hre: unknown, name: string): Promise<string | undefined> {
-  try {
-    const variable = configVariable(name)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const hooks = (hre as any).hooks
-
-    // Call the configurationVariables fetchValue hook chain
-    // Falls back to env var if not in keystore
-    const value = await hooks.runHandlerChain(
-      'configurationVariables',
-      'fetchValue',
-      [variable],
-      // Default handler: read from environment variable
-      async (_context: unknown, v: { name: string }) => {
-        const envValue = process.env[v.name]
-        if (typeof envValue !== 'string') {
-          throw new Error(`Environment variable ${v.name} not found`)
-        }
-        return envValue
-      },
-    )
-    return value
-  } catch {
-    // Key not configured in keystore or env
-    return undefined
-  }
-}
+import { networkToEnvPrefix, resolveConfigVar } from '../lib/task-utils.js'
 
 /**
  * Resolve governor key for a network.
@@ -79,16 +40,16 @@ interface TaskArgs {
  *   npx hardhat keystore set ARBITRUM_SEPOLIA_GOVERNOR_KEY
  *   npx hardhat deploy:execute-governance --network arbitrumSepolia
  *
- * For fork testing:
- *   FORK_NETWORK=arbitrumSepolia npx hardhat deploy:execute-governance --network fork
+ * For fork testing (auto-detects fork network from anvil):
+ *   npx hardhat deploy:execute-governance --network fork
  */
 const action: NewTaskActionFunction<TaskArgs> = async (_taskArgs, hre) => {
+  // Auto-detect fork network from anvil before checking
+  await autoDetectForkNetwork()
+
   // HH v3: Connect to network to get network connection
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const conn = await (hre as any).network.connect()
-
-  // Get governor key: try network-specific first, fall back to generic
-  const governorPrivateKey = await resolveGovernorKey(hre, conn.networkName)
 
   // Create minimal Environment-like object for executeGovernanceTxs
   const env = {
@@ -112,8 +73,11 @@ const action: NewTaskActionFunction<TaskArgs> = async (_taskArgs, hre) => {
     },
   }
 
+  // Lazy resolver for governor key - only called when actually needed (non-fork EOA mode)
+  const resolveKey = () => resolveGovernorKey(hre, conn.networkName)
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await executeGovernanceTxs(env as any, { governorPrivateKey })
+  await executeGovernanceTxs(env as any, { resolveGovernorKey: resolveKey })
 }
 
 const executeGovernanceTask = task(

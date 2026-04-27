@@ -9,16 +9,12 @@ import { DeployOptions } from 'hardhat-deploy/types'
 
 import { GraphTokenLockManager, GraphTokenLockWallet, GraphTokenMock, StakingMock } from '../types'
 import { defaultInitArgs, Revocability, TokenLockParameters } from './config'
-import { Account, advanceBlocks, advanceTimeAndBlock, getAccounts, getContract, randomHexBytes, toGRT } from './network'
+import { Account, advanceTimeAndBlock, getAccounts, getContract, randomHexBytes, toGRT } from './network'
 
 const { AddressZero, MaxUint256 } = constants
 
 // -- Time utils --
 
-const advancePeriods = async (tokenLock: GraphTokenLockWallet, n = 1) => {
-  const periodDuration = await tokenLock.periodDuration()
-  return advanceTimeAndBlock(periodDuration.mul(n).toNumber()) // advance N period
-}
 const advanceToStart = async (tokenLock: GraphTokenLockWallet) => moveToTime(tokenLock, await tokenLock.startTime(), 60)
 const moveToTime = async (tokenLock: GraphTokenLockWallet, target: BigNumber, buffer: number) => {
   const ts = await tokenLock.currentTime()
@@ -263,7 +259,7 @@ describe('GraphTokenLockWallet', () => {
     })
   })
 
-  describe('Revokability, Call Forwarding and Used Tokens', function () {
+  describe('Revokability and Call Forwarding', function () {
     let lockAsStaking
 
     beforeEach(async () => {
@@ -281,77 +277,14 @@ describe('GraphTokenLockWallet', () => {
       await tokenLock.connect(beneficiary.signer).approveProtocol()
     })
 
-    it('reject using more than vested amount in the protocol', async function () {
+    it('reject call forwarding for revocable contracts', async function () {
       await advanceToStart(tokenLock)
 
       // At this point no period has passed so we haven't vested any token
       // Try to stake funds into the protocol should fail
       const stakeAmount = toGRT('100')
       const tx = lockAsStaking.connect(beneficiary.signer).stake(stakeAmount)
-      await expect(tx).revertedWith('Cannot use more tokens than vested amount')
-    })
-
-    it('should release considering what is used in the protocol', async function () {
-      // Move to have some vested periods
-      await advanceToStart(tokenLock)
-      await advancePeriods(tokenLock, 2)
-
-      // Get amount that can be released with no used tokens yet
-      const releasableAmount = await tokenLock.releasableAmount()
-
-      // Use tokens in the protocol
-      const stakeAmount = toGRT('100')
-      await lockAsStaking.connect(beneficiary.signer).stake(stakeAmount)
-
-      // Release - should take into account used tokens
-      const tx = await tokenLock.connect(beneficiary.signer).release()
-      await expect(tx)
-        .emit(tokenLock, 'TokensReleased')
-        .withArgs(beneficiary.address, releasableAmount.sub(stakeAmount))
-
-      // Revoke should work
-      await tokenLock.connect(deployer.signer).revoke()
-    })
-
-    it('should release considering what is used in the protocol (even if most is used)', async function () {
-      // Move to have some vested periods
-      await advanceToStart(tokenLock)
-      await advancePeriods(tokenLock, 2)
-
-      // Get amount that can be released with no used tokens yet
-      const releasableAmount = await tokenLock.releasableAmount()
-
-      // Use tokens in the protocol
-      const stakeAmount = (await tokenLock.availableAmount()).sub(toGRT('1'))
-      await lockAsStaking.connect(beneficiary.signer).stake(stakeAmount)
-
-      // Release - should take into account used tokens
-      const tx = await tokenLock.connect(beneficiary.signer).release()
-      await expect(tx)
-        .emit(tokenLock, 'TokensReleased')
-        .withArgs(beneficiary.address, releasableAmount.sub(stakeAmount))
-
-      // Revoke should work
-      await tokenLock.connect(deployer.signer).revoke()
-    })
-
-    it('should allow to get profit from the protocol', async function () {
-      await advanceToStart(tokenLock)
-      await advancePeriods(tokenLock, 1)
-
-      // At this point we vested one period, we have tokens
-      // Stake funds into the protocol
-      const stakeAmount = toGRT('100')
-      await lockAsStaking.connect(beneficiary.signer).stake(stakeAmount)
-
-      // Simulate having a profit
-      await grt.approve(staking.address, toGRT('1000000'))
-      await staking.stakeTo(lockAsStaking.address, toGRT('1000000'))
-
-      // Unstake more than we used in the protocol, this should work!
-      await lockAsStaking.connect(beneficiary.signer).unstake(toGRT('1000000'))
-      await advanceBlocks(20)
-      await lockAsStaking.connect(beneficiary.signer).withdraw()
+      await expect(tx).revertedWith('Revocable contracts cannot forward calls')
     })
   })
 })

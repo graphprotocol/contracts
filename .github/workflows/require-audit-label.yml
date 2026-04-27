@@ -1,0 +1,56 @@
+name: Require Audit Label
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, labeled, unlabeled, synchronize]
+
+jobs:
+  check-label:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get changed files
+        id: changed
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              per_page: 100
+            });
+
+            // Filter for .sol files, excluding tests
+            const solFiles = files
+              .map(f => f.filename)
+              .filter(f => f.endsWith('.sol'))
+              .filter(f => !f.includes('/test/'))
+              .filter(f => !f.includes('/tests/'))
+              .filter(f => !f.endsWith('.t.sol'));
+
+            console.log('Non-test Solidity files changed:', solFiles);
+            core.setOutput('has_sol_files', solFiles.length > 0);
+            core.setOutput('sol_files', solFiles.join('\n'));
+
+      - name: Check for required label
+        if: steps.changed.outputs.has_sol_files == 'true'
+        run: |
+          echo "Solidity files changed (excluding tests):"
+          echo "${{ steps.changed.outputs.sol_files }}"
+          echo ""
+
+          LABELS='${{ toJson(github.event.pull_request.labels.*.name) }}'
+          if echo "$LABELS" | grep -q '"audited"'; then
+            echo "✓ PR has 'audited' label"
+          else
+            echo "::error::This PR modifies Solidity contract files and must have the 'audited' label before merging to main."
+            echo ""
+            echo "If this code has been audited, add the 'audited' label to proceed."
+            exit 1
+          fi
+
+      - name: Skip check (no contract changes)
+        if: steps.changed.outputs.has_sol_files == 'false'
+        run: |
+          echo "✓ No non-test Solidity files changed, skipping audit label check"

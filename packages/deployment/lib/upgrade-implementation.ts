@@ -5,9 +5,10 @@ import { getTargetChainIdFromEnv } from './address-book-utils.js'
 import type { AnyAddressBookOps } from './address-book-ops.js'
 import { GRAPH_PROXY_ADMIN_ABI, OZ_PROXY_ADMIN_ABI } from './abis.js'
 import { type AddressBookType, type ProxyType, type RegistryEntry } from './contract-registry.js'
-import { createGovernanceTxBuilder } from './execute-governance.js'
+import { getOnChainImplementation } from './deploy-implementation.js'
+import { createGovernanceTxBuilder, saveGovernanceTx } from './execute-governance.js'
 import { graph } from '../rocketh/deploy.js'
-import type { TxMetadata } from './tx-builder.js'
+import type { TxBuilder, TxMetadata } from './tx-builder.js'
 
 /**
  * Configuration for upgrading an implementation (manual override mode)
@@ -19,10 +20,11 @@ export interface ImplementationUpgradeConfig {
 
   /**
    * Name of the proxy admin entry in address book.
-   * Examples: 'GraphProxyAdmin', 'GraphIssuanceProxyAdmin'
+   * Example: 'GraphProxyAdmin' for legacy GraphProxy contracts.
    *
-   * Optional for subgraph-service contracts - the proxy admin address
-   * is read from the contract entry's proxyAdmin field.
+   * Optional for OZ v5 TransparentUpgradeableProxy contracts (subgraph-service
+   * and issuance) — the per-proxy admin address is read from the contract
+   * entry's proxyAdmin field.
    */
   proxyAdminName?: string
 
@@ -30,8 +32,8 @@ export interface ImplementationUpgradeConfig {
    * Implementation contract name if different from contractName.
    * Used when a proxy is upgraded to a different contract type.
    *
-   * Example: PilotAllocation proxy upgraded to DirectAllocation implementation
-   *   contractName: 'PilotAllocation'
+   * Example: ReclaimedRewards proxy upgraded to DirectAllocation implementation
+   *   contractName: 'ReclaimedRewards'
    *   implementationName: 'DirectAllocation'
    *
    * Default: same as contractName
@@ -62,7 +64,7 @@ export interface ImplementationUpgradeOverrides {
    * Implementation contract name if different from contractName.
    * Used when a proxy is upgraded to a different contract type.
    *
-   * Example: PilotAllocation proxy upgraded to DirectAllocation implementation
+   * Example: ReclaimedRewards proxy upgraded to DirectAllocation implementation
    */
   implementationName?: string
 
@@ -110,7 +112,7 @@ function createUpgradeConfigFromRegistry(
  * import { Contracts } from '../../lib/contract-registry.js'
  * await upgradeImplementation(env, Contracts.horizon.RewardsManager)
  * await upgradeImplementation(env, Contracts["subgraph-service"].SubgraphService)
- * await upgradeImplementation(env, Contracts.issuance.PilotAllocation, {
+ * await upgradeImplementation(env, Contracts.issuance.ReclaimedRewards, {
  *   implementationName: 'DirectAllocation', // Upgrade to different implementation
  * })
  * ```
@@ -124,17 +126,27 @@ function createUpgradeConfigFromRegistry(
  * })
  * ```
  */
-export async function upgradeImplementation(
+/**
+ * Build upgrade TXs for a contract and add them to an existing builder.
+ *
+ * Checks the address book for a pendingImplementation. If found, encodes upgrade
+ * TX(s) and adds them to the provided builder. Returns without exiting.
+ *
+ * Use this when building a batch of upgrades (e.g., GIP-level stage scripts).
+ * For single-contract upgrades that save and exit, use `upgradeImplementation`.
+ *
+ * @returns Whether an upgrade was needed (pendingImplementation existed)
+ */
+export async function buildUpgradeTxs(
   env: Environment,
   entryOrConfig: RegistryEntry | ImplementationUpgradeConfig,
+  builder: TxBuilder,
   overrides?: ImplementationUpgradeOverrides,
-): Promise<ImplementationUpgradeResult> {
-  // Handle overloads - convert registry entry to config
+): Promise<{ upgraded: boolean }> {
   const config: ImplementationUpgradeConfig =
     'name' in entryOrConfig ? createUpgradeConfigFromRegistry(entryOrConfig, overrides) : entryOrConfig
   const { contractName, proxyAdminName, proxyType = 'graph', addressBook = 'horizon' } = config
 
-  // Use fork-local address book in fork mode, canonical address book otherwise
   const targetChainId = await getTargetChainIdFromEnv(env)
   const addressBookInstance: AnyAddressBookOps =
     addressBook === 'subgraph-service'
@@ -146,19 +158,49 @@ export async function upgradeImplementation(
   // Check for pending implementation
   const contractEntry = addressBookInstance.getEntry(contractName)
   if (!contractEntry?.pendingImplementation?.address) {
-    env.showMessage(`\n✓ No pending ${contractName} implementation to upgrade`)
-    return { upgraded: false, executed: false }
+    // No pending implementation stored — check if a shared implementation has changed on-chain
+    const implName = config.implementationName
+    if (implName && contractEntry?.address) {
+      const implDepName = `${implName}_Implementation`
+      const implDep = env.getOrNull(implDepName)
+      if (implDep) {
+        const client = graph.getPublicClient(env)
+        const onChainImpl = await getOnChainImplementation(client, contractEntry.address, proxyType)
+        if (onChainImpl.toLowerCase() !== implDep.address.toLowerCase()) {
+          // Shared implementation changed — auto-set pendingImplementation
+          const implMetadata = addressBookInstance.getDeploymentMetadata(implDepName)
+          addressBookInstance.setPendingImplementationWithMetadata(
+            contractName,
+            implDep.address,
+            implMetadata ?? { txHash: '', bytecodeHash: '' },
+          )
+          env.showMessage(`  ⚠️  ${contractName}: shared implementation changed, setting pending upgrade`)
+          // Fall through to process the upgrade
+        } else {
+          env.showMessage(`  ✓ ${contractName}: no pending implementation`)
+          return { upgraded: false }
+        }
+      } else {
+        env.showMessage(`  ✓ ${contractName}: no pending implementation`)
+        return { upgraded: false }
+      }
+    } else {
+      env.showMessage(`  ✓ ${contractName}: no pending implementation`)
+      return { upgraded: false }
+    }
+  }
+
+  // Re-read entry after potential auto-set
+  const updatedEntry = addressBookInstance.getEntry(contractName)
+  if (!updatedEntry?.pendingImplementation?.address) {
+    return { upgraded: false }
   }
 
   // Get proxy admin address
-  // Priority: 1) Per-proxy ProxyAdmin in entry (OZ v5 / subgraph-service)
-  //           2) Shared ProxyAdmin by name (legacy horizon pattern)
   let proxyAdminAddress: string | undefined
-  if (contractEntry.proxyAdmin) {
-    // Per-proxy ProxyAdmin stored inline (OZ v5 issuance, subgraph-service)
-    proxyAdminAddress = contractEntry.proxyAdmin
+  if (updatedEntry.proxyAdmin) {
+    proxyAdminAddress = updatedEntry.proxyAdmin
   } else if (proxyAdminName) {
-    // Shared ProxyAdmin by name (horizon legacy pattern)
     proxyAdminAddress = addressBookInstance.getEntry(proxyAdminName)?.address
   }
 
@@ -169,28 +211,13 @@ export async function upgradeImplementation(
     )
   }
 
-  const proxyAddress = contractEntry.address
-  const pendingImpl = contractEntry.pendingImplementation.address
+  const proxyAddress = updatedEntry.address
+  const pendingImpl = updatedEntry.pendingImplementation!.address
+  const currentImpl = updatedEntry.implementation ?? 'unknown'
 
-  env.showMessage(`\n🔧 Upgrading ${contractName}...`)
-  env.showMessage(`   Proxy: ${proxyAddress}`)
-  env.showMessage(`   ProxyAdmin: ${proxyAdminAddress}`)
-  env.showMessage(`   New implementation: ${pendingImpl}`)
+  env.showMessage(`  + ${contractName}: ${pendingImpl.slice(0, 10)}... (${proxyType} proxy)`)
 
-  // Generate governance TX with deterministic name (overwrites if exists)
-  const builder = await createGovernanceTxBuilder(env, `upgrade-${contractName}`, {
-    name: `${contractName} Upgrade`,
-    description: `Upgrade ${contractName} proxy to new implementation`,
-  })
-
-  // Get current implementation for state change tracking
-  const currentImpl = contractEntry.implementation ?? 'unknown'
-
-  // Build TX based on proxy type
   if (proxyType === 'transparent') {
-    // OpenZeppelin v5 ProxyAdmin uses upgradeAndCall() with empty calldata
-    // Note: we use empty bytes (0x) because not all contracts implement ERC165,
-    // so supportsInterface cannot be used as a universal no-op
     const upgradeData = encodeFunctionData({
       abi: OZ_PROXY_ADMIN_ABI,
       functionName: 'upgradeAndCall',
@@ -202,25 +229,15 @@ export async function upgradeImplementation(
       contractName,
       decoded: {
         function: 'upgradeAndCall(address,address,bytes)',
-        args: {
-          proxy: proxyAddress,
-          implementation: pendingImpl,
-          data: '0x [empty]',
-        },
+        args: { proxy: proxyAddress, implementation: pendingImpl, data: '0x [empty]' },
       },
       stateChanges: {
-        [`${contractName} implementation`]: {
-          current: currentImpl,
-          new: pendingImpl,
-        },
+        [`${contractName} implementation`]: { current: currentImpl, new: pendingImpl },
       },
       notes: 'OZ TransparentUpgradeableProxy upgrade via per-proxy ProxyAdmin',
     }
     builder.addTx({ to: proxyAdminAddress, value: '0', data: upgradeData }, metadata)
   } else {
-    // Graph legacy: upgrade() + acceptProxy(implementation, proxy)
-    // Note: GraphProxyAdmin.sol requires both implementation and proxy parameters,
-    // despite IGraphProxyAdmin interface only showing proxy parameter (interface is outdated)
     const upgradeData = encodeFunctionData({
       abi: GRAPH_PROXY_ADMIN_ABI,
       functionName: 'upgrade',
@@ -232,45 +249,75 @@ export async function upgradeImplementation(
       args: [pendingImpl as `0x${string}`, proxyAddress as `0x${string}`],
     })
 
-    const upgradeMetadata: TxMetadata = {
-      toLabel: 'GraphProxyAdmin',
-      contractName,
-      decoded: {
-        function: 'upgrade(address,address)',
-        args: {
-          proxy: proxyAddress,
-          implementation: pendingImpl,
+    builder.addTx(
+      { to: proxyAdminAddress, value: '0', data: upgradeData },
+      {
+        toLabel: 'GraphProxyAdmin',
+        contractName,
+        decoded: {
+          function: 'upgrade(address,address)',
+          args: { proxy: proxyAddress, implementation: pendingImpl },
         },
+        notes: 'Graph legacy proxy upgrade (step 1/2: set pending implementation)',
       },
-      notes: 'Graph legacy proxy upgrade (step 1/2: set pending implementation)',
-    }
-    builder.addTx({ to: proxyAdminAddress, value: '0', data: upgradeData }, upgradeMetadata)
-
-    const acceptMetadata: TxMetadata = {
-      toLabel: 'GraphProxyAdmin',
-      contractName,
-      decoded: {
-        function: 'acceptProxy(address,address)',
-        args: {
-          implementation: pendingImpl,
-          proxy: proxyAddress,
+    )
+    builder.addTx(
+      { to: proxyAdminAddress, value: '0', data: acceptData },
+      {
+        toLabel: 'GraphProxyAdmin',
+        contractName,
+        decoded: {
+          function: 'acceptProxy(address,address)',
+          args: { implementation: pendingImpl, proxy: proxyAddress },
         },
-      },
-      stateChanges: {
-        [`${contractName} implementation`]: {
-          current: currentImpl,
-          new: pendingImpl,
+        stateChanges: {
+          [`${contractName} implementation`]: { current: currentImpl, new: pendingImpl },
         },
+        notes: 'Graph legacy proxy upgrade (step 2/2: accept and activate)',
       },
-      notes: 'Graph legacy proxy upgrade (step 2/2: accept and activate)',
-    }
-    builder.addTx({ to: proxyAdminAddress, value: '0', data: acceptData }, acceptMetadata)
+    )
   }
 
-  const txFile = builder.saveToFile()
-  env.showMessage(`   ✓ Governance TX saved: ${txFile}`)
-  env.showMessage(`   Run: npx hardhat deploy:execute-governance --network ${env.name}`)
+  return { upgraded: true }
+}
 
-  // Exit to prevent subsequent deployment steps until governance TX is executed
-  process.exit(1)
+/**
+ * Upgrade an implementation via governance TX (registry-driven)
+ *
+ * Generates a governance TX batch file for a single contract upgrade, then exits.
+ * For batch upgrades (multiple contracts in one TX batch), use `buildUpgradeTxs` instead.
+ *
+ * @example Registry-driven with Contracts object (recommended):
+ * ```typescript
+ * import { Contracts } from '../../lib/contract-registry.js'
+ * await upgradeImplementation(env, Contracts.horizon.RewardsManager)
+ * await upgradeImplementation(env, Contracts["subgraph-service"].SubgraphService)
+ * await upgradeImplementation(env, Contracts.issuance.ReclaimedRewards, {
+ *   implementationName: 'DirectAllocation', // Upgrade to different implementation
+ * })
+ * ```
+ */
+export async function upgradeImplementation(
+  env: Environment,
+  entryOrConfig: RegistryEntry | ImplementationUpgradeConfig,
+  overrides?: ImplementationUpgradeOverrides,
+): Promise<ImplementationUpgradeResult> {
+  const config: ImplementationUpgradeConfig =
+    'name' in entryOrConfig ? createUpgradeConfigFromRegistry(entryOrConfig, overrides) : entryOrConfig
+
+  const builder = await createGovernanceTxBuilder(env, `upgrade-${config.contractName}`, {
+    name: `${config.contractName} Upgrade`,
+    description: `Upgrade ${config.contractName} proxy to new implementation`,
+  })
+
+  env.showMessage(`\n🔧 Upgrading ${config.contractName}...`)
+  const { upgraded } = await buildUpgradeTxs(env, entryOrConfig, builder, overrides)
+
+  if (!upgraded) {
+    env.showMessage(`\n✓ No pending ${config.contractName} implementation to upgrade`)
+    return { upgraded: false, executed: false }
+  }
+
+  saveGovernanceTx(env, builder, `${config.contractName} upgrade`)
+  return { upgraded: true, executed: false }
 }
