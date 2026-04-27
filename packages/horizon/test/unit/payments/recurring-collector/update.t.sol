@@ -2,6 +2,7 @@
 pragma solidity ^0.8.27;
 
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
+import { OFFER_TYPE_UPDATE } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 
 import { RecurringCollectorSharedTest } from "./shared.t.sol";
 
@@ -153,11 +154,7 @@ contract RecurringCollectorUpdateTest is RecurringCollectorSharedTest {
         _recurringCollector.update(rcau, signature);
 
         IRecurringCollector.AgreementData memory agreement = _recurringCollector.getAgreement(agreementId);
-        assertEq(rcau.endsAt, agreement.endsAt);
-        assertEq(rcau.maxInitialTokens, agreement.maxInitialTokens);
-        assertEq(rcau.maxOngoingTokensPerSecond, agreement.maxOngoingTokensPerSecond);
-        assertEq(rcau.minSecondsPerCollection, agreement.minSecondsPerCollection);
-        assertEq(rcau.maxSecondsPerCollection, agreement.maxSecondsPerCollection);
+        assertEq(agreement.activeTermsHash, _recurringCollector.hashRCAU(rcau));
         assertEq(rcau.nonce, agreement.updateNonce);
     }
 
@@ -311,6 +308,85 @@ contract RecurringCollectorUpdateTest is RecurringCollectorSharedTest {
         // Verify nonce incremented to 2
         IRecurringCollector.AgreementData memory updatedAgreement2 = _recurringCollector.getAgreement(agreementId);
         assertEq(updatedAgreement2.updateNonce, 2);
+    }
+
+    function test_Update_Idempotent_WhenAlreadyAtActiveHash(FuzzyTestUpdate calldata fuzzyTestUpdate) public {
+        (
+            IRecurringCollector.RecurringCollectionAgreement memory acceptedRca,
+            ,
+            uint256 signerKey,
+            bytes16 agreementId
+        ) = _sensibleAuthorizeAndAccept(fuzzyTestUpdate.fuzzyTestAccept);
+
+        IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _recurringCollectorHelper.sensibleRCAU(
+            fuzzyTestUpdate.rcau
+        );
+        rcau.agreementId = agreementId;
+        rcau.nonce = 1;
+        (, bytes memory signature) = _recurringCollectorHelper.generateSignedRCAU(rcau, signerKey);
+
+        // First update consumes nonce 1 and sets activeTermsHash = hash(rcau).
+        vm.prank(acceptedRca.dataService);
+        _recurringCollector.update(rcau, signature);
+
+        IRecurringCollector.AgreementData memory afterFirst = _recurringCollector.getAgreement(agreementId);
+        assertEq(afterFirst.updateNonce, 1, "nonce advanced to 1 after first update");
+
+        // Re-submitting the same RCAU is a no-op — nonce does NOT advance, no event, no revert.
+        vm.recordLogs();
+        vm.prank(acceptedRca.dataService);
+        _recurringCollector.update(rcau, signature);
+        assertEq(vm.getRecordedLogs().length, 0, "no event emitted on idempotent re-update");
+
+        IRecurringCollector.AgreementData memory afterSecond = _recurringCollector.getAgreement(agreementId);
+        assertEq(afterSecond.updateNonce, 1, "nonce unchanged on idempotent re-update");
+        assertEq(afterSecond.activeTermsHash, afterFirst.activeTermsHash, "activeTermsHash unchanged");
+    }
+
+    /// @notice Direct-apply update (no prior offer(UPDATE) that staged the RCAU as pending) writes
+    /// new terms via _validateAndStoreTerms, which must emit OfferStored. AgreementUpdated follows.
+    function test_Update_EmitsOfferStored_WhenDirectApplyFreshTerms(FuzzyTestUpdate calldata fuzzyTestUpdate) public {
+        (
+            IRecurringCollector.RecurringCollectionAgreement memory acceptedRca,
+            ,
+            uint256 signerKey,
+            bytes16 agreementId
+        ) = _sensibleAuthorizeAndAccept(fuzzyTestUpdate.fuzzyTestAccept);
+
+        IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _recurringCollectorHelper.sensibleRCAU(
+            fuzzyTestUpdate.rcau
+        );
+        rcau.agreementId = agreementId;
+
+        (
+            IRecurringCollector.RecurringCollectionAgreementUpdate memory signedRcau,
+            bytes memory signature
+        ) = _recurringCollectorHelper.generateSignedRCAUForAgreement(agreementId, rcau, signerKey);
+        bytes32 rcauHash = _recurringCollector.hashRCAU(signedRcau);
+
+        // Pre-condition: no pending offer staged, so update() takes the direct-apply branch.
+        assertEq(
+            _recurringCollector.getAgreement(agreementId).pendingTermsHash,
+            bytes32(0),
+            "no pending before direct-apply"
+        );
+
+        vm.expectEmit(address(_recurringCollector));
+        emit IRecurringCollector.OfferStored(agreementId, acceptedRca.payer, OFFER_TYPE_UPDATE, rcauHash);
+        vm.expectEmit(address(_recurringCollector));
+        emit IRecurringCollector.AgreementUpdated(
+            acceptedRca.dataService,
+            acceptedRca.payer,
+            acceptedRca.serviceProvider,
+            agreementId,
+            signedRcau.endsAt,
+            signedRcau.maxInitialTokens,
+            signedRcau.maxOngoingTokensPerSecond,
+            signedRcau.minSecondsPerCollection,
+            signedRcau.maxSecondsPerCollection
+        );
+        vm.prank(acceptedRca.dataService);
+        _recurringCollector.update(signedRcau, signature);
     }
 
     /* solhint-enable graph/func-name-mixedcase */
