@@ -21,9 +21,10 @@ import {
     OFFER_TYPE_UPDATE,
     ACCEPTED,
     REGISTERED,
-    UPDATE,
     SCOPE_ACTIVE,
-    SCOPE_PENDING
+    SCOPE_PENDING,
+    VERSION_CURRENT,
+    VERSION_NEXT
 } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
@@ -423,46 +424,51 @@ contract RecurringCollector is
         bytes calldata data,
         uint16 /* options */
     ) external whenNotPaused returns (AgreementDetails memory details) {
-        if (offerType == OFFER_TYPE_NEW) details = _offerNew(data);
-        else if (offerType == OFFER_TYPE_UPDATE) details = _offerUpdate(data);
+        bytes16 agreementId;
+        bytes32 versionHash;
+        uint256 index;
+        if (offerType == OFFER_TYPE_NEW) (agreementId, versionHash, index) = _offerNew(data);
+        else if (offerType == OFFER_TYPE_UPDATE) (agreementId, versionHash, index) = _offerUpdate(data);
         else revert RecurringCollectorInvalidCollectData(data);
+
+        details = _getAgreementDetails(agreementId, versionHash, index);
     }
 
     /**
      * @notice Process a new offer (OFFER_TYPE_NEW).
      * @param _data The ABI-encoded RecurringCollectionAgreement
-     * @return details The agreement details
+     * @return agreementId The deterministic agreement ID
+     * @return versionHash The EIP-712 hash of the stored offer
+     * @return index The version index for the offered terms (always VERSION_CURRENT for NEW)
      */
-    function _offerNew(bytes calldata _data) private returns (AgreementDetails memory details) {
+    function _offerNew(bytes calldata _data) private returns (bytes16 agreementId, bytes32 versionHash, uint256 index) {
         RecurringCollectorStorage storage $ = _getStorage();
         RecurringCollectionAgreement memory rca = abi.decode(_data, (RecurringCollectionAgreement));
 
-        (bytes16 agreementId, bytes32 rcaHash) = _rcaIdAndHash(rca);
+        (agreementId, versionHash) = _rcaIdAndHash(rca);
 
         require(msg.sender == rca.payer, RecurringCollectorUnauthorizedCaller(msg.sender, rca.payer));
         _requirePayerToSupportEligibilityCheck(rca.payer, rca.conditions);
 
-        $.rcaOffers[agreementId] = StoredOffer({ offerHash: rcaHash, data: _data });
+        $.rcaOffers[agreementId] = StoredOffer({ offerHash: versionHash, data: _data });
+        emit OfferStored(agreementId, rca.payer, OFFER_TYPE_NEW, versionHash);
 
-        details.agreementId = agreementId;
-        details.payer = rca.payer;
-        details.dataService = rca.dataService;
-        details.serviceProvider = rca.serviceProvider;
-        details.versionHash = rcaHash;
-        details.state = REGISTERED;
-
-        emit OfferStored(agreementId, rca.payer, OFFER_TYPE_NEW, rcaHash);
+        index = VERSION_CURRENT;
     }
 
     /**
      * @notice Process an update offer (OFFER_TYPE_UPDATE).
      * @param _data The ABI-encoded RecurringCollectionAgreementUpdate
-     * @return details The agreement details
+     * @return agreementId The agreement ID being updated
+     * @return versionHash The EIP-712 hash of the stored RCAU
+     * @return index VERSION_NEXT — the queued pending update
      */
-    function _offerUpdate(bytes calldata _data) private returns (AgreementDetails memory details) {
+    function _offerUpdate(
+        bytes calldata _data
+    ) private returns (bytes16 agreementId, bytes32 versionHash, uint256 index) {
         RecurringCollectorStorage storage $ = _getStorage();
         RecurringCollectionAgreementUpdate memory rcau = abi.decode(_data, (RecurringCollectionAgreementUpdate));
-        bytes16 agreementId = rcau.agreementId;
+        agreementId = rcau.agreementId;
 
         // Payer check: look up the existing agreement or the stored RCA offer
         AgreementData storage agreement = $.agreements[agreementId];
@@ -478,25 +484,16 @@ contract RecurringCollector is
                 (RecurringCollectionAgreement)
             );
             payer = rca.payer;
-            details.dataService = rca.dataService;
-            details.serviceProvider = rca.serviceProvider;
-        } else {
-            details.dataService = agreement.dataService;
-            details.serviceProvider = agreement.serviceProvider;
         }
         require(msg.sender == payer, RecurringCollectorUnauthorizedCaller(msg.sender, payer));
         _requirePayerToSupportEligibilityCheck(payer, rcau.conditions);
 
-        bytes32 offerHash = _hashRCAU(rcau);
+        versionHash = _hashRCAU(rcau);
 
-        $.rcauOffers[agreementId] = StoredOffer({ offerHash: offerHash, data: _data });
+        $.rcauOffers[agreementId] = StoredOffer({ offerHash: versionHash, data: _data });
+        emit OfferStored(agreementId, payer, OFFER_TYPE_UPDATE, versionHash);
 
-        details.agreementId = agreementId;
-        details.payer = payer;
-        details.versionHash = offerHash;
-        details.state = REGISTERED | UPDATE;
-
-        emit OfferStored(agreementId, payer, OFFER_TYPE_UPDATE, offerHash);
+        index = VERSION_NEXT;
     }
 
     /// @inheritdoc IAgreementCollector
@@ -542,10 +539,29 @@ contract RecurringCollector is
     }
 
     /// @inheritdoc IAgreementCollector
-    function getAgreementDetails(
+    function getAgreementDetails(bytes16 agreementId, uint256 index) external view returns (AgreementDetails memory) {
+        return _getAgreementDetails(agreementId, _versionHashAt(agreementId, index), index);
+    }
+
+    /**
+     * @notice Builds AgreementDetails for the requested version. Shared by {offer} and
+     * {getAgreementDetails}.
+     * @dev Caller supplies the version hash. {offer} passes the hash returned by _offerNew /
+     * _offerUpdate (already known from the just-stored offer); {getAgreementDetails} resolves
+     * it via _versionHashAt. Returns empty details when versionHash is zero. The `index`
+     * parameter is plumbed through for TRST-L-11 (per-version flag composition) and is unused
+     * at this stage.
+     * @param agreementId The agreement ID
+     * @param versionHash The EIP-712 hash of the queried version, or bytes32(0) if none
+     * @return details AgreementDetails for the queried version, or empty when no version exists
+     */
+    function _getAgreementDetails(
         bytes16 agreementId,
+        bytes32 versionHash,
         uint256 /* index */
-    ) external view returns (AgreementDetails memory details) {
+    ) private view returns (AgreementDetails memory details) {
+        if (versionHash == bytes32(0)) return details;
+
         RecurringCollectorStorage storage $ = _getStorage();
         AgreementData storage agreement = $.agreements[agreementId];
 
@@ -554,7 +570,7 @@ contract RecurringCollector is
             details.payer = agreement.payer;
             details.dataService = agreement.dataService;
             details.serviceProvider = agreement.serviceProvider;
-            details.versionHash = agreement.activeTermsHash;
+            details.versionHash = versionHash;
             details.state = ACCEPTED;
             return details;
         }
@@ -569,6 +585,28 @@ contract RecurringCollector is
             details.serviceProvider = rca.serviceProvider;
             details.versionHash = rcaOffer.offerHash;
             details.state = REGISTERED;
+        }
+    }
+
+    /**
+     * @notice Resolve the offer hash representing a given version (VERSION_CURRENT or VERSION_NEXT).
+     * @dev Returns bytes32(0) when no version exists at that index.
+     * @param agreementId The agreement ID
+     * @param index The version index (VERSION_CURRENT or VERSION_NEXT)
+     * @return hash The EIP-712 hash of the offer at that version, or bytes32(0) if none
+     */
+    function _versionHashAt(bytes16 agreementId, uint256 index) private view returns (bytes32 hash) {
+        RecurringCollectorStorage storage $ = _getStorage();
+        AgreementData storage agreement = $.agreements[agreementId];
+
+        if (index == VERSION_CURRENT)
+            hash = (agreement.state == AgreementState.NotAccepted)
+                ? $.rcaOffers[agreementId].offerHash
+                : agreement.activeTermsHash;
+        else if (index == VERSION_NEXT) {
+            bytes32 rcauHash = $.rcauOffers[agreementId].offerHash;
+            // Skip when rcauOffers still holds an applied RCAU — that's the current version, not next.
+            if (rcauHash != agreement.activeTermsHash) hash = rcauHash;
         }
     }
 
