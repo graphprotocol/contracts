@@ -34,7 +34,10 @@ contract RecurringAgreementManagerEnsureDistributedTest is RecurringAgreementMan
 
         vm.prank(governor);
         vm.expectEmit(address(agreementManager));
-        emit IIssuanceTarget.IssuanceAllocatorSet(IIssuanceAllocationDistribution(address(mockAllocator)), IIssuanceAllocationDistribution(address(newAllocator)));
+        emit IIssuanceTarget.IssuanceAllocatorSet(
+            IIssuanceAllocationDistribution(address(mockAllocator)),
+            IIssuanceAllocationDistribution(address(newAllocator))
+        );
         agreementManager.setIssuanceAllocator(IIssuanceAllocationDistribution(address(newAllocator)));
     }
 

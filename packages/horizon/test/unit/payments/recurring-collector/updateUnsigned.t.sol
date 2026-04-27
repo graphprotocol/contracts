@@ -213,11 +213,8 @@ contract RecurringCollectorUpdateUnsignedTest is RecurringCollectorSharedTest {
 
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _makeSimpleRCAU(agreementId, 1);
 
-        // Set the update deadline in the past
+        // Set the update deadline in the past — offer() now rejects expired deadlines
         rcau.deadline = uint64(block.timestamp - 1);
-
-        vm.prank(address(approver));
-        _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
 
         bytes memory expectedErr = abi.encodeWithSelector(
             IRecurringCollector.RecurringCollectorAgreementDeadlineElapsed.selector,
@@ -225,8 +222,8 @@ contract RecurringCollectorUpdateUnsignedTest is RecurringCollectorSharedTest {
             rcau.deadline
         );
         vm.expectRevert(expectedErr);
-        vm.prank(rca.dataService);
-        _recurringCollector.update(rcau, "");
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
     }
 
     /* solhint-enable graph/func-name-mixedcase */
