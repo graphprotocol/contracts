@@ -282,7 +282,7 @@ const action: NewTaskActionFunction<TaskArgs> = async (taskArgs, hre) => {
 
           // Integration checks for RewardsManager (only if deployed)
           if (name === 'RewardsManager' && client && result.exists) {
-            const checks = await getRewardsManagerChecks(client, horizonAddressBook)
+            const checks = await getRewardsManagerChecks(client, horizonAddressBook, targetChainId)
             for (const check of checks) {
               printCheck(check)
             }
