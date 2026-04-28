@@ -304,44 +304,53 @@ export async function deployProxyContract(
       env.showMessage(`   Uses shared implementation: ${sharedImplementation.name}`)
 
       const implDep = env.getOrNull(sharedImplementation.name)
-      if (implDep) {
-        const client = graph.getPublicClient(env)
-        const onChainImpl = await getOnChainImplementation(client, existingProxy.address, 'transparent')
+      if (!implDep) {
+        // Missing impl record means the impl's deploy script didn't run, or sync
+        // skipped seeding because the artifact couldn't be verified against the
+        // address book. Either way, silently treating this as "no change" would
+        // mask a drift between artifact and on-chain bytecode (the shared impl
+        // bug fixed alongside this guard). Fail loud instead.
+        throw new Error(
+          `${contract.name}: shared implementation ${sharedImplementation.name} not in env. ` +
+            `Ensure ${sharedImplementation.name} is listed in dependencies and its deploy script ran successfully.`,
+        )
+      }
 
-        if (onChainImpl.toLowerCase() !== implDep.address.toLowerCase()) {
-          // Shared implementation changed — store as pending for governance upgrade
-          const targetChainId = await getTargetChainIdFromEnv(env)
-          const addressBook: AnyAddressBookOps =
-            contract.addressBook === 'horizon'
-              ? graph.getHorizonAddressBook(targetChainId)
-              : graph.getIssuanceAddressBook(targetChainId)
+      const client = graph.getPublicClient(env)
+      const onChainImpl = await getOnChainImplementation(client, existingProxy.address, 'transparent')
 
-          // Get deployment metadata from the shared implementation's address book entry
-          const implMetadata = addressBook.getDeploymentMetadata(sharedImplementation.name)
-          addressBook.setPendingImplementationWithMetadata(
-            contract.name,
-            implDep.address,
-            implMetadata ?? { txHash: '', bytecodeHash: '' },
-          )
+      if (onChainImpl.toLowerCase() !== implDep.address.toLowerCase()) {
+        // Shared implementation changed — store as pending for governance upgrade
+        const targetChainId = await getTargetChainIdFromEnv(env)
+        const addressBook: AnyAddressBookOps =
+          contract.addressBook === 'horizon'
+            ? graph.getHorizonAddressBook(targetChainId)
+            : graph.getIssuanceAddressBook(targetChainId)
 
-          env.showMessage(``)
-          env.showMessage(`⚠️  UPGRADE REQUIRED`)
-          env.showMessage(`   Proxy:               ${existingProxy.address}`)
-          env.showMessage(`   Current (on-chain):  ${onChainImpl}`)
-          env.showMessage(`   New implementation:  ${implDep.address}`)
-          env.showMessage(``)
-          env.showMessage(`   Stored as pending — run upgrade task to generate governance TX.`)
+        // Get deployment metadata from the shared implementation's address book entry
+        const implMetadata = addressBook.getDeploymentMetadata(sharedImplementation.name)
+        addressBook.setPendingImplementationWithMetadata(
+          contract.name,
+          implDep.address,
+          implMetadata ?? { txHash: '', bytecodeHash: '' },
+        )
 
-          return {
-            address: existingProxy.address,
-            newlyDeployed: false,
-            upgraded: true,
-          }
+        env.showMessage(``)
+        env.showMessage(`⚠️  UPGRADE REQUIRED`)
+        env.showMessage(`   Proxy:               ${existingProxy.address}`)
+        env.showMessage(`   Current (on-chain):  ${onChainImpl}`)
+        env.showMessage(`   New implementation:  ${implDep.address}`)
+        env.showMessage(``)
+        env.showMessage(`   Stored as pending — run upgrade task to generate governance TX.`)
+
+        return {
+          address: existingProxy.address,
+          newlyDeployed: false,
+          upgraded: true,
         }
       }
 
       // No change — check existing pending status
-      const client = graph.getPublicClient(env)
       await checkPendingUpgrade(env, client, contract, existingProxy.address, 'transparent')
 
       return {
