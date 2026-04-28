@@ -1,4 +1,6 @@
 minimumReleaseAge: 7200
+minumumReleaseAgeExclude:
+- @graphprotocol/sdk
 
 packages:
   - packages/*
