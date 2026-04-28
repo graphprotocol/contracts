@@ -278,6 +278,50 @@ function checkCodeChanged(
 }
 
 /**
+ * Decide whether sync should seed rocketh's record from the local artifact.
+ *
+ * Seeding writes the local artifact's bytecode into rocketh's deployment
+ * record. That's correct when the artifact reflects what's deployed on-chain,
+ * and harmful when the artifact has drifted: rocketh's native bytecode
+ * comparison would then match its (just-seeded) record against the artifact
+ * and skip the redeploy that the drift demands — the address book never
+ * advances, and proxies that depend on the impl miss their pendingImplementation.
+ *
+ * Gate (only contracts we ourselves deploy carry the dedup-masking risk):
+ * - Synthetic names not in the registry → seed (proxy sync recurses with
+ *   `${name}_Implementation` names that aren't real entries; the proxy path
+ *   already has its own hashMatches gate before recursing).
+ * - Prerequisites → seed (deployed externally; never run through deployFn).
+ * - No artifact → seed (no local bytecode to compare against).
+ *
+ * Within the gated set: skip the seed only on a *verified mismatch* — i.e.
+ * we have a stored hash and the local artifact's hash differs. If there's no
+ * stored hash at all (no entry, or entry without a hash), fall through to
+ * the legacy seed: there's nothing to mask.
+ */
+export function shouldSeedRocketh(
+  spec: ContractSpec,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  addressBook: any,
+): { seed: boolean; reason: string } {
+  const registered = getContractMetadata(spec.addressBookType, spec.name)
+  if (!registered) return { seed: true, reason: 'unregistered name (legacy seed)' }
+  if (spec.prerequisite) return { seed: true, reason: 'prerequisite (legacy seed)' }
+  if (!spec.artifact) return { seed: true, reason: 'no artifact (legacy seed)' }
+
+  if (!addressBook?.entryExists?.(spec.name)) {
+    return { seed: true, reason: 'no entry, nothing to mask (legacy seed)' }
+  }
+
+  const storedHash = addressBook.getDeploymentMetadata?.(spec.name)?.bytecodeHash
+  const { codeChanged, localHash } = checkCodeChanged(spec.artifact, addressBook, spec.name)
+
+  if (!storedHash || !localHash) return { seed: true, reason: 'no hash to compare (legacy seed)' }
+  if (codeChanged) return { seed: false, reason: 'artifact unverified vs. address book' }
+  return { seed: true, reason: 'artifact verified' }
+}
+
+/**
  * Proxy admin ownership state
  */
 export type ProxyAdminOwner = 'governor' | 'deployer' | 'other' | 'unknown'
@@ -824,37 +868,15 @@ export async function syncContract(
     statusNotes.push('re-imported')
   }
 
-  // Verify the local artifact reflects what was last deployed before seeding
-  // rocketh from it. The address-book stored bytecodeHash is recorded at deploy
-  // time, so a local-to-stored hash match is our proxy for "artifact == on-chain".
-  // When verification fails for a contract we deploy, skip the seed: leaving
-  // rocketh's record absent lets deployFn deploy fresh rather than masking a
-  // drift between artifact and on-chain bytecode.
-  //
-  // Scope of the gate:
-  // - Only registered registry names — proxy sync recurses with synthetic names
-  //   like `${proxyName}_Implementation` that aren't real address-book entries;
-  //   the proxy path has already gated on hashMatches before recursing.
-  // - Only non-prerequisites — prerequisites (e.g. L2GraphToken) are deployed
-  //   externally; we never call deployFn on them, so the dedup-masking concern
-  //   doesn't apply and we still need them in env for downstream reads.
-  const registeredForVerify = getContractMetadata(spec.addressBookType, spec.name)
-  const gateApplies = !!registeredForVerify && !spec.prerequisite && !!spec.artifact
-  let artifactVerified = false
-  let canVerify = false
-  if (gateApplies) {
-    const chainIdForVerify = await getTargetChainIdFromEnv(env)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const addressBookForVerify: any = getAddressBookForType(spec.addressBookType, chainIdForVerify)
-    if (addressBookForVerify.entryExists(spec.name)) {
-      const { codeChanged, localHash } = checkCodeChanged(spec.artifact!, addressBookForVerify, spec.name)
-      artifactVerified = !codeChanged && !!localHash
-      canVerify = true
-    }
-  }
+  // Decide whether to seed rocketh's record from the local artifact (see
+  // `shouldSeedRocketh` for the rationale and gate).
+  const chainIdForVerify = await getTargetChainIdFromEnv(env)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const addressBookForVerify: any = getAddressBookForType(spec.addressBookType, chainIdForVerify)
+  const seedDecision = shouldSeedRocketh(spec, addressBookForVerify)
 
   if (!existing) {
-    if (!canVerify || artifactVerified) {
+    if (seedDecision.seed) {
       // Either no artifact to compare (legacy/external entry) or hash verified —
       // safe to seed rocketh from the artifact.
       let abi: readonly unknown[] = []
@@ -885,7 +907,7 @@ export async function syncContract(
       // record absent so the next deployFn detects no prior bytecode and
       // deploys fresh. Seeding from a stale or new artifact would mask the
       // drift: rocketh would compare new artifact to itself and skip redeploy.
-      statusNotes.push('seed skipped (artifact unverified)')
+      statusNotes.push(`seed skipped (${seedDecision.reason})`)
     }
   } else if (addressChanged) {
     // Address changed - update address but preserve existing bytecode
