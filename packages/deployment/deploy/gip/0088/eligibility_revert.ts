@@ -1,6 +1,7 @@
 import { REWARDS_MANAGER_ABI } from '@graphprotocol/deployment/lib/abis.js'
 import { Contracts } from '@graphprotocol/deployment/lib/contract-registry.js'
 import { canSignAsGovernor } from '@graphprotocol/deployment/lib/controller-utils.js'
+import { loadDeploymentConfig } from '@graphprotocol/deployment/lib/deployment-config.js'
 import { ComponentTags, GoalTags, shouldSkipOptionalGoal } from '@graphprotocol/deployment/lib/deployment-tags.js'
 import {
   createGovernanceTxBuilder,
@@ -15,13 +16,16 @@ import type { PublicClient } from 'viem'
 import { encodeFunctionData } from 'viem'
 
 /**
- * GIP-0088:eligibility-revert — Enable revert on ineligible indexers
+ * GIP-0088:eligibility-revert — Configure RM revert-on-ineligible behaviour
  *
- * Optional governance TX: RM.setRevertOnIneligible(true)
+ * Optional governance TX: RM.setRevertOnIneligible(<config>)
+ *
+ * Reads `RewardsManager.revertOnIneligible` from config/<network>.json5,
+ * defaulting to `true` (the expected target for all deployments).
  *
  * Not activated by `all` — requires explicit `--tags GIP-0088:eligibility-revert`.
  *
- * Idempotent: reads on-chain revertOnIneligible, skips if already true.
+ * Idempotent: skips if on-chain state already matches config.
  *
  * Usage:
  *   pnpm hardhat deploy --tags GIP-0088:eligibility-revert --network <network>
@@ -36,8 +40,12 @@ const func: DeployScriptModule = async (env) => {
   env.showMessage(`\n========== GIP-0088: Eligibility Revert ==========`)
   env.showMessage(`${Contracts.horizon.RewardsManager.name}: ${rm.address}`)
 
+  const config = await loadDeploymentConfig(env)
+  const desired = config.RewardsManager?.revertOnIneligible ?? true
+
   // Check current state
   env.showMessage('\n📋 Checking current configuration...\n')
+  env.showMessage(`  Config: revertOnIneligible = ${desired}`)
 
   let revertOnIneligible: boolean
   try {
@@ -53,10 +61,12 @@ const func: DeployScriptModule = async (env) => {
     )
     return
   }
-  env.showMessage(`  revertOnIneligible: ${revertOnIneligible ? '✓ true' : '✗ false'}`)
+  env.showMessage(
+    `  On-chain: revertOnIneligible = ${revertOnIneligible} ${revertOnIneligible === desired ? '✓' : '✗'}`,
+  )
 
-  if (revertOnIneligible) {
-    env.showMessage(`\n✅ ${Contracts.horizon.RewardsManager.name} already configured\n`)
+  if (revertOnIneligible === desired) {
+    env.showMessage(`\n✅ ${Contracts.horizon.RewardsManager.name} already matches config\n`)
     return
   }
 
@@ -69,15 +79,15 @@ const func: DeployScriptModule = async (env) => {
   const data = encodeFunctionData({
     abi: REWARDS_MANAGER_ABI,
     functionName: 'setRevertOnIneligible',
-    args: [true],
+    args: [desired],
   })
   builder.addTx({ to: rm.address, value: '0', data })
-  env.showMessage(`  + setRevertOnIneligible(true)`)
+  env.showMessage(`  + setRevertOnIneligible(${desired})`)
 
   if (canSign) {
     env.showMessage('\n🔨 Executing configuration TX batch...\n')
     await executeTxBatchDirect(env, builder, governor)
-    env.showMessage(`\n✅ GIP-0088: revertOnIneligible enabled\n`)
+    env.showMessage(`\n✅ GIP-0088: revertOnIneligible set to ${desired}\n`)
   } else {
     saveGovernanceTx(env, builder, `GIP-0088: revertOnIneligible`)
   }

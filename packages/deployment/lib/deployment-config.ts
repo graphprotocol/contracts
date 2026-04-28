@@ -38,6 +38,26 @@ function stripComments(text: string): string {
 }
 
 /**
+ * Load deployment configuration for a chain ID.
+ *
+ * Reads from packages/deployment/config/<network>.json5.
+ * Returns empty config when the chain is unknown or the file is missing/invalid.
+ * Silent — no logging — so it can be used from non-deploy contexts (e.g. status task).
+ */
+export function loadDeploymentConfigForChain(chainId: number): DeploymentConfig {
+  const networkName = CHAIN_CONFIG_MAP[chainId]
+  if (!networkName) return {}
+
+  const configPath = resolve(__dirname, '..', 'config', `${networkName}.json5`)
+  try {
+    const raw = readFileSync(configPath, 'utf-8')
+    return JSON.parse(stripComments(raw)) as DeploymentConfig
+  } catch {
+    return {}
+  }
+}
+
+/**
  * Load deployment configuration for the target network.
  *
  * Reads from packages/deployment/config/<network>.json5.
@@ -52,15 +72,11 @@ export async function loadDeploymentConfig(env: Environment): Promise<Deployment
     return {}
   }
 
-  const configPath = resolve(__dirname, '..', 'config', `${networkName}.json5`)
-
-  try {
-    const raw = readFileSync(configPath, 'utf-8')
-    const config = JSON.parse(stripComments(raw)) as DeploymentConfig
-    env.showMessage(`   Loaded config from config/${networkName}.json5`)
-    return config
-  } catch (e) {
+  const config = loadDeploymentConfigForChain(chainId)
+  if (Object.keys(config).length === 0) {
     env.showMessage(`   Config file not found or invalid: config/${networkName}.json5, using defaults`)
-    return {}
+  } else {
+    env.showMessage(`   Loaded config from config/${networkName}.json5`)
   }
+  return config
 }

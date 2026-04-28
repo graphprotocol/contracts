@@ -10,11 +10,6 @@
     "ramSelfMintingGrtPerBlock": "0"
   },
 
-  "RewardsManager": {
-    // Revert reward claims for ineligible indexers
-    "revertOnIneligible": false
-  },
-
   "RecurringCollector": {
     // Pause guardian is read from Controller.pauseGuardian() at deploy time
     // (same as all other protocol contracts)

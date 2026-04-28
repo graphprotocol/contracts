@@ -28,6 +28,7 @@ import {
   supportsInterface,
 } from './contract-checks.js'
 import type { RegistryEntry } from './contract-registry.js'
+import { loadDeploymentConfigForChain } from './deployment-config.js'
 import { countPendingGovernanceTxs } from './execute-governance.js'
 import { formatGRT } from './format.js'
 import { getContractStatusLine, type ContractStatusResult, type ProxyAdminOwnershipContext } from './sync-utils.js'
@@ -125,6 +126,7 @@ const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 export async function getRewardsManagerChecks(
   client: PublicClient,
   horizonBook: AddressBookOps,
+  chainId: number,
   issuanceBook?: AddressBookOps,
   ssBook?: AddressBookOps,
 ): Promise<IntegrationCheck[]> {
@@ -215,10 +217,15 @@ export async function getRewardsManagerChecks(
     checks.push({ ok: null, label: 'providerEligibilityOracle: not set' })
   }
 
-  // Revert on ineligible
+  // Revert on ineligible — compare against config (default: true)
   const revertOnIneligible = await rmRead<boolean>('getRevertOnIneligible')
   if (revertOnIneligible !== null) {
-    checks.push({ ok: null, label: `revertOnIneligible: ${revertOnIneligible}` })
+    const desired = loadDeploymentConfigForChain(chainId).RewardsManager?.revertOnIneligible ?? true
+    const matches = revertOnIneligible === desired
+    checks.push({
+      ok: matches,
+      label: `revertOnIneligible: ${revertOnIneligible}${matches ? '' : ` (expected ${desired})`}`,
+    })
   }
 
   // Default reclaim address
@@ -1042,6 +1049,7 @@ export async function showDetailedComponentStatus(
     checks = await getRewardsManagerChecks(
       client,
       horizonBook,
+      chainId,
       issuanceBook,
       graph.getSubgraphServiceAddressBook(chainId),
     )
