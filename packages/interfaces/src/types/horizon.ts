@@ -10,6 +10,7 @@ import type {
   IL2GNSToolshed,
   ILegacyRewardsManager,
   IPaymentsEscrowToolshed,
+  IRecurringCollector,
   IRewardsManagerToolshed,
   IStaking,
   ISubgraphNFT,
@@ -29,5 +30,6 @@ export {
   IStaking as LegacyStaking,
   IPaymentsEscrowToolshed as PaymentsEscrow,
   IRewardsManagerToolshed as RewardsManager,
+  IRecurringCollector,
   ISubgraphNFT as SubgraphNFT,
 }

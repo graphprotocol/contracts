@@ -14,6 +14,7 @@ export default buildModule('SubgraphService', (m) => {
   const subgraphServiceProxyAdminAddress = m.getParameter('subgraphServiceProxyAdminAddress')
   const disputeManagerProxyAddress = m.getParameter('disputeManagerProxyAddress')
   const graphTallyCollectorAddress = m.getParameter('graphTallyCollectorAddress')
+  const recurringCollectorAddress = m.getParameter('recurringCollectorAddress')
   const curationProxyAddress = m.getParameter('curationProxyAddress')
   const minimumProvisionTokens = m.getParameter('minimumProvisionTokens')
   const maximumDelegationRatio = m.getParameter('maximumDelegationRatio')
@@ -28,11 +29,51 @@ export default buildModule('SubgraphService', (m) => {
     subgraphServiceProxyAddress,
   )
 
-  // Deploy implementation
-  const SubgraphServiceImplementation = deployImplementation(m, {
-    name: 'SubgraphService',
-    constructorArgs: [controllerAddress, disputeManagerProxyAddress, graphTallyCollectorAddress, curationProxyAddress],
+  // Deploy libraries required by SubgraphService's audit-branch constructor.
+  // The contract has been refactored to pull allocation, stake-claim, and
+  // indexing-agreement logic into stand-alone libraries; these must be
+  // deployed and link-passed to the implementation so the bytecode's
+  // placeholder slots resolve at deploy time.
+  //
+  // Ordering matters: IndexingAgreement calls into IndexingAgreementDecoder,
+  // which in turn calls into IndexingAgreementDecoderRaw, so the deeper
+  // libraries have to be deployed and linked first.
+  const StakeClaims = m.library('StakeClaims')
+  const AllocationHandler = m.library('AllocationHandler')
+  const IndexingAgreementDecoderRaw = m.library('IndexingAgreementDecoderRaw')
+  const IndexingAgreementDecoder = m.library('IndexingAgreementDecoder', {
+    libraries: {
+      IndexingAgreementDecoderRaw,
+    },
   })
+  const IndexingAgreement = m.library('IndexingAgreement', {
+    libraries: {
+      IndexingAgreementDecoder,
+    },
+  })
+
+  // Deploy implementation
+  const SubgraphServiceImplementation = deployImplementation(
+    m,
+    {
+      name: 'SubgraphService',
+      constructorArgs: [
+        controllerAddress,
+        disputeManagerProxyAddress,
+        graphTallyCollectorAddress,
+        curationProxyAddress,
+        recurringCollectorAddress,
+      ],
+    },
+    {
+      libraries: {
+        StakeClaims,
+        AllocationHandler,
+        IndexingAgreement,
+        IndexingAgreementDecoder,
+      },
+    },
+  )
 
   // Upgrade implementation
   const SubgraphService = upgradeTransparentUpgradeableProxy(
