@@ -1,17 +1,11 @@
 import {
   IISSUANCE_TARGET_INTERFACE_ID,
-  IREWARDS_MANAGER_INTERFACE_ID,
   ISSUANCE_TARGET_ABI,
   PROVIDER_ELIGIBILITY_MANAGEMENT_ABI,
-  REWARDS_MANAGER_ABI,
   SUBGRAPH_SERVICE_CLOSE_GUARD_ABI,
 } from '@graphprotocol/deployment/lib/abis.js'
 import { getTargetChainIdFromEnv } from '@graphprotocol/deployment/lib/address-book-utils.js'
-import {
-  addressEquals,
-  isRewardsManagerUpgraded,
-  supportsInterface,
-} from '@graphprotocol/deployment/lib/contract-checks.js'
+import { addressEquals, isRewardsManagerUpgraded } from '@graphprotocol/deployment/lib/contract-checks.js'
 import { Contracts, type RegistryEntry } from '@graphprotocol/deployment/lib/contract-registry.js'
 import { GoalTags } from '@graphprotocol/deployment/lib/deployment-tags.js'
 import { createStatusModule } from '@graphprotocol/deployment/lib/script-factories.js'
@@ -155,25 +149,6 @@ export default createStatusModule(GoalTags.GIP_0088, async (env) => {
   // --- Optional status ---
   env.showMessage('\n--- Optional (not planned) ---')
 
-  // eligibility-revert
-  if (rm) {
-    const supportsLatestRM = await supportsInterface(client, rm.address, IREWARDS_MANAGER_INTERFACE_ID)
-    if (supportsLatestRM) {
-      const revertOnIneligible = (await client.readContract({
-        address: rm.address as `0x${string}`,
-        abi: REWARDS_MANAGER_ABI,
-        functionName: 'getRevertOnIneligible',
-      })) as boolean
-      env.showMessage(
-        `  ${revertOnIneligible ? '✓' : '○'} eligibility-revert: revertOnIneligible = ${revertOnIneligible}`,
-      )
-    } else {
-      env.showMessage(`  ○ eligibility-revert: RM not upgraded`)
-    }
-  } else {
-    env.showMessage(`  ○ eligibility-revert: RM not deployed`)
-  }
-
   // issuance-close-guard
   const ss = env.getOrNull('SubgraphService')
   if (ss) {
@@ -200,7 +175,6 @@ export default createStatusModule(GoalTags.GIP_0088, async (env) => {
   env.showMessage('    --tags GIP-0088:issuance-connect')
   env.showMessage('    --tags GIP-0088:issuance-allocate')
   env.showMessage('  Optional:')
-  env.showMessage('    --tags GIP-0088:eligibility-revert')
   env.showMessage('    --tags GIP-0088:issuance-close-guard')
 
   showPendingGovernanceTxs(env)

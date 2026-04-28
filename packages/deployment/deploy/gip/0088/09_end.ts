@@ -1,10 +1,11 @@
-import { PROVIDER_ELIGIBILITY_MANAGEMENT_ABI } from '@graphprotocol/deployment/lib/abis.js'
+import { PROVIDER_ELIGIBILITY_MANAGEMENT_ABI, REWARDS_MANAGER_ABI } from '@graphprotocol/deployment/lib/abis.js'
 import {
   addressEquals,
   checkIssuanceAllocatorActivation,
   isRewardsManagerUpgraded,
 } from '@graphprotocol/deployment/lib/contract-checks.js'
 import { Contracts } from '@graphprotocol/deployment/lib/contract-registry.js'
+import { getResolvedSettingsForEnv } from '@graphprotocol/deployment/lib/deployment-config.js'
 import { DeploymentActions, GoalTags, shouldSkipAction } from '@graphprotocol/deployment/lib/deployment-tags.js'
 import { requireContracts } from '@graphprotocol/deployment/lib/issuance-deploy-utils.js'
 import { syncComponentsFromRegistry } from '@graphprotocol/deployment/lib/sync-utils.js'
@@ -17,10 +18,10 @@ import type { PublicClient } from 'viem'
  *
  * Verifies all non-optional phases are complete:
  * - Upgrade: RM upgraded (supports IIssuanceTarget)
- * - Eligibility: REO integrated with RM
+ * - Eligibility: REO integrated with RM, revertOnIneligible matches config
  * - Issuance: IA connected to RM, minter role granted
  *
- * Does NOT verify optional goals (eligibility-revert, issuance-close-guard).
+ * Does NOT verify optional goals (issuance-close-guard).
  *
  * Usage:
  *   pnpm hardhat deploy --tags GIP-0088,all --network <network>
@@ -73,6 +74,22 @@ const func: DeployScriptModule = async (env) => {
     }
   } else {
     failures.push('RewardsEligibilityOracleA not deployed')
+  }
+
+  // Verify revertOnIneligible matches config
+  const settings = await getResolvedSettingsForEnv(env)
+  const desiredRevert = settings.rewardsManager.revertOnIneligible
+  try {
+    const onChainRevert = (await client.readContract({
+      address: rewardsManager.address as `0x${string}`,
+      abi: REWARDS_MANAGER_ABI,
+      functionName: 'getRevertOnIneligible',
+    })) as boolean
+    if (onChainRevert !== desiredRevert) {
+      failures.push(`revertOnIneligible mismatch: on-chain=${onChainRevert}, config=${desiredRevert}`)
+    }
+  } catch {
+    failures.push('RM does not support getRevertOnIneligible (not upgraded?)')
   }
 
   if (failures.length > 0) {

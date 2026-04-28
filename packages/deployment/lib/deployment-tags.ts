@@ -78,7 +78,6 @@ export const GoalTags = {
   GIP_0088_ISSUANCE_ALLOCATE: 'GIP-0088:issuance-allocate',
 
   // Optional goals (not activated by `all`)
-  GIP_0088_ELIGIBILITY_REVERT: 'GIP-0088:eligibility-revert',
   GIP_0088_ISSUANCE_CLOSE_GUARD: 'GIP-0088:issuance-close-guard',
 } as const
 

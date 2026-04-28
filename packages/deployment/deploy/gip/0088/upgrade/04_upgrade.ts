@@ -17,6 +17,7 @@ import {
   Contracts,
 } from '@graphprotocol/deployment/lib/contract-registry.js'
 import { canSignAsGovernor, getPauseGuardian } from '@graphprotocol/deployment/lib/controller-utils.js'
+import { getResolvedSettingsForEnv, type ResolvedSettings } from '@graphprotocol/deployment/lib/deployment-config.js'
 import { DeploymentActions, GoalTags, shouldSkipAction } from '@graphprotocol/deployment/lib/deployment-tags.js'
 import {
   createGovernanceTxBuilder,
@@ -30,6 +31,7 @@ import {
   checkRAMConfigured,
   checkReclaimRMIntegration,
   checkReclaimRoles,
+  checkRMRevertOnIneligible,
 } from '@graphprotocol/deployment/lib/preconditions.js'
 import { runFullSync } from '@graphprotocol/deployment/lib/sync-utils.js'
 import type { TxBuilder } from '@graphprotocol/deployment/lib/tx-builder.js'
@@ -81,8 +83,10 @@ const func: DeployScriptModule = async (env) => {
 
   const proxyCount = await collectProxyUpgrades(env, builder, targetChainId)
 
+  const settings = await getResolvedSettingsForEnv(env)
+
   env.showMessage('\nOutstanding configuration:')
-  const existingCount = await collectExistingContractConfig(env, builder, client, pauseGuardian)
+  const existingCount = await collectExistingContractConfig(env, builder, client, pauseGuardian, settings)
   const newCount = await collectDeferredNewContractConfig(env, builder, client, targetChainId, governor, pauseGuardian)
 
   const total = proxyCount + existingCount + newCount
@@ -161,16 +165,20 @@ async function collectProxyUpgrades(env: Environment, builder: TxBuilder, target
 
 /**
  * Bundle the few governance-only configure items on contracts that already
- * existed before this deployment (deployer never had GOVERNOR_ROLE on them):
+ * existed before this deployment (typically the deployer does not hold
+ * GOVERNOR_ROLE on them — true on networks where RM was deployed by separate
+ * horizon-Ignition infrastructure; the dynamic role check is the source of truth):
  *
  *   - RC.setPauseGuardian
  *   - RM.setDefaultReclaimAddress (only when RM has been upgraded)
+ *   - RM.setRevertOnIneligible (driven by config; only when RM has been upgraded)
  */
 async function collectExistingContractConfig(
   env: Environment,
   builder: TxBuilder,
   client: PublicClient,
   pauseGuardian: string,
+  settings: ResolvedSettings,
 ): Promise<number> {
   let added = 0
 
@@ -214,6 +222,25 @@ async function collectExistingContractConfig(
         }),
       })
       env.showMessage(`  + ${Contracts.horizon.RewardsManager.name}.setDefaultReclaimAddress(${reclaim.address})`)
+      added++
+    }
+  }
+
+  // RM.setRevertOnIneligible — driven by config; only after RM upgrade lands
+  if (rm) {
+    const desiredRevert = settings.rewardsManager.revertOnIneligible
+    const revertCheck = await checkRMRevertOnIneligible(client, rm.address, desiredRevert)
+    if (!revertCheck.done && revertCheck.reason !== 'RM not upgraded') {
+      builder.addTx({
+        to: rm.address,
+        value: '0',
+        data: encodeFunctionData({
+          abi: REWARDS_MANAGER_ABI,
+          functionName: 'setRevertOnIneligible',
+          args: [desiredRevert],
+        }),
+      })
+      env.showMessage(`  + ${Contracts.horizon.RewardsManager.name}.setRevertOnIneligible(${desiredRevert})`)
       added++
     }
   }

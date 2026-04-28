@@ -8,6 +8,7 @@ import {
 } from '@graphprotocol/deployment/lib/contract-checks.js'
 import { Contracts, type RegistryEntry } from '@graphprotocol/deployment/lib/contract-registry.js'
 import { getGovernor, getPauseGuardian } from '@graphprotocol/deployment/lib/controller-utils.js'
+import { getResolvedSettingsForEnv } from '@graphprotocol/deployment/lib/deployment-config.js'
 import { ComponentTags, GoalTags, noTagsRequested } from '@graphprotocol/deployment/lib/deployment-tags.js'
 import { getDeployer, getProxyAdminAddress } from '@graphprotocol/deployment/lib/issuance-deploy-utils.js'
 import {
@@ -18,6 +19,7 @@ import {
   checkRAMConfigured,
   checkReclaimRMIntegration,
   checkReclaimRoles,
+  checkRMRevertOnIneligible,
 } from '@graphprotocol/deployment/lib/preconditions.js'
 import { showDetailedComponentStatus, showPendingGovernanceTxs } from '@graphprotocol/deployment/lib/status-detail.js'
 import { checkAllProxyStates, getContractStatusLine, runFullSync } from '@graphprotocol/deployment/lib/sync-utils.js'
@@ -220,6 +222,14 @@ const func: DeployScriptModule = async (env) => {
     const reclaimRMCheck = await checkReclaimRMIntegration(client, rm.address, reclaim.address)
     if (!reclaimRMCheck.done && reclaimRMCheck.reason !== 'RM not upgraded') {
       deferredIssues.push(`Reclaim: ${reclaimRMCheck.reason}`)
+    }
+
+    // RM.setRevertOnIneligible — config-driven; same deferred-only treatment as
+    // setDefaultReclaimAddress (target is RM, governance-only setter).
+    const settings = await getResolvedSettingsForEnv(env)
+    const revertCheck = await checkRMRevertOnIneligible(client, rm.address, settings.rewardsManager.revertOnIneligible)
+    if (!revertCheck.done && revertCheck.reason !== 'RM not upgraded') {
+      deferredIssues.push(`RM: ${revertCheck.reason}`)
     }
 
     // REO configure
