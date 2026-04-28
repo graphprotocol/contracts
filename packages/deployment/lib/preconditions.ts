@@ -253,6 +253,32 @@ export async function checkReclaimRMIntegration(
 }
 
 /**
+ * Check whether RM.getRevertOnIneligible() matches the desired value from config.
+ *
+ * Governance-only setter on RM — failure is deferred to the upgrade governance batch
+ * unless the deployer holds GOVERNOR_ROLE on RM (true on fresh networks where RM is
+ * deployed from scratch with the deployer as initial governor; false on networks
+ * where RM was deployed by separate horizon-Ignition infrastructure).
+ */
+export async function checkRMRevertOnIneligible(
+  client: PublicClient,
+  rmAddress: string,
+  desired: boolean,
+): Promise<PreconditionResult> {
+  try {
+    const onChain = (await client.readContract({
+      address: rmAddress as `0x${string}`,
+      abi: REWARDS_MANAGER_ABI,
+      functionName: 'getRevertOnIneligible',
+    })) as boolean
+    if (onChain === desired) return { done: true }
+    return { done: false, reason: `revertOnIneligible=${onChain}, expected ${desired}` }
+  } catch {
+    return { done: false, reason: 'RM not upgraded' }
+  }
+}
+
+/**
  * Check if ReclaimedRewards is fully configured (roles + RM integration)
  *
  * Convenience wrapper that combines checkReclaimRoles and checkReclaimRMIntegration.

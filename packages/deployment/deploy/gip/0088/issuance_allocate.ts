@@ -1,7 +1,7 @@
 import { ACCESS_CONTROL_ENUMERABLE_ABI, SET_TARGET_ALLOCATION_ABI } from '@graphprotocol/deployment/lib/abis.js'
 import { Contracts } from '@graphprotocol/deployment/lib/contract-registry.js'
 import { canSignAsGovernor } from '@graphprotocol/deployment/lib/controller-utils.js'
-import { loadDeploymentConfig } from '@graphprotocol/deployment/lib/deployment-config.js'
+import { getResolvedSettingsForEnv } from '@graphprotocol/deployment/lib/deployment-config.js'
 import { ComponentTags, GoalTags } from '@graphprotocol/deployment/lib/deployment-tags.js'
 import {
   createGovernanceTxBuilder,
@@ -56,11 +56,10 @@ export default createActionModule(
     env.showMessage(`IA:  ${ia.address}`)
     env.showMessage(`RAM: ${ram.address}`)
 
-    // Load config
-    const config = await loadDeploymentConfig(env)
-    const iaConfig = config.IssuanceAllocator ?? {}
-    const allocatorMintingRate = parseUnits(iaConfig.ramAllocatorMintingGrtPerBlock ?? '0', 18)
-    const selfMintingRate = parseUnits(iaConfig.ramSelfMintingGrtPerBlock ?? '0', 18)
+    // Load resolved settings
+    const settings = await getResolvedSettingsForEnv(env)
+    const allocatorMintingRate = parseUnits(settings.issuanceAllocator.ramAllocatorMintingGrtPerBlock, 18)
+    const selfMintingRate = parseUnits(settings.issuanceAllocator.ramSelfMintingGrtPerBlock, 18)
 
     if (allocatorMintingRate === 0n && selfMintingRate === 0n) {
       env.showMessage('\n⚠️  RAM allocation rates not configured (both 0).')
