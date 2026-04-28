@@ -28,7 +28,7 @@ import {
   supportsInterface,
 } from './contract-checks.js'
 import type { RegistryEntry } from './contract-registry.js'
-import { loadDeploymentConfigForChain } from './deployment-config.js'
+import { getResolvedSettings } from './deployment-config.js'
 import { countPendingGovernanceTxs } from './execute-governance.js'
 import { formatGRT } from './format.js'
 import { getContractStatusLine, type ContractStatusResult, type ProxyAdminOwnershipContext } from './sync-utils.js'
@@ -217,10 +217,10 @@ export async function getRewardsManagerChecks(
     checks.push({ ok: null, label: 'providerEligibilityOracle: not set' })
   }
 
-  // Revert on ineligible — compare against config (default: true)
+  // Revert on ineligible — compare against resolved settings
   const revertOnIneligible = await rmRead<boolean>('getRevertOnIneligible')
   if (revertOnIneligible !== null) {
-    const desired = loadDeploymentConfigForChain(chainId).RewardsManager?.revertOnIneligible ?? true
+    const desired = getResolvedSettings(chainId).rewardsManager.revertOnIneligible
     const matches = revertOnIneligible === desired
     checks.push({
       ok: matches,

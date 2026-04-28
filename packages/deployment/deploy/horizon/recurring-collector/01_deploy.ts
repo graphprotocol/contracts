@@ -1,5 +1,5 @@
 import { Contracts } from '@graphprotocol/deployment/lib/contract-registry.js'
-import { loadDeploymentConfig } from '@graphprotocol/deployment/lib/deployment-config.js'
+import { getResolvedSettingsForEnv } from '@graphprotocol/deployment/lib/deployment-config.js'
 import { ComponentTags, DeploymentActions, shouldSkipAction } from '@graphprotocol/deployment/lib/deployment-tags.js'
 import { deployProxyContract } from '@graphprotocol/deployment/lib/issuance-deploy-utils.js'
 import { syncComponentsFromRegistry } from '@graphprotocol/deployment/lib/sync-utils.js'
@@ -30,11 +30,8 @@ const func: DeployScriptModule = async (env) => {
     throw new Error('Missing Controller deployment after sync.')
   }
 
-  const config = await loadDeploymentConfig(env)
-  const rcConfig = config.RecurringCollector ?? {}
-  const revokeSignerThawingPeriod = rcConfig.revokeSignerThawingPeriod ?? '28800' // ~1 day at 3s blocks
-  const eip712Name = rcConfig.eip712Name ?? 'RecurringCollector'
-  const eip712Version = rcConfig.eip712Version ?? '1'
+  const settings = await getResolvedSettingsForEnv(env)
+  const { revokeSignerThawingPeriod, eip712Name, eip712Version } = settings.recurringCollector
 
   env.showMessage(`\n📦 Deploying ${Contracts.horizon.RecurringCollector.name}`)
 

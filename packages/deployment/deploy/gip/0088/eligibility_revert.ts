@@ -1,7 +1,7 @@
 import { REWARDS_MANAGER_ABI } from '@graphprotocol/deployment/lib/abis.js'
 import { Contracts } from '@graphprotocol/deployment/lib/contract-registry.js'
 import { canSignAsGovernor } from '@graphprotocol/deployment/lib/controller-utils.js'
-import { loadDeploymentConfig } from '@graphprotocol/deployment/lib/deployment-config.js'
+import { getResolvedSettingsForEnv } from '@graphprotocol/deployment/lib/deployment-config.js'
 import { ComponentTags, GoalTags, shouldSkipOptionalGoal } from '@graphprotocol/deployment/lib/deployment-tags.js'
 import {
   createGovernanceTxBuilder,
@@ -40,8 +40,8 @@ const func: DeployScriptModule = async (env) => {
   env.showMessage(`\n========== GIP-0088: Eligibility Revert ==========`)
   env.showMessage(`${Contracts.horizon.RewardsManager.name}: ${rm.address}`)
 
-  const config = await loadDeploymentConfig(env)
-  const desired = config.RewardsManager?.revertOnIneligible ?? true
+  const settings = await getResolvedSettingsForEnv(env)
+  const desired = settings.rewardsManager.revertOnIneligible
 
   // Check current state
   env.showMessage('\n📋 Checking current configuration...\n')
