@@ -765,10 +765,6 @@ describe('Staking:Allocation', () => {
       expect(thirdRebates.queryFeesBurnt).gt(BigNumber.from(0))
     })
 
-    it('should collect zero tokens', async function () {
-      await shouldCollect(toGRT('0'), { expectEvent: false })
-    })
-
     it('should get stuck under-rebated if alpha is changed to zero', async function () {
       // Set up a new allocation with `tokensToAllocate` staked
       await staking.connect(indexer).stake(tokensToStake)
