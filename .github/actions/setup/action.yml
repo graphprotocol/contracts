@@ -18,11 +18,8 @@ runs:
     - name: Install Node.js
       uses: actions/setup-node@v6
       with:
-        node-version: 24
+        node-version-file: '.nvmrc'
         cache: 'pnpm'
-    - name: Set up pnpm via Corepack
-      shell: bash
-      run: corepack prepare pnpm@10.28.0 --activate
     - name: Install dependencies
       shell: bash
       run: pnpm install --frozen-lockfile
