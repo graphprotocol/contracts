@@ -153,7 +153,27 @@ git push --follow-tags
 
 **Note**: this step is meant to be run on the main branch.
 
-Packages are published and distributed via NPM. To publish a package, run the following command from the root of the repository:
+The [`Publish package to NPM`](.github/workflows/publish.yml) workflow is the standard publish path. It uses OIDC trusted publishing — no `NPM_TOKEN` is involved, and SLSA provenance is attached automatically. Anyone with `workflow_dispatch` permission on the repo can run it; no local npm credentials needed. The workflow also creates and pushes the package's git tag after a successful publish (so Step 3 can be skipped when using this path).
+
+Dispatch from the Actions tab, or via `gh`:
+
+```bash
+gh workflow run publish.yml -f package=interfaces -f tag=latest -f dry_run=false
+```
+
+Inputs:
+
+- `package` — the workspace package to publish (one of `address-book`, `contracts`, `interfaces`, `toolshed`).
+- `tag` — npm dist-tag. Use `latest` for stable releases; use a custom tag (`dips`, `sepolia`, `next`, …) for pre-releases so the stable channel isn't overwritten.
+- `dry_run` — when `true`, validates the workflow without consuming a version or pushing a git tag.
+
+The workflow publishes one package per dispatch; for a multi-package release, dispatch once per package.
+
+**Prerequisite:** each package on the choice list must have a Trusted Publisher entry on npmjs.com (Settings → Publishing access) with owner `graphprotocol`, repo `contracts`, workflow `publish.yml`, environment blank. Adding a new package to the workflow's `package` input without configuring its npm-side entry first will 403 at the publish step.
+
+#### Alternative: local publish
+
+For maintainers with publish rights on `@graphprotocol/*` — useful as a fallback if OIDC is unavailable, or for packages not on the workflow's choice list. Run from the root of a clean checkout:
 
 ```bash
 # Publish the packages
@@ -162,8 +182,6 @@ pnpm changeset publish
 # Alternatively use
 pnpm publish --recursive
 ```
-
-Alternatively, there is a GitHub action that can be manually triggered to publish a package.
 
 ## Linting
 

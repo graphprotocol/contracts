@@ -1,3 +1,24 @@
+# Publishes a single workspace package to npm via OIDC trusted publishing.
+# No NPM_TOKEN is used; the job exchanges its GitHub OIDC token for a short-lived
+# npm credential and attaches SLSA provenance via `--provenance`.
+#
+# Prerequisite: each package in the `package` choice list must have a Trusted
+# Publisher entry configured on npmjs.com under Settings → Publishing access.
+# Use owner=`graphprotocol`, repo=`contracts`, workflow=`publish.yml`,
+# environment=blank. Adding a package to the choice list without that npm-side
+# entry will 403 at the publish step.
+#
+# Conventions:
+# - `tag=latest` is reserved for the changeset-driven release flow (see README).
+#   Use a custom dist-tag (`dips`, `sepolia`, `next`, …) for ad-hoc or
+#   pre-release publishes so the stable channel is never overwritten.
+# - `dry_run=true` validates the workflow end-to-end without consuming a
+#   version or pushing a git tag — useful when adding a new package or
+#   verifying a fresh Trusted Publisher entry.
+#
+# Fallback: maintainers with publish rights on `@graphprotocol/*` can still run
+# `pnpm publish` locally if OIDC is unavailable.
+
 name: Publish package to NPM
 
 on:
