@@ -819,6 +819,9 @@ importers:
       hardhat-deploy:
         specifier: 2.0.0-next.61
         version: 2.0.0-next.61(@rocketh/node@0.17.16(bufferutil@4.0.9)(rocketh@0.17.13(patch_hash=9922612567456c164edd9dd5a0c9304bfd66babcebfe7c39dca333659ff1248f)(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(hardhat@3.1.5(bufferutil@4.0.9)(utf-8-validate@5.0.10))
+      json5:
+        specifier: ^2.2.3
+        version: 2.2.3
       lint-staged:
         specifier: 'catalog:'
         version: 16.2.7
