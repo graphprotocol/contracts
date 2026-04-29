@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict'
+
 import { ethers } from 'ethers'
 
 import {
-  decodeSignedRCA,
   decodeAcceptIndexingAgreementMetadata,
   decodeIndexingAgreementTermsV1,
+  decodeSignedRCA,
   encodeCollectIndexingFeesData,
 } from '../dist/core/index.js'
 
@@ -138,7 +139,10 @@ const coder = ethers.AbiCoder.defaultAbiCoder()
   const tokensPerSecond = 1000n * 10n ** 18n
   const tokensPerEntityPerSecond = 5n * 10n ** 15n
 
-  const encoded = coder.encode(['tuple(uint256 tokensPerSecond, uint256 tokensPerEntityPerSecond)'], [{ tokensPerSecond, tokensPerEntityPerSecond }])
+  const encoded = coder.encode(
+    ['tuple(uint256 tokensPerSecond, uint256 tokensPerEntityPerSecond)'],
+    [{ tokensPerSecond, tokensPerEntityPerSecond }],
+  )
 
   const decoded = decodeIndexingAgreementTermsV1(encoded)
 
