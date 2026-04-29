@@ -5,6 +5,11 @@
     "access": "public"
   },
   "description": "Contract interfaces for The Graph protocol",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/graphprotocol/contracts",
+    "directory": "packages/interfaces"
+  },
   "main": "./dist/src/index.js",
   "types": "./dist/src/index.d.ts",
   "exports": {

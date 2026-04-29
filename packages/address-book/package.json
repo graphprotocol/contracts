@@ -7,6 +7,11 @@
   "description": "Contract addresses for The Graph Protocol",
   "author": "Edge & Node",
   "license": "GPL-2.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/graphprotocol/contracts",
+    "directory": "packages/address-book"
+  },
   "exports": {
     "./horizon/addresses.json": "./src/horizon/addresses.json",
     "./issuance/addresses.json": "./src/issuance/addresses.json",
