@@ -7,6 +7,11 @@
   "description": "A collection of tools and utilities for the Graph Protocol Typescript components",
   "author": "Tomás Migone <tomas@edgeandnode.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/graphprotocol/contracts",
+    "directory": "packages/toolshed"
+  },
   "main": "./dist/core/index.js",
   "types": "./dist/core/index.d.ts",
   "exports": {
