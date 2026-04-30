@@ -7,7 +7,7 @@ const ARBITRUM_SEPOLIA_RPC = process.env.ARBITRUM_SEPOLIA_RPC || 'https://sepoli
 
 // Issuance-specific Solidity configuration with Cancun EVM version
 export const issuanceSolidityConfig = {
-  version: '0.8.33',
+  version: '0.8.34',
   settings: {
     optimizer: {
       enabled: true,

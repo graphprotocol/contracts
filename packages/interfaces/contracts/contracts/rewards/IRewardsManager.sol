@@ -3,7 +3,6 @@
 pragma solidity ^0.7.6 || ^0.8.0;
 
 import { IIssuanceAllocationDistribution } from "../../issuance/allocate/IIssuanceAllocationDistribution.sol";
-import { IRewardsEligibility } from "../../issuance/eligibility/IRewardsEligibility.sol";
 import { IRewardsIssuer } from "./IRewardsIssuer.sol";
 
 /**
@@ -52,16 +51,6 @@ interface IRewardsManager {
      */
     event RewardsDeniedDueToEligibility(address indexed indexer, address indexed allocationID, uint256 amount);
     // solhint-disable-previous-line gas-indexed-events
-
-    /**
-     * @notice Emitted when the rewards eligibility oracle contract is set
-     * @param oldRewardsEligibilityOracle Previous rewards eligibility oracle address
-     * @param newRewardsEligibilityOracle New rewards eligibility oracle address
-     */
-    event RewardsEligibilityOracleSet(
-        address indexed oldRewardsEligibilityOracle,
-        address indexed newRewardsEligibilityOracle
-    );
 
     /**
      * @notice New reclaim address set
@@ -125,12 +114,6 @@ interface IRewardsManager {
     function setSubgraphService(address newSubgraphService) external;
 
     /**
-     * @notice Set the rewards eligibility oracle address
-     * @param newRewardsEligibilityOracle The address of the rewards eligibility oracle
-     */
-    function setRewardsEligibilityOracle(address newRewardsEligibilityOracle) external;
-
-    /**
      * @notice Set the reclaim address for a specific reason
      * @dev Address to mint tokens for denied/reclaimed rewards. Set to zero to disable.
      *
@@ -150,6 +133,21 @@ interface IRewardsManager {
      * @param newDefaultReclaimAddress The fallback address for reclaims
      */
     function setDefaultReclaimAddress(address newDefaultReclaimAddress) external;
+
+    /**
+     * @notice Set whether ineligible indexers cause takeRewards to revert
+     * @dev When true, takeRewards reverts for ineligible indexers, keeping rewards claimable
+     * if the indexer becomes eligible and collects before the allocation goes stale.
+     * When false (default), takeRewards succeeds but rewards are reclaimed.
+     * @param revertOnIneligible True to revert on ineligible, false to reclaim
+     */
+    function setRevertOnIneligible(bool revertOnIneligible) external;
+
+    /**
+     * @notice Get whether ineligible indexers cause takeRewards to revert
+     * @return revertOnIneligible True if takeRewards reverts for ineligible indexers
+     */
+    function getRevertOnIneligible() external view returns (bool revertOnIneligible);
 
     // -- Denylist --
 
@@ -200,12 +198,6 @@ interface IRewardsManager {
      * @return The fallback address for reclaims when no reason-specific address is configured
      */
     function getDefaultReclaimAddress() external view returns (address);
-
-    /**
-     * @notice Get the rewards eligibility oracle address
-     * @return The rewards eligibility oracle contract
-     */
-    function getRewardsEligibilityOracle() external view returns (IRewardsEligibility);
 
     /**
      * @notice Gets the effective issuance per block, accounting for the issuance allocator
@@ -278,7 +270,7 @@ interface IRewardsManager {
 
     /**
      * @notice Pull rewards from the contract for a particular allocation
-     * @dev This function can only be called by the Staking contract.
+     * @dev This function can only be called by the Subgraph Service contract.
      * This function will mint the necessary tokens to reward based on the inflation calculation.
      * @param allocationID Allocation
      * @return Assigned rewards amount

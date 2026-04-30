@@ -110,7 +110,7 @@ graph LR
     RM -->|check eligibility| REO
 ```
 
-**Integration:** `RewardsManager.setRewardsEligibilityOracle(REO)` via governance
+**Integration:** `RewardsManager.setProviderEligibilityOracle(REO)` via governance
 
 ### IssuanceAllocator Integration
 
