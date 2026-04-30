@@ -1,0 +1,55 @@
+#!/bin/bash
+
+set -eo pipefail
+
+# Add foundry to PATH
+export PATH="$HOME/.foundry/bin:$PATH"
+
+# Proof-of-concept script for fork testing with impersonated accounts
+# This validates that we can:
+# 1. Fork Arbitrum One
+# 2. Impersonate accounts
+# 3. Send transactions from impersonated accounts
+
+export SECURE_ACCOUNTS_DISABLE_PROVIDER=true
+
+# Alchemy RPC for Arbitrum One
+BLOCKCHAIN_RPC=${BLOCKCHAIN_RPC:-"https://arb-mainnet.g.alchemy.com/v2/yRreth_oJQQeP_80z8dn-yR1LoxDKK_G"}
+
+# Function to cleanup resources
+cleanup() {
+    if [ ! -z "$NODE_PID" ] && [ "$STARTED_NODE" = true ]; then
+        echo "Cleaning up Hardhat node (PID: $NODE_PID)..."
+        kill -TERM -- -$NODE_PID 2>/dev/null || true
+    fi
+}
+
+trap cleanup EXIT
+
+echo "=== Ops Fork Testing POC ==="
+echo ""
+
+# Check if hardhat node is already running on port 8545
+STARTED_NODE=false
+if lsof -i:8545 > /dev/null 2>&1; then
+    echo "Hardhat node already running on port 8545, using existing node"
+    NODE_PID=$(lsof -t -i:8545)
+else
+    echo "Starting local hardhat node forked from Arbitrum One..."
+    npx hardhat node --fork $BLOCKCHAIN_RPC > node.log 2>&1 &
+    NODE_PID=$!
+    STARTED_NODE=true
+
+    # Wait for node to start
+    echo "Waiting for node to start..."
+    sleep 10
+fi
+
+echo "Node ready. Running POC task..."
+echo ""
+
+# Run the POC task
+npx hardhat ops:poc --network localhost
+
+echo ""
+echo "=== POC Complete ==="
