@@ -50,7 +50,8 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
      * except for the first collection
      * @param minSecondsPerCollection The minimum amount of seconds that must pass between collections
      * @param maxSecondsPerCollection The maximum seconds of service that can be collected in a single collection
-     * @param conditions Bitmask of payer-declared conditions (e.g. CONDITION_ELIGIBILITY_CHECK)
+     * @param conditions Bitmask of payer-declared conditions
+     * (e.g. CONDITION_ELIGIBILITY_CHECK, CONDITION_AGREEMENT_OWNER)
      * @param nonce A unique nonce for preventing collisions (user-chosen)
      * @param metadata Arbitrary metadata to extend functionality if a data service requires it
      *
@@ -82,7 +83,8 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
      * except for the first collection
      * @param minSecondsPerCollection The minimum amount of seconds that must pass between collections
      * @param maxSecondsPerCollection The maximum seconds of service that can be collected in a single collection
-     * @param conditions Bitmask of payer-declared conditions (e.g. CONDITION_ELIGIBILITY_CHECK)
+     * @param conditions Bitmask of payer-declared conditions
+     * (e.g. CONDITION_ELIGIBILITY_CHECK, CONDITION_AGREEMENT_OWNER)
      * @param nonce The nonce for preventing replay attacks (must be current nonce + 1)
      * @param metadata Arbitrary metadata to extend functionality if a data service requires it
      */
@@ -392,11 +394,12 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
     error RecurringCollectorCollectionNotEligible(bytes16 agreementId, address serviceProvider);
 
     /**
-     * @notice Thrown when an offer sets CONDITION_ELIGIBILITY_CHECK but the payer
-     * does not support IProviderEligibility (via ERC-165)
+     * @notice Thrown when an offer sets a condition flag whose corresponding
+     * interface is not declared by the payer (via ERC-165)
      * @param payer The payer address
+     * @param interfaceId The ERC-165 interface id the payer must declare for the set condition
      */
-    error RecurringCollectorPayerDoesNotSupportEligibilityInterface(address payer);
+    error RecurringCollectorPayerDoesNotSupportInterface(address payer, bytes4 interfaceId);
 
     /**
      * @notice Thrown when the caller does not provide enough gas for the payer callback

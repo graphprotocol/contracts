@@ -21,6 +21,9 @@ TBD
 
 ---
 
-Using `CONDITION_ELIGIBILITY_CHECK` for callback dispatch does not seem appropriate. The eligibility check is an agreement term, not a proxy for payer type and contract payers can legitimately offer agreements without this condition. The provider agreeing to the check requires greater trust in the payer. Gating callbacks on this flag would deny `beforeCollection`/`afterCollection` to contract payers for agreements without eligibility gating.
+Reusing `CONDITION_ELIGIBILITY_CHECK` for callback dispatch avoided because the eligibility checking is a different concern with different trust assumptions. An agreement can legitimately have one without the other.
 
-With the returndata bombing fix (TRST-M-4), the gas impact of an EIP-7702 EOA gaining callbacks is bounded and predictable. We do not believe this as a significant attack vector. The `beforeCollection`/`afterCollection` callbacks are non-reverting and non-blocking. A payer adding code via EIP-7702 to better handle escrow reconciliation could be a valid use case and in the best interests of all parties.
+Introduced `CONDITION_AGREEMENT_OWNER` flag that mirrors the eligibility pattern:
+
+- `_requirePayerInterfaceSupport` validates `IERC165(payer).supportsInterface(type(IAgreementOwner).interfaceId)` if the flag is set, alongside the existing eligibility check.
+- `_preCollectCallbacks` and `_postCollectCallback` dispatch on `agreement.conditions & CONDITION_AGREEMENT_OWNER`, replacing the `payer.code.length` check.

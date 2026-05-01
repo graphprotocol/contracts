@@ -66,6 +66,9 @@ contract MockAgreementOwner is IAgreementOwner, IProviderEligibility, IERC165 {
     // -- IERC165 --
 
     function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
-        return interfaceId == type(IProviderEligibility).interfaceId || interfaceId == type(IERC165).interfaceId;
+        return
+            interfaceId == type(IAgreementOwner).interfaceId ||
+            interfaceId == type(IProviderEligibility).interfaceId ||
+            interfaceId == type(IERC165).interfaceId;
     }
 }

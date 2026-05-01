@@ -1139,12 +1139,100 @@ contract RecurringCollectorCoverageGapsTest is RecurringCollectorSharedTest {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                IRecurringCollector.RecurringCollectorPayerDoesNotSupportEligibilityInterface.selector,
-                address(bare)
+                IRecurringCollector.RecurringCollectorPayerDoesNotSupportInterface.selector,
+                address(bare),
+                type(IProviderEligibility).interfaceId
             )
         );
         vm.prank(address(bare));
         _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0);
+    }
+
+    /// @notice When an RCA enables CONDITION_AGREEMENT_OWNER, the payer must support
+    /// IAgreementOwner via ERC-165. BareAgreementOwner implements IAgreementOwner
+    /// methods but not IERC165, so ERC165Checker.supportsInterface returns false and
+    /// the require fires at offer time.
+    function test_OfferNew_Revert_WhenAgreementOwnerConditionAndPayerLacksInterface() public {
+        BareAgreementOwner bare = new BareAgreementOwner();
+        IRecurringCollector.RecurringCollectionAgreement memory rca = IRecurringCollector.RecurringCollectionAgreement({
+            deadline: uint64(block.timestamp + 1 hours),
+            endsAt: uint64(block.timestamp + 365 days),
+            payer: address(bare),
+            dataService: makeAddr("ds-ao-bare"),
+            serviceProvider: makeAddr("sp-ao-bare"),
+            maxInitialTokens: 100 ether,
+            maxOngoingTokensPerSecond: 1 ether,
+            minSecondsPerCollection: 600,
+            maxSecondsPerCollection: 3600,
+            conditions: 2, // CONDITION_AGREEMENT_OWNER
+            nonce: 1,
+            metadata: ""
+        });
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IRecurringCollector.RecurringCollectorPayerDoesNotSupportInterface.selector,
+                address(bare),
+                type(IAgreementOwner).interfaceId
+            )
+        );
+        vm.prank(address(bare));
+        _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0);
+    }
+
+    /// @notice An RCAU that adds CONDITION_AGREEMENT_OWNER to an accepted agreement
+    /// must re-validate ERC-165 support against the current payer. If the payer
+    /// does not declare IAgreementOwner via ERC-165, the update reverts at offer time.
+    function test_OfferUpdate_Revert_WhenAgreementOwnerConditionAddedAndPayerLacksInterface() public {
+        BareAgreementOwner bare = new BareAgreementOwner();
+        address dataService = makeAddr("ds-ao-update");
+        address serviceProvider = makeAddr("sp-ao-update");
+
+        IRecurringCollector.RecurringCollectionAgreement memory rca = IRecurringCollector.RecurringCollectionAgreement({
+            deadline: uint64(block.timestamp + 1 hours),
+            endsAt: uint64(block.timestamp + 365 days),
+            payer: address(bare),
+            dataService: dataService,
+            serviceProvider: serviceProvider,
+            maxInitialTokens: 100 ether,
+            maxOngoingTokensPerSecond: 1 ether,
+            minSecondsPerCollection: 600,
+            maxSecondsPerCollection: 3600,
+            conditions: 0, // no flags — passes acceptance with no ERC-165 check
+            nonce: 1,
+            metadata: ""
+        });
+
+        vm.prank(address(bare));
+        _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0);
+        vm.prank(dataService);
+        bytes16 agreementId = _recurringCollector.accept(rca, "");
+
+        // Now submit RCAU adding CONDITION_AGREEMENT_OWNER — should revert because
+        // BareAgreementOwner does not declare IAgreementOwner via ERC-165.
+        IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = IRecurringCollector
+            .RecurringCollectionAgreementUpdate({
+                agreementId: agreementId,
+                deadline: uint64(block.timestamp + 1 hours),
+                endsAt: rca.endsAt,
+                maxInitialTokens: rca.maxInitialTokens,
+                maxOngoingTokensPerSecond: rca.maxOngoingTokensPerSecond,
+                minSecondsPerCollection: rca.minSecondsPerCollection,
+                maxSecondsPerCollection: rca.maxSecondsPerCollection,
+                conditions: 2, // CONDITION_AGREEMENT_OWNER
+                nonce: 1,
+                metadata: ""
+            });
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IRecurringCollector.RecurringCollectorPayerDoesNotSupportInterface.selector,
+                address(bare),
+                type(IAgreementOwner).interfaceId
+            )
+        );
+        vm.prank(address(bare));
+        _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -1225,11 +1313,14 @@ contract RecurringCollectorCoverageGapsTest is RecurringCollectorSharedTest {
                 maxOngoingTokensPerSecond: 1 ether,
                 minSecondsPerCollection: 600,
                 maxSecondsPerCollection: 3600,
-                conditions: 0, // no eligibility — skip first precheck
+                conditions: 0,
                 nonce: 1,
                 metadata: ""
             })
         );
+        // sensibleRCA zeroes conditions unconditionally; opt into agreement-owner callbacks
+        // (without eligibility) so the beforeCollection precheck is the first to fire.
+        rca.conditions = 2; // CONDITION_AGREEMENT_OWNER
 
         vm.prank(address(approver));
         _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0);

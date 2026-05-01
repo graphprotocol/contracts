@@ -33,6 +33,8 @@ contract RecurringCollectorAfterCollectionTest is RecurringCollectorSharedTest {
                 metadata: ""
             })
         );
+        // sensibleRCA zeroes conditions unconditionally; opt back in for callback dispatch.
+        rca.conditions = 2; // CONDITION_AGREEMENT_OWNER
 
         vm.prank(address(approver));
         _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0);
@@ -101,6 +103,51 @@ contract RecurringCollectorAfterCollectionTest is RecurringCollectorSharedTest {
         // Verify callback was invoked with correct parameters
         assertEq(approver.lastCollectedAgreementId(), agreementId);
         assertEq(approver.lastCollectedTokens(), tokens);
+    }
+
+    /// @notice With CONDITION_AGREEMENT_OWNER unset, callback dispatch is gated off
+    /// regardless of whether the payer happens to be a contract. Verifies the new
+    /// dispatch reads the stored flag rather than `payer.code.length`, closing the
+    /// EIP-7702 surprise-callback vector.
+    function test_AfterCollection_NoCallbacks_WhenAgreementOwnerConditionUnset() public {
+        MockAgreementOwner approver = _newApprover();
+        IRecurringCollector.RecurringCollectionAgreement memory rca = _recurringCollectorHelper.sensibleRCA(
+            IRecurringCollector.RecurringCollectionAgreement({
+                deadline: uint64(block.timestamp + 1 hours),
+                endsAt: uint64(block.timestamp + 365 days),
+                payer: address(approver),
+                dataService: makeAddr("ds-no-cb"),
+                serviceProvider: makeAddr("sp-no-cb"),
+                maxInitialTokens: 100 ether,
+                maxOngoingTokensPerSecond: 1 ether,
+                minSecondsPerCollection: 600,
+                maxSecondsPerCollection: 3600,
+                conditions: 0,
+                nonce: 1,
+                metadata: ""
+            })
+        );
+        // sensibleRCA zeroes conditions; leave it zero to assert callbacks are skipped.
+
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0);
+        _setupValidProvision(rca.serviceProvider, rca.dataService);
+        vm.prank(rca.dataService);
+        bytes16 agreementId = _recurringCollector.accept(rca, "");
+
+        skip(rca.minSecondsPerCollection);
+        uint256 tokens = 1 ether;
+        bytes memory data = _generateCollectData(_generateCollectParams(rca, agreementId, bytes32("col1"), tokens, 0));
+
+        vm.prank(rca.dataService);
+        uint256 collected = _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
+        assertEq(collected, tokens);
+
+        // Neither callback fired — mock state is still default
+        assertEq(approver.lastBeforeCollectionAgreementId(), bytes16(0), "beforeCollection must be skipped");
+        assertEq(approver.lastBeforeCollectionTokens(), 0, "beforeCollection must be skipped");
+        assertEq(approver.lastCollectedAgreementId(), bytes16(0), "afterCollection must be skipped");
+        assertEq(approver.lastCollectedTokens(), 0, "afterCollection must be skipped");
     }
 
     function test_AfterCollection_CollectionSucceedsWhenCallbackReverts() public {

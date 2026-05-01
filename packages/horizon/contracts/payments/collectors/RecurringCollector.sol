@@ -66,7 +66,13 @@ contract RecurringCollector is
     uint32 internal constant MIN_SECONDS_COLLECTION_WINDOW = 600;
 
     /// @notice Condition flag: agreement requires eligibility checks before collection
-    uint16 internal constant CONDITION_ELIGIBILITY_CHECK = 1;
+    uint16 internal constant CONDITION_ELIGIBILITY_CHECK = 1 << 0;
+
+    /// @notice Condition flag: agreement uses the IAgreementOwner callbacks
+    /// (beforeCollection / afterCollection). Validated via ERC-165 at acceptance, so the
+    /// callback dispatch decision is frozen to acceptance time and immune to post-acceptance
+    /// payer code changes (e.g. EIP-7702 delegation swaps).
+    uint16 internal constant CONDITION_AGREEMENT_OWNER = 1 << 1;
 
     /// @notice Maximum gas forwarded to payer contract callbacks (beforeCollection / afterCollection).
     /// Caps gas available to payer implementations, preventing 63/64-rule gas siphoning attacks
@@ -763,12 +769,14 @@ contract RecurringCollector is
         }
         agreement.lastCollectionAt = uint64(block.timestamp);
 
+        address payer = agreement.payer;
+
         if (0 < tokensToCollect) {
             _preCollectCallbacks(agreement, _params.agreementId, tokensToCollect);
 
             _graphPaymentsEscrow().collect(
                 _paymentType,
-                agreement.payer,
+                payer,
                 agreement.serviceProvider,
                 tokensToCollect,
                 agreement.dataService,
@@ -780,7 +788,7 @@ contract RecurringCollector is
         emit PaymentCollected(
             _paymentType,
             _params.collectionId,
-            agreement.payer,
+            payer,
             agreement.serviceProvider,
             agreement.dataService,
             tokensToCollect
@@ -788,7 +796,7 @@ contract RecurringCollector is
 
         emit RCACollected(
             agreement.dataService,
-            agreement.payer,
+            payer,
             agreement.serviceProvider,
             _params.agreementId,
             _params.collectionId,
@@ -796,21 +804,30 @@ contract RecurringCollector is
             _params.dataServiceCut
         );
 
-        if (0 < tokensToCollect) _postCollectCallback(agreement.payer, _params.agreementId, tokensToCollect);
+        if (0 < tokensToCollect)
+            _postCollectCallback(payer, agreement.conditions, _params.agreementId, tokensToCollect);
         return tokensToCollect;
     }
     /* solhint-enable function-max-lines */
 
     /**
-     * @notice Validates that a contract payer supports IProviderEligibility via ERC-165.
+     * @notice Validates that the payer supports the interfaces required by the conditions bitmask.
+     * @dev Each set condition bit requires the payer to declare ERC-165 support for the matching
+     * interface.
      * @param payer The payer address to validate
      * @param conditions The conditions bitmask
      */
-    function _requirePayerToSupportEligibilityCheck(address payer, uint16 conditions) private view {
+    function _requirePayerInterfaceSupport(address payer, uint16 conditions) private view {
         if (conditions & CONDITION_ELIGIBILITY_CHECK != 0) {
             require(
                 ERC165Checker.supportsInterface(payer, type(IProviderEligibility).interfaceId),
-                RecurringCollectorPayerDoesNotSupportEligibilityInterface(payer)
+                RecurringCollectorPayerDoesNotSupportInterface(payer, type(IProviderEligibility).interfaceId)
+            );
+        }
+        if (conditions & CONDITION_AGREEMENT_OWNER != 0) {
+            require(
+                ERC165Checker.supportsInterface(payer, type(IAgreementOwner).interfaceId),
+                RecurringCollectorPayerDoesNotSupportInterface(payer, type(IAgreementOwner).interfaceId)
             );
         }
     }
@@ -829,12 +846,13 @@ contract RecurringCollector is
     ) private {
         address payer = agreement.payer;
         address provider = agreement.serviceProvider;
+        uint16 conditions = agreement.conditions;
 
         // Eligibility gate (opt-in via conditions bitmask). Assembly staticcall caps returndata
         // copy to 32 bytes, preventing returndata bombing. Only an explicit return of 0 blocks
         // collection; reverts, short returndata, and malformed responses are treated as "no
         // opinion" (collection proceeds).
-        if ((agreement.conditions & CONDITION_ELIGIBILITY_CHECK) != 0) {
+        if ((conditions & CONDITION_ELIGIBILITY_CHECK) != 0) {
             if (gasleft() < (MAX_PAYER_CALLBACK_GAS * 64) / 63 + CALLBACK_GAS_OVERHEAD)
                 revert RecurringCollectorInsufficientCallbackGas();
             bytes memory cd = abi.encodeCall(IProviderEligibility.isEligible, (provider));
@@ -854,7 +872,7 @@ contract RecurringCollector is
         }
 
         // Assembly call copies 0 bytes of returndata, preventing returndata bombing.
-        if (payer.code.length != 0 && payer != msg.sender) {
+        if ((conditions & CONDITION_AGREEMENT_OWNER) != 0 && payer != msg.sender) {
             if (gasleft() < (MAX_PAYER_CALLBACK_GAS * 64) / 63 + CALLBACK_GAS_OVERHEAD)
                 revert RecurringCollectorInsufficientCallbackGas();
             bytes memory cd = abi.encodeCall(IAgreementOwner.beforeCollection, (agreementId, tokensToCollect));
@@ -871,12 +889,18 @@ contract RecurringCollector is
      * @notice Executes post-collection callback: afterCollection notification.
      * @dev Extracted from _collect to reduce stack depth for coverage builds.
      * @param payer The payer address
+     * @param conditions The agreement conditions bitmask
      * @param agreementId The agreement ID
      * @param tokensToCollect The amount of tokens collected
      */
-    function _postCollectCallback(address payer, bytes16 agreementId, uint256 tokensToCollect) private {
+    function _postCollectCallback(
+        address payer,
+        uint16 conditions,
+        bytes16 agreementId,
+        uint256 tokensToCollect
+    ) private {
         // Notify contract payers so they can reconcile escrow in the same transaction.
-        if (payer != msg.sender && payer.code.length != 0) {
+        if (payer != msg.sender && (conditions & CONDITION_AGREEMENT_OWNER) != 0) {
             // 64/63 accounts for EIP-150 63/64 gas forwarding rule.
             if (gasleft() < (MAX_PAYER_CALLBACK_GAS * 64) / 63 + CALLBACK_GAS_OVERHEAD)
                 revert RecurringCollectorInsufficientCallbackGas();
@@ -936,14 +960,14 @@ contract RecurringCollector is
     }
 
     /**
-     * @notice Validates offer terms: collection window, eligibility support, and overflow.
+     * @notice Validates offer terms: collection window, payer interface support, and overflow.
      * @dev Called by _validateAndStoreAgreement and _validateAndStoreUpdate. Time-independent —
      * validates against the offer's deadline so the check is stable across the offer's lifetime.
      * @param _deadline The offer's acceptance deadline
      * @param _endsAt The end time of the agreement
      * @param _minSecondsPerCollection The minimum seconds per collection
      * @param _maxSecondsPerCollection The maximum seconds per collection
-     * @param _payer The payer address (for eligibility validation)
+     * @param _payer The payer address (for interface validation)
      * @param _conditions The conditions bitmask
      * @param _maxOngoingTokensPerSecond The maximum ongoing tokens per second
      */
@@ -957,7 +981,7 @@ contract RecurringCollector is
         uint256 _maxOngoingTokensPerSecond
     ) private view {
         _requireValidCollectionWindowParams(_deadline, _endsAt, _minSecondsPerCollection, _maxSecondsPerCollection);
-        _requirePayerToSupportEligibilityCheck(_payer, _conditions);
+        _requirePayerInterfaceSupport(_payer, _conditions);
         // Reverts on overflow — rejecting excessive terms that could prevent collection
         _maxOngoingTokensPerSecond * _maxSecondsPerCollection * 1024;
     }
