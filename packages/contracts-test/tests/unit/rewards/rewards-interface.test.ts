@@ -54,11 +54,11 @@ describe('RewardsManager interfaces', () => {
     })
 
     it('IIssuanceTarget should have stable interface ID', () => {
-      expect(IIssuanceTarget__factory.interfaceId).to.equal('0xaee4dc43')
+      expect(IIssuanceTarget__factory.interfaceId).to.equal('0x19f6601a')
     })
 
     it('IRewardsManager should have stable interface ID', () => {
-      expect(IRewardsManager__factory.interfaceId).to.equal('0x36b70adb')
+      expect(IRewardsManager__factory.interfaceId).to.equal('0x8469b577')
     })
   })
 
@@ -93,7 +93,7 @@ describe('RewardsManager interfaces', () => {
     })
 
     it('should return zero address for rewards eligibility oracle when not set', async function () {
-      const oracle = await rewardsManager.getRewardsEligibilityOracle()
+      const oracle = await rewardsManager.getProviderEligibilityOracle()
       expect(oracle).to.equal(constants.AddressZero)
     })
 

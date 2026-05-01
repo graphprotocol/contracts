@@ -11,6 +11,7 @@ import type { AnyAddressBookOps } from './address-book-ops.js'
 import type { ArtifactSource } from './contract-registry.js'
 import { computeBytecodeHash } from './bytecode-utils.js'
 import {
+  getLibraryResolver,
   loadContractsArtifact,
   loadIssuanceArtifact,
   loadOpenZeppelinArtifact,
@@ -141,7 +142,12 @@ export async function validateContract(
   }
 
   if (loadedArtifact?.deployedBytecode && metadata?.bytecodeHash) {
-    const localHash = computeBytecodeHash(loadedArtifact.deployedBytecode)
+    const libResolver = getLibraryResolver(artifact.type)
+    const localHash = computeBytecodeHash(
+      loadedArtifact.deployedBytecode,
+      loadedArtifact.deployedLinkReferences,
+      libResolver,
+    )
     if (metadata.bytecodeHash !== localHash) {
       return {
         contract: contractName,
@@ -178,7 +184,7 @@ export async function validateContract(
     }
 
     // Optional: Verify argsData matches transaction
-    if (options.verifyArgsData && metadata?.txHash && loadedArtifact?.bytecode) {
+    if (options.verifyArgsData && metadata?.txHash && metadata?.argsData && loadedArtifact?.bytecode) {
       try {
         const tx = await client.getTransaction({ hash: metadata.txHash as `0x${string}` })
         if (tx?.input) {

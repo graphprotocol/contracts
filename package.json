@@ -55,8 +55,17 @@
     "overrides": {
       "@types/node": "^20.17.50"
     },
+    "packageExtensions": {
+      "@nomiclabs/hardhat-waffle@*": {
+        "dependencies": {
+          "@ethereum-waffle/chai": "*",
+          "@ethereum-waffle/provider": "*"
+        }
+      }
+    },
     "patchedDependencies": {
-      "typechain@8.3.2": "patches/typechain@8.3.2.patch"
+      "typechain@8.3.2": "patches/typechain@8.3.2.patch",
+      "rocketh@0.17.13": "patches/rocketh@0.17.13.patch"
     }
   },
   "lint-staged": {

@@ -13,12 +13,11 @@ In fork mode, governance transactions can be executed automatically via account 
 ### Setup
 
 ```bash
-# Start a fork of arbitrumSepolia
-FORK_NETWORK=arbitrumSepolia npx hardhat node --network fork
+# Ephemeral: run deployment directly (state lost on exit)
+FORK_NETWORK=arbitrumSepolia npx hardhat deploy --tags IssuanceAllocator:deploy --network fork
 
-# In another terminal, run deployments
-export FORK_NETWORK=arbitrumSepolia
-npx hardhat deploy --tags issuance-allocator-deploy --network fork
+# Or persistent: start anvil in Terminal 1, run deploys in Terminal 2
+# See LocalForkTesting.md for persistent fork setup
 ```
 
 ### Execution
@@ -26,15 +25,15 @@ npx hardhat deploy --tags issuance-allocator-deploy --network fork
 When a deployment generates a governance TX batch:
 
 1. The TX batch is saved to `fork/fork/arbitrumSepolia/txs/*.json`
-2. The deployment exits with code 1 (expected state - waiting for governance)
-3. Execute the governance TXs automatically:
+2. The script returns (it does **not** exit) — subsequent scripts in the run keep going and check their own preconditions, so a single command can produce several TX batches
+3. Execute the saved governance TXs:
 
    ```bash
    npx hardhat deploy:execute-governance --network fork
    ```
 
 4. This uses `hardhat_impersonateAccount` to execute as the governor
-5. Continue with deployments
+5. Re-run the deployment command to continue past the governance boundary
 
 ## Testnet Mode with EOA Governor
 
@@ -93,14 +92,14 @@ On mainnet (and testnets where Safe is deployed), governance transactions with S
 
 ```bash
 export DEPLOYER_PRIVATE_KEY=0xYOUR_PRIVATE_KEY
-npx hardhat deploy --tags issuance-allocator-deploy --network arbitrumSepolia
+npx hardhat deploy --tags IssuanceAllocator:deploy --network arbitrumSepolia
 ```
 
 When governance action is required, the deployment will:
 
 - Generate a TX batch file in `txs/arbitrumSepolia/*.json`
 - Display the file path
-- Exit with code 1
+- Return (not exit) — the run continues and other scripts check their own preconditions
 
 #### 2. Review the TX Batch
 
@@ -156,7 +155,7 @@ This updates the address books with the new on-chain state.
 Re-run the original deployment command:
 
 ```bash
-npx hardhat deploy --tags issuance-allocator-deploy --network arbitrumSepolia
+npx hardhat deploy --tags IssuanceAllocator:deploy --network arbitrumSepolia
 ```
 
 The deployment will detect that governance has executed and continue to the next steps.
@@ -167,7 +166,7 @@ The deployment will detect that governance has executed and continue to the next
 
 ```bash
 # 1. Deploy new implementation
-npx hardhat deploy --tags rewards-manager-deploy --network arbitrumSepolia
+npx hardhat deploy --tags RewardsManager:deploy --network arbitrumSepolia
 
 # This generates: txs/arbitrumSepolia/upgrade-RewardsManager.json
 
@@ -181,7 +180,7 @@ npx hardhat deploy --tags sync --network arbitrumSepolia
 
 ```bash
 # Deploy and configure (generates governance TX if needed)
-npx hardhat deploy --tags issuance-activation --network arbitrumSepolia
+npx hardhat deploy --tags IssuanceActivation --network arbitrumSepolia
 
 # Execute via Safe UI
 
@@ -223,15 +222,16 @@ txs/<network-name>/executed/*.json
 | **EOA Direct**         | Testnet with EOA governor | Automatic with private key               | `GOVERNOR_PRIVATE_KEY=0x...`   |
 | **Safe Multisig**      | Production/mainnet        | Manual via Safe Transaction Builder      | None (auto-detected)           |
 
+**Fork mode is network-aware**: `FORK_NETWORK` is automatically ignored on real networks (arbitrumSepolia, arbitrumOne). Fork mode only activates on local networks (localhost, fork, hardhat), so you don't need to unset it when switching to real deployments.
+
 **Transaction batch files** (Safe Transaction Builder JSON format) are always created in `txs/<network>/*.json` regardless of execution mode.
 
 ### Usage Examples
 
-**Local fork testing:**
+**Local fork testing (ephemeral):**
 
 ```bash
-FORK_NETWORK=arbitrumSepolia npx hardhat node --network fork
-npx hardhat deploy:execute-governance --network fork
+FORK_NETWORK=arbitrumSepolia npx hardhat deploy:execute-governance --network fork
 ```
 
 **Fast testnet iteration (EOA):**
@@ -287,13 +287,15 @@ npx hardhat deploy:execute-governance --network arbitrumSepolia
 # Governor: 0x... (EOA)
 ```
 
-### Exit Code 1
+### No Exit on Governance Save
 
-When a deployment generates a governance TX batch, it exits with code 1. This:
+When a script generates a governance TX batch, it **returns** rather than exiting. This:
 
-- Signals to CI/CD that manual intervention is required
-- Prevents subsequent deployment steps from running
-- Is not an error - it's expected state when waiting for governance
+- Lets a single command produce multiple governance TX batches in one run (one per script that needs governance authority)
+- Avoids implicit ordering coupling — every script checks its own on-chain preconditions and skips if they aren't met
+- Is normal flow, not an error condition
+
+To detect "needs governance" in CI/CD, check whether any files exist under `txs/<network>/` after a run, or use the goal status scripts (`--tags GIP-0088`).
 
 ## Troubleshooting
 
@@ -355,18 +357,17 @@ npx hardhat deploy:execute-governance --network arbitrumSepolia
 Before executing on mainnet, always test in fork mode:
 
 ```bash
-# 1. Fork mainnet
-FORK_NETWORK=arbitrumOne npx hardhat node --network fork
-
-# 2. Deploy (generates governance TXs)
+# 1. Deploy (generates governance TXs)
 export FORK_NETWORK=arbitrumOne
-npx hardhat deploy --tags issuance-allocator-deploy --network fork
+npx hardhat deploy --tags IssuanceAllocator:deploy --network fork
 
-# 3. Execute governance TXs automatically
+# 2. Execute governance TXs automatically
 npx hardhat deploy:execute-governance --network fork
 
-# 4. Verify state
+# 3. Verify state
 npx hardhat deploy:status --network fork
 ```
+
+For persistent fork testing (state survives across commands), see [LocalForkTesting.md](./LocalForkTesting.md).
 
 This tests the full governance workflow without touching real funds or requiring actual Safe signatures.

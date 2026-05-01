@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.33;
+pragma solidity ^0.8.27;
 
 import { Test } from "forge-std/Test.sol";
 
@@ -40,7 +40,7 @@ contract AllocateInterfaceIdStabilityTest is Test {
     // -- DirectAllocation / shared interfaces --
 
     function test_InterfaceId_IIssuanceTarget() public pure {
-        assertEq(type(IIssuanceTarget).interfaceId, bytes4(0xaee4dc43));
+        assertEq(type(IIssuanceTarget).interfaceId, bytes4(0x19f6601a));
     }
 
     function test_InterfaceId_ISendTokens() public pure {

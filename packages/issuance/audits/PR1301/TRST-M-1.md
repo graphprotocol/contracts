@@ -1,0 +1,36 @@
+# TRST-M-1: Micro-thaw griefing via permissionless depositTo() and reconcileAgreement()
+
+- **Severity:** Medium
+- **Category:** Griefing attacks
+- **Source:** RecurringAgreementManager.sol
+- **Status:** Open
+
+## Description
+
+Three independently benign features combine into a griefing vector:
+
+1. `PaymentsEscrow.depositTo()` has no access control - anyone can deposit any amount for any (payer, collector, receiver) tuple.
+2. `reconcileAgreement()` is permissionless - anyone can trigger a reconciliation which calls `_updateEscrow()`.
+3. `PaymentsEscrow.adjustThaw()` with `evenIfTimerReset=false` is a no-op when increasing the thaw amount would reset the thawing timer.
+
+An attacker deposits 1 wei into an escrow account via `depositTo()`, then calls `reconcileAgreement()`. The reconciliation detects escrow is 1 wei above target and initiates a thaw of 1 wei via `adjustThaw()`. This starts the thawing timer. When the RAM later needs to thaw a larger amount (e.g., after an agreement ends or is updated), it calls `adjustThaw()` with `evenIfTimerReset=false`, which becomes a no-op because increasing the thaw would reset the timer.
+
+In cases where thaws are needed to mobilize funds from one escrow pair to another - for example, to fund a new agreement or agreement update for a different provider - this griefing prevents the rebalancing. New agreements or updates that require escrow from the blocked pair's thawed funds could fail to be properly funded, causing escrow mode degradation or preventing the offers entirely.
+
+## Recommended Mitigation
+
+Add a minimum thaw threshold in `_updateEscrow()`. Amounts below the threshold should be ignored rather than initiating a thaw. This prevents an attacker from starting a thaw timer with a dust amount. If they do perform the attack, they will donate a non-negligible amount in exchange for the one-round block.
+
+## Team Response
+
+Fixed.
+
+## Mitigation Review
+
+The griefing path remains reachable. Before any agreement is offered, a 1 wei donation to the (collector, provider) escrow account, followed by a permissionless call to `_reconcilePairTracking()` reaches `_updateEscrow()` with min and max at zero, and the thaw threshold is also at zero. Any positive excess passes the `thawThreshold <= excess` check, causing an `adjustThaw(thawTarget = 1)`. The same sequence also occurs after the final collection of an agreement, when `sumMaxNextClaim` transitions to zero via `afterCollection()` -> `_reconcileAndUpdateEscrow()` -> `_reconcileAgreement()`. There should be a nominal, non-negligible minimum thaw amount on top of the fraction check, applied in both `_reconcileProviderEscrow()` and `_withdrawAndRebalance()`. When `escrowBasis` is JustInTime, override the nominal skip so that dust can still be thawed out for solvency.
+
+---
+
+Added configurable `minThawFraction` (uint8, default 16 = 6.25% of `sumMaxNextClaim`) that skips thaws below threshold.
+
+The zero-threshold path when `sumMaxNextClaim = 0` is acknowledged. Timer resets do not occur (`evenIfTimerReset=false` rejects increases), so the vector is limited to postponing pair tracking cleanup via repeated dust deposits. Added `minResidualEscrowFactor` (uint8, default 50, threshold = 2^value ≈ 0.001 GRT for default): pairs with no agreements and escrow below threshold are dropped from tracking. Untracked pairs can still have escrow drained via blind thaw/withdraw on `reconcileProvider`.

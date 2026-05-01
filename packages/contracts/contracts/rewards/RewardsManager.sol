@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity 0.7.6;
+pragma solidity ^0.7.6;
 pragma abicoder v2;
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
@@ -16,24 +16,36 @@ import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/r
 import { IRewardsManagerDeprecated } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManagerDeprecated.sol";
 import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationDistribution.sol";
 import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceTarget.sol";
-import { IRewardsEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibility.sol";
+import { IProviderEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IProviderEligibility.sol";
+import { IProviderEligibilityManagement } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IProviderEligibilityManagement.sol";
 import { RewardsCondition } from "@graphprotocol/interfaces/contracts/contracts/rewards/RewardsCondition.sol";
 
 /**
  * @title Rewards Manager Contract
  * @author Edge & Node
- * @notice Manages indexing rewards distribution using a two-level accumulation model:
- * signal → subgraph → allocation. See docs/RewardAccountingSafety.md for details.
+ * @notice Manages rewards distribution for indexers and delegators in the Graph Protocol
+ * @dev Tracks how inflationary GRT rewards should be handed out. Relies on the Curation contract
+ * and the Staking contract. Signaled GRT in Curation determine what percentage of the tokens go
+ * towards each subgraph. Then each Subgraph can have multiple Indexers Staked on it. Thus, the
+ * total rewards for the Subgraph are split up for each Indexer based on much they have Staked on
+ * that Subgraph.
  *
- * @dev Issuance source: `issuanceAllocator` if set, otherwise `issuancePerBlock` storage.
- * Getter functions (getAccRewardsPerSignal, getRewards, etc.) may overestimate until
- * takeRewards is called due to pending state updates.
+ * Note:
+ * The contract provides getter functions to query the state of accrued rewards:
+ * - getAccRewardsPerSignal
+ * - getAccRewardsForSubgraph
+ * - getAccRewardsPerAllocatedToken
+ * - getRewards
+ * These functions may overestimate the actual rewards due to changes in the total supply
+ * until the actual takeRewards function is called.
+ * custom:security-contact Please email security+contracts@ thegraph.com (remove space) if you find any bugs. We might have an active bug bounty program.
  */
 contract RewardsManager is
     GraphUpgradeable,
     IERC165,
     IRewardsManager,
     IIssuanceTarget,
+    IProviderEligibilityManagement,
     IRewardsManagerDeprecated,
     RewardsManagerV6Storage
 {
@@ -71,7 +83,8 @@ contract RewardsManager is
         return
             interfaceId == type(IERC165).interfaceId ||
             interfaceId == type(IIssuanceTarget).interfaceId ||
-            interfaceId == type(IRewardsManager).interfaceId;
+            interfaceId == type(IRewardsManager).interfaceId ||
+            interfaceId == type(IProviderEligibilityManagement).interfaceId;
     }
 
     // -- Config --
@@ -160,24 +173,25 @@ contract RewardsManager is
      * Note that the IssuanceAllocator can be set to the zero address to disable use of an allocator, and
      * use the local `issuancePerBlock` variable instead to control issuance.
      */
-    function setIssuanceAllocator(address newIssuanceAllocator) external override onlyGovernor {
-        if (address(issuanceAllocator) != newIssuanceAllocator) {
+    function setIssuanceAllocator(IIssuanceAllocationDistribution newIssuanceAllocator) external override onlyGovernor {
+        if (issuanceAllocator != newIssuanceAllocator) {
             // Update rewards calculation before changing the issuance allocator
             updateAccRewardsPerSignal();
 
             // Check that the contract supports the IIssuanceAllocationDistribution interface
             // Allow zero address to disable the allocator
-            if (newIssuanceAllocator != address(0)) {
+            if (address(newIssuanceAllocator) != address(0)) {
                 // solhint-disable-next-line gas-small-strings
                 require(
-                    IERC165(newIssuanceAllocator).supportsInterface(type(IIssuanceAllocationDistribution).interfaceId),
+                    IERC165(address(newIssuanceAllocator)).supportsInterface(
+                        type(IIssuanceAllocationDistribution).interfaceId
+                    ),
                     "Contract does not support IIssuanceAllocationDistribution interface"
                 );
             }
 
-            address oldIssuanceAllocator = address(issuanceAllocator);
-            issuanceAllocator = IIssuanceAllocationDistribution(newIssuanceAllocator);
-            emit IssuanceAllocatorSet(oldIssuanceAllocator, newIssuanceAllocator);
+            emit IssuanceAllocatorSet(issuanceAllocator, newIssuanceAllocator);
+            issuanceAllocator = newIssuanceAllocator;
         }
     }
 
@@ -197,26 +211,26 @@ contract RewardsManager is
     }
 
     /**
-     * @inheritdoc IRewardsManager
-     * @dev Note that the rewards eligibility oracle can be set to the zero address to disable use of an oracle, in
+     * @inheritdoc IProviderEligibilityManagement
+     * @dev Note that the eligibility oracle can be set to the zero address to disable use of an oracle, in
      * which case no indexers will be denied rewards due to eligibility.
      */
-    function setRewardsEligibilityOracle(address newRewardsEligibilityOracle) external override onlyGovernor {
-        if (address(rewardsEligibilityOracle) != newRewardsEligibilityOracle) {
-            // Check that the contract supports the IRewardsEligibility interface
-            // Allow zero address to disable the oracle
-            if (newRewardsEligibilityOracle != address(0)) {
-                // solhint-disable-next-line gas-small-strings
-                require(
-                    IERC165(newRewardsEligibilityOracle).supportsInterface(type(IRewardsEligibility).interfaceId),
-                    "Contract does not support IRewardsEligibility interface"
-                );
-            }
+    function setProviderEligibilityOracle(IProviderEligibility oracle) external override onlyGovernor {
+        IProviderEligibility oldOracle = rewardsEligibilityOracle;
+        if (address(oldOracle) == address(oracle)) return;
 
-            address oldRewardsEligibilityOracle = address(rewardsEligibilityOracle);
-            rewardsEligibilityOracle = IRewardsEligibility(newRewardsEligibilityOracle);
-            emit RewardsEligibilityOracleSet(oldRewardsEligibilityOracle, newRewardsEligibilityOracle);
+        // Check that the contract supports the IProviderEligibility interface
+        // Allow zero address to disable the oracle
+        if (address(oracle) != address(0)) {
+            // solhint-disable-next-line gas-small-strings
+            require(
+                IERC165(address(oracle)).supportsInterface(type(IProviderEligibility).interfaceId),
+                "Contract does not support IProviderEligibility interface"
+            );
         }
+
+        rewardsEligibilityOracle = oracle;
+        emit ProviderEligibilityOracleSet(oldOracle, oracle);
     }
 
     /**
@@ -249,6 +263,14 @@ contract RewardsManager is
         if (oldAddress != newAddress) {
             defaultReclaimAddress = newAddress;
             emit DefaultReclaimAddressSet(oldAddress, newAddress);
+        }
+    }
+
+    /// @inheritdoc IRewardsManager
+    function setRevertOnIneligible(bool _revertOnIneligible) external override onlyGovernor {
+        if (revertOnIneligible != _revertOnIneligible) {
+            revertOnIneligible = _revertOnIneligible;
+            emit ParameterUpdated("revertOnIneligible");
         }
     }
 
@@ -304,7 +326,7 @@ contract RewardsManager is
     }
 
     /**
-     * @inheritdoc IRewardsManager
+     * @inheritdoc IIssuanceTarget
      */
     function getIssuanceAllocator() external view override returns (IIssuanceAllocationDistribution) {
         return issuanceAllocator;
@@ -325,10 +347,15 @@ contract RewardsManager is
     }
 
     /**
-     * @inheritdoc IRewardsManager
+     * @inheritdoc IProviderEligibilityManagement
      */
-    function getRewardsEligibilityOracle() external view override returns (IRewardsEligibility) {
+    function getProviderEligibilityOracle() external view override returns (IProviderEligibility) {
         return rewardsEligibilityOracle;
+    }
+
+    /// @inheritdoc IRewardsManager
+    function getRevertOnIneligible() external view override returns (bool) {
+        return revertOnIneligible;
     }
 
     /// @inheritdoc IRewardsManager
@@ -446,19 +473,13 @@ contract RewardsManager is
     /**
      * @notice Get total allocated tokens for a subgraph across all issuers
      * @param _subgraphDeploymentID Subgraph deployment
-     * @return Total tokens allocated to this subgraph
+     * @return subgraphAllocatedTokens Total tokens allocated to this subgraph
      */
-    function _getSubgraphAllocatedTokens(bytes32 _subgraphDeploymentID) private view returns (uint256) {
-        uint256 subgraphAllocatedTokens = 0;
-        address[2] memory rewardsIssuers = [address(staking()), address(subgraphService)];
-        for (uint256 i = 0; i < rewardsIssuers.length; ++i) {
-            if (rewardsIssuers[i] != address(0)) {
-                subgraphAllocatedTokens += IRewardsIssuer(rewardsIssuers[i]).getSubgraphAllocatedTokens(
-                    _subgraphDeploymentID
-                );
-            }
-        }
-        return subgraphAllocatedTokens;
+    function _getSubgraphAllocatedTokens(
+        bytes32 _subgraphDeploymentID
+    ) private view returns (uint256 subgraphAllocatedTokens) {
+        if (address(subgraphService) != address(0))
+            subgraphAllocatedTokens += subgraphService.getSubgraphAllocatedTokens(_subgraphDeploymentID);
     }
 
     // -- Updates --
@@ -513,13 +534,14 @@ contract RewardsManager is
         ) = _getSubgraphRewardsState(_subgraphDeploymentID);
         subgraph.accRewardsPerSignalSnapshot = accRewardsPerSignal;
 
-        // Calculate undistributed: rewards accumulated but not yet distributed to allocations.
-        // Will be just rewards since last snapshot for subgraphs that have had onSubgraphSignalUpdate or
-        // onSubgraphAllocationUpdate called since upgrade;
-        // can include non-zero (original) accRewardsForSubgraph - accRewardsForSubgraphSnapshot for
-        // subgraphs that have not had either hook called since upgrade.
-        uint256 undistributedRewards = accRewardsForSubgraph.sub(subgraph.accRewardsForSubgraphSnapshot).add(
-            rewardsSinceSignalSnapshot
+        // undistributed = (accRewardsForSubgraph + rewardsSinceSignalSnapshot) - accRewardsForSubgraphSnapshot
+        // We add rewardsSinceSignalSnapshot before subtracting accRewardsForSubgraphSnapshot to avoid
+        // an intermediate underflow: pre-upgrade state can have accRewardsForSubgraph <
+        // accRewardsForSubgraphSnapshot (the old alloc hook set the snapshot from a view that included
+        // pending rewards, while the old signal hook only wrote the stored value). The full expression
+        // is always non-negative because rewardsSinceSignalSnapshot covers a superset of the gap.
+        uint256 undistributedRewards = accRewardsForSubgraph.add(rewardsSinceSignalSnapshot).sub(
+            subgraph.accRewardsForSubgraphSnapshot
         );
 
         if (condition != RewardsCondition.NONE) {
@@ -578,7 +600,7 @@ contract RewardsManager is
 
     /**
      * @inheritdoc IRewardsManager
-     * @dev Hook called from the Staking contract on allocate() and close()
+     * @dev Hook called from the IRewardsIssuer contract on allocate() and close()
      *
      * ## Claimability Behavior
      *
@@ -626,10 +648,7 @@ contract RewardsManager is
      * takeRewards().
      */
     function getRewards(address _rewardsIssuer, address _allocationID) external view override returns (uint256) {
-        require(
-            _rewardsIssuer == address(staking()) || _rewardsIssuer == address(subgraphService),
-            "Not a rewards issuer"
-        );
+        require(_rewardsIssuer == address(subgraphService), "Not a rewards issuer");
 
         (
             bool isActive,
@@ -767,6 +786,11 @@ contract RewardsManager is
         bool isDeniedSubgraph = isDenied(subgraphDeploymentID);
         bool isIneligible = address(rewardsEligibilityOracle) != address(0) &&
             !rewardsEligibilityOracle.isEligible(indexer);
+
+        // When configured to revert, block collection so rewards remain claimable if
+        // the indexer becomes eligible and collects before the allocation goes stale.
+        require(!isIneligible || !revertOnIneligible, "Indexer not eligible for rewards");
+
         if (!isDeniedSubgraph && !isIneligible) return false;
 
         if (isDeniedSubgraph) emit RewardsDenied(indexer, allocationID);
@@ -783,7 +807,7 @@ contract RewardsManager is
     /**
      * @inheritdoc IRewardsManager
      * @dev This function can only be called by an authorized rewards issuer which are
-     * the staking contract (for legacy allocations), and the subgraph service (for new allocations).
+     * - the subgraph service (for allocations).
      * Mints 0 tokens if the allocation is not active.
      * @dev First successful reclaim wins - short-circuits on reclaim:
      * - If subgraph denied with reclaim address → reclaim to SUBGRAPH_DENIED address (eligibility NOT checked)
@@ -793,10 +817,7 @@ contract RewardsManager is
      */
     function takeRewards(address _allocationID) external override returns (uint256) {
         address rewardsIssuer = msg.sender;
-        require(
-            rewardsIssuer == address(staking()) || rewardsIssuer == address(subgraphService),
-            "Caller must be a rewards issuer"
-        );
+        require(rewardsIssuer == address(subgraphService), "Caller must be a rewards issuer");
 
         (uint256 rewards, address indexer, bytes32 subgraphDeploymentID) = _calcAllocationRewards(
             rewardsIssuer,

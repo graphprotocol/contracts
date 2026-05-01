@@ -436,7 +436,7 @@ describe('Rewards - SubgraphService', () => {
         )
         const mockREO = await MockRewardsEligibilityOracleFactory.deploy(false) // Deny by default
         await mockREO.deployed()
-        await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockREO.address)
+        await rewardsManager.connect(governor).setProviderEligibilityOracle(mockREO.address)
 
         // Setup: Create signal
         const signalled1 = toGRT('1500')

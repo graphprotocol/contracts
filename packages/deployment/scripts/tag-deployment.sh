@@ -271,8 +271,7 @@ fi
 
 # --- Build annotation ---
 ANNOTATION="network: ${DISPLAY} (${CHAIN_ID})
-deployed-by: ${DEPLOYER}
-commit: ${COMMIT_SHA}"
+deployed-by: ${DEPLOYER}"
 if [[ -n "$UPGRADE_NAME" ]]; then
   ANNOTATION="upgrade: ${UPGRADE_NAME}
 ${ANNOTATION}"

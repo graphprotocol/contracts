@@ -1,5 +1,5 @@
 import type { Environment } from '@rocketh/core/types'
-import type { PublicClient } from 'viem'
+import type { Abi, PublicClient } from 'viem'
 
 import {
   ACCESS_CONTROL_ENUMERABLE_ABI,
@@ -7,6 +7,8 @@ import {
   IERC165_ABI,
   IERC165_INTERFACE_ID,
   IISSUANCE_TARGET_INTERFACE_ID,
+  ISSUANCE_TARGET_ABI,
+  PROVIDER_ELIGIBILITY_MANAGEMENT_ABI,
   REWARDS_ELIGIBILITY_ORACLE_ABI,
   REWARDS_MANAGER_ABI,
   REWARDS_MANAGER_DEPRECATED_ABI,
@@ -100,7 +102,7 @@ export async function checkIssuanceAllocatorActivation(
   // Check RM.issuanceAllocator() == IA
   const currentIA = (await client.readContract({
     address: rmAddress as `0x${string}`,
-    abi: REWARDS_MANAGER_ABI,
+    abi: ISSUANCE_TARGET_ABI,
     functionName: 'getIssuanceAllocator',
   })) as string
 
@@ -136,58 +138,6 @@ export async function isIssuanceAllocatorActivated(
   return status.iaIntegrated && status.iaMinter
 }
 
-// Well-known reclaim reasons (bytes32)
-// These correspond to the condition identifiers in RewardsCondition.sol (keccak256 of condition string)
-// Each reason maps to a contract: ReclaimedRewardsFor<ReasonName>
-export const RECLAIM_REASONS = {
-  indexerIneligible: '0xfcadc72cad493def76767524554db9da829b6aca9457c0187f63000dba3c9439',
-  subgraphDenied: '0xc0f4a5620db2f97e7c3a4ba7058497eaa0d497538b2666d66bd6932f25345c88',
-  stalePoi: '0xe677423ace949fe7684efc4b33b0b10dc0f71b38c22370d74dad5ff6bec3e311',
-  zeroPoi: '0xf067261e30ea99a11911c4e98249a1645a4870b3ef56b8aa8b8967e15a543095',
-  closeAllocation: '0x3021a5ea86e7115dadc0819121dc2b1f58b45c2372d2e93b593567f0dd797df8',
-} as const
-
-// Mapping from reclaim reason keys to deployed contract names
-export const RECLAIM_CONTRACT_NAMES = {
-  indexerIneligible: 'ReclaimedRewardsForIndexerIneligible',
-  subgraphDenied: 'ReclaimedRewardsForSubgraphDenied',
-  stalePoi: 'ReclaimedRewardsForStalePoi',
-  zeroPoi: 'ReclaimedRewardsForZeroPoi',
-  closeAllocation: 'ReclaimedRewardsForCloseAllocation',
-} as const
-
-export type ReclaimReasonKey = keyof typeof RECLAIM_REASONS
-
-/**
- * Get the reclaim address for a given reason from RewardsManager
- *
- * @param client - Viem public client
- * @param rmAddress - RewardsManager address
- * @param reason - The reason identifier (bytes32)
- * @returns The reclaim address for that reason, or null if not set or function doesn't exist
- */
-export async function getReclaimAddress(
-  client: PublicClient,
-  rmAddress: string,
-  reason: string,
-): Promise<string | null> {
-  try {
-    const reclaimAddress = (await client.readContract({
-      address: rmAddress as `0x${string}`,
-      abi: REWARDS_MANAGER_ABI,
-      functionName: 'getReclaimAddress',
-      args: [reason as `0x${string}`],
-    })) as string
-    // Zero address means not set
-    if (reclaimAddress === '0x0000000000000000000000000000000000000000') {
-      return null
-    }
-    return reclaimAddress
-  } catch {
-    return null
-  }
-}
-
 /**
  * Get issuancePerBlock from RewardsManager
  */
@@ -201,11 +151,11 @@ export async function getRewardsManagerRawIssuanceRate(client: PublicClient, rmA
 }
 
 // ============================================================================
-// RewardsEligibilityOracle Role Checks
+// REO Role Checks
 // ============================================================================
 
 /**
- * Result of checking OPERATOR_ROLE assignment on RewardsEligibilityOracle
+ * Result of checking OPERATOR_ROLE assignment on an REO instance
  */
 export interface OperatorRoleCheckResult {
   /** Whether the check passed (correct assignment state) */
@@ -221,7 +171,7 @@ export interface OperatorRoleCheckResult {
 }
 
 /**
- * Check OPERATOR_ROLE assignment on RewardsEligibilityOracle
+ * Check OPERATOR_ROLE assignment on an REO instance
  *
  * This is the SINGLE authoritative check for OPERATOR_ROLE correctness.
  * Used by both deployment scripts and status checks.
@@ -231,7 +181,7 @@ export interface OperatorRoleCheckResult {
  * - If expectedOperator is null: exactly 0 holders
  *
  * @param client - Viem public client
- * @param reoAddress - RewardsEligibilityOracle address
+ * @param reoAddress - REO instance address
  * @param expectedOperator - Expected operator address (from address book), or null if not configured
  * @returns Check result with pass/fail status and details
  */
@@ -359,7 +309,7 @@ export interface ParamCondition<T = bigint> {
   description: string
 
   /** ABI for contract reads/writes */
-  abi: readonly unknown[]
+  abi: Abi
 
   /** Function name to read current value */
   getter: string
@@ -391,7 +341,7 @@ export interface RoleCondition {
   description: string
 
   /** ABI for contract reads/writes */
-  abi: readonly unknown[]
+  abi: Abi
 
   /** Function name to get role bytes32 (e.g., 'PAUSE_ROLE') */
   roleGetter: string
@@ -519,7 +469,7 @@ export async function checkConditions<T>(
 }
 
 // ============================================================================
-// RewardsEligibilityOracle Conditions
+// REO Conditions
 // ============================================================================
 
 /** Default REO configuration values */
@@ -557,11 +507,6 @@ export function createREOParamConditions(
     },
   ]
 }
-
-/**
- * @deprecated Use createREOParamConditions for param-only or createREOConditions for all
- */
-export const createREOConditions = createREOParamConditions
 
 /**
  * REO role condition targets
@@ -620,7 +565,10 @@ export function createREORoleConditions(targets: REORoleTargets): RoleCondition[
 export function createAllREOConditions(
   paramTargets: { eligibilityPeriod?: bigint; oracleUpdateTimeout?: bigint } = {},
   roleTargets: REORoleTargets,
-): ConfigCondition<bigint>[] {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): ConfigCondition<any>[] {
+  // Note: setEligibilityValidation requires OPERATOR_ROLE, not GOVERNOR_ROLE.
+  // It is enabled by the network operator after deployment, not in the configure step.
   return [...createREOParamConditions(paramTargets), ...createREORoleConditions(roleTargets)]
 }
 
@@ -653,7 +601,8 @@ export function createREODeployerRevokeCondition(deployer: string): RoleConditio
  *
  * Requires NetworkOperator to be configured in the issuance address book.
  */
-export async function getREOConditions(env: Environment): Promise<ConfigCondition<bigint>[]> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function getREOConditions(env: Environment): Promise<ConfigCondition<any>[]> {
   const governor = await getGovernor(env)
   const pauseGuardian = await getPauseGuardian(env)
   const ab = graph.getIssuanceAddressBook(await getTargetChainIdFromEnv(env))
@@ -678,7 +627,7 @@ export function getREOTransferGovernanceConditions(deployer: string): ConfigCond
 }
 
 // ============================================================================
-// RewardsEligibilityOracle Role Checks
+// REO Role Checks
 // ============================================================================
 
 /**
@@ -696,7 +645,7 @@ export interface RoleCheckResult {
 }
 
 /**
- * Check if an account has a specific role on RewardsEligibilityOracle
+ * Check if an account has a specific role on an REO instance
  */
 export async function checkREORole(
   client: PublicClient,
@@ -746,15 +695,15 @@ export function formatAddress(address: string): string {
 /**
  * Create RewardsManager integration condition for REO
  *
- * Checks that RewardsManager.getRewardsEligibilityOracle() == reoAddress
+ * Checks that RewardsManager.getProviderEligibilityOracle() == reoAddress
  */
 export function createRMIntegrationCondition(reoAddress: string): ParamCondition<string> {
   return {
-    name: 'rewardsEligibilityOracle',
-    description: 'RewardsEligibilityOracle',
-    abi: REWARDS_MANAGER_ABI,
-    getter: 'getRewardsEligibilityOracle',
-    setter: 'setRewardsEligibilityOracle',
+    name: 'providerEligibilityOracle',
+    description: 'REO instance',
+    abi: PROVIDER_ELIGIBILITY_MANAGEMENT_ABI,
+    getter: 'getProviderEligibilityOracle',
+    setter: 'setProviderEligibilityOracle',
     target: reoAddress,
     compare: addressEquals,
     format: formatAddress,

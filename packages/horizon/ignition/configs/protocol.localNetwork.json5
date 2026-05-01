@@ -1,8 +1,8 @@
 {
   "$global": {
     // Accounts for new deployment - derived from hardhat default mnemonic
-    "pauseGuardian": "0xE11BA2b4D45Eaed5996Cd0823791E0C93114882d", // index 3
-    "subgraphAvailabilityOracle": "0xd03ea8624C8C5987235048901fB614fDcA89b117", // index 4
+    "pauseGuardian": "0x90F79bf6EB2c4f870365E785982E1f101E93b906", // index 3
+    "subgraphAvailabilityOracle": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65", // index 4
 
     // Placeholder address for a standalone Horizon deployment, see README.md for more details
     "subgraphServiceAddress": "0x0000000000000000000000000000000000000000",
@@ -19,6 +19,11 @@
   },
   "GraphTallyCollector": {
     "eip712Name": "GraphTallyCollector",
+    "eip712Version": "1",
+    "revokeSignerThawingPeriod": 10000
+  },
+  "RecurringCollector": {
+    "eip712Name": "RecurringCollector",
     "eip712Version": "1",
     "revokeSignerThawingPeriod": 10000
   },

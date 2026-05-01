@@ -5,7 +5,7 @@ High-level architecture for the unified deployment system.
 **See also:**
 
 - [Architecture.md](./Architecture.md) - Package structure and organization
-- [../deploy/ImplementationPrinciples.md](../deploy/ImplementationPrinciples.md) - Deploy script patterns and conventions
+- [deploy/ImplementationPrinciples.md](./deploy/ImplementationPrinciples.md) - Deploy script patterns and conventions
 
 ## Components
 
@@ -13,8 +13,8 @@ High-level architecture for the unified deployment system.
 
 - IssuanceAllocator - Upgradeable proxy managing issuance distribution
 - RewardsEligibilityOracle - Upgradeable proxy for eligibility verification
-- PilotAllocation - Upgradeable proxy for allocation testing
-- GraphIssuanceProxyAdmin - Shared proxy admin for issuance contracts
+- ReclaimedRewards (DirectAllocation) - Upgradeable proxy for default reclaim address
+- RecurringAgreementManager - Upgradeable proxy for agreement-based payments
 
 **Referenced contracts** (already deployed):
 
@@ -26,16 +26,19 @@ High-level architecture for the unified deployment system.
 
 ```
 packages/deployment/
-├── deploy/               # Numbered deployment scripts
-│   ├── admin/           # GraphIssuanceProxyAdmin
-│   ├── allocate/        # IssuanceAllocator, PilotAllocation
-│   ├── common/          # Validation, external imports
-│   ├── rewards/         # RewardsManager, RewardsEligibilityOracle
-│   ├── service/         # SubgraphService
-│   └── ImplementationPrinciples.md  # Script patterns
-├── lib/                 # Shared utilities, Safe TX builder
-├── tasks/               # Hardhat tasks
-└── docs/                # Architecture documentation
+├── deploy/               # Numbered deployment scripts (rocketh + hardhat-deploy)
+│   ├── common/          # 00_sync.ts
+│   ├── horizon/         # RewardsManager, HorizonStaking, PaymentsEscrow, L2Curation, RecurringCollector
+│   ├── service/         # SubgraphService, DisputeManager
+│   ├── allocate/        # IssuanceAllocator, DefaultAllocation, DirectAllocation impl
+│   ├── agreement/       # RecurringAgreementManager
+│   ├── rewards/         # RewardsEligibilityOracle (A/B/mock), Reclaim
+│   └── gip/0088/        # GIP-0088 goal orchestration
+├── lib/                 # Shared utilities (preconditions, registry, tags, ABIs, governance)
+├── tasks/               # Hardhat tasks (deploy:*)
+├── docs/                # Architecture and operational documentation
+│   └── deploy/          # Deploy-script principles and per-component design notes
+└── test/                # Unit tests
 ```
 
 ## Governance Model
@@ -48,53 +51,45 @@ packages/deployment/
 
 ### Proxy Administration
 
+Two distinct proxy patterns coexist:
+
+- **Legacy `GraphProxy`** (custom Graph Protocol pattern) — used by RewardsManager, HorizonStaking, L2Curation, EpochManager. A single shared `GraphProxyAdmin` (owned by governance) controls upgrades for all of them.
+- **OZ v5 `TransparentUpgradeableProxy`** — used by every new contract this package deploys (IssuanceAllocator, DefaultAllocation, ReclaimedRewards, RecurringAgreementManager, RewardsEligibilityOracle A/B, RecurringCollector, SubgraphService, DisputeManager, PaymentsEscrow). Each proxy gets its own per-proxy `ProxyAdmin` created by the proxy constructor; ownership is transferred to governance in the transfer step.
+
 ```mermaid
 graph TB
     Gov[Governance Multi-sig]
-    ExistingAdmin[GraphProxyAdmin]
-    NewAdmin[GraphIssuanceProxyAdmin]
+    GraphAdmin[GraphProxyAdmin]
 
-    Gov -->|owns| ExistingAdmin
-    Gov -->|owns| NewAdmin
+    subgraph "Legacy GraphProxy"
+        RM[RewardsManager]
+        HS[HorizonStaking]
+        L2C[L2Curation]
+    end
 
-    LegacyContracts[Staking, Curation, EpochManager, RewardsManager]
-    IssuanceContracts[IssuanceAllocator, RewardsEligibilityOracle, PilotAllocation]
-
-    ExistingAdmin -->|manages| LegacyContracts
-    NewAdmin -->|manages| IssuanceContracts
-```
-
-**Key principle:** Separate proxy admins for legacy vs new issuance contracts, both governance-owned.
-
-### Component Administration
-
-```mermaid
-graph TB
-    ProxyAdmin[GraphIssuanceProxyAdmin]
-
-    subgraph "Issuance Allocation"
+    subgraph "OZ v5 TransparentUpgradeableProxy<br/>(per-proxy admin)"
         IA[IssuanceAllocator]
-        IA_Impl[IssuanceAllocatorImplementation]
+        DA[DefaultAllocation]
+        Reclaim[ReclaimedRewards]
+        RAM[RecurringAgreementManager]
+        REO[RewardsEligibilityOracle A/B]
+        RC[RecurringCollector]
     end
 
-    subgraph "Allocation Instances"
-        PA[PilotAllocation]
-        PA_Impl[DirectAllocation shared impl]
-    end
+    Gov -->|owns| GraphAdmin
+    GraphAdmin -->|upgrades| RM
+    GraphAdmin -->|upgrades| HS
+    GraphAdmin -->|upgrades| L2C
 
-    subgraph "Rewards Eligibility"
-        REO[RewardsEligibilityOracle]
-        REO_Impl[RewardsEligibilityOracleImplementation]
-    end
-
-    ProxyAdmin -->|upgrades| IA
-    ProxyAdmin -->|upgrades| PA
-    ProxyAdmin -->|upgrades| REO
-
-    IA -.->|delegates to| IA_Impl
-    PA -.->|delegates to| PA_Impl
-    REO -.->|delegates to| REO_Impl
+    Gov -.->|owns each per-proxy admin| IA
+    Gov -.->|owns each per-proxy admin| DA
+    Gov -.->|owns each per-proxy admin| Reclaim
+    Gov -.->|owns each per-proxy admin| RAM
+    Gov -.->|owns each per-proxy admin| REO
+    Gov -.->|owns each per-proxy admin| RC
 ```
+
+**Key principle:** Every proxy admin is governance-owned. Legacy contracts share a single `GraphProxyAdmin`; new contracts each have their own per-proxy admin created at construction.
 
 ## Contract Integration
 
@@ -110,7 +105,7 @@ graph LR
     RM -->|check eligibility| REO
 ```
 
-**Integration:** `RewardsManager.setRewardsEligibilityOracle(REO)` via governance
+**Integration:** `RewardsManager.setProviderEligibilityOracle(REO)` via governance
 
 ### IssuanceAllocator Integration
 
@@ -120,7 +115,7 @@ graph TB
     IA[IssuanceAllocator]
 
     subgraph "Allocator Minting"
-        PA[PilotAllocation]
+        RAM[RecurringAgreementManager]
     end
 
     subgraph "Self Minting"
@@ -128,7 +123,7 @@ graph TB
     end
 
     GT -->|minting authority| IA
-    IA -->|distributes to| PA
+    IA -->|distributes to| RAM
     IA -->|allocates to| RM
 ```
 
@@ -146,13 +141,13 @@ graph TD
 
     RewardsEligibilityOracle[RewardsEligibilityOracle]
     IssuanceAllocator[IssuanceAllocator]
-    PilotAllocation[PilotAllocation]
+    RecurringAgreementManager[RecurringAgreementManager]
 
     RewardsManager -.->|queries| RewardsEligibilityOracle
     IssuanceAllocator -.->|integrates with| RewardsManager
     IssuanceAllocator -.->|mints from| GraphToken
-    IssuanceAllocator -.->|distributes to| PilotAllocation
-    PilotAllocation -.->|holds| GraphToken
+    IssuanceAllocator -.->|distributes to| RecurringAgreementManager
+    RecurringAgreementManager -.->|funds| PaymentsEscrow
 ```
 
 ## Address Book Management
@@ -206,41 +201,44 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant Deployer
-    participant Deploy as hardhat-deploy
-    participant Admin as GraphIssuanceProxyAdmin
+    participant Deploy as rocketh
+    participant Admin as ProxyAdmin (per-proxy)
     participant Impl as Implementation
     participant Proxy as TransparentUpgradeableProxy
     participant Gov as Governance
 
     Note over Deployer,Gov: Initial Deployment
-    Deployer->>Deploy: Run deployment scripts
-    Deploy->>Impl: Deploy contract bytecode
-    Deploy->>Proxy: Deploy proxy with init
-    Proxy->>Impl: Initialize
+    Deployer->>Deploy: --tags Component,deploy
+    Deploy->>Impl: Deploy implementation
+    Deploy->>Proxy: Deploy proxy (constructor creates per-proxy Admin)
+    Proxy->>Impl: Initialize with deployer as governor
 
-    Note over Deployer,Gov: Configuration
-    Deploy->>Proxy: Perform initial configuration
-    Deploy->>Proxy: Grant GOVERNOR_ROLE to governance
+    Note over Deployer,Gov: Configure
+    Deployer->>Deploy: --tags Component,configure
+    Deploy->>Proxy: Set params, grant roles to gov + pause guardian
 
-    Note over Deployer,Gov: Governance Update
-    Deployer->>Deploy: Generate update proposal
-    Gov->>Proxy: Execute configuration update
+    Note over Deployer,Gov: Transfer
+    Deployer->>Deploy: --tags Component,transfer
+    Deploy->>Proxy: Revoke deployer GOVERNOR_ROLE
+    Deploy->>Admin: Transfer ProxyAdmin ownership to Gov
 
     Note over Deployer,Gov: Implementation Upgrade
-    Deployer->>Deploy: Deploy new implementation
-    Deploy->>Deploy: Generate upgrade proposal
-    Gov->>Admin: Execute upgrade
-    Admin->>Proxy: Upgrade to new implementation
+    Deployer->>Deploy: --tags Component,upgrade
+    Deploy->>Impl: Deploy new implementation
+    Deploy->>Deploy: Save governance TX batch
+    Gov->>Admin: Execute upgrade TX
+    Admin->>Proxy: upgradeAndCall(newImpl)
 
-    Note over Deployer,Gov: Verification
-    Deployer->>Deploy: Run sync (--tags sync)
-    Deploy->>Proxy: Check current implementation
-    Deploy->>Deploy: Update address book
+    Note over Deployer,Gov: Sync
+    Deployer->>Deploy: --tags sync
+    Deploy->>Proxy: Read current implementation
+    Deploy->>Deploy: Update address book (pending → active)
 ```
 
 ## Conventions
 
 - TypeScript throughout (.ts)
 - TitleCase for documentation
-- Deploy script patterns: [ImplementationPrinciples.md](../deploy/ImplementationPrinciples.md)
-- All 01_deploy.ts scripts MUST depend on SpecialTags.SYNC
+- Deploy script patterns: [ImplementationPrinciples.md](./deploy/ImplementationPrinciples.md)
+- Deploy scripts sync the contracts they touch immediately before/after their action via `syncComponentFromRegistry`/`syncComponentsFromRegistry`. The full
+  global sync is opt-in via `npx hardhat deploy:sync` and is no longer an automatic dependency of every component script.

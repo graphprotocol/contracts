@@ -1,0 +1,27 @@
+[profile.default]
+src = 'test'
+out = 'forge-artifacts'
+test = 'test'
+libs = ["node_modules"]
+cache_path = 'cache_forge'
+remappings = [
+    "@openzeppelin/=node_modules/@openzeppelin/",
+    "@graphprotocol/=node_modules/@graphprotocol/",
+    "forge-std/=node_modules/forge-std/src/",
+    # Real contract sources via workspace symlinks
+    "horizon/=node_modules/@graphprotocol/horizon/contracts/",
+    "horizon-mocks/=node_modules/@graphprotocol/horizon/contracts/mocks/",
+    "horizon-test/=node_modules/@graphprotocol/horizon/test/",
+    "issuance/=node_modules/@graphprotocol/issuance/contracts/",
+    "subgraph-service/=node_modules/@graphprotocol/subgraph-service/contracts/",
+    "subgraph-service-test/=node_modules/@graphprotocol/subgraph-service/test/",
+]
+optimizer = true
+optimizer_runs = 100
+via_ir = true
+solc_version = '0.8.34'
+evm_version = 'cancun'
+
+[lint]
+exclude_lints = ["mixed-case-function", "mixed-case-variable"]
+ignore = ["node_modules/**", "**/node_modules/**"]

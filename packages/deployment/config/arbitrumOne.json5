@@ -1,0 +1,12 @@
+{
+  // Deployment configuration for Arbitrum One (mainnet)
+  // Values here are committed for reference and reproducibility.
+
+  "IssuanceAllocator": {
+    // RAM allocation: how much issuance flows to RecurringAgreementManager
+    // ramAllocatorMintingGrtPerBlock: GRT per block minted by IA and sent to RAM
+    // ramSelfMintingGrtPerBlock: 0 (RAM does not self-mint)
+    "ramAllocatorMintingGrtPerBlock": "6",
+    "ramSelfMintingGrtPerBlock": "0"
+  }
+}
