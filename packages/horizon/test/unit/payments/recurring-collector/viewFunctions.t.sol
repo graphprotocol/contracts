@@ -15,10 +15,8 @@ contract RecurringCollectorViewFunctionsTest is RecurringCollectorSharedTest {
     function test_GetCollectionInfo_Accepted_AfterTime(FuzzyTestAccept calldata fuzzy) public {
         (, , , bytes16 agreementId) = _sensibleAuthorizeAndAccept(fuzzy);
 
-        IRecurringCollector.AgreementData memory agreement = _recurringCollector.getAgreement(agreementId);
-
-        // Skip some time
-        skip(agreement.minSecondsPerCollection);
+        // Skip past the minimum collection window so collection is possible
+        skip(600); // MIN_SECONDS_COLLECTION_WINDOW
 
         // Re-read agreement (timestamps don't change but view computes based on block.timestamp)
         (bool isCollectable, uint256 collectionSeconds, ) = _recurringCollector.getCollectionInfo(agreementId);
@@ -129,22 +127,13 @@ contract RecurringCollectorViewFunctionsTest is RecurringCollectorSharedTest {
         assertEq(agreement.payer, rca.payer, "payer should match");
         assertEq(agreement.dataService, rca.dataService, "dataService should match");
         assertEq(agreement.serviceProvider, rca.serviceProvider, "serviceProvider should match");
-        assertEq(agreement.endsAt, rca.endsAt, "endsAt should match");
-        assertEq(agreement.minSecondsPerCollection, rca.minSecondsPerCollection, "minSeconds should match");
-        assertEq(agreement.maxSecondsPerCollection, rca.maxSecondsPerCollection, "maxSeconds should match");
-        assertEq(agreement.maxInitialTokens, rca.maxInitialTokens, "maxInitialTokens should match");
-        assertEq(
-            agreement.maxOngoingTokensPerSecond,
-            rca.maxOngoingTokensPerSecond,
-            "maxOngoingTokensPerSecond should match"
-        );
         assertEq(
             uint8(agreement.state),
             uint8(IRecurringCollector.AgreementState.Accepted),
             "state should be Accepted"
         );
         assertTrue(agreement.acceptedAt > 0, "acceptedAt should be set");
-        assertTrue(agreement.activeTermsHash != bytes32(0), "activeTermsHash should be set");
+        assertEq(agreement.activeTermsHash, _recurringCollector.hashRCA(rca), "activeTermsHash should match RCA hash");
     }
 
     /* solhint-enable graph/func-name-mixedcase */

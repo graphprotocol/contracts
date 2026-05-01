@@ -4,6 +4,7 @@ pragma solidity ^0.8.27;
 import { Vm } from "forge-std/Vm.sol";
 
 import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceTarget.sol";
+import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationDistribution.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { RecurringAgreementManager } from "contracts/agreement/RecurringAgreementManager.sol";
 
@@ -23,7 +24,7 @@ contract RecurringAgreementManagerEnsureDistributedTest is RecurringAgreementMan
         vm.label(address(mockAllocator), "MockIssuanceAllocator");
 
         vm.prank(governor);
-        agreementManager.setIssuanceAllocator(address(mockAllocator));
+        agreementManager.setIssuanceAllocator(IIssuanceAllocationDistribution(address(mockAllocator)));
     }
 
     // ==================== setIssuanceAllocator ====================
@@ -33,26 +34,29 @@ contract RecurringAgreementManagerEnsureDistributedTest is RecurringAgreementMan
 
         vm.prank(governor);
         vm.expectEmit(address(agreementManager));
-        emit IIssuanceTarget.IssuanceAllocatorSet(address(mockAllocator), address(newAllocator));
-        agreementManager.setIssuanceAllocator(address(newAllocator));
+        emit IIssuanceTarget.IssuanceAllocatorSet(
+            IIssuanceAllocationDistribution(address(mockAllocator)),
+            IIssuanceAllocationDistribution(address(newAllocator))
+        );
+        agreementManager.setIssuanceAllocator(IIssuanceAllocationDistribution(address(newAllocator)));
     }
 
     function test_SetIssuanceAllocator_Revert_WhenNotGovernor() public {
         vm.prank(operator);
         vm.expectRevert();
-        agreementManager.setIssuanceAllocator(address(mockAllocator));
+        agreementManager.setIssuanceAllocator(IIssuanceAllocationDistribution(address(mockAllocator)));
     }
 
     function test_SetIssuanceAllocator_CanSetToZero() public {
         vm.prank(governor);
-        agreementManager.setIssuanceAllocator(address(0));
+        agreementManager.setIssuanceAllocator(IIssuanceAllocationDistribution(address(0)));
         // Should not revert — _ensureIncomingDistributionToCurrentBlock is a no-op with zero address
     }
 
     function test_SetIssuanceAllocator_NoopWhenUnchanged() public {
         vm.prank(governor);
         vm.recordLogs();
-        agreementManager.setIssuanceAllocator(address(mockAllocator));
+        agreementManager.setIssuanceAllocator(IIssuanceAllocationDistribution(address(mockAllocator)));
         Vm.Log[] memory logs = vm.getRecordedLogs();
         assertEq(logs.length, 0, "should not emit when address unchanged");
     }
@@ -201,7 +205,7 @@ contract RecurringAgreementManagerEnsureDistributedTest is RecurringAgreementMan
     function test_EnsureDistributed_NoopWhenAllocatorNotSet() public {
         // Clear allocator
         vm.prank(governor);
-        agreementManager.setIssuanceAllocator(address(0));
+        agreementManager.setIssuanceAllocator(IIssuanceAllocationDistribution(address(0)));
 
         (IRecurringCollector.RecurringCollectionAgreement memory rca, ) = _makeRCAWithId(
             100 ether,
@@ -309,14 +313,14 @@ contract RecurringAgreementManagerEnsureDistributedTest is RecurringAgreementMan
         vm.expectRevert(
             abi.encodeWithSelector(RecurringAgreementManager.InvalidIssuanceAllocator.selector, notAllocator)
         );
-        agreementManager.setIssuanceAllocator(notAllocator);
+        agreementManager.setIssuanceAllocator(IIssuanceAllocationDistribution(notAllocator));
     }
 
     function test_SetIssuanceAllocator_Revert_WhenEOA() public {
         address eoa = makeAddr("eoa");
         vm.prank(governor);
         vm.expectRevert(abi.encodeWithSelector(RecurringAgreementManager.InvalidIssuanceAllocator.selector, eoa));
-        agreementManager.setIssuanceAllocator(eoa);
+        agreementManager.setIssuanceAllocator(IIssuanceAllocationDistribution(eoa));
     }
 
     // ==================== setIssuanceAllocator switches allocator ====================
@@ -334,7 +338,7 @@ contract RecurringAgreementManagerEnsureDistributedTest is RecurringAgreementMan
         // Switch allocator
         MockIssuanceAllocator newAllocator = new MockIssuanceAllocator(token, address(agreementManager));
         vm.prank(governor);
-        agreementManager.setIssuanceAllocator(address(newAllocator));
+        agreementManager.setIssuanceAllocator(IIssuanceAllocationDistribution(address(newAllocator)));
 
         // Next block: new allocator should be called via _updateEscrow
         vm.roll(block.number + 1);

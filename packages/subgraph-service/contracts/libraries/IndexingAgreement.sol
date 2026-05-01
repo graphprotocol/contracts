@@ -219,12 +219,6 @@ library IndexingAgreement {
     );
 
     /**
-     * @notice Thrown when the agreement is already accepted
-     * @param agreementId The agreement ID
-     */
-    error IndexingAgreementAlreadyAccepted(bytes16 agreementId);
-
-    /**
      * @notice Thrown when an allocation already has an active agreement
      * @param allocationId The allocation ID
      */
@@ -310,42 +304,48 @@ library IndexingAgreement {
 
         IIndexingAgreement.State storage agreement = self.agreements[agreementId];
 
-        require(agreement.allocationId == address(0), IndexingAgreementAlreadyAccepted(agreementId));
+        // Accept is idempotent for the same allocation, and supports moving
+        // the agreement to a different allocation. The collector's accept handles state
+        // validity (reverts if the agreement is cancelled, no-ops if already accepted).
+        if (agreement.allocationId != allocationId) {
+            require(
+                allocation.subgraphDeploymentId == metadata.subgraphDeploymentId,
+                IndexingAgreementDeploymentIdMismatch(
+                    metadata.subgraphDeploymentId,
+                    allocationId,
+                    allocation.subgraphDeploymentId
+                )
+            );
 
-        require(
-            allocation.subgraphDeploymentId == metadata.subgraphDeploymentId,
-            IndexingAgreementDeploymentIdMismatch(
-                metadata.subgraphDeploymentId,
+            // Ensure that an allocation can only have one active indexing agreement
+            require(
+                self.allocationToActiveAgreementId[allocationId] == bytes16(0),
+                AllocationAlreadyHasIndexingAgreement(allocationId)
+            );
+
+            if (agreement.allocationId != address(0)) delete self.allocationToActiveAgreementId[agreement.allocationId];
+            agreement.allocationId = allocationId;
+
+            self.allocationToActiveAgreementId[allocationId] = agreementId;
+
+            agreement.version = metadata.version;
+
+            require(
+                metadata.version == IIndexingAgreement.IndexingAgreementVersion.V1,
+                IndexingAgreementInvalidVersion(metadata.version)
+            );
+            _setTermsV1(self, agreementId, metadata.terms, rca.maxOngoingTokensPerSecond);
+
+            emit IndexingAgreementAccepted(
+                rca.serviceProvider,
+                rca.payer,
+                agreementId,
                 allocationId,
-                allocation.subgraphDeploymentId
-            )
-        );
-
-        // Ensure that an allocation can only have one active indexing agreement
-        require(
-            self.allocationToActiveAgreementId[allocationId] == bytes16(0),
-            AllocationAlreadyHasIndexingAgreement(allocationId)
-        );
-        self.allocationToActiveAgreementId[allocationId] = agreementId;
-
-        agreement.version = metadata.version;
-        agreement.allocationId = allocationId;
-
-        require(
-            metadata.version == IIndexingAgreement.IndexingAgreementVersion.V1,
-            IndexingAgreementInvalidVersion(metadata.version)
-        );
-        _setTermsV1(self, agreementId, metadata.terms, rca.maxOngoingTokensPerSecond);
-
-        emit IndexingAgreementAccepted(
-            rca.serviceProvider,
-            rca.payer,
-            agreementId,
-            allocationId,
-            metadata.subgraphDeploymentId,
-            metadata.version,
-            metadata.terms
-        );
+                metadata.subgraphDeploymentId,
+                metadata.version,
+                metadata.terms
+            );
+        }
 
         require(
             _directory().recurringCollector().accept(rca, authData) == agreementId,
@@ -380,11 +380,17 @@ library IndexingAgreement {
         bytes calldata authData
     ) external {
         IIndexingAgreement.AgreementWrapper memory wrapper = _get(self, rcau.agreementId);
-        require(_isActive(wrapper), IndexingAgreementNotActive(rcau.agreementId));
+        // SS gate: only checks that this is an SS-managed, tracked agreement. Collector is the
+        // state authority — it reverts if the agreement cannot actually accept an update.
+        require(_isValid(wrapper), IndexingAgreementNotActive(rcau.agreementId));
         require(
             wrapper.collectorAgreement.serviceProvider == indexer,
             IndexingAgreementNotAuthorized(rcau.agreementId, indexer)
         );
+
+        // Idempotent: this RCAU is already the active version — both SS terms and collector state
+        // are in sync because both are written together on the original update.
+        if (wrapper.collectorAgreement.activeTermsHash == _directory().recurringCollector().hashRCAU(rcau)) return;
 
         UpdateIndexingAgreementMetadata memory metadata = IndexingAgreementDecoder.decodeRCAUMetadata(rcau.metadata);
 
@@ -396,7 +402,7 @@ library IndexingAgreement {
             metadata.version == IIndexingAgreement.IndexingAgreementVersion.V1,
             IndexingAgreementInvalidVersion(metadata.version)
         );
-        _setTermsV1(self, rcau.agreementId, metadata.terms, wrapper.collectorAgreement.maxOngoingTokensPerSecond);
+        _setTermsV1(self, rcau.agreementId, metadata.terms, rcau.maxOngoingTokensPerSecond);
 
         emit IndexingAgreementUpdated({
             indexer: wrapper.collectorAgreement.serviceProvider,

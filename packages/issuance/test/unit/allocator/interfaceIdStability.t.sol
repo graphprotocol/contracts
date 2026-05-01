@@ -40,7 +40,7 @@ contract AllocateInterfaceIdStabilityTest is Test {
     // -- DirectAllocation / shared interfaces --
 
     function test_InterfaceId_IIssuanceTarget() public pure {
-        assertEq(type(IIssuanceTarget).interfaceId, bytes4(0xaee4dc43));
+        assertEq(type(IIssuanceTarget).interfaceId, bytes4(0x19f6601a));
     }
 
     function test_InterfaceId_ISendTokens() public pure {

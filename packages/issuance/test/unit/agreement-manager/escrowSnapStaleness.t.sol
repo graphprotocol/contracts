@@ -9,9 +9,9 @@ import { IRecurringEscrowManagement } from "@graphprotocol/interfaces/contracts/
 import { RecurringAgreementManagerSharedTest } from "./shared.t.sol";
 
 /// @notice Tests for escrow snapshot staleness correction and threshold boundary behavior.
-/// Covers gaps:
-///   - Stale escrow snap self-correction via _setEscrowSnap (TRST-H-3)
-///   - Threshold-based basis degradation boundary conditions (TRST-M-2, M-3)
+/// Covers:
+///   - Stale escrow snap self-correction via _setEscrowSnap
+///   - Threshold-based basis degradation boundary conditions
 ///   - Deficit tracking accuracy after external escrow mutations
 contract RecurringAgreementManagerEscrowSnapStalenessTest is RecurringAgreementManagerSharedTest {
     /* solhint-disable graph/func-name-mixedcase */

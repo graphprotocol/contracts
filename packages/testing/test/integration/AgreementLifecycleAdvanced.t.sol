@@ -406,7 +406,7 @@ contract AgreementLifecycleAdvancedTest is FullStackHarness {
             tokensPerEntityPerSecond: 0
         });
 
-        uint16 eligibilityCondition = recurringCollector.CONDITION_ELIGIBILITY_CHECK();
+        uint16 eligibilityCondition = 1; // CONDITION_ELIGIBILITY_CHECK
         IRecurringCollector.RecurringCollectionAgreement memory rca = _buildRCAEx(
             indexer,
             0,
@@ -442,7 +442,7 @@ contract AgreementLifecycleAdvancedTest is FullStackHarness {
             tokensPerEntityPerSecond: 0
         });
 
-        uint16 eligibilityCondition = recurringCollector.CONDITION_ELIGIBILITY_CHECK();
+        uint16 eligibilityCondition = 1; // CONDITION_ELIGIBILITY_CHECK
         IRecurringCollector.RecurringCollectionAgreement memory rca = _buildRCAEx(
             indexer,
             0,
@@ -600,10 +600,92 @@ contract AgreementLifecycleAdvancedTest is FullStackHarness {
         );
     }
 
+    // ═══════════════════════════════════════════════════════════════════
+    // Scenario 15: Rebind after cancellation — collector state authority
+    // ═══════════════════════════════════════════════════════════════════
+
+    /// @notice Cancellation is terminal at the collector. The SubgraphService rebind path must
+    /// defer to that authority: an attempt to rebind a cancelled agreement onto a fresh allocation
+    /// must revert, leaving both the collector state and SS state untouched. Exercises the full
+    /// offer → accept → cancel → open-second-allocation → rebind-attempt flow end-to-end with the
+    /// real contract stack.
+    function test_Scenario15_RebindAfterCancellation_Reverts() public {
+        IndexingAgreement.IndexingAgreementTermsV1 memory terms = IndexingAgreement.IndexingAgreementTermsV1({
+            tokensPerSecond: 0.5 ether,
+            tokensPerEntityPerSecond: 0
+        });
+        IRecurringCollector.RecurringCollectionAgreement memory rca = _buildRCA(indexer, 0, 1 ether, 3600, terms);
+        bytes16 agreementId = _offerAndAccept(indexer, rca);
+
+        // Cancel via the indexer path — CanceledByServiceProvider.
+        vm.prank(indexer.addr);
+        subgraphService.cancelIndexingAgreement(indexer.addr, agreementId);
+        assertEq(
+            uint8(recurringCollector.getAgreement(agreementId).state),
+            uint8(IRecurringCollector.AgreementState.CanceledByServiceProvider),
+            "precondition: cancelled at collector"
+        );
+
+        // Open a second allocation on the same subgraph deployment.
+        (address secondAllocationId, address cancelRebindTarget) = _openSecondAllocationForIndexer(
+            indexer,
+            "cancel-rebind-alloc"
+        );
+        assertEq(cancelRebindTarget, indexer.addr, "indexer owns the new allocation");
+
+        // Attempt rebind to the new allocation. SS would stage the bookkeeping, but collector
+        // rejects (state != NotAccepted), reverting the whole tx. Both layers stay clean.
+        vm.prank(indexer.addr);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IRecurringCollector.RecurringCollectorAgreementIncorrectState.selector,
+                agreementId,
+                IRecurringCollector.AgreementState.CanceledByServiceProvider
+            )
+        );
+        subgraphService.acceptIndexingAgreement(secondAllocationId, rca, "");
+
+        // Post-revert: agreement still cancelled at collector, still bound to old allocation in SS.
+        assertEq(
+            uint8(recurringCollector.getAgreement(agreementId).state),
+            uint8(IRecurringCollector.AgreementState.CanceledByServiceProvider),
+            "collector state unchanged"
+        );
+        IIndexingAgreement.AgreementWrapper memory wrapper = subgraphService.getIndexingAgreement(agreementId);
+        assertEq(wrapper.agreement.allocationId, indexer.allocationId, "SS still bound to original allocation");
+    }
+
     // ── Helpers ──
 
     function _getHardcodedPoiMetadata() internal view returns (bytes memory) {
         return abi.encode(block.number, bytes32("PUBLIC_POI1"), uint8(0), uint8(0), uint256(0));
+    }
+
+    /// @notice Top up the indexer's provision and open a second allocation on the same
+    /// subgraph deployment. Returns the new allocation's id plus the indexer that owns it
+    /// (both for readability and to let callers assert ownership in a single expression).
+    function _openSecondAllocationForIndexer(
+        IndexerSetup memory _indexer,
+        string memory _label
+    ) internal returns (address allocationId, address owner) {
+        uint256 extraTokens = MINIMUM_PROVISION_TOKENS;
+        _addProvisionTokens(_indexer, extraTokens);
+
+        uint256 allocationKey;
+        (allocationId, allocationKey) = makeAddrAndKey(_label);
+
+        bytes32 digest = subgraphService.encodeAllocationProof(_indexer.addr, allocationId);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(allocationKey, digest);
+        bytes memory allocationData = abi.encode(
+            _indexer.subgraphDeploymentId,
+            extraTokens,
+            allocationId,
+            abi.encodePacked(r, s, v)
+        );
+        vm.prank(_indexer.addr);
+        subgraphService.startService(_indexer.addr, allocationData);
+
+        owner = _indexer.addr;
     }
 }
 

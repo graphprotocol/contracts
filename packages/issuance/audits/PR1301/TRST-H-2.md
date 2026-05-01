@@ -3,7 +3,7 @@
 - **Severity:** High
 - **Category:** Logical flaws
 - **Source:** RecurringCollector.sol
-- **Status:** Open
+- **Status:** Fixed
 
 ## Description
 
@@ -19,7 +19,11 @@ Avoid receiving and decoding values from untrusted contract calls. This can be d
 
 ## Team Response
 
-TBD
+Fixed.
+
+## Mitigation Review
+
+Fixed. The affected code has been refactored, addressing the issue.
 
 ---
 

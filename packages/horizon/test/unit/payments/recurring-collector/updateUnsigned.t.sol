@@ -87,7 +87,6 @@ contract RecurringCollectorUpdateUnsignedTest is RecurringCollectorSharedTest {
             rca.payer,
             rca.serviceProvider,
             agreementId,
-            uint64(block.timestamp),
             rcau.endsAt,
             rcau.maxInitialTokens,
             rcau.maxOngoingTokensPerSecond,
@@ -99,11 +98,7 @@ contract RecurringCollectorUpdateUnsignedTest is RecurringCollectorSharedTest {
         _recurringCollector.update(rcau, "");
 
         IRecurringCollector.AgreementData memory agreement = _recurringCollector.getAgreement(agreementId);
-        assertEq(rcau.endsAt, agreement.endsAt);
-        assertEq(rcau.maxInitialTokens, agreement.maxInitialTokens);
-        assertEq(rcau.maxOngoingTokensPerSecond, agreement.maxOngoingTokensPerSecond);
-        assertEq(rcau.minSecondsPerCollection, agreement.minSecondsPerCollection);
-        assertEq(rcau.maxSecondsPerCollection, agreement.maxSecondsPerCollection);
+        assertEq(agreement.activeTermsHash, _recurringCollector.hashRCAU(rcau));
         assertEq(rcau.nonce, agreement.updateNonce);
     }
 
@@ -218,11 +213,8 @@ contract RecurringCollectorUpdateUnsignedTest is RecurringCollectorSharedTest {
 
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _makeSimpleRCAU(agreementId, 1);
 
-        // Set the update deadline in the past
+        // Set the update deadline in the past — offer() now rejects expired deadlines
         rcau.deadline = uint64(block.timestamp - 1);
-
-        vm.prank(address(approver));
-        _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
 
         bytes memory expectedErr = abi.encodeWithSelector(
             IRecurringCollector.RecurringCollectorAgreementDeadlineElapsed.selector,
@@ -230,8 +222,8 @@ contract RecurringCollectorUpdateUnsignedTest is RecurringCollectorSharedTest {
             rcau.deadline
         );
         vm.expectRevert(expectedErr);
-        vm.prank(rca.dataService);
-        _recurringCollector.update(rcau, "");
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
     }
 
     /* solhint-enable graph/func-name-mixedcase */

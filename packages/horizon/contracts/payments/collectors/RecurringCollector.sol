@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.27;
 
+// solhint-disable gas-strict-inequalities
+
 import { EIP712Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
@@ -15,13 +17,21 @@ import { IPaymentsCollector } from "@graphprotocol/interfaces/contracts/horizon/
 import { IAgreementOwner } from "@graphprotocol/interfaces/contracts/horizon/IAgreementOwner.sol";
 import {
     IAgreementCollector,
+    OFFER_TYPE_NONE,
     OFFER_TYPE_NEW,
     OFFER_TYPE_UPDATE,
     ACCEPTED,
     REGISTERED,
+    NOTICE_GIVEN,
+    SETTLED,
+    BY_PAYER,
+    BY_PROVIDER,
     UPDATE,
     SCOPE_ACTIVE,
-    SCOPE_PENDING
+    SCOPE_PENDING,
+    SCOPE_SIGNED,
+    VERSION_CURRENT,
+    VERSION_NEXT
 } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
@@ -34,6 +44,11 @@ import { PPMMath } from "../../libraries/PPMMath.sol";
  * @author Edge & Node
  * @dev Implements the {IRecurringCollector} interface.
  * @notice A payments collector contract that can be used to collect payments using a RCA (Recurring Collection Agreement).
+ *
+ * @custom:security Self-authorization: RC overrides {_isAuthorized} to return true whenever
+ * `signer == address(this)`, so RC itself must perform the appropriate authorization check
+ * before any external call.
+ *
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */
@@ -48,25 +63,37 @@ contract RecurringCollector is
     using PPMMath for uint256;
 
     /// @notice The minimum number of seconds that must be between two collections
-    uint32 public constant MIN_SECONDS_COLLECTION_WINDOW = 600;
+    uint32 internal constant MIN_SECONDS_COLLECTION_WINDOW = 600;
 
     /// @notice Condition flag: agreement requires eligibility checks before collection
-    uint16 public constant CONDITION_ELIGIBILITY_CHECK = 1;
+    uint16 internal constant CONDITION_ELIGIBILITY_CHECK = 1 << 0;
+
+    /// @notice Condition flag: agreement uses the IAgreementOwner callbacks
+    /// (beforeCollection / afterCollection). Validated via ERC-165 at acceptance, so the
+    /// callback dispatch decision is frozen to acceptance time and immune to post-acceptance
+    /// payer code changes (e.g. EIP-7702 delegation swaps).
+    uint16 internal constant CONDITION_AGREEMENT_OWNER = 1 << 1;
 
     /// @notice Maximum gas forwarded to payer contract callbacks (beforeCollection / afterCollection).
     /// Caps gas available to payer implementations, preventing 63/64-rule gas siphoning attacks
     /// that could starve the core collect() call of gas.
     uint256 private constant MAX_PAYER_CALLBACK_GAS = 1_500_000;
 
+    /// @notice Gas overhead between the gasleft() precheck and the actual CALL/STATICCALL opcode.
+    /// Covers ABI encoding, stack/memory setup, and the CALL base cost so that at least
+    /// MAX_PAYER_CALLBACK_GAS is forwarded to the callee. Sized to cover the cold-account
+    /// EIP-2929 access cost (2_600) plus Solidity framing.
+    uint256 private constant CALLBACK_GAS_OVERHEAD = 3_000;
+
     /* solhint-disable gas-small-strings */
     /// @notice The EIP712 typehash for the RecurringCollectionAgreement struct
-    bytes32 public constant EIP712_RCA_TYPEHASH =
+    bytes32 internal constant EIP712_RCA_TYPEHASH =
         keccak256(
             "RecurringCollectionAgreement(uint64 deadline,uint64 endsAt,address payer,address dataService,address serviceProvider,uint256 maxInitialTokens,uint256 maxOngoingTokensPerSecond,uint32 minSecondsPerCollection,uint32 maxSecondsPerCollection,uint16 conditions,uint256 nonce,bytes metadata)"
         );
 
     /// @notice The EIP712 typehash for the RecurringCollectionAgreementUpdate struct
-    bytes32 public constant EIP712_RCAU_TYPEHASH =
+    bytes32 internal constant EIP712_RCAU_TYPEHASH =
         keccak256(
             "RecurringCollectionAgreementUpdate(bytes16 agreementId,uint64 deadline,uint64 endsAt,uint256 maxInitialTokens,uint256 maxOngoingTokensPerSecond,uint32 minSecondsPerCollection,uint32 maxSecondsPerCollection,uint16 conditions,uint32 nonce,bytes metadata)"
         );
@@ -88,6 +115,9 @@ contract RecurringCollector is
         mapping(bytes16 agreementId => StoredOffer offer) rcaOffers;
         /// @notice Stored RCAU offers (pre-approval), keyed by agreement ID
         mapping(bytes16 agreementId => StoredOffer offer) rcauOffers;
+        /// @notice Cancelled offer hashes, keyed by signer then EIP-712 hash.
+        /// Stores the agreementId that is blocked; bytes16(0) means not cancelled.
+        mapping(address signer => mapping(bytes32 hash => bytes16 agreementId)) cancelledOffers;
     }
 
     /// @dev keccak256(abi.encode(uint256(keccak256("graphprotocol.storage.RecurringCollector")) - 1)) & ~bytes32(uint256(0xff))
@@ -199,41 +229,58 @@ contract RecurringCollector is
     function accept(
         RecurringCollectionAgreement calldata rca,
         bytes calldata signature
-    ) external whenNotPaused returns (bytes16) {
-        /* solhint-disable gas-strict-inequalities */
+    ) external whenNotPaused returns (bytes16 agreementId) {
+        bytes32 rcaHash;
+        (agreementId, rcaHash) = _rcaIdAndHash(rca);
+
+        RecurringCollectorStorage storage $ = _getStorage();
+        AgreementData storage agreement = $.agreements[agreementId];
+
+        // Idempotent: already accepted with the same hash → no-op (skip deadline + auth).
+        if (agreement.state == AgreementState.Accepted && agreement.activeTermsHash == rcaHash) return agreementId;
+
         require(
-            rca.deadline >= block.timestamp,
+            block.timestamp <= rca.deadline,
             RecurringCollectorAgreementDeadlineElapsed(block.timestamp, rca.deadline)
         );
-        /* solhint-enable gas-strict-inequalities */
 
-        bool isSigned = 0 < signature.length;
-        bytes32 rcaHash = _hashRCA(rca);
-        bytes16 agreementId = _generateAgreementId(
-            rca.payer,
+        _requireAuthorization(rca.payer, rcaHash, signature, agreementId, OFFER_TYPE_NEW);
+
+        if ($.rcaOffers[agreementId].offerHash != rcaHash) {
+            $.rcaOffers[agreementId] = StoredOffer({ offerHash: rcaHash, data: abi.encode(rca) });
+            emit OfferStored(agreementId, rca.payer, OFFER_TYPE_NEW, rcaHash);
+        }
+
+        _validateAndStoreAgreement(rca, agreementId, rcaHash);
+
+        agreement.acceptedAt = uint64(block.timestamp);
+        agreement.state = AgreementState.Accepted;
+
+        emit AgreementAccepted(
             rca.dataService,
+            rca.payer,
             rca.serviceProvider,
-            rca.deadline,
-            rca.nonce
+            agreementId,
+            rca.endsAt,
+            rca.maxInitialTokens,
+            rca.maxOngoingTokensPerSecond,
+            rca.minSecondsPerCollection,
+            rca.maxSecondsPerCollection
         );
-
-        _requireAuthorization(rca.payer, rcaHash, signature, isSigned, agreementId, OFFER_TYPE_NEW);
-
-        return _validateAndStoreAgreement(rca, agreementId, rcaHash);
     }
 
     /**
-     * @notice Validates RCA fields and stores the agreement.
+     * @notice Validates RCA fields and registers the agreement (identity + terms).
+     * Does not flip state to Accepted — caller handles the accept step.
      * @param _rca The Recurring Collection Agreement to validate and store
-     * @return agreementId The deterministically generated agreement ID
+     * @param agreementId The deterministic agreement ID
+     * @param _rcaHash The EIP-712 hash of the RCA
      */
-    /* solhint-disable function-max-lines */
     function _validateAndStoreAgreement(
         RecurringCollectionAgreement memory _rca,
         bytes16 agreementId,
         bytes32 _rcaHash
-    ) private returns (bytes16) {
-        require(agreementId != bytes16(0), RecurringCollectorAgreementIdZero());
+    ) private {
         require(msg.sender == _rca.dataService, RecurringCollectorUnauthorizedCaller(msg.sender, _rca.dataService));
 
         require(
@@ -241,22 +288,22 @@ contract RecurringCollector is
             RecurringCollectorAgreementAddressNotSet()
         );
 
-        _requireValidCollectionWindowParams(_rca.endsAt, _rca.minSecondsPerCollection, _rca.maxSecondsPerCollection);
-        _requirePayerToSupportEligibilityCheck(_rca.payer, _rca.conditions);
-
         AgreementData storage agreement = _getAgreementStorage(agreementId);
-        // check that the agreement is not already accepted
         require(
             agreement.state == AgreementState.NotAccepted,
             RecurringCollectorAgreementIncorrectState(agreementId, agreement.state)
         );
 
-        // Reverts on overflow — rejecting excessive terms that could prevent collection
-        _rca.maxOngoingTokensPerSecond * _rca.maxSecondsPerCollection * 1024;
+        _requireValidTerms(
+            _rca.deadline,
+            _rca.endsAt,
+            _rca.minSecondsPerCollection,
+            _rca.maxSecondsPerCollection,
+            _rca.payer,
+            _rca.conditions,
+            _rca.maxOngoingTokensPerSecond
+        );
 
-        // accept the agreement
-        agreement.acceptedAt = uint64(block.timestamp);
-        agreement.state = AgreementState.Accepted;
         agreement.dataService = _rca.dataService;
         agreement.payer = _rca.payer;
         agreement.serviceProvider = _rca.serviceProvider;
@@ -268,23 +315,7 @@ contract RecurringCollector is
         agreement.conditions = _rca.conditions;
         agreement.activeTermsHash = _rcaHash;
         agreement.updateNonce = 0;
-
-        emit AgreementAccepted(
-            agreement.dataService,
-            agreement.payer,
-            agreement.serviceProvider,
-            agreementId,
-            agreement.acceptedAt,
-            agreement.endsAt,
-            agreement.maxInitialTokens,
-            agreement.maxOngoingTokensPerSecond,
-            agreement.minSecondsPerCollection,
-            agreement.maxSecondsPerCollection
-        );
-
-        return agreementId;
     }
-    /* solhint-enable function-max-lines */
 
     /**
      * @inheritdoc IRecurringCollector
@@ -293,7 +324,8 @@ contract RecurringCollector is
      * @dev Caller must be the data service for the agreement.
      */
     function cancel(bytes16 agreementId, CancelAgreementBy by) external whenNotPaused {
-        AgreementData storage agreement = _getAgreementStorage(agreementId);
+        RecurringCollectorStorage storage $ = _getStorage();
+        AgreementData storage agreement = $.agreements[agreementId];
         require(
             agreement.state == AgreementState.Accepted,
             RecurringCollectorAgreementIncorrectState(agreementId, agreement.state)
@@ -309,14 +341,10 @@ contract RecurringCollector is
             agreement.state = AgreementState.CanceledByServiceProvider;
         }
 
-        emit AgreementCanceled(
-            agreement.dataService,
-            agreement.payer,
-            agreement.serviceProvider,
-            agreementId,
-            agreement.canceledAt,
-            by
-        );
+        bytes32 pendingHash = $.rcauOffers[agreementId].offerHash;
+        if (pendingHash != bytes32(0) && pendingHash != agreement.activeTermsHash) delete $.rcauOffers[agreementId];
+
+        emit AgreementCanceled(agreement.dataService, agreement.payer, agreement.serviceProvider, agreementId, by);
     }
 
     /**
@@ -329,19 +357,45 @@ contract RecurringCollector is
     function update(RecurringCollectionAgreementUpdate calldata rcau, bytes calldata signature) external whenNotPaused {
         AgreementData storage agreement = _requireValidUpdateTarget(rcau.agreementId);
 
-        /* solhint-disable gas-strict-inequalities */
-        require(
-            rcau.deadline >= block.timestamp,
-            RecurringCollectorAgreementDeadlineElapsed(block.timestamp, rcau.deadline)
-        );
-        /* solhint-enable gas-strict-inequalities */
-
-        bool isSigned = 0 < signature.length;
         bytes32 rcauHash = _hashRCAU(rcau);
 
-        _requireAuthorization(agreement.payer, rcauHash, signature, isSigned, rcau.agreementId, OFFER_TYPE_UPDATE);
+        // Idempotent: already at this version (state is Accepted per _requireValidUpdateTarget).
+        // Skip deadline + auth since no state change happens.
+        if (agreement.activeTermsHash == rcauHash) return;
+
+        require(
+            block.timestamp <= rcau.deadline,
+            RecurringCollectorAgreementDeadlineElapsed(block.timestamp, rcau.deadline)
+        );
+
+        _requireAuthorization(agreement.payer, rcauHash, signature, rcau.agreementId, OFFER_TYPE_UPDATE);
+
+        uint32 expectedNonce = agreement.updateNonce + 1;
+        require(
+            rcau.nonce == expectedNonce,
+            RecurringCollectorInvalidUpdateNonce(rcau.agreementId, expectedNonce, rcau.nonce)
+        );
+
+        RecurringCollectorStorage storage $ = _getStorage();
+        if ($.rcauOffers[rcau.agreementId].offerHash != rcauHash) {
+            $.rcauOffers[rcau.agreementId] = StoredOffer({ offerHash: rcauHash, data: abi.encode(rcau) });
+            emit OfferStored(rcau.agreementId, agreement.payer, OFFER_TYPE_UPDATE, rcauHash);
+        }
 
         _validateAndStoreUpdate(agreement, rcau, rcauHash);
+        agreement.updateNonce = rcau.nonce;
+
+        emit AgreementUpdated(
+            agreement.dataService,
+            agreement.payer,
+            agreement.serviceProvider,
+            rcau.agreementId,
+            rcau.endsAt,
+            rcau.maxInitialTokens,
+            rcau.maxOngoingTokensPerSecond,
+            rcau.minSecondsPerCollection,
+            rcau.maxSecondsPerCollection
+        );
     }
 
     /// @inheritdoc IRecurringCollector
@@ -384,7 +438,7 @@ contract RecurringCollector is
 
     /// @inheritdoc IAgreementCollector
     function getMaxNextClaim(bytes16 agreementId) external view returns (uint256) {
-        return _getMaxNextClaimScoped(agreementId, SCOPE_ACTIVE | SCOPE_PENDING);
+        return _getMaxNextClaimScoped(agreementId, 0);
     }
 
     /// @inheritdoc IRecurringCollector
@@ -406,158 +460,215 @@ contract RecurringCollector is
         bytes calldata data,
         uint16 /* options */
     ) external whenNotPaused returns (AgreementDetails memory details) {
-        if (offerType == OFFER_TYPE_NEW) details = _offerNew(data);
-        else if (offerType == OFFER_TYPE_UPDATE) details = _offerUpdate(data);
-        else revert RecurringCollectorInvalidCollectData(data);
+        bytes16 agreementId;
+        bytes32 versionHash;
+        uint256 index;
+        if (offerType == OFFER_TYPE_NEW) (agreementId, versionHash, index) = _offerNew(data);
+        else if (offerType == OFFER_TYPE_UPDATE) (agreementId, versionHash, index) = _offerUpdate(data);
+        else revert RecurringCollectorInvalidOfferType(offerType);
+
+        details = _getAgreementDetails(agreementId, versionHash, index);
+        require(msg.sender == details.payer, RecurringCollectorUnauthorizedCaller(msg.sender, details.payer));
     }
 
     /**
      * @notice Process a new offer (OFFER_TYPE_NEW).
      * @param _data The ABI-encoded RecurringCollectionAgreement
-     * @return details The agreement details
+     * @return agreementId The deterministic agreement ID
+     * @return versionHash The EIP-712 hash of the stored offer
+     * @return index The version index for the offered terms (always VERSION_CURRENT for NEW)
      */
-    function _offerNew(bytes calldata _data) private returns (AgreementDetails memory details) {
+    function _offerNew(bytes calldata _data) private returns (bytes16 agreementId, bytes32 versionHash, uint256 index) {
         RecurringCollectorStorage storage $ = _getStorage();
         RecurringCollectionAgreement memory rca = abi.decode(_data, (RecurringCollectionAgreement));
-        require(msg.sender == rca.payer, RecurringCollectorUnauthorizedCaller(msg.sender, rca.payer));
-        _requirePayerToSupportEligibilityCheck(rca.payer, rca.conditions);
 
-        bytes16 agreementId = _generateAgreementId(
-            rca.payer,
-            rca.dataService,
-            rca.serviceProvider,
-            rca.deadline,
-            rca.nonce
-        );
-        bytes32 offerHash = _hashRCA(rca);
+        (agreementId, versionHash) = _rcaIdAndHash(rca);
 
-        $.rcaOffers[agreementId] = StoredOffer({ offerHash: offerHash, data: _data });
+        if ($.rcaOffers[agreementId].offerHash != versionHash) {
+            AgreementData storage agreement = $.agreements[agreementId];
+            require(
+                agreement.state == AgreementState.NotAccepted,
+                RecurringCollectorAgreementIncorrectState(agreementId, agreement.state)
+            );
+            require(
+                block.timestamp <= rca.deadline,
+                RecurringCollectorAgreementDeadlineElapsed(block.timestamp, rca.deadline)
+            );
+            _requireValidTerms(
+                rca.deadline,
+                rca.endsAt,
+                rca.minSecondsPerCollection,
+                rca.maxSecondsPerCollection,
+                rca.payer,
+                rca.conditions,
+                rca.maxOngoingTokensPerSecond
+            );
 
-        details.agreementId = agreementId;
-        details.payer = rca.payer;
-        details.dataService = rca.dataService;
-        details.serviceProvider = rca.serviceProvider;
-        details.versionHash = offerHash;
-        details.state = REGISTERED;
+            agreement.payer = rca.payer;
+            agreement.dataService = rca.dataService;
+            agreement.serviceProvider = rca.serviceProvider;
+            agreement.activeTermsHash = versionHash;
 
-        emit OfferStored(agreementId, rca.payer, OFFER_TYPE_NEW, offerHash);
+            $.rcaOffers[agreementId] = StoredOffer({ offerHash: versionHash, data: _data });
+            emit OfferStored(agreementId, rca.payer, OFFER_TYPE_NEW, versionHash);
+        }
+
+        index = VERSION_CURRENT;
     }
 
     /**
      * @notice Process an update offer (OFFER_TYPE_UPDATE).
      * @param _data The ABI-encoded RecurringCollectionAgreementUpdate
-     * @return details The agreement details
+     * @return agreementId The agreement ID being updated
+     * @return versionHash The EIP-712 hash of the stored RCAU
+     * @return index VERSION_NEXT, or VERSION_CURRENT if the RCAU has already been applied
      */
-    function _offerUpdate(bytes calldata _data) private returns (AgreementDetails memory details) {
+    function _offerUpdate(
+        bytes calldata _data
+    ) private returns (bytes16 agreementId, bytes32 versionHash, uint256 index) {
         RecurringCollectorStorage storage $ = _getStorage();
         RecurringCollectionAgreementUpdate memory rcau = abi.decode(_data, (RecurringCollectionAgreementUpdate));
-        bytes16 agreementId = rcau.agreementId;
-
-        // Payer check: look up the existing agreement or the stored RCA offer
+        versionHash = _hashRCAU(rcau);
+        agreementId = rcau.agreementId;
         AgreementData storage agreement = $.agreements[agreementId];
-        address payer = agreement.payer;
-        if (payer == address(0)) {
-            // Not yet accepted — check stored RCA offer payer
+
+        if ($.rcauOffers[agreementId].offerHash != versionHash) {
             require(
-                $.rcaOffers[agreementId].offerHash != bytes32(0),
-                RecurringCollectorAgreementIncorrectState(agreementId, AgreementState.NotAccepted)
+                block.timestamp <= rcau.deadline,
+                RecurringCollectorAgreementDeadlineElapsed(block.timestamp, rcau.deadline)
             );
-            RecurringCollectionAgreement memory rca = abi.decode(
-                $.rcaOffers[agreementId].data,
-                (RecurringCollectionAgreement)
+            address payer = agreement.payer;
+            require(
+                payer != address(0) &&
+                    (agreement.state == AgreementState.NotAccepted || agreement.state == AgreementState.Accepted),
+                RecurringCollectorAgreementIncorrectState(agreementId, agreement.state)
             );
-            payer = rca.payer;
-            details.dataService = rca.dataService;
-            details.serviceProvider = rca.serviceProvider;
-        } else {
-            details.dataService = agreement.dataService;
-            details.serviceProvider = agreement.serviceProvider;
+            _requireValidTerms(
+                rcau.deadline,
+                rcau.endsAt,
+                rcau.minSecondsPerCollection,
+                rcau.maxSecondsPerCollection,
+                payer,
+                rcau.conditions,
+                rcau.maxOngoingTokensPerSecond
+            );
+
+            $.rcauOffers[agreementId] = StoredOffer({ offerHash: versionHash, data: _data });
+            emit OfferStored(agreementId, payer, OFFER_TYPE_UPDATE, versionHash);
         }
-        require(msg.sender == payer, RecurringCollectorUnauthorizedCaller(msg.sender, payer));
-        _requirePayerToSupportEligibilityCheck(payer, rcau.conditions);
 
-        bytes32 offerHash = _hashRCAU(rcau);
-
-        $.rcauOffers[agreementId] = StoredOffer({ offerHash: offerHash, data: _data });
-
-        details.agreementId = agreementId;
-        details.payer = payer;
-        details.versionHash = offerHash;
-        details.state = REGISTERED | UPDATE;
-
-        emit OfferStored(agreementId, payer, OFFER_TYPE_UPDATE, offerHash);
+        // If the offered RCAU has already been applied, its hash matches activeTermsHash and the
+        // version is now CURRENT, not NEXT (_versionHashAt(NEXT) would return 0 in that case).
+        index = versionHash == agreement.activeTermsHash ? VERSION_CURRENT : VERSION_NEXT;
     }
 
     /// @inheritdoc IAgreementCollector
+    /// @dev This implementation targets only the payer side of the agreement.
+    /// SCOPE_PENDING and SCOPE_ACTIVE enforce `msg.sender == agreement.payer`.
+    /// SCOPE_SIGNED has no caller check in this function; the entry it writes is
+    /// self-keyed by msg.sender and is consulted only later, during payer
+    /// authorization of a signed accept or update. Extending cancel to data-service
+    /// or service-provider callers is left for a future revision.
     function cancel(bytes16 agreementId, bytes32 termsHash, uint16 options) external whenNotPaused {
         RecurringCollectorStorage storage $ = _getStorage();
         AgreementData storage agreement = $.agreements[agreementId];
-        _requirePayer($, agreement, agreementId);
 
-        if (agreement.activeTermsHash != termsHash) {
-            if (options & SCOPE_PENDING != 0)
+        // Signed scope: record cancelledOffers[msg.sender][termsHash] = agreementId.
+        // Self-authenticating — only blocks when msg.sender matches the recovered ECDSA signer.
+        // The stored agreementId is checked in _requireAuthorization (!=); calling again
+        // with bytes16(0) undoes the cancellation, calling with a different agreementId
+        // redirects it.
+        if (options & SCOPE_SIGNED != 0) {
+            if ($.cancelledOffers[msg.sender][termsHash] != agreementId) {
+                $.cancelledOffers[msg.sender][termsHash] = agreementId;
+                emit OfferCancelled(msg.sender, agreementId, termsHash);
+            }
+        }
+
+        // Pending / active scopes require payer authorization. No-op if nothing exists on-chain.
+        address payer = agreement.payer;
+        if (options & (SCOPE_PENDING | SCOPE_ACTIVE) == 0 || payer == address(0)) return;
+        require(msg.sender == payer, RecurringCollectorUnauthorizedCaller(msg.sender, payer));
+
+        if (agreement.activeTermsHash != termsHash || agreement.state == AgreementState.NotAccepted) {
+            if (options & SCOPE_PENDING != 0) {
                 // Pending scope: delete stored offer if hash matches and terms are not currently active
-                if ($.rcaOffers[agreementId].offerHash == termsHash) delete $.rcaOffers[agreementId];
-                else if ($.rcauOffers[agreementId].offerHash == termsHash) delete $.rcauOffers[agreementId];
+                if ($.rcaOffers[agreementId].offerHash == termsHash) {
+                    delete $.rcaOffers[agreementId];
+                    if (agreement.activeTermsHash == termsHash) agreement.activeTermsHash = bytes32(0);
+                    emit OfferCancelled(msg.sender, agreementId, termsHash);
+                } else if ($.rcauOffers[agreementId].offerHash == termsHash) {
+                    delete $.rcauOffers[agreementId];
+                    emit OfferCancelled(msg.sender, agreementId, termsHash);
+                }
+            }
         } else if (options & SCOPE_ACTIVE != 0 && agreement.state == AgreementState.Accepted)
             // Active scope and hash matches: cancel accepted agreement
             IDataServiceAgreements(agreement.dataService).cancelIndexingAgreementByPayer(agreementId);
     }
 
-    /**
-     * @notice Requires that msg.sender is the payer for an agreement.
-     * @dev Checks the on-chain agreement first, then falls back to stored RCA offer.
-     * @param agreement The agreement data
-     * @param agreementId The agreement ID
-     */
-    // solhint-disable-next-line use-natspec
-    function _requirePayer(
-        RecurringCollectorStorage storage $,
-        AgreementData storage agreement,
-        bytes16 agreementId
-    ) private view {
-        if (agreement.payer == msg.sender) return;
-
-        // Not payer on accepted agreement — check stored RCA offer
-        StoredOffer storage rcaOffer = $.rcaOffers[agreementId];
-        if (rcaOffer.offerHash != bytes32(0)) {
-            RecurringCollectionAgreement memory rca = abi.decode(rcaOffer.data, (RecurringCollectionAgreement));
-            require(msg.sender == rca.payer, RecurringCollectorUnauthorizedCaller(msg.sender, rca.payer));
-            return;
-        }
-        if (agreement.payer == address(0)) revert RecurringCollectorAgreementNotFound(agreementId);
-
-        revert RecurringCollectorUnauthorizedCaller(msg.sender, agreement.payer);
+    /// @inheritdoc IAgreementCollector
+    function getAgreementDetails(bytes16 agreementId, uint256 index) external view returns (AgreementDetails memory) {
+        return _getAgreementDetails(agreementId, _versionHashAt(agreementId, index), index);
     }
 
-    /// @inheritdoc IAgreementCollector
-    function getAgreementDetails(
+    /**
+     * @notice Builds AgreementDetails for the requested version. Shared by {offer} and
+     * {getAgreementDetails}.
+     * @dev Caller supplies the version hash. {offer} passes the hash returned by _offerNew /
+     * _offerUpdate (already known from the just-stored offer); {getAgreementDetails} resolves
+     * it via _versionHashAt. Returns empty details when versionHash is zero.
+     * @param agreementId The agreement ID
+     * @param versionHash The EIP-712 hash of the queried version, or bytes32(0) if none
+     * @param index Version index (VERSION_CURRENT or VERSION_NEXT) — determines per-version flags
+     * @return details AgreementDetails for the queried version, or empty when no version exists
+     */
+    function _getAgreementDetails(
         bytes16 agreementId,
-        uint256 /* index */
-    ) external view returns (AgreementDetails memory details) {
+        bytes32 versionHash,
+        uint256 index
+    ) private view returns (AgreementDetails memory details) {
+        if (versionHash == bytes32(0)) return details;
+        details.versionHash = versionHash;
+
+        AgreementData storage agreement = _getStorage().agreements[agreementId];
+        AgreementState agreementState = agreement.state;
+
+        if (index == VERSION_CURRENT) {
+            if (agreementState != AgreementState.NotAccepted)
+                details.state = (0 < agreement.updateNonce) ? ACCEPTED | UPDATE : ACCEPTED;
+        } else details.state = UPDATE;
+
+        details.state |= REGISTERED;
+        details.agreementId = agreementId;
+        details.payer = agreement.payer;
+        details.dataService = agreement.dataService;
+        details.serviceProvider = agreement.serviceProvider;
+
+        if (agreementState == AgreementState.CanceledByPayer) details.state |= NOTICE_GIVEN | BY_PAYER;
+        else if (agreementState == AgreementState.CanceledByServiceProvider)
+            details.state |= NOTICE_GIVEN | BY_PROVIDER;
+
+        if (_getMaxNextClaimScoped(agreementId, index == VERSION_CURRENT ? SCOPE_ACTIVE : SCOPE_PENDING) == 0)
+            details.state |= SETTLED;
+    }
+
+    /**
+     * @notice Resolve the offer hash representing a given version (VERSION_CURRENT or VERSION_NEXT).
+     * @dev Returns bytes32(0) when no version exists at that index. Pre-acceptance, activeTermsHash
+     * mirrors rcaOffers.offerHash, so VERSION_CURRENT works uniformly across pre- and post-acceptance.
+     * @param agreementId The agreement ID
+     * @param index The version index (VERSION_CURRENT or VERSION_NEXT)
+     * @return hash The EIP-712 hash of the offer at that version, or bytes32(0) if none
+     */
+    function _versionHashAt(bytes16 agreementId, uint256 index) private view returns (bytes32 hash) {
         RecurringCollectorStorage storage $ = _getStorage();
         AgreementData storage agreement = $.agreements[agreementId];
 
-        if (agreement.state != AgreementState.NotAccepted) {
-            details.agreementId = agreementId;
-            details.payer = agreement.payer;
-            details.dataService = agreement.dataService;
-            details.serviceProvider = agreement.serviceProvider;
-            details.versionHash = agreement.activeTermsHash;
-            details.state = ACCEPTED;
-            return details;
-        }
-
-        // Not yet accepted — check stored RCA offer
-        StoredOffer storage rcaOffer = $.rcaOffers[agreementId];
-        if (rcaOffer.offerHash != bytes32(0)) {
-            RecurringCollectionAgreement memory rca = abi.decode(rcaOffer.data, (RecurringCollectionAgreement));
-            details.agreementId = agreementId;
-            details.payer = rca.payer;
-            details.dataService = rca.dataService;
-            details.serviceProvider = rca.serviceProvider;
-            details.versionHash = rcaOffer.offerHash;
-            details.state = REGISTERED;
+        if (index == VERSION_CURRENT) hash = agreement.activeTermsHash;
+        else if (index == VERSION_NEXT) {
+            bytes32 rcauHash = $.rcauOffers[agreementId].offerHash;
+            if (rcauHash != bytes32(0) && rcauHash != agreement.activeTermsHash) hash = rcauHash;
         }
     }
 
@@ -571,14 +682,15 @@ contract RecurringCollector is
         bytes16 agreementId,
         uint256 index
     ) external view returns (uint8 offerType, bytes memory offerData) {
+        bytes32 hash = _versionHashAt(agreementId, index);
+        if (hash == bytes32(0)) return (OFFER_TYPE_NONE, "");
+
         RecurringCollectorStorage storage $ = _getStorage();
-        if (index == OFFER_TYPE_NEW) {
-            StoredOffer storage rca = $.rcaOffers[agreementId];
-            if (rca.offerHash != bytes32(0)) return (OFFER_TYPE_NEW, rca.data);
-        } else if (index == OFFER_TYPE_UPDATE) {
-            StoredOffer storage rcau = $.rcauOffers[agreementId];
-            if (rcau.offerHash != bytes32(0)) return (OFFER_TYPE_UPDATE, rcau.data);
-        }
+        StoredOffer storage rca = $.rcaOffers[agreementId];
+        if (rca.offerHash == hash) return (OFFER_TYPE_NEW, rca.data);
+
+        StoredOffer storage rcau = $.rcauOffers[agreementId];
+        if (rcau.offerHash == hash) return (OFFER_TYPE_UPDATE, rcau.data);
     }
 
     /**
@@ -650,21 +762,21 @@ contract RecurringCollector is
 
         if (_params.tokens != 0) {
             uint256 slippage = _params.tokens - tokensToCollect;
-            /* solhint-disable gas-strict-inequalities */
             require(
                 slippage <= _params.maxSlippage,
                 RecurringCollectorExcessiveSlippage(_params.tokens, tokensToCollect, _params.maxSlippage)
             );
-            /* solhint-enable gas-strict-inequalities */
         }
         agreement.lastCollectionAt = uint64(block.timestamp);
+
+        address payer = agreement.payer;
 
         if (0 < tokensToCollect) {
             _preCollectCallbacks(agreement, _params.agreementId, tokensToCollect);
 
             _graphPaymentsEscrow().collect(
                 _paymentType,
-                agreement.payer,
+                payer,
                 agreement.serviceProvider,
                 tokensToCollect,
                 agreement.dataService,
@@ -676,7 +788,7 @@ contract RecurringCollector is
         emit PaymentCollected(
             _paymentType,
             _params.collectionId,
-            agreement.payer,
+            payer,
             agreement.serviceProvider,
             agreement.dataService,
             tokensToCollect
@@ -684,7 +796,7 @@ contract RecurringCollector is
 
         emit RCACollected(
             agreement.dataService,
-            agreement.payer,
+            payer,
             agreement.serviceProvider,
             _params.agreementId,
             _params.collectionId,
@@ -692,21 +804,30 @@ contract RecurringCollector is
             _params.dataServiceCut
         );
 
-        if (0 < tokensToCollect) _postCollectCallback(agreement.payer, _params.agreementId, tokensToCollect);
+        if (0 < tokensToCollect)
+            _postCollectCallback(payer, agreement.conditions, _params.agreementId, tokensToCollect);
         return tokensToCollect;
     }
     /* solhint-enable function-max-lines */
 
     /**
-     * @notice Validates that a contract payer supports IProviderEligibility via ERC-165.
+     * @notice Validates that the payer supports the interfaces required by the conditions bitmask.
+     * @dev Each set condition bit requires the payer to declare ERC-165 support for the matching
+     * interface.
      * @param payer The payer address to validate
      * @param conditions The conditions bitmask
      */
-    function _requirePayerToSupportEligibilityCheck(address payer, uint16 conditions) private view {
+    function _requirePayerInterfaceSupport(address payer, uint16 conditions) private view {
         if (conditions & CONDITION_ELIGIBILITY_CHECK != 0) {
             require(
                 ERC165Checker.supportsInterface(payer, type(IProviderEligibility).interfaceId),
-                RecurringCollectorPayerDoesNotSupportEligibilityInterface(payer)
+                RecurringCollectorPayerDoesNotSupportInterface(payer, type(IProviderEligibility).interfaceId)
+            );
+        }
+        if (conditions & CONDITION_AGREEMENT_OWNER != 0) {
+            require(
+                ERC165Checker.supportsInterface(payer, type(IAgreementOwner).interfaceId),
+                RecurringCollectorPayerDoesNotSupportInterface(payer, type(IAgreementOwner).interfaceId)
             );
         }
     }
@@ -725,34 +846,41 @@ contract RecurringCollector is
     ) private {
         address payer = agreement.payer;
         address provider = agreement.serviceProvider;
-        // Payer callbacks use gas-capped low-level calls to prevent gas siphoning and
-        // caller-side ABI decode reverts. Failures emit events but do not block collection.
+        uint16 conditions = agreement.conditions;
 
-        if ((agreement.conditions & CONDITION_ELIGIBILITY_CHECK) != 0) {
-            // 64/63 accounts for EIP-150 63/64 gas forwarding rule.
-            if (gasleft() < (MAX_PAYER_CALLBACK_GAS * 64) / 63) revert RecurringCollectorInsufficientCallbackGas();
-
-            // Eligibility gate (opt-in via conditions bitmask): low-level staticcall avoids
-            // caller-side ABI decode reverts. Only an explicit return of 0 blocks collection;
-            // reverts, short returndata, and malformed responses are treated as "no opinion"
-            // (collection proceeds).
-            // solhint-disable-next-line avoid-low-level-calls
-            (bool success, bytes memory result) = payer.staticcall{ gas: MAX_PAYER_CALLBACK_GAS }(
-                abi.encodeCall(IProviderEligibility.isEligible, (provider))
-            );
-            if (success && !(result.length < 32) && abi.decode(result, (uint256)) == 0)
+        // Eligibility gate (opt-in via conditions bitmask). Assembly staticcall caps returndata
+        // copy to 32 bytes, preventing returndata bombing. Only an explicit return of 0 blocks
+        // collection; reverts, short returndata, and malformed responses are treated as "no
+        // opinion" (collection proceeds).
+        if ((conditions & CONDITION_ELIGIBILITY_CHECK) != 0) {
+            if (gasleft() < (MAX_PAYER_CALLBACK_GAS * 64) / 63 + CALLBACK_GAS_OVERHEAD)
+                revert RecurringCollectorInsufficientCallbackGas();
+            bytes memory cd = abi.encodeCall(IProviderEligibility.isEligible, (provider));
+            bool success;
+            uint256 returnLen;
+            uint256 result;
+            // solhint-disable-next-line no-inline-assembly
+            assembly {
+                success := staticcall(MAX_PAYER_CALLBACK_GAS, payer, add(cd, 0x20), mload(cd), 0x00, 0x20)
+                returnLen := returndatasize()
+                result := mload(0x00)
+            }
+            if (success && !(returnLen < 32) && result == 0)
                 revert RecurringCollectorCollectionNotEligible(agreementId, provider);
-            if (!success || result.length < 32)
+            if (!success || returnLen < 32)
                 emit PayerCallbackFailed(agreementId, payer, PayerCallbackStage.EligibilityCheck);
         }
 
-        if (payer.code.length != 0 && payer != msg.sender) {
-            if (gasleft() < (MAX_PAYER_CALLBACK_GAS * 64) / 63) revert RecurringCollectorInsufficientCallbackGas();
-
-            // solhint-disable-next-line avoid-low-level-calls
-            (bool beforeOk, ) = payer.call{ gas: MAX_PAYER_CALLBACK_GAS }(
-                abi.encodeCall(IAgreementOwner.beforeCollection, (agreementId, tokensToCollect))
-            );
+        // Assembly call copies 0 bytes of returndata, preventing returndata bombing.
+        if ((conditions & CONDITION_AGREEMENT_OWNER) != 0 && payer != msg.sender) {
+            if (gasleft() < (MAX_PAYER_CALLBACK_GAS * 64) / 63 + CALLBACK_GAS_OVERHEAD)
+                revert RecurringCollectorInsufficientCallbackGas();
+            bytes memory cd = abi.encodeCall(IAgreementOwner.beforeCollection, (agreementId, tokensToCollect));
+            bool beforeOk;
+            // solhint-disable-next-line no-inline-assembly
+            assembly {
+                beforeOk := call(MAX_PAYER_CALLBACK_GAS, payer, 0, add(cd, 0x20), mload(cd), 0, 0)
+            }
             if (!beforeOk) emit PayerCallbackFailed(agreementId, payer, PayerCallbackStage.BeforeCollection);
         }
     }
@@ -761,41 +889,58 @@ contract RecurringCollector is
      * @notice Executes post-collection callback: afterCollection notification.
      * @dev Extracted from _collect to reduce stack depth for coverage builds.
      * @param payer The payer address
+     * @param conditions The agreement conditions bitmask
      * @param agreementId The agreement ID
      * @param tokensToCollect The amount of tokens collected
      */
-    function _postCollectCallback(address payer, bytes16 agreementId, uint256 tokensToCollect) private {
+    function _postCollectCallback(
+        address payer,
+        uint16 conditions,
+        bytes16 agreementId,
+        uint256 tokensToCollect
+    ) private {
         // Notify contract payers so they can reconcile escrow in the same transaction.
-        if (payer != msg.sender && payer.code.length != 0) {
+        if (payer != msg.sender && (conditions & CONDITION_AGREEMENT_OWNER) != 0) {
             // 64/63 accounts for EIP-150 63/64 gas forwarding rule.
-            if (gasleft() < (MAX_PAYER_CALLBACK_GAS * 64) / 63) revert RecurringCollectorInsufficientCallbackGas();
-            // solhint-disable-next-line avoid-low-level-calls
-            (bool afterOk, ) = payer.call{ gas: MAX_PAYER_CALLBACK_GAS }(
-                abi.encodeCall(IAgreementOwner.afterCollection, (agreementId, tokensToCollect))
+            if (gasleft() < (MAX_PAYER_CALLBACK_GAS * 64) / 63 + CALLBACK_GAS_OVERHEAD)
+                revert RecurringCollectorInsufficientCallbackGas();
+            // Assembly call copies 0 bytes of returndata, preventing returndata bombing.
+            bytes memory afterCallData = abi.encodeCall(
+                IAgreementOwner.afterCollection,
+                (agreementId, tokensToCollect)
             );
+            bool afterOk;
+            // solhint-disable-next-line no-inline-assembly
+            assembly {
+                afterOk := call(MAX_PAYER_CALLBACK_GAS, payer, 0, add(afterCallData, 0x20), mload(afterCallData), 0, 0)
+            }
             if (!afterOk) emit PayerCallbackFailed(agreementId, payer, PayerCallbackStage.AfterCollection);
         }
     }
 
     /**
      * @notice Requires that the collection window parameters are valid.
-     *
+     * @dev Validated against `_deadline` (the offer's acceptance deadline) rather than
+     * `block.timestamp`, making this check time-independent: if terms pass here they remain
+     * valid for any acceptance that happens on or before `_deadline`. Callers must enforce
+     * `block.timestamp <= _deadline` at the acceptance entry point.
+     * @param _deadline The offer's acceptance deadline
      * @param _endsAt The end time of the agreement
      * @param _minSecondsPerCollection The minimum seconds per collection
      * @param _maxSecondsPerCollection The maximum seconds per collection
      */
     function _requireValidCollectionWindowParams(
+        uint64 _deadline,
         uint64 _endsAt,
         uint32 _minSecondsPerCollection,
         uint32 _maxSecondsPerCollection
-    ) private view {
-        // Agreement needs to end in the future
-        require(_endsAt > block.timestamp, RecurringCollectorAgreementElapsedEndsAt(block.timestamp, _endsAt));
+    ) private pure {
+        // Agreement must end after the deadline
+        require(_deadline < _endsAt, RecurringCollectorAgreementEndsBeforeDeadline(_deadline, _endsAt));
 
         // Collection window needs to be at least MIN_SECONDS_COLLECTION_WINDOW
         require(
             _maxSecondsPerCollection > _minSecondsPerCollection &&
-                // solhint-disable-next-line gas-strict-inequalities
                 (_maxSecondsPerCollection - _minSecondsPerCollection >= MIN_SECONDS_COLLECTION_WINDOW),
             RecurringCollectorAgreementInvalidCollectionWindow(
                 MIN_SECONDS_COLLECTION_WINDOW,
@@ -804,15 +949,41 @@ contract RecurringCollector is
             )
         );
 
-        // Agreement needs to last at least one min collection window
+        // Even if accepted at the deadline at least one min collection window must remain
         require(
-            // solhint-disable-next-line gas-strict-inequalities
-            _endsAt - block.timestamp >= _minSecondsPerCollection + MIN_SECONDS_COLLECTION_WINDOW,
+            _minSecondsPerCollection + MIN_SECONDS_COLLECTION_WINDOW <= _endsAt - _deadline,
             RecurringCollectorAgreementInvalidDuration(
                 _minSecondsPerCollection + MIN_SECONDS_COLLECTION_WINDOW,
-                _endsAt - block.timestamp
+                _endsAt - _deadline
             )
         );
+    }
+
+    /**
+     * @notice Validates offer terms: collection window, payer interface support, and overflow.
+     * @dev Called by _validateAndStoreAgreement and _validateAndStoreUpdate. Time-independent —
+     * validates against the offer's deadline so the check is stable across the offer's lifetime.
+     * @param _deadline The offer's acceptance deadline
+     * @param _endsAt The end time of the agreement
+     * @param _minSecondsPerCollection The minimum seconds per collection
+     * @param _maxSecondsPerCollection The maximum seconds per collection
+     * @param _payer The payer address (for interface validation)
+     * @param _conditions The conditions bitmask
+     * @param _maxOngoingTokensPerSecond The maximum ongoing tokens per second
+     */
+    function _requireValidTerms(
+        uint64 _deadline,
+        uint64 _endsAt,
+        uint32 _minSecondsPerCollection,
+        uint32 _maxSecondsPerCollection,
+        address _payer,
+        uint16 _conditions,
+        uint256 _maxOngoingTokensPerSecond
+    ) private view {
+        _requireValidCollectionWindowParams(_deadline, _endsAt, _minSecondsPerCollection, _maxSecondsPerCollection);
+        _requirePayerInterfaceSupport(_payer, _conditions);
+        // Reverts on overflow — rejecting excessive terms that could prevent collection
+        _maxOngoingTokensPerSecond * _maxSecondsPerCollection * 1024;
     }
 
     /**
@@ -836,7 +1007,6 @@ contract RecurringCollector is
             block.timestamp > _agreement.endsAt;
         if (!canceledOrElapsed) {
             require(
-                // solhint-disable-next-line gas-strict-inequalities
                 _collectionSeconds >= _agreement.minSecondsPerCollection,
                 RecurringCollectorCollectionTooSoon(
                     _agreementId,
@@ -950,8 +1120,7 @@ contract RecurringCollector is
      * @notice Verifies authorization for an EIP712 hash using the given basis.
      * @param _payer The payer address (signer owner for ECDSA, contract for approval)
      * @param _hash The EIP712 typed data hash
-     * @param _signature The ECDSA signature (only used when basis is Signature)
-     * @param _isSigned True if ECDSA-signed, false if pre-approved via stored offer
+     * @param _signature The ECDSA signature bytes, zero length for no signature (pre-approved via stored offer)
      * @param _agreementId The agreement ID (used to look up stored offer when not signed)
      * @param _offerType OFFER_TYPE_NEW or OFFER_TYPE_UPDATE (selects which stored offer to check)
      */
@@ -959,15 +1128,16 @@ contract RecurringCollector is
         address _payer,
         bytes32 _hash,
         bytes memory _signature,
-        bool _isSigned,
         bytes16 _agreementId,
         uint8 _offerType
     ) private view {
         RecurringCollectorStorage storage $ = _getStorage();
 
-        if (_isSigned)
-            require(_isAuthorized(_payer, ECDSA.recover(_hash, _signature)), RecurringCollectorInvalidSigner());
-        else
+        if (0 < _signature.length) {
+            address signer = ECDSA.recover(_hash, _signature);
+            require(_isAuthorized(_payer, signer), RecurringCollectorInvalidSigner());
+            require($.cancelledOffers[signer][_hash] != _agreementId, RecurringCollectorOfferCancelled(signer, _hash));
+        } else
             // Check stored offer hash instead of callback
             require(
                 (_offerType == OFFER_TYPE_NEW ? $.rcaOffers[_agreementId] : $.rcauOffers[_agreementId]).offerHash ==
@@ -1008,26 +1178,22 @@ contract RecurringCollector is
     ) private {
         RecurringCollectorStorage storage $ = _getStorage();
 
-        // validate nonce to prevent replay attacks
-        uint32 expectedNonce = _agreement.updateNonce + 1;
-        require(
-            _rcau.nonce == expectedNonce,
-            RecurringCollectorInvalidUpdateNonce(_rcau.agreementId, expectedNonce, _rcau.nonce)
+        _requireValidTerms(
+            _rcau.deadline,
+            _rcau.endsAt,
+            _rcau.minSecondsPerCollection,
+            _rcau.maxSecondsPerCollection,
+            _agreement.payer,
+            _rcau.conditions,
+            _rcau.maxOngoingTokensPerSecond
         );
 
-        _requireValidCollectionWindowParams(_rcau.endsAt, _rcau.minSecondsPerCollection, _rcau.maxSecondsPerCollection);
-        _requirePayerToSupportEligibilityCheck(_agreement.payer, _rcau.conditions);
+        // Clean up stored replaced offer. oldHash is always non-zero for accepted agreements
+        // and can only ever survive in rcaOffers.
+        if ($.rcaOffers[_rcau.agreementId].offerHash == _agreement.activeTermsHash)
+            delete $.rcaOffers[_rcau.agreementId];
 
-        // Reverts on overflow — rejecting excessive terms that could prevent collection
-        _rcau.maxOngoingTokensPerSecond * _rcau.maxSecondsPerCollection * 1024;
-
-        // Clean up stored replaced offer
-        bytes32 oldHash = _agreement.activeTermsHash;
-        if (oldHash != bytes32(0))
-            if ($.rcaOffers[_rcau.agreementId].offerHash == oldHash) delete $.rcaOffers[_rcau.agreementId];
-            else if ($.rcauOffers[_rcau.agreementId].offerHash == oldHash) delete $.rcauOffers[_rcau.agreementId];
-
-        // update the agreement
+        // update the agreement terms
         _agreement.endsAt = _rcau.endsAt;
         _agreement.maxInitialTokens = _rcau.maxInitialTokens;
         _agreement.maxOngoingTokensPerSecond = _rcau.maxOngoingTokensPerSecond;
@@ -1035,20 +1201,6 @@ contract RecurringCollector is
         _agreement.maxSecondsPerCollection = _rcau.maxSecondsPerCollection;
         _agreement.conditions = _rcau.conditions;
         _agreement.activeTermsHash = _rcauHash;
-        _agreement.updateNonce = _rcau.nonce;
-
-        emit AgreementUpdated(
-            _agreement.dataService,
-            _agreement.payer,
-            _agreement.serviceProvider,
-            _rcau.agreementId,
-            uint64(block.timestamp),
-            _agreement.endsAt,
-            _agreement.maxInitialTokens,
-            _agreement.maxOngoingTokensPerSecond,
-            _agreement.minSecondsPerCollection,
-            _agreement.maxSecondsPerCollection
-        );
     }
 
     /**
@@ -1133,13 +1285,9 @@ contract RecurringCollector is
      * @return The maximum tokens that could be collected
      */
     function _getMaxNextClaim(AgreementData storage _a) private view returns (uint256) {
-        // CanceledByServiceProvider = immediately non-collectable
-        if (_a.state == AgreementState.CanceledByServiceProvider) return 0;
-        // Only Accepted and CanceledByPayer are collectable
         if (_a.state != AgreementState.Accepted && _a.state != AgreementState.CanceledByPayer) return 0;
 
-        // Collection starts from last collection (or acceptance if never collected)
-        uint256 collectionStart = 0 < _a.lastCollectionAt ? _a.lastCollectionAt : _a.acceptedAt;
+        uint256 collectionStart = _agreementCollectionStartAt(_a);
 
         // Determine the latest possible collection end
         uint256 collectionEnd;
@@ -1171,11 +1319,10 @@ contract RecurringCollector is
      * @return maxClaim The maximum tokens claimable under the requested scope
      */
     function _getMaxNextClaimScoped(bytes16 agreementId, uint8 agreementScope) private view returns (uint256 maxClaim) {
+        if (agreementScope == 0) agreementScope = SCOPE_ACTIVE | SCOPE_PENDING;
+
         RecurringCollectorStorage storage $ = _getStorage();
         AgreementData storage _a = $.agreements[agreementId];
-
-        uint256 maxActiveClaim = 0;
-        uint256 maxPendingClaim = 0;
 
         if (agreementScope & SCOPE_ACTIVE != 0) {
             if (_a.state == AgreementState.NotAccepted) {
@@ -1183,41 +1330,38 @@ contract RecurringCollector is
                 StoredOffer storage rcaOffer = $.rcaOffers[agreementId];
                 if (rcaOffer.offerHash != bytes32(0)) {
                     RecurringCollectionAgreement memory rca = abi.decode(rcaOffer.data, (RecurringCollectionAgreement));
-                    // Use block.timestamp as proxy for acceptedAt, deadline as expiry
-                    if (block.timestamp < rca.deadline) {
-                        maxActiveClaim = _maxClaim(
+                    if (block.timestamp <= rca.deadline)
+                        maxClaim = _maxClaim(
                             block.timestamp,
                             rca.endsAt,
                             rca.maxSecondsPerCollection,
                             rca.maxOngoingTokensPerSecond,
                             rca.maxInitialTokens
                         );
-                    }
                 }
-            } else {
-                maxActiveClaim = _getMaxNextClaim(_a);
-            }
+            } else maxClaim = _getMaxNextClaim(_a);
         }
 
         if (agreementScope & SCOPE_PENDING != 0) {
             StoredOffer storage rcauOffer = $.rcauOffers[agreementId];
-            if (rcauOffer.offerHash != bytes32(0)) {
+            if (rcauOffer.offerHash != bytes32(0) && rcauOffer.offerHash != _a.activeTermsHash) {
                 RecurringCollectionAgreementUpdate memory rcau = abi.decode(
                     rcauOffer.data,
                     (RecurringCollectionAgreementUpdate)
                 );
-                // Ongoing claim: time-capped from now to rcau.endsAt
-                maxPendingClaim = _maxClaim(
-                    block.timestamp,
-                    rcau.endsAt,
-                    rcau.maxSecondsPerCollection,
-                    rcau.maxOngoingTokensPerSecond,
-                    _a.lastCollectionAt == 0 ? rcau.maxInitialTokens : 0
-                );
+
+                if (block.timestamp <= rcau.deadline) {
+                    uint256 maxPendingClaim = _maxClaim(
+                        block.timestamp,
+                        rcau.endsAt,
+                        rcau.maxSecondsPerCollection,
+                        rcau.maxOngoingTokensPerSecond,
+                        _a.lastCollectionAt == 0 ? rcau.maxInitialTokens : 0
+                    );
+                    if (maxClaim < maxPendingClaim) maxClaim = maxPendingClaim;
+                }
             }
         }
-
-        maxClaim = maxActiveClaim < maxPendingClaim ? maxPendingClaim : maxActiveClaim;
     }
 
     /**
@@ -1238,7 +1382,6 @@ contract RecurringCollector is
         uint256 maxOngoingTokensPerSecond,
         uint256 maxInitialTokens
     ) private pure returns (uint256) {
-        // solhint-disable-next-line gas-strict-inequalities
         if (windowEnd <= windowStart) return 0;
         uint256 windowSeconds = windowEnd - windowStart;
         uint256 effectiveSeconds = windowSeconds < maxSecondsPerCollection ? windowSeconds : maxSecondsPerCollection;
@@ -1276,5 +1419,25 @@ contract RecurringCollector is
         uint256 nonce
     ) private pure returns (bytes16) {
         return bytes16(keccak256(abi.encode(payer, dataService, serviceProvider, deadline, nonce)));
+    }
+
+    /**
+     * @notice Compute the agreement ID and EIP-712 hash for an RCA.
+     * @dev These are always used together when accepting or offering an RCA.
+     * @param _rca The Recurring Collection Agreement
+     * @return agreementId The deterministic agreement ID
+     * @return rcaHash The EIP-712 hash of the RCA
+     */
+    function _rcaIdAndHash(
+        RecurringCollectionAgreement memory _rca
+    ) private view returns (bytes16 agreementId, bytes32 rcaHash) {
+        agreementId = _generateAgreementId(
+            _rca.payer,
+            _rca.dataService,
+            _rca.serviceProvider,
+            _rca.deadline,
+            _rca.nonce
+        );
+        rcaHash = _hashRCA(_rca);
     }
 }

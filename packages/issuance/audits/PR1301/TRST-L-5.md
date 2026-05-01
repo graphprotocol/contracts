@@ -3,7 +3,7 @@
 - **Severity:** Low
 - **Category:** Logical flaw
 - **Source:** RecurringAgreementManager.sol
-- **Status:** Open
+- **Status:** Fixed
 
 ## Description
 
@@ -19,7 +19,11 @@ Align `_computeMaxFirstClaim()` with the RecurringCollector's `getMaxNextClaim()
 
 ## Team Response
 
-TBD
+Fixed.
+
+## Mitigation Review
+
+Fixed. The RecurringCollector now calculates the effective window correctly.
 
 ---
 

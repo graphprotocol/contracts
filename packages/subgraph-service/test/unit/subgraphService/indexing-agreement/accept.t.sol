@@ -5,6 +5,7 @@ import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/P
 import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/utilities/ProvisionManager.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
+import { IIndexingAgreement } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IIndexingAgreement.sol";
 
 import { IndexingAgreement } from "../../../../contracts/libraries/IndexingAgreement.sol";
 import { IndexingAgreementDecoder } from "../../../../contracts/libraries/IndexingAgreementDecoder.sol";
@@ -231,7 +232,9 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
         subgraphService.acceptIndexingAgreement(indexerState.allocationId, unacceptableRca, signature);
     }
 
-    function test_SubgraphService_AcceptIndexingAgreement_Revert_WhenAgreementAlreadyAccepted(Seed memory seed) public {
+    function test_SubgraphService_AcceptIndexingAgreement_Idempotent_WhenAlreadyAcceptedSameAllocation(
+        Seed memory seed
+    ) public {
         Context storage ctx = _newCtx(seed);
         IndexerState memory indexerState = _withIndexer(ctx);
         (
@@ -239,19 +242,20 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
             bytes16 agreementId
         ) = _withAcceptedIndexingAgreement(ctx, indexerState);
 
-        // Re-sign for the re-accept attempt (the original signature was consumed)
+        // Re-sign for the re-accept (the original signature was consumed)
         (, bytes memory signature) = _recurringCollectorHelper.generateSignedRCA(
             acceptedRca,
             ctx.payer.signerPrivateKey
         );
 
-        bytes memory expectedErr = abi.encodeWithSelector(
-            IndexingAgreement.IndexingAgreementAlreadyAccepted.selector,
-            agreementId
-        );
-        vm.expectRevert(expectedErr);
+        // Re-accepting the same RCA on the same allocation is a no-op.
         resetPrank(ctx.indexers[0].addr);
-        subgraphService.acceptIndexingAgreement(ctx.indexers[0].allocationId, acceptedRca, signature);
+        bytes16 returnedId = subgraphService.acceptIndexingAgreement(
+            ctx.indexers[0].allocationId,
+            acceptedRca,
+            signature
+        );
+        assertEq(returnedId, agreementId);
     }
 
     function test_SubgraphService_AcceptIndexingAgreement_Revert_WhenAgreementAlreadyAllocated(
@@ -383,6 +387,149 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
 
         resetPrank(indexerState.addr);
         subgraphService.acceptIndexingAgreement(indexerState.allocationId, acceptableRca, signature);
+    }
+
+    function test_SubgraphService_AcceptIndexingAgreement_Rebinds_WhenDifferentAllocation(
+        Seed memory seed,
+        uint256 secondAllocationKey
+    ) public {
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+        (
+            IRecurringCollector.RecurringCollectionAgreement memory acceptedRca,
+            bytes16 agreementId
+        ) = _withAcceptedIndexingAgreement(ctx, indexerState);
+
+        // Agreement is now bound to the first allocation.
+        IIndexingAgreement.AgreementWrapper memory before = subgraphService.getIndexingAgreement(agreementId);
+        assertEq(before.agreement.allocationId, indexerState.allocationId, "starts bound to first allocation");
+
+        // Derive a second allocation for the same indexer + same subgraph deployment. The first
+        // allocation already consumed the indexer's provision, so top up first.
+        uint256 extraTokens = 10_000_000 ether;
+        deal({ token: address(token), to: indexerState.addr, give: extraTokens });
+        resetPrank(indexerState.addr);
+        _addToProvision(indexerState.addr, extraTokens);
+
+        secondAllocationKey = boundKey(secondAllocationKey);
+        address secondAllocationId = vm.addr(secondAllocationKey);
+        vm.assume(secondAllocationId != indexerState.allocationId);
+        vm.assume(ctx.allocations[secondAllocationId] == address(0));
+        ctx.allocations[secondAllocationId] = indexerState.addr;
+
+        bytes memory allocData = _createSubgraphAllocationData(
+            indexerState.addr,
+            indexerState.subgraphDeploymentId,
+            secondAllocationKey,
+            extraTokens
+        );
+        _startService(indexerState.addr, allocData);
+
+        // Re-sign the same RCA (original signature was consumed on first accept).
+        (, bytes memory signature) = _recurringCollectorHelper.generateSignedRCA(
+            acceptedRca,
+            ctx.payer.signerPrivateKey
+        );
+
+        // Re-accepting the same agreement on the new allocation rebinds it:
+        // event is re-emitted, agreement.allocationId updates, old allocation's active-agreement
+        // mapping is cleared. Collector's accept() is a no-op (already Accepted).
+        IndexingAgreement.AcceptIndexingAgreementMetadata memory metadata = abi.decode(
+            acceptedRca.metadata,
+            (IndexingAgreement.AcceptIndexingAgreementMetadata)
+        );
+        vm.expectEmit(address(subgraphService));
+        emit IndexingAgreement.IndexingAgreementAccepted(
+            acceptedRca.serviceProvider,
+            acceptedRca.payer,
+            agreementId,
+            secondAllocationId,
+            metadata.subgraphDeploymentId,
+            metadata.version,
+            metadata.terms
+        );
+        resetPrank(indexerState.addr);
+        bytes16 returnedId = subgraphService.acceptIndexingAgreement(secondAllocationId, acceptedRca, signature);
+        assertEq(returnedId, agreementId, "rebind returns same agreementId");
+
+        IIndexingAgreement.AgreementWrapper memory rebound = subgraphService.getIndexingAgreement(agreementId);
+        assertEq(rebound.agreement.allocationId, secondAllocationId, "rebound to second allocation");
+        assertEq(
+            uint8(rebound.collectorAgreement.state),
+            uint8(IRecurringCollector.AgreementState.Accepted),
+            "collector state still Accepted after rebind"
+        );
+
+        // Closing the OLD allocation must not cancel the agreement — the agreement no longer
+        // points to it. onCloseAllocation's allocationToActiveAgreementId lookup should return 0.
+        resetPrank(indexerState.addr);
+        subgraphService.stopService(indexerState.addr, abi.encode(indexerState.allocationId));
+
+        IIndexingAgreement.AgreementWrapper memory afterOldClose = subgraphService.getIndexingAgreement(agreementId);
+        assertEq(
+            uint8(afterOldClose.collectorAgreement.state),
+            uint8(IRecurringCollector.AgreementState.Accepted),
+            "closing old allocation leaves agreement intact"
+        );
+        assertEq(afterOldClose.agreement.allocationId, secondAllocationId, "still bound to second allocation");
+    }
+
+    /// @notice Rebinding an already-accepted agreement to a new allocation must still succeed after
+    /// the original RCA's acceptance deadline has elapsed. The collector's idempotent short-circuit
+    /// runs before the deadline check — same-hash re-accept is a no-op and does not consume the
+    /// signature's lifetime. Without this, indexers could not move agreements across allocations
+    /// after the typically-short RCA acceptance window closes.
+    function test_SubgraphService_AcceptIndexingAgreement_Rebinds_AfterRcaDeadline(
+        Seed memory seed,
+        uint256 secondAllocationKey
+    ) public {
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+        (
+            IRecurringCollector.RecurringCollectionAgreement memory acceptedRca,
+            bytes16 agreementId
+        ) = _withAcceptedIndexingAgreement(ctx, indexerState);
+
+        // Top up provision and allocate a second allocation on the same subgraph deployment.
+        uint256 extraTokens = 10_000_000 ether;
+        deal({ token: address(token), to: indexerState.addr, give: extraTokens });
+        resetPrank(indexerState.addr);
+        _addToProvision(indexerState.addr, extraTokens);
+
+        secondAllocationKey = boundKey(secondAllocationKey);
+        address secondAllocationId = vm.addr(secondAllocationKey);
+        vm.assume(secondAllocationId != indexerState.allocationId);
+        vm.assume(ctx.allocations[secondAllocationId] == address(0));
+        ctx.allocations[secondAllocationId] = indexerState.addr;
+
+        bytes memory allocData = _createSubgraphAllocationData(
+            indexerState.addr,
+            indexerState.subgraphDeploymentId,
+            secondAllocationKey,
+            extraTokens
+        );
+        _startService(indexerState.addr, allocData);
+
+        // Warp past the RCA's acceptance deadline. A fresh accept would now revert with
+        // RecurringCollectorAgreementDeadlineElapsed — the rebind must take the idempotent path.
+        vm.warp(uint256(acceptedRca.deadline) + 1);
+
+        (, bytes memory signature) = _recurringCollectorHelper.generateSignedRCA(
+            acceptedRca,
+            ctx.payer.signerPrivateKey
+        );
+
+        resetPrank(indexerState.addr);
+        bytes16 returnedId = subgraphService.acceptIndexingAgreement(secondAllocationId, acceptedRca, signature);
+        assertEq(returnedId, agreementId, "rebind after deadline returns same agreementId");
+
+        IIndexingAgreement.AgreementWrapper memory rebound = subgraphService.getIndexingAgreement(agreementId);
+        assertEq(rebound.agreement.allocationId, secondAllocationId, "rebound to second allocation after deadline");
+        assertEq(
+            uint8(rebound.collectorAgreement.state),
+            uint8(IRecurringCollector.AgreementState.Accepted),
+            "collector state still Accepted after post-deadline rebind"
+        );
     }
     /* solhint-enable graph/func-name-mixedcase */
 }

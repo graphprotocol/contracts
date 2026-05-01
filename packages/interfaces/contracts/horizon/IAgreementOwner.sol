@@ -4,8 +4,12 @@ pragma solidity ^0.8.22;
 /**
  * @title Interface for contract payer callbacks from RecurringCollector
  * @author Edge & Node
- * @notice Callbacks that RecurringCollector invokes on contract payers (payers with
- * deployed code, as opposed to EOA payers that use ECDSA signatures).
+ * @notice Callbacks that RecurringCollector invokes on contract payers that opt in
+ * via the CONDITION_AGREEMENT_OWNER offer condition.
+ *
+ * @dev Opt-in is enforced at acceptance: an offer that sets CONDITION_AGREEMENT_OWNER
+ * is only acceptable if the payer reports support for this interface via ERC-165
+ * (`supportsInterface(type(IAgreementOwner).interfaceId)` returns true).
  *
  * Collection callbacks:
  * - {beforeCollection}: called before PaymentsEscrow.collect() so the payer can top up

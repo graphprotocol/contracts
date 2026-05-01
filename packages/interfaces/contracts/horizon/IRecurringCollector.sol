@@ -50,7 +50,8 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
      * except for the first collection
      * @param minSecondsPerCollection The minimum amount of seconds that must pass between collections
      * @param maxSecondsPerCollection The maximum seconds of service that can be collected in a single collection
-     * @param conditions Bitmask of payer-declared conditions (e.g. CONDITION_ELIGIBILITY_CHECK)
+     * @param conditions Bitmask of payer-declared conditions
+     * (e.g. CONDITION_ELIGIBILITY_CHECK, CONDITION_AGREEMENT_OWNER)
      * @param nonce A unique nonce for preventing collisions (user-chosen)
      * @param metadata Arbitrary metadata to extend functionality if a data service requires it
      *
@@ -82,7 +83,8 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
      * except for the first collection
      * @param minSecondsPerCollection The minimum amount of seconds that must pass between collections
      * @param maxSecondsPerCollection The maximum seconds of service that can be collected in a single collection
-     * @param conditions Bitmask of payer-declared conditions (e.g. CONDITION_ELIGIBILITY_CHECK)
+     * @param conditions Bitmask of payer-declared conditions
+     * (e.g. CONDITION_ELIGIBILITY_CHECK, CONDITION_AGREEMENT_OWNER)
      * @param nonce The nonce for preventing replay attacks (must be current nonce + 1)
      * @param metadata Arbitrary metadata to extend functionality if a data service requires it
      */
@@ -164,7 +166,6 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
      * @param payer The address of the payer
      * @param serviceProvider The address of the service provider
      * @param agreementId The agreement ID
-     * @param acceptedAt The timestamp when the agreement was accepted
      * @param endsAt The timestamp when the agreement ends
      * @param maxInitialTokens The maximum amount of tokens that can be collected in the first collection
      * @param maxOngoingTokensPerSecond The maximum amount of tokens that can be collected per second
@@ -176,7 +177,6 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
         address indexed payer,
         address indexed serviceProvider,
         bytes16 agreementId,
-        uint64 acceptedAt,
         uint64 endsAt,
         uint256 maxInitialTokens,
         uint256 maxOngoingTokensPerSecond,
@@ -190,7 +190,6 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
      * @param payer The address of the payer
      * @param serviceProvider The address of the service provider
      * @param agreementId The agreement ID
-     * @param canceledAt The timestamp when the agreement was canceled
      * @param canceledBy The party that canceled the agreement
      */
     event AgreementCanceled(
@@ -198,7 +197,6 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
         address indexed payer,
         address indexed serviceProvider,
         bytes16 agreementId,
-        uint64 canceledAt,
         CancelAgreementBy canceledBy
     );
 
@@ -208,7 +206,6 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
      * @param payer The address of the payer
      * @param serviceProvider The address of the service provider
      * @param agreementId The agreement ID
-     * @param updatedAt The timestamp when the agreement was updated
      * @param endsAt The timestamp when the agreement ends
      * @param maxInitialTokens The maximum amount of tokens that can be collected in the first collection
      * @param maxOngoingTokensPerSecond The maximum amount of tokens that can be collected per second
@@ -220,7 +217,6 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
         address indexed payer,
         address indexed serviceProvider,
         bytes16 agreementId,
-        uint64 updatedAt,
         uint64 endsAt,
         uint256 maxInitialTokens,
         uint256 maxOngoingTokensPerSecond,
@@ -303,6 +299,12 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
     error RecurringCollectorInvalidCollectData(bytes invalidData);
 
     /**
+     * @notice Thrown when offer() is called with an unrecognized offer type
+     * @param offerType The unrecognized offer type
+     */
+    error RecurringCollectorInvalidOfferType(uint8 offerType);
+
+    /**
      * @notice Thrown when interacting with an agreement that has an incorrect state
      * @param agreementId The agreement ID
      * @param incorrectState The incorrect state
@@ -322,11 +324,11 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
     error RecurringCollectorAgreementAddressNotSet();
 
     /**
-     * @notice Thrown when accepting or upgrading an agreement with an elapsed endsAt
-     * @param currentTimestamp The current timestamp
+     * @notice Thrown when an agreement's endsAt is not strictly after its acceptance deadline.
+     * @param deadline The offer acceptance deadline
      * @param endsAt The agreement end timestamp
      */
-    error RecurringCollectorAgreementElapsedEndsAt(uint256 currentTimestamp, uint64 endsAt);
+    error RecurringCollectorAgreementEndsBeforeDeadline(uint64 deadline, uint64 endsAt);
 
     /**
      * @notice Thrown when accepting or upgrading an agreement with an elapsed endsAt
@@ -392,11 +394,12 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
     error RecurringCollectorCollectionNotEligible(bytes16 agreementId, address serviceProvider);
 
     /**
-     * @notice Thrown when an offer sets CONDITION_ELIGIBILITY_CHECK but the payer
-     * does not support IProviderEligibility (via ERC-165)
+     * @notice Thrown when an offer sets a condition flag whose corresponding
+     * interface is not declared by the payer (via ERC-165)
      * @param payer The payer address
+     * @param interfaceId The ERC-165 interface id the payer must declare for the set condition
      */
-    error RecurringCollectorPayerDoesNotSupportEligibilityInterface(address payer);
+    error RecurringCollectorPayerDoesNotSupportInterface(address payer, bytes4 interfaceId);
 
     /**
      * @notice Thrown when the caller does not provide enough gas for the payer callback
@@ -424,6 +427,13 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
     error RecurringCollectorPauseGuardianNoChange(address account, bool allowed);
 
     /**
+     * @notice Thrown when accepting or updating with a hash that the signer cancelled via SCOPE_SIGNED
+     * @param signer The signer who cancelled the offer
+     * @param hash The cancelled EIP-712 hash
+     */
+    error RecurringCollectorOfferCancelled(address signer, bytes32 hash);
+
+    /**
      * @notice Emitted when a pause guardian is set
      * @param account The address of the pause guardian
      * @param allowed The allowed status
@@ -449,6 +459,15 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
      * @param offerHash The EIP-712 hash of the stored offer
      */
     event OfferStored(bytes16 indexed agreementId, address indexed payer, uint8 indexed offerType, bytes32 offerHash);
+
+    /**
+     * @notice Emitted when a stored offer is cancelled via {IAgreementCollector.cancel}.
+     * @dev Fired for SCOPE_PENDING cancellations that delete a stored RCA or RCAU offer entry.
+     * @param caller The msg.sender of the cancel call (the payer for SCOPE_PENDING)
+     * @param agreementId The agreement ID
+     * @param hash The EIP-712 hash of the cancelled offer
+     */
+    event OfferCancelled(address indexed caller, bytes16 indexed agreementId, bytes32 indexed hash);
 
     /**
      * @notice Pauses the collector, blocking accept, update, collect, and cancel.

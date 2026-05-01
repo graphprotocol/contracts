@@ -3,7 +3,7 @@
 - **Severity:** Low
 - **Category:** Time sensitivity flaw
 - **Source:** RecurringCollector.sol
-- **Status:** Open
+- **Status:** Fixed
 
 ## Description
 
@@ -19,7 +19,11 @@ Enforce a minimum gas forwarding requirement for the `afterCollection()` callbac
 
 ## Team Response
 
-TBD
+Fixed.
+
+## Mitigation Review
+
+Fixed as suggested.
 
 ---
 

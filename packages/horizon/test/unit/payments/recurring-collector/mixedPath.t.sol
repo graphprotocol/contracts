@@ -2,7 +2,12 @@
 pragma solidity ^0.8.27;
 
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
-import { OFFER_TYPE_NEW, OFFER_TYPE_UPDATE } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
+import {
+    OFFER_TYPE_NEW,
+    OFFER_TYPE_UPDATE,
+    VERSION_CURRENT,
+    VERSION_NEXT
+} from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 
 import { RecurringCollectorSharedTest } from "./shared.t.sol";
 import { MockAgreementOwner } from "./MockAgreementOwner.t.sol";
@@ -64,7 +69,6 @@ contract RecurringCollectorMixedPathTest is RecurringCollectorSharedTest {
             address(approver),
             rca.serviceProvider,
             agreementId,
-            uint64(block.timestamp),
             rcau.endsAt,
             rcau.maxInitialTokens,
             rcau.maxOngoingTokensPerSecond,
@@ -77,8 +81,7 @@ contract RecurringCollectorMixedPathTest is RecurringCollectorSharedTest {
 
         // Verify updated terms
         IRecurringCollector.AgreementData memory agreement = _recurringCollector.getAgreement(agreementId);
-        assertEq(agreement.maxOngoingTokensPerSecond, rcau.maxOngoingTokensPerSecond);
-        assertEq(agreement.maxSecondsPerCollection, rcau.maxSecondsPerCollection);
+        assertEq(agreement.activeTermsHash, _recurringCollector.hashRCAU(rcau));
         assertEq(agreement.updateNonce, 1);
     }
 
@@ -185,7 +188,6 @@ contract RecurringCollectorMixedPathTest is RecurringCollectorSharedTest {
             payer,
             rca.serviceProvider,
             agreementId,
-            uint64(block.timestamp),
             rcau.endsAt,
             rcau.maxInitialTokens,
             rcau.maxOngoingTokensPerSecond,
@@ -197,8 +199,100 @@ contract RecurringCollectorMixedPathTest is RecurringCollectorSharedTest {
         _recurringCollector.update(rcau, updateSig);
 
         IRecurringCollector.AgreementData memory agreement = _recurringCollector.getAgreement(agreementId);
-        assertEq(agreement.maxOngoingTokensPerSecond, rcau.maxOngoingTokensPerSecond);
+        assertEq(agreement.activeTermsHash, _recurringCollector.hashRCAU(rcau));
         assertEq(agreement.updateNonce, 1);
+    }
+
+    /// @notice Replacing the active offer preserves an independent pending RCAU. The update is
+    /// still a valid signed offer against the same agreementId; the payer may cancel it
+    /// explicitly if they don't want it. The contract shouldn't silently invalidate it.
+    function test_MixedPath_OfferNew_PreservesPendingRcau() public {
+        MockAgreementOwner approver = new MockAgreementOwner();
+
+        IRecurringCollector.RecurringCollectionAgreement memory rca1 = _recurringCollectorHelper.sensibleRCA(
+            IRecurringCollector.RecurringCollectionAgreement({
+                deadline: 0,
+                endsAt: 0,
+                payer: address(approver),
+                dataService: makeAddr("ds"),
+                serviceProvider: makeAddr("sp"),
+                maxInitialTokens: 100 ether,
+                maxOngoingTokensPerSecond: 1 ether,
+                minSecondsPerCollection: 600,
+                maxSecondsPerCollection: 3600,
+                conditions: 0,
+                nonce: 1,
+                metadata: ""
+            })
+        );
+        // Derive the deterministic agreement ID from rca1's post-sensible fields.
+        bytes16 agreementId = _recurringCollector.generateAgreementId(
+            rca1.payer,
+            rca1.dataService,
+            rca1.serviceProvider,
+            rca1.deadline,
+            rca1.nonce
+        );
+
+        // Step 1: offer RCA → active = hashRCA(rca1)
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca1), 0);
+        bytes32 rca1Hash = _recurringCollector.hashRCA(rca1);
+
+        // Step 2: offer RCAU → pending = hashRCAU(rcau)
+        IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _recurringCollectorHelper.sensibleRCAU(
+            IRecurringCollector.RecurringCollectionAgreementUpdate({
+                agreementId: agreementId,
+                deadline: 0,
+                endsAt: 0,
+                maxInitialTokens: 200 ether,
+                maxOngoingTokensPerSecond: 2 ether,
+                minSecondsPerCollection: 600,
+                maxSecondsPerCollection: 7200,
+                conditions: 0,
+                nonce: 1,
+                metadata: ""
+            })
+        );
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
+        bytes32 rcauHash = _recurringCollector.hashRCAU(rcau);
+
+        // Pre-check: pending is set
+        assertEq(
+            _recurringCollector.getAgreementDetails(agreementId, VERSION_CURRENT).versionHash,
+            rca1Hash,
+            "active should be rca1Hash after offer"
+        );
+        assertEq(
+            _recurringCollector.getAgreementDetails(agreementId, VERSION_NEXT).versionHash,
+            rcauHash,
+            "pending should be rcauHash after offer UPDATE"
+        );
+
+        // Step 3: offer different RCA with same primary fields (same agreementId, different terms)
+        IRecurringCollector.RecurringCollectionAgreement memory rca2 = rca1;
+        rca2.maxInitialTokens = 999 ether; // different terms → different hash, same agreementId
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca2), 0);
+        bytes32 rca2Hash = _recurringCollector.hashRCA(rca2);
+
+        // Post-check: active replaced, pending preserved (still the original RCAU)
+        assertEq(
+            _recurringCollector.getAgreementDetails(agreementId, VERSION_CURRENT).versionHash,
+            rca2Hash,
+            "active should be rca2Hash"
+        );
+        assertEq(
+            _recurringCollector.getAgreementDetails(agreementId, VERSION_NEXT).versionHash,
+            rcauHash,
+            "pending RCAU should still be queued"
+        );
+
+        // The pending offer's $.terms entry must still be retrievable — payer can still accept it
+        (uint8 pendingType, bytes memory pendingData) = _recurringCollector.getAgreementOfferAt(agreementId, 1);
+        assertEq(pendingType, OFFER_TYPE_UPDATE, "pending slot should still hold update offer");
+        assertEq(keccak256(pendingData), keccak256(abi.encode(rcau)), "pending data should be the original RCAU");
     }
 
     /* solhint-enable graph/func-name-mixedcase */

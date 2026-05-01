@@ -166,10 +166,10 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
             indexerState
         );
 
-        // Create update with tokensPerSecond exceeding the RCA's maxOngoingTokensPerSecond
-        uint256 excessiveTokensPerSecond = acceptedRca.maxOngoingTokensPerSecond + 1;
+        // Create update with tokensPerSecond exceeding the RCAU's maxOngoingTokensPerSecond
         IRecurringCollector.RecurringCollectionAgreementUpdate
             memory rcau = _generateAcceptableRecurringCollectionAgreementUpdate(ctx, acceptedRca);
+        uint256 excessiveTokensPerSecond = rcau.maxOngoingTokensPerSecond + 1;
         rcau.metadata = _encodeUpdateIndexingAgreementMetadataV1(
             IndexingAgreement.UpdateIndexingAgreementMetadata({
                 version: IIndexingAgreement.IndexingAgreementVersion.V1,
@@ -190,7 +190,7 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
         bytes memory expectedErr = abi.encodeWithSelector(
             IndexingAgreement.IndexingAgreementInvalidTerms.selector,
             excessiveTokensPerSecond,
-            acceptedRca.maxOngoingTokensPerSecond
+            rcau.maxOngoingTokensPerSecond
         );
         vm.expectRevert(expectedErr);
         resetPrank(indexerState.addr);
@@ -226,6 +226,30 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
 
         resetPrank(indexerState.addr);
         subgraphService.updateIndexingAgreement(indexerState.addr, acceptableRcau, authData);
+    }
+
+    function test_SubgraphService_UpdateIndexingAgreement_Idempotent_WhenAlreadyAtActiveHash(Seed memory seed) public {
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+        (IRecurringCollector.RecurringCollectionAgreement memory acceptedRca, ) = _withAcceptedIndexingAgreement(
+            ctx,
+            indexerState
+        );
+        (
+            IRecurringCollector.RecurringCollectionAgreementUpdate memory acceptableRcau,
+            bytes memory authData
+        ) = _generateAcceptableSignedRCAU(ctx, acceptedRca);
+
+        // First update sets activeTermsHash = hash(rcau) on the collector and applies SS terms.
+        resetPrank(indexerState.addr);
+        subgraphService.updateIndexingAgreement(indexerState.addr, acceptableRcau, authData);
+
+        // Re-submitting the same RCAU is a no-op at the SS layer:
+        // the hash match short-circuits before re-emitting or re-writing terms.
+        vm.recordLogs();
+        resetPrank(indexerState.addr);
+        subgraphService.updateIndexingAgreement(indexerState.addr, acceptableRcau, authData);
+        assertEq(vm.getRecordedLogs().length, 0, "no event emitted on idempotent re-update");
     }
     /* solhint-enable graph/func-name-mixedcase */
 }
