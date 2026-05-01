@@ -63,10 +63,10 @@ contract RecurringCollector is
     using PPMMath for uint256;
 
     /// @notice The minimum number of seconds that must be between two collections
-    uint32 public constant MIN_SECONDS_COLLECTION_WINDOW = 600;
+    uint32 internal constant MIN_SECONDS_COLLECTION_WINDOW = 600;
 
     /// @notice Condition flag: agreement requires eligibility checks before collection
-    uint16 public constant CONDITION_ELIGIBILITY_CHECK = 1;
+    uint16 internal constant CONDITION_ELIGIBILITY_CHECK = 1;
 
     /// @notice Maximum gas forwarded to payer contract callbacks (beforeCollection / afterCollection).
     /// Caps gas available to payer implementations, preventing 63/64-rule gas siphoning attacks
@@ -81,13 +81,13 @@ contract RecurringCollector is
 
     /* solhint-disable gas-small-strings */
     /// @notice The EIP712 typehash for the RecurringCollectionAgreement struct
-    bytes32 public constant EIP712_RCA_TYPEHASH =
+    bytes32 internal constant EIP712_RCA_TYPEHASH =
         keccak256(
             "RecurringCollectionAgreement(uint64 deadline,uint64 endsAt,address payer,address dataService,address serviceProvider,uint256 maxInitialTokens,uint256 maxOngoingTokensPerSecond,uint32 minSecondsPerCollection,uint32 maxSecondsPerCollection,uint16 conditions,uint256 nonce,bytes metadata)"
         );
 
     /// @notice The EIP712 typehash for the RecurringCollectionAgreementUpdate struct
-    bytes32 public constant EIP712_RCAU_TYPEHASH =
+    bytes32 internal constant EIP712_RCAU_TYPEHASH =
         keccak256(
             "RecurringCollectionAgreementUpdate(bytes16 agreementId,uint64 deadline,uint64 endsAt,uint256 maxInitialTokens,uint256 maxOngoingTokensPerSecond,uint32 minSecondsPerCollection,uint32 maxSecondsPerCollection,uint16 conditions,uint32 nonce,bytes metadata)"
         );
