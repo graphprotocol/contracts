@@ -1,4 +1,4 @@
-# TRST-L-7: The cancel() function order sensitivity leaves RCAU offer unreachable
+# TRST-L-6: The cancel() function order sensitivity leaves RCAU offer unreachable
 
 - **Severity:** Low
 - **Category:** Time-sensitivity issues

@@ -1,4 +1,4 @@
-# TRST-L-9: Callback gas precheck does not account for intermediate overhead
+# TRST-L-8: Callback gas precheck does not account for intermediate overhead
 
 - **Severity:** Low
 - **Category:** Gas-related issues
