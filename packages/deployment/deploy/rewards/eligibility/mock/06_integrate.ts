@@ -26,11 +26,14 @@ export default createActionModule(
     const { governor, canSign } = await canSignAsGovernor(env)
 
     await applyConfiguration(env, client, [createRMIntegrationCondition(reo.address)], {
-      contractName: `${Contracts.horizon.RewardsManager.name}-REO`,
+      contractName: `${Contracts.horizon.RewardsManager.name}-MockREO`,
       contractAddress: rm.address,
       canExecuteDirectly: canSign,
       executor: governor,
     })
   },
-  { extraDependencies: [ComponentTags.REWARDS_MANAGER] },
+  {
+    extraDependencies: [ComponentTags.REWARDS_MANAGER],
+    prerequisites: [Contracts.horizon.RewardsManager],
+  },
 )
