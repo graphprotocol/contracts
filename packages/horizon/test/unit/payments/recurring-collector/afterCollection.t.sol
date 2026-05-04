@@ -194,7 +194,7 @@ contract RecurringCollectorAfterCollectionTest is RecurringCollectorSharedTest {
         // Core logic + escrow call + beforeCollection + events uses ~200k gas.
         bool triggered;
         for (uint256 gasLimit = 1_700_000; gasLimit > 1_500_000; gasLimit -= 10_000) {
-            uint256 snap = vm.snapshot();
+            uint256 snap = vm.snapshotState();
             vm.prank(rca.dataService);
             (bool success, bytes memory returnData) = address(_recurringCollector).call{ gas: gasLimit }(callData);
             if (!success && returnData.length >= 4) {
@@ -204,11 +204,11 @@ contract RecurringCollectorAfterCollectionTest is RecurringCollectorSharedTest {
                 }
                 if (selector == IRecurringCollector.RecurringCollectorInsufficientCallbackGas.selector) {
                     triggered = true;
-                    assertTrue(vm.revertTo(snap));
+                    assertTrue(vm.revertToState(snap));
                     break;
                 }
             }
-            assertTrue(vm.revertTo(snap));
+            assertTrue(vm.revertToState(snap));
         }
         assertTrue(triggered, "Should have triggered InsufficientCallbackGas at some gas limit");
     }
@@ -255,7 +255,7 @@ contract RecurringCollectorAfterCollectionTest is RecurringCollectorSharedTest {
         // confirms at least one (the first, eligibility) trips InsufficientCallbackGas.
         bool triggered;
         for (uint256 gasLimit = 1_700_000; gasLimit > 1_500_000; gasLimit -= 10_000) {
-            uint256 snap = vm.snapshot();
+            uint256 snap = vm.snapshotState();
             vm.prank(rca.dataService);
             (bool success, bytes memory returnData) = address(_recurringCollector).call{ gas: gasLimit }(callData);
             if (!success && returnData.length >= 4) {
@@ -266,13 +266,86 @@ contract RecurringCollectorAfterCollectionTest is RecurringCollectorSharedTest {
                 }
                 if (selector == IRecurringCollector.RecurringCollectorInsufficientCallbackGas.selector) {
                     triggered = true;
-                    assertTrue(vm.revertTo(snap));
+                    assertTrue(vm.revertToState(snap));
                     break;
                 }
             }
-            assertTrue(vm.revertTo(snap));
+            assertTrue(vm.revertToState(snap));
         }
         assertTrue(triggered, "eligibility precheck must trip InsufficientCallbackGas under tight gas");
+    }
+
+    /// @notice Boundary regression check on CALLBACK_GAS_OVERHEAD: at the lowest gas at which
+    /// `collect` succeeds, the after-callback precheck is just barely satisfied, so the EIP-150
+    /// `gasleft * 63/64` cap is at its tightest. Asserting the callback's recorded gasleft stays
+    /// within `tolerance` of MAX_PAYER_CALLBACK_GAS verifies that `OVERHEAD ≥ δ` (the actual
+    /// pre-CALL Solidity overhead) at this collector configuration. Existing
+    /// `test_Collect_Revert_WhenInsufficientCallbackGas*` tests bracket the other side
+    /// (`gasleft < threshold` reverts with `InsufficientCallbackGas`).
+    ///
+    /// **If this test fails** look at *what changed*:
+    ///   - You added pre-CALL Solidity overhead (extra arg encoding, an SLOAD before the assembly
+    ///     block, or any code between the gasleft() precheck and the CALL opcode).
+    ///     Action: bump `CALLBACK_GAS_OVERHEAD` in `RecurringCollector.sol` to cover the new δ,
+    ///     or trim the new overhead. **Don't just raise `tolerance` here** — that silences the
+    ///     alarm without restoring the production margin.
+    ///   - You changed `MAX_PAYER_CALLBACK_GAS`. Update `expectedMin` to follow.
+    ///   - You changed `MockAgreementOwner.afterCollection`'s prologue (added SLOADs, etc.) so the
+    ///     `gasleft()` sample lands deeper into dispatch. Recorded baseline shifts. Adjust
+    ///     `tolerance` only if you understand and accept the new overhead path.
+    ///
+    /// Numbers at the time of writing (CALLBACK_GAS_OVERHEAD = 3_000, MAX = 1_500_000, warm-call
+    /// δ ≈ 500, mock dispatch ≈ 300): recorded ≈ 1_499_700. tolerance 500 → assertion floor
+    /// 1_499_500, leaves ~200 gas of headroom. Reducing `OVERHEAD` to ~100 (sabotage check)
+    /// drops recorded to ~1_499_220 → fails.
+    function test_Collect_Callbacks_ReceiveMaxPayerCallbackGas() public {
+        uint256 expectedMin = 1_500_000; // mirrors MAX_PAYER_CALLBACK_GAS
+        uint256 tolerance = 500;
+
+        MockAgreementOwner approver = _newApprover();
+        (IRecurringCollector.RecurringCollectionAgreement memory rca, bytes16 agreementId) = _acceptUnsignedAgreement(
+            approver
+        );
+
+        skip(rca.minSecondsPerCollection);
+        bytes memory data = _generateCollectData(
+            _generateCollectParams(rca, agreementId, bytes32("col-budget"), 1 ether, 0)
+        );
+        bytes memory callData = abi.encodeCall(
+            _recurringCollector.collect,
+            (IGraphPayments.PaymentTypes.IndexingFee, data)
+        );
+
+        // Binary-search the lowest external gas at which `collect` succeeds. With both
+        // CONDITION_AGREEMENT_OWNER callbacks live, the after-callback precheck is the
+        // bottleneck — at the lowest passing gas its precheck is just satisfied, so any
+        // shortfall in CALLBACK_GAS_OVERHEAD shows up in the after-callback's recorded gasleft.
+        uint256 lo = 1_500_000; // below threshold — collect reverts with InsufficientCallbackGas
+        uint256 hi = 2_000_000; // ample
+        while (hi - lo > 100) {
+            uint256 mid = (lo + hi) / 2;
+            uint256 snap = vm.snapshotState();
+            vm.prank(rca.dataService);
+            (bool ok, ) = address(_recurringCollector).call{ gas: mid }(callData);
+            assertTrue(vm.revertToState(snap));
+            if (ok) hi = mid;
+            else lo = mid;
+        }
+
+        // Re-run at the lowest passing gas; this run's state we keep so the mock's recorded
+        // values are readable.
+        vm.prank(rca.dataService);
+        (bool finalOk, ) = address(_recurringCollector).call{ gas: hi }(callData);
+        assertTrue(finalOk, "collect failed at the gas value the binary search settled on");
+
+        // before-callback (cold first access) runs with plenty of remaining gas, so EIP-150
+        // doesn't bite there even at the boundary. after-callback (warm) is where the cap
+        // tightens — that's the meaningful assertion.
+        assertGe(
+            approver.recordedAfterCollectionGasleft(),
+            expectedMin - tolerance,
+            "afterCollection received < MAX_PAYER_CALLBACK_GAS at boundary gas: CALLBACK_GAS_OVERHEAD margin eroded"
+        );
     }
 
     function test_AfterCollection_NotCalledForEOAPayer(FuzzyTestCollect calldata fuzzy) public {

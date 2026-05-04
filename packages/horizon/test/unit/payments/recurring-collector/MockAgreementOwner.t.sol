@@ -22,6 +22,8 @@ contract MockAgreementOwner is IAgreementOwner, IProviderEligibility, IERC165 {
 
     bytes16 public lastBeforeCollectionAgreementId;
     uint256 public lastBeforeCollectionTokens;
+    /// @notice gasleft() observed at the start of beforeCollection, for callback-budget assertions.
+    uint256 public recordedBeforeCollectionGasleft;
     bool public shouldRevertOnBeforeCollection;
 
     function setShouldRevertOnBeforeCollection(bool _shouldRevert) external {
@@ -29,6 +31,7 @@ contract MockAgreementOwner is IAgreementOwner, IProviderEligibility, IERC165 {
     }
 
     function beforeCollection(bytes16 agreementId, uint256 tokensToCollect) external override {
+        recordedBeforeCollectionGasleft = gasleft();
         if (shouldRevertOnBeforeCollection) {
             revert("MockAgreementOwner: forced revert on beforeCollection");
         }
@@ -38,6 +41,8 @@ contract MockAgreementOwner is IAgreementOwner, IProviderEligibility, IERC165 {
 
     bytes16 public lastCollectedAgreementId;
     uint256 public lastCollectedTokens;
+    /// @notice gasleft() observed at the start of afterCollection, for callback-budget assertions.
+    uint256 public recordedAfterCollectionGasleft;
     bool public shouldRevertOnCollected;
 
     function setShouldRevertOnCollected(bool _shouldRevert) external {
@@ -45,6 +50,7 @@ contract MockAgreementOwner is IAgreementOwner, IProviderEligibility, IERC165 {
     }
 
     function afterCollection(bytes16 agreementId, uint256 tokensCollected) external override {
+        recordedAfterCollectionGasleft = gasleft();
         if (shouldRevertOnCollected) {
             revert("MockAgreementOwner: forced revert on afterCollection");
         }
