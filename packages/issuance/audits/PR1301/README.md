@@ -1,10 +1,11 @@
-# Trust Security Audit - PR #1301 / #1312
+# Trust Security Audit - PR #1301 / #1312 / #1325
 
 **Auditor:** Trust Security
 **Period:** 2026-03-03 to 2026-03-19
 **Commit:** 7405c9d5f73bce04734efb3f609b76d95ffb520e
 **Fix review commit:** 0bbb476f37f85d042927e84d8764fa58eb020ccf
-**Report:** [Graph_PR1301_v02.pdf](Graph_PR1301_v02.pdf)
+**2nd fix review commit:** f44fc5a4c74fa5190fd2892ae15a083b79f715f3
+**Report:** [Graph_PR1325_v03.pdf](Graph_PR1325_v03.pdf)
 
 ## Findings Summary
 
@@ -14,22 +15,20 @@
 | [TRST-H-2](TRST-H-2.md)   | Invalid supportsInterface() returndata escapes try/catch | High     | Fixed        |
 | [TRST-H-3](TRST-H-3.md)   | Stale escrow snapshot causes perpetual revert loop       | High     | Fixed        |
 | [TRST-H-4](TRST-H-4.md)   | EOA payer can block collection via EIP-7702              | High     | Fixed        |
-| [TRST-M-1](TRST-M-1.md)   | Micro-thaw griefing via permissionless depositTo()       | Medium   | Open         |
+| [TRST-M-1](TRST-M-1.md)   | Micro-thaw griefing via permissionless depositTo()       | Medium   | Fixed        |
 | [TRST-M-2](TRST-M-2.md)   | tempJit fallback in beforeCollection() unreachable       | Medium   | Fixed        |
 | [TRST-M-3](TRST-M-3.md)   | Instant escrow mode degradation via agreement offer      | Medium   | Acknowledged |
-| [TRST-M-4](TRST-M-4.md)   | Returndata bombing via payer callbacks                   | Medium   | Open         |
-| [TRST-M-5](TRST-M-5.md)   | Perpetual thaw griefing via micro deposits               | Medium   | Open         |
+| [TRST-M-4](TRST-M-4.md)   | Returndata bombing via payer callbacks                   | Medium   | Fixed        |
 | [TRST-L-1](TRST-L-1.md)   | Insufficient gas for afterCollection callback            | Low      | Fixed        |
 | [TRST-L-2](TRST-L-2.md)   | Pending update over-reserves escrow                      | Low      | Fixed        |
 | [TRST-L-3](TRST-L-3.md)   | Unsafe approveAgreement behavior during pause            | Low      | Fixed        |
 | [TRST-L-4](TRST-L-4.md)   | Pair tracking removal blocked by 1 wei donation          | Low      | Acknowledged |
 | [TRST-L-5](TRST-L-5.md)   | \_computeMaxFirstClaim overestimates near deadline       | Low      | Fixed        |
-| [TRST-L-6](TRST-L-6.md)   | Update offer cleanup bypassed via planted offer          | Low      | Open         |
-| [TRST-L-7](TRST-L-7.md)   | cancel() order sensitivity leaves RCAU offer unreachable | Low      | Open         |
-| [TRST-L-8](TRST-L-8.md)   | EOA payer signatures cannot be revoked before deadline   | Low      | Open         |
-| [TRST-L-9](TRST-L-9.md)   | Callback gas precheck does not account for overhead      | Low      | Open         |
-| [TRST-L-10](TRST-L-10.md) | EIP-7702 payer code change enables callback gas griefing | Low      | Open         |
-| [TRST-L-11](TRST-L-11.md) | Inaccurate state flags in getAgreementDetails()          | Low      | Open         |
+| [TRST-L-6](TRST-L-6.md)   | cancel() order sensitivity leaves RCAU offer unreachable | Low      | Fixed        |
+| [TRST-L-7](TRST-L-7.md)   | EOA payer signatures cannot be revoked before deadline   | Low      | Fixed        |
+| [TRST-L-8](TRST-L-8.md)   | Callback gas precheck does not account for overhead      | Low      | Fixed        |
+| [TRST-L-9](TRST-L-9.md)   | EIP-7702 payer code change enables callback gas griefing | Low      | Fixed        |
+| [TRST-L-10](TRST-L-10.md) | Inaccurate state flags in getAgreementDetails()          | Low      | Fixed        |
 
 ## Recommendations
 
@@ -48,6 +47,7 @@
 | [TRST-R-11](TRST-R-11.md) | Remove or implement unused state flags in IAgreementCollector   |
 | [TRST-R-12](TRST-R-12.md) | Document ACCEPTED state returned for cancelled agreements       |
 | [TRST-R-13](TRST-R-13.md) | Document reclaim reason change for stale allocation force-close |
+| [TRST-R-14](TRST-R-14.md) | Avoid magic numbers in production code                          |
 
 ## Centralization Risks
 
@@ -65,3 +65,8 @@
 | [TRST-SR-2](TRST-SR-2.md) | Escrow thawing period creates prolonged fund immobility        |
 | [TRST-SR-3](TRST-SR-3.md) | Issuance distribution dependency for RAM solvency              |
 | [TRST-SR-4](TRST-SR-4.md) | Try/catch callback pattern silently degrades state consistency |
+
+## Notes on findings dropped between v02 and v03
+
+- v02 **TRST-M-5** (Perpetual thaw griefing via micro deposits) was withdrawn in v03; the underlying concern is treated as a sub-vector of TRST-M-1, addressed by `minResidualEscrowFactor`.
+- v02 **TRST-L-6** (Update offer cleanup bypassed via planted offer) was withdrawn in v03; the agreement.payer / per-version persistence refactor done for v03 TRST-L-6 / TRST-L-10 supersedes the original cleanup concern.
