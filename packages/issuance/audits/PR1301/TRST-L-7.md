@@ -24,3 +24,5 @@ Added `SCOPE_SIGNED` flag to `cancel()`, giving EOA signers an on-chain revocati
 The introduced alternative cancel path is sufficient. It should be clarified that whenever a payer is represented by a signer, `cancel()` should be called by the signer, not payer.
 
 ---
+
+Clarified in the `IAgreementCollector.cancel()` NatSpec: each scope's required caller is named explicitly (`SCOPE_SIGNED` → the ECDSA signer, `SCOPE_PENDING` / `SCOPE_ACTIVE` → the payer), and the combined-call case is noted as only useful when an EOA signs for itself as payer. Implementation `@dev` kept brief; per-scope caller behavior pulled in via `@inheritdoc`.
