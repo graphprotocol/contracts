@@ -134,6 +134,21 @@ interface IRewardsManager {
      */
     function setDefaultReclaimAddress(address newDefaultReclaimAddress) external;
 
+    /**
+     * @notice Set whether ineligible indexers cause takeRewards to revert
+     * @dev When true, takeRewards reverts for ineligible indexers, keeping rewards claimable
+     * if the indexer becomes eligible and collects before the allocation goes stale.
+     * When false (default), takeRewards succeeds but rewards are reclaimed.
+     * @param revertOnIneligible True to revert on ineligible, false to reclaim
+     */
+    function setRevertOnIneligible(bool revertOnIneligible) external;
+
+    /**
+     * @notice Get whether ineligible indexers cause takeRewards to revert
+     * @return revertOnIneligible True if takeRewards reverts for ineligible indexers
+     */
+    function getRevertOnIneligible() external view returns (bool revertOnIneligible);
+
     // -- Denylist --
 
     /**

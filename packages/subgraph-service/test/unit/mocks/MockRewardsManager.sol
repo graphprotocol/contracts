@@ -52,6 +52,12 @@ contract MockRewardsManager is IRewardsManager {
 
     function setDefaultReclaimAddress(address) external {}
 
+    function setRevertOnIneligible(bool) external {}
+
+    function getRevertOnIneligible() external pure returns (bool) {
+        return false;
+    }
+
     function reclaimRewards(bytes32, address _allocationId) external view returns (uint256) {
         address rewardsIssuer = msg.sender;
         (

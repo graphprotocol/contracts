@@ -274,5 +274,47 @@ describe('Rewards - Configuration', () => {
         expect(await rewardsManager.minimumSubgraphSignal()).eq(newMinimumSignal)
       })
     })
+
+    describe('revertOnIneligible', function () {
+      it('should reject setRevertOnIneligible if unauthorized', async function () {
+        const tx = rewardsManager.connect(indexer1).setRevertOnIneligible(true)
+        await expect(tx).revertedWith('Only Controller governor')
+      })
+
+      it('should set revertOnIneligible to true', async function () {
+        const tx = rewardsManager.connect(governor).setRevertOnIneligible(true)
+        await expect(tx).emit(rewardsManager, 'ParameterUpdated').withArgs('revertOnIneligible')
+        expect(await rewardsManager.getRevertOnIneligible()).eq(true)
+      })
+
+      it('should set revertOnIneligible to false', async function () {
+        // First set to true
+        await rewardsManager.connect(governor).setRevertOnIneligible(true)
+
+        // Then set back to false
+        const tx = rewardsManager.connect(governor).setRevertOnIneligible(false)
+        await expect(tx).emit(rewardsManager, 'ParameterUpdated').withArgs('revertOnIneligible')
+        expect(await rewardsManager.getRevertOnIneligible()).eq(false)
+      })
+
+      it('should be a no-op when setting same value (false to false)', async function () {
+        // Default is false
+        expect(await rewardsManager.getRevertOnIneligible()).eq(false)
+
+        const tx = rewardsManager.connect(governor).setRevertOnIneligible(false)
+        await expect(tx).to.not.emit(rewardsManager, 'ParameterUpdated')
+
+        expect(await rewardsManager.getRevertOnIneligible()).eq(false)
+      })
+
+      it('should be a no-op when setting same value (true to true)', async function () {
+        await rewardsManager.connect(governor).setRevertOnIneligible(true)
+
+        const tx = rewardsManager.connect(governor).setRevertOnIneligible(true)
+        await expect(tx).to.not.emit(rewardsManager, 'ParameterUpdated')
+
+        expect(await rewardsManager.getRevertOnIneligible()).eq(true)
+      })
+    })
   })
 })

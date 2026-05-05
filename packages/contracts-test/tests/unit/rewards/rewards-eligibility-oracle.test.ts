@@ -533,6 +533,97 @@ describe('Rewards - Eligibility Oracle', () => {
       expectApproxEq(event.args[2], expectedIndexingRewards, 'rewards amount')
     })
 
+    it('should revert for ineligible indexer when revertOnIneligible is true', async function () {
+      // Setup REO that denies indexer1
+      const MockRewardsEligibilityOracleFactory = await hre.ethers.getContractFactory(
+        'contracts/tests/MockRewardsEligibilityOracle.sol:MockRewardsEligibilityOracle',
+      )
+      const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(false) // Deny
+      await mockOracle.deployed()
+      await rewardsManager.connect(governor).setProviderEligibilityOracle(mockOracle.address)
+
+      // Enable revert on ineligible
+      await rewardsManager.connect(governor).setRevertOnIneligible(true)
+
+      // Align with the epoch boundary
+      await helpers.mineEpoch(epochManager)
+
+      // Setup allocation
+      await setupIndexerAllocation()
+
+      // Jump to next epoch
+      await helpers.mineEpoch(epochManager)
+
+      // Close allocation - should revert because indexer is ineligible
+      const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
+      await expect(tx).revertedWith('Indexer not eligible for rewards')
+    })
+
+    it('should not revert for eligible indexer when revertOnIneligible is true', async function () {
+      // Setup REO that allows indexer1
+      const MockRewardsEligibilityOracleFactory = await hre.ethers.getContractFactory(
+        'contracts/tests/MockRewardsEligibilityOracle.sol:MockRewardsEligibilityOracle',
+      )
+      const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(true) // Allow
+      await mockOracle.deployed()
+      await rewardsManager.connect(governor).setProviderEligibilityOracle(mockOracle.address)
+
+      // Enable revert on ineligible
+      await rewardsManager.connect(governor).setRevertOnIneligible(true)
+
+      // Align with the epoch boundary
+      await helpers.mineEpoch(epochManager)
+
+      // Setup allocation
+      await setupIndexerAllocation()
+
+      // Jump to next epoch
+      await helpers.mineEpoch(epochManager)
+
+      // Close allocation - should succeed (indexer is eligible)
+      const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
+      await expect(tx).emit(rewardsManager, 'HorizonRewardsAssigned')
+    })
+
+    it('should reclaim (not revert) for ineligible indexer when revertOnIneligible is false', async function () {
+      // Setup REO that denies indexer1
+      const MockRewardsEligibilityOracleFactory = await hre.ethers.getContractFactory(
+        'contracts/tests/MockRewardsEligibilityOracle.sol:MockRewardsEligibilityOracle',
+      )
+      const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(false) // Deny
+      await mockOracle.deployed()
+      await rewardsManager.connect(governor).setProviderEligibilityOracle(mockOracle.address)
+
+      // Ensure revertOnIneligible is false (default)
+      expect(await rewardsManager.getRevertOnIneligible()).eq(false)
+
+      // Align with the epoch boundary
+      await helpers.mineEpoch(epochManager)
+
+      // Setup allocation
+      await setupIndexerAllocation()
+
+      // Jump to next epoch
+      await helpers.mineEpoch(epochManager)
+
+      // Close allocation - should succeed but deny rewards
+      const tx = await staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
+      const receipt = await tx.wait()
+
+      // Should emit RewardsDeniedDueToEligibility (not revert)
+      const rewardsDeniedEvents = receipt.logs
+        .map((log) => {
+          try {
+            return rewardsManager.interface.parseLog(log)
+          } catch {
+            return null
+          }
+        })
+        .filter((event) => event?.name === 'RewardsDeniedDueToEligibility')
+
+      expect(rewardsDeniedEvents.length).to.equal(1, 'RewardsDeniedDueToEligibility event not found')
+    })
+
     it('should verify event structure differences between denial mechanisms', async function () {
       // Test 1: Denylist denial - event WITHOUT amount
       // Create allocation FIRST, then deny (so there are pre-denial rewards to deny)
