@@ -15,7 +15,10 @@ import { IRecurringEscrowManagement } from "@graphprotocol/interfaces/contracts/
 import { IProviderEligibilityManagement } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IProviderEligibilityManagement.sol";
 import { IRecurringAgreements } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreements.sol";
 import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
-import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
+import {
+    IAgreementCollector,
+    VERSION_CURRENT
+} from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IProviderEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IProviderEligibility.sol";
 import { IEmergencyRoleControl } from "@graphprotocol/interfaces/contracts/issuance/common/IEmergencyRoleControl.sol";
 
@@ -641,7 +644,7 @@ contract RecurringAgreementManager is
         }
         IAgreementCollector.AgreementDetails memory details = IAgreementCollector(collector).getAgreementDetails(
             agreementId,
-            0
+            VERSION_CURRENT
         );
         provider = details.serviceProvider;
         if (provider == address(0)) {
