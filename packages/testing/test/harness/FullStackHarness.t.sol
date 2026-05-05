@@ -391,6 +391,8 @@ abstract contract FullStackHarness is Test {
     // ── RAM agreement helpers ──────────────────────────────────────────
 
     /// @notice Build an RCA with RAM as payer, targeting a specific indexer + SS
+    /// @dev Sets CONDITION_AGREEMENT_OWNER (=2) so RAM receives beforeCollection /
+    /// afterCollection — JIT escrow top-up and reconciliation depend on these callbacks.
     function _buildRCA(
         IndexerSetup memory indexer,
         uint256 maxInitialTokens,
@@ -410,7 +412,7 @@ abstract contract FullStackHarness is Test {
                 minSecondsPerCollection: 60,
                 maxSecondsPerCollection: maxSecondsPerCollection,
                 nonce: 1,
-                conditions: 0,
+                conditions: 2, // CONDITION_AGREEMENT_OWNER
                 metadata: abi.encode(
                     IndexingAgreement.AcceptIndexingAgreementMetadata({
                         subgraphDeploymentId: indexer.subgraphDeploymentId,
