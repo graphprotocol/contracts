@@ -15,11 +15,9 @@ import { IRecurringEscrowManagement } from "@graphprotocol/interfaces/contracts/
 import { IProviderEligibilityManagement } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IProviderEligibilityManagement.sol";
 import { IRecurringAgreements } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreements.sol";
 import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
-import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
-import { IDataServiceAgreements } from "@graphprotocol/interfaces/contracts/data-service/IDataServiceAgreements.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IProviderEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IProviderEligibility.sol";
 
-import { EnumerableSetUtil } from "../common/EnumerableSetUtil.sol";
 import { BaseUpgradeable } from "../common/BaseUpgradeable.sol";
 import { IGraphToken } from "../common/IGraphToken.sol";
 
@@ -64,7 +62,6 @@ contract RecurringAgreementManager is
 {
     using EnumerableSet for EnumerableSet.Bytes32Set;
     using EnumerableSet for EnumerableSet.AddressSet;
-    using EnumerableSetUtil for EnumerableSet.AddressSet;
 
     /// @notice Emitted when distributeIssuance() reverts (collection continues without fresh issuance)
     /// @param allocator The allocator that reverted
@@ -72,8 +69,6 @@ contract RecurringAgreementManager is
 
     /// @notice Thrown when the issuance allocator does not support IIssuanceAllocationDistribution
     error InvalidIssuanceAllocator(address allocator);
-
-    using EnumerableSetUtil for EnumerableSet.Bytes32Set;
 
     // -- Role Constants --
 
@@ -502,45 +497,46 @@ contract RecurringAgreementManager is
     // -- IRecurringAgreements --
 
     /// @inheritdoc IRecurringAgreements
-    function getSumMaxNextClaim(IRecurringCollector collector, address provider) external view returns (uint256) {
-        return _getStorage().sumMaxNextClaim[address(collector)][provider];
+    function getSumMaxNextClaim(IAgreementCollector collector, address provider) external view returns (uint256) {
+        return _getStorage().collectors[address(collector)].providers[provider].sumMaxNextClaim;
     }
 
     /// @inheritdoc IRecurringAgreements
     function getEscrowAccount(
-        IRecurringCollector collector,
+        IAgreementCollector collector,
         address provider
     ) external view returns (IPaymentsEscrow.EscrowAccount memory account) {
         return _fetchEscrowAccount(address(collector), provider);
     }
 
     /// @inheritdoc IRecurringAgreements
-    function getAgreementMaxNextClaim(bytes16 agreementId) external view returns (uint256) {
-        return _getStorage().agreements[agreementId].maxNextClaim;
+    function getAgreementMaxNextClaim(
+        IAgreementCollector collector,
+        bytes16 agreementId
+    ) external view returns (uint256) {
+        return _getStorage().collectors[address(collector)].agreements[agreementId].maxNextClaim;
     }
 
     /// @inheritdoc IRecurringAgreements
-    function getAgreementInfo(bytes16 agreementId) external view returns (AgreementInfo memory) {
-        return _getStorage().agreements[agreementId];
+    function getAgreementInfo(
+        IAgreementCollector collector,
+        bytes16 agreementId
+    ) external view returns (AgreementInfo memory) {
+        return _getStorage().collectors[address(collector)].agreements[agreementId];
     }
 
     /// @inheritdoc IRecurringAgreements
-    function getProviderAgreementCount(address provider) external view returns (uint256) {
-        return _getStorage().providerAgreementIds[provider].length();
+    function getAgreementCount(IAgreementCollector collector, address provider) external view returns (uint256) {
+        return _getStorage().collectors[address(collector)].providers[provider].agreements.length();
     }
 
     /// @inheritdoc IRecurringAgreements
-    function getProviderAgreements(address provider) external view returns (bytes16[] memory) {
-        return _getStorage().providerAgreementIds[provider].getPageBytes16(0, type(uint256).max);
-    }
-
-    /// @inheritdoc IRecurringAgreements
-    function getProviderAgreements(
+    function getAgreementAt(
+        IAgreementCollector collector,
         address provider,
-        uint256 offset,
-        uint256 count
-    ) external view returns (bytes16[] memory) {
-        return _getStorage().providerAgreementIds[provider].getPageBytes16(offset, count);
+        uint256 index
+    ) external view returns (bytes16) {
+        return bytes16(_getStorage().collectors[address(collector)].providers[provider].agreements.at(index));
     }
 
     /// @inheritdoc IRecurringAgreements
@@ -549,18 +545,13 @@ contract RecurringAgreementManager is
     }
 
     /// @inheritdoc IRecurringAgreements
-    function getSumMaxNextClaimAll() external view returns (uint256) {
+    function getSumMaxNextClaim() external view returns (uint256) {
         return _getStorage().sumMaxNextClaimAll;
     }
 
     /// @inheritdoc IRecurringAgreements
     function getTotalEscrowDeficit() external view returns (uint256) {
         return _getStorage().totalEscrowDeficit;
-    }
-
-    /// @inheritdoc IRecurringAgreements
-    function getTotalAgreementCount() external view returns (uint256) {
-        return _getStorage().totalAgreementCount;
     }
 
     /// @inheritdoc IRecurringAgreements
@@ -580,41 +571,27 @@ contract RecurringAgreementManager is
 
     /// @inheritdoc IRecurringAgreements
     function getCollectorCount() external view returns (uint256) {
-        return _getStorage().collectors.length();
+        return _getStorage().collectorSet.length();
     }
 
     /// @inheritdoc IRecurringAgreements
-    function getCollectors() external view returns (address[] memory) {
-        return _getStorage().collectors.getPage(0, type(uint256).max);
+    function getCollectorAt(uint256 index) external view returns (IAgreementCollector) {
+        return IAgreementCollector(_getStorage().collectorSet.at(index));
     }
 
     /// @inheritdoc IRecurringAgreements
-    function getCollectors(uint256 offset, uint256 count) external view returns (address[] memory) {
-        return _getStorage().collectors.getPage(offset, count);
+    function getProviderCount(IAgreementCollector collector) external view returns (uint256) {
+        return _getStorage().collectors[address(collector)].providerSet.length();
     }
 
     /// @inheritdoc IRecurringAgreements
-    function getCollectorProviderCount(address collector) external view returns (uint256) {
-        return _getStorage().collectorProviders[collector].length();
+    function getProviderAt(IAgreementCollector collector, uint256 index) external view returns (address) {
+        return _getStorage().collectors[address(collector)].providerSet.at(index);
     }
 
     /// @inheritdoc IRecurringAgreements
-    function getCollectorProviders(address collector) external view returns (address[] memory) {
-        return _getStorage().collectorProviders[collector].getPage(0, type(uint256).max);
-    }
-
-    /// @inheritdoc IRecurringAgreements
-    function getCollectorProviders(
-        address collector,
-        uint256 offset,
-        uint256 count
-    ) external view returns (address[] memory) {
-        return _getStorage().collectorProviders[collector].getPage(offset, count);
-    }
-
-    /// @inheritdoc IRecurringAgreements
-    function getPairAgreementCount(address collector, address provider) external view returns (uint256) {
-        return _getStorage().pairAgreementCount[collector][provider];
+    function getEscrowSnap(IAgreementCollector collector, address provider) external view returns (uint256) {
+        return _getStorage().collectors[address(collector)].providers[provider].escrowSnap;
     }
 
     // -- Internal Functions --

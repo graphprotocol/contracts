@@ -23,7 +23,6 @@ interface IRecurringAgreementHelper {
      * @param tokenBalance GRT balance available to the manager
      * @param sumMaxNextClaimAll Global sum of maxNextClaim across all (collector, provider) pairs
      * @param totalEscrowDeficit Total unfunded escrow across all pairs
-     * @param totalAgreementCount Total number of tracked agreements
      * @param escrowBasis Configured escrow level (Full / OnDemand / JustInTime)
      * @param minOnDemandBasisThreshold Threshold for OnDemand basis (numerator over 256)
      * @param minFullBasisMargin Margin for Full basis (added to 256)
@@ -33,7 +32,6 @@ interface IRecurringAgreementHelper {
         uint256 tokenBalance;
         uint256 sumMaxNextClaimAll;
         uint256 totalEscrowDeficit;
-        uint256 totalAgreementCount;
         IRecurringEscrowManagement.EscrowBasis escrowBasis;
         uint8 minOnDemandBasisThreshold;
         uint8 minFullBasisMargin;
