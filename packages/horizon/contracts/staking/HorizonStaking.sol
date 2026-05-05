@@ -1170,6 +1170,30 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         }
     }
 
+    /// @inheritdoc IHorizonStakingMain
+    function isAllocation(address allocationID) external view override returns (bool) {
+        return _getLegacyAllocationState(allocationID) != LegacyAllocationState.Null;
+    }
+
+    /**
+     * @notice Return the current state of a legacy allocation
+     * @param _allocationID Allocation identifier
+     * @return LegacyAllocationState enum with the state of the allocation
+     */
+    function _getLegacyAllocationState(address _allocationID) private view returns (LegacyAllocationState) {
+        LegacyAllocation storage alloc = __DEPRECATED_allocations[_allocationID];
+
+        if (alloc.indexer == address(0)) {
+            return LegacyAllocationState.Null;
+        }
+
+        if (alloc.createdAtEpoch != 0 && alloc.closedAtEpoch == 0) {
+            return LegacyAllocationState.Active;
+        }
+
+        return LegacyAllocationState.Closed;
+    }
+
     /**
      * @notice Determines the correct callback function for `deleteItem` based on the request type.
      * @param _requestType The type of thaw request (Provision or Delegation).
