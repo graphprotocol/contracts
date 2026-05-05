@@ -1040,11 +1040,10 @@ contract RecurringCollector is
         // Reverts on overflow — rejecting excessive terms that could prevent collection
         _rcau.maxOngoingTokensPerSecond * _rcau.maxSecondsPerCollection * 1024;
 
-        // Clean up stored replaced offer
-        bytes32 oldHash = _agreement.activeTermsHash;
-        if (oldHash != bytes32(0))
-            if ($.rcaOffers[_rcau.agreementId].offerHash == oldHash) delete $.rcaOffers[_rcau.agreementId];
-            else if ($.rcauOffers[_rcau.agreementId].offerHash == oldHash) delete $.rcauOffers[_rcau.agreementId];
+        // Clean up stored replaced offer. oldHash is always non-zero for accepted agreements
+        // and can only ever survive in rcaOffers.
+        if ($.rcaOffers[_rcau.agreementId].offerHash == _agreement.activeTermsHash)
+            delete $.rcaOffers[_rcau.agreementId];
 
         // update the agreement
         _agreement.endsAt = _rcau.endsAt;
