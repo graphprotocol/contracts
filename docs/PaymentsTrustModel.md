@@ -68,7 +68,7 @@ RecurringCollector adds payer callbacks when the payer is a contract:
 <───┘
 ```
 
-- **`isEligible`**: hard `require` — contract payer can block collection for ineligible receivers. Only called when `0 < tokensToCollect`.
+- **`isEligible`**: fail-open gate — only an explicit return of `0` blocks collection; call failures (reverts, malformed data) are ignored to prevent a buggy payer from griefing the receiver. Only called when `0 < tokensToCollect`.
 - **`beforeCollection`**: try-catch — allows payer to top up escrow (RAM uses this for JIT deposits), but cannot block (though a malicious contract payer could consume excessive gas). Only called when `0 < tokensToCollect`.
 - **`afterCollection`**: try-catch — allows payer to reconcile state post-collection, cannot block (same gas exhaustion caveat). Called even when `tokensToCollect == 0` (zero-token collections still trigger reconciliation).
 

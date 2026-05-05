@@ -20,3 +20,7 @@ In `_reconcilePairTracking()`, base the removal decision on `pairAgreementCount`
 ## Team Response
 
 TBD
+
+---
+
+Accepted limitation. Orphaned tracking entries do not affect correctness or funds safety. The proposed fix (removing pairs regardless of escrow balance) would sacrifice discoverability of unreclaimed escrow. Residual balances are handled through offline reconciliation.

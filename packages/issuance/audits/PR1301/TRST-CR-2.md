@@ -11,3 +11,7 @@ The `OPERATOR_ROLE` (admin of `AGREEMENT_MANAGER_ROLE`) controls the operational
 - Can set `tempJit`, overriding the escrow mode to JIT for all pairs
 
 An operator switching from Full to JIT mode instantly removes proactive escrow guarantees for all providers. Providers who accepted agreements under the assumption of Full escrow backing may find their payment security degraded without notice or consent. The escrow mode change is a storage write with no timelock or multi-sig requirement.
+
+---
+
+Accepted. The operator is a trusted role managing agreement lifecycle and escrow parameters on behalf of the protocol. Escrow parameter changes are visible on-chain via events.
