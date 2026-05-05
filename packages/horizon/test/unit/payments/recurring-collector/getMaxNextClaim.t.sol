@@ -689,5 +689,70 @@ contract RecurringCollectorGetMaxNextClaimTest is RecurringCollectorSharedTest {
         assertEq(combinedAfter, activeAfter, "combined scope falls back to active-only after pending expires");
     }
 
+    /// @notice After update() promotes an RCAU to active, the rcauOffers slot still holds that
+    /// RCAU's bytes - but its hash now equals activeTermsHash. SCOPE_PENDING must skip it (the
+    /// guard is `rcauOffer.offerHash != activeTermsHash`); otherwise the active version would be
+    /// counted twice in the combined-scope envelope.
+    function test_GetMaxNextClaim_PostUpdate_PendingDoesNotDoubleCountActive() public {
+        MockAgreementOwner approver = new MockAgreementOwner();
+        IRecurringCollector.RecurringCollectionAgreement memory rca = _recurringCollectorHelper.sensibleRCA(
+            IRecurringCollector.RecurringCollectionAgreement({
+                deadline: uint64(block.timestamp + 1 hours),
+                endsAt: uint64(block.timestamp + 365 days),
+                payer: address(approver),
+                dataService: makeAddr("ds"),
+                serviceProvider: makeAddr("sp"),
+                maxInitialTokens: 100 ether,
+                maxOngoingTokensPerSecond: 1 ether,
+                minSecondsPerCollection: 600,
+                maxSecondsPerCollection: 3600,
+                conditions: 0,
+                nonce: 1,
+                metadata: ""
+            })
+        );
+
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0);
+        _setupValidProvision(rca.serviceProvider, rca.dataService);
+        vm.prank(rca.dataService);
+        bytes16 agreementId = _recurringCollector.accept(rca, "");
+
+        IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _recurringCollectorHelper.sensibleRCAU(
+            IRecurringCollector.RecurringCollectionAgreementUpdate({
+                agreementId: agreementId,
+                deadline: 0,
+                endsAt: uint64(block.timestamp + 730 days),
+                maxInitialTokens: 200 ether,
+                maxOngoingTokensPerSecond: 2 ether,
+                minSecondsPerCollection: 600,
+                maxSecondsPerCollection: 7200,
+                conditions: 0,
+                nonce: 1,
+                metadata: ""
+            })
+        );
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
+        vm.prank(rca.dataService);
+        _recurringCollector.update(rcau, "");
+
+        // Post-update invariant: rcauOffers slot holds the now-active RCAU, so offerHash ==
+        // activeTermsHash. SCOPE_PENDING must report nothing claimable beyond the active version.
+        assertEq(
+            _recurringCollector.hashRCAU(rcau),
+            _recurringCollector.getAgreement(agreementId).activeTermsHash,
+            "precondition: RCAU promoted, rcauOffers.offerHash == activeTermsHash"
+        );
+
+        uint256 pendingScope = _recurringCollector.getMaxNextClaim(agreementId, 2); // SCOPE_PENDING
+        assertEq(pendingScope, 0, "post-update SCOPE_PENDING must be 0 (no stale double-count)");
+
+        uint256 activeScope = _recurringCollector.getMaxNextClaim(agreementId, 1); // SCOPE_ACTIVE
+        uint256 combined = _recurringCollector.getMaxNextClaim(agreementId);
+        assertEq(combined, activeScope, "combined scope equals active alone - pending contributes nothing");
+        assertGt(activeScope, 0, "sanity: active scope claim is non-zero");
+    }
+
     /* solhint-enable graph/func-name-mixedcase */
 }

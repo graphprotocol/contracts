@@ -1309,8 +1309,7 @@ contract RecurringCollector is
                 StoredOffer storage rcaOffer = $.rcaOffers[agreementId];
                 if (rcaOffer.offerHash != bytes32(0)) {
                     RecurringCollectionAgreement memory rca = abi.decode(rcaOffer.data, (RecurringCollectionAgreement));
-                    // Use block.timestamp as proxy for acceptedAt, deadline as expiry
-                    if (block.timestamp < rca.deadline)
+                    if (block.timestamp <= rca.deadline)
                         maxClaim = _maxClaim(
                             block.timestamp,
                             rca.endsAt,
@@ -1324,21 +1323,22 @@ contract RecurringCollector is
 
         if (agreementScope & SCOPE_PENDING != 0) {
             StoredOffer storage rcauOffer = $.rcauOffers[agreementId];
-            if (rcauOffer.offerHash != bytes32(0)) {
+            if (rcauOffer.offerHash != bytes32(0) && rcauOffer.offerHash != _a.activeTermsHash) {
                 RecurringCollectionAgreementUpdate memory rcau = abi.decode(
                     rcauOffer.data,
                     (RecurringCollectionAgreementUpdate)
                 );
-                // Ongoing claim: time-capped from now to rcau.endsAt
-                uint256 maxPendingClaim = _maxClaim(
-                    block.timestamp,
-                    rcau.endsAt,
-                    rcau.maxSecondsPerCollection,
-                    rcau.maxOngoingTokensPerSecond,
-                    _a.lastCollectionAt == 0 ? rcau.maxInitialTokens : 0
-                );
 
-                if (maxClaim < maxPendingClaim) maxClaim = maxPendingClaim;
+                if (block.timestamp <= rcau.deadline) {
+                    uint256 maxPendingClaim = _maxClaim(
+                        block.timestamp,
+                        rcau.endsAt,
+                        rcau.maxSecondsPerCollection,
+                        rcau.maxOngoingTokensPerSecond,
+                        _a.lastCollectionAt == 0 ? rcau.maxInitialTokens : 0
+                    );
+                    if (maxClaim < maxPendingClaim) maxClaim = maxPendingClaim;
+                }
             }
         }
     }

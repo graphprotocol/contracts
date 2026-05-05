@@ -20,6 +20,7 @@ import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol
 
 import { RecurringCollectorSharedTest } from "./shared.t.sol";
 import { MockAgreementOwner } from "./MockAgreementOwner.t.sol";
+import { BareAgreementOwner } from "./BareAgreementOwner.t.sol";
 
 /// @notice A payer contract that supports ERC165 + IProviderEligibility at offer time,
 /// but returns malformed (< 32 bytes) data from isEligible at collection time.
