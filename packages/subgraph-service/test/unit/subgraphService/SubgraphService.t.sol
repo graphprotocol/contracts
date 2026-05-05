@@ -8,12 +8,12 @@ import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizo
 import { IGraphTallyCollector } from "@graphprotocol/interfaces/contracts/horizon/IGraphTallyCollector.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { LinkedList } from "@graphprotocol/horizon/contracts/libraries/LinkedList.sol";
-import { IDataServiceFees } from "@graphprotocol/interfaces/contracts/data-service/IDataServiceFees.sol";
 import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
 import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
 import { IAllocationManager } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocationManager.sol";
 import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
 import { ILegacyAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/ILegacyAllocation.sol";
+import { StakeClaims } from "@graphprotocol/horizon/contracts/data-service/libraries/StakeClaims.sol";
 
 import { Allocation } from "../../../contracts/libraries/Allocation.sol";
 import { SubgraphServiceSharedTest } from "../shared/SubgraphServiceShared.t.sol";
@@ -202,7 +202,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         uint256 paymentCollected = 0;
         address allocationId;
         IndexingRewardsData memory indexingRewardsData;
-        CollectPaymentData memory collectPaymentDataBefore = _collectPaymentDataBefore(_indexer);
+        CollectPaymentData memory collectPaymentDataBefore = _collectPaymentData(_indexer);
 
         if (_paymentType == IGraphPayments.PaymentTypes.QueryFee) {
             paymentCollected = _handleQueryFeeCollection(_indexer, _data);
@@ -216,7 +216,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         // collect rewards
         subgraphService.collect(_indexer, _paymentType, _data);
 
-        CollectPaymentData memory collectPaymentDataAfter = _collectPaymentDataAfter(_indexer);
+        CollectPaymentData memory collectPaymentDataAfter = _collectPaymentData(_indexer);
 
         if (_paymentType == IGraphPayments.PaymentTypes.QueryFee) {
             _verifyQueryFeeCollection(
@@ -237,42 +237,24 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         }
     }
 
-    function _collectPaymentDataBefore(address _indexer) private view returns (CollectPaymentData memory) {
+    function _collectPaymentData(
+        address _indexer
+    ) internal view returns (CollectPaymentData memory collectPaymentData) {
         address paymentsDestination = subgraphService.paymentsDestination(_indexer);
-        CollectPaymentData memory collectPaymentDataBefore;
-        collectPaymentDataBefore.rewardsDestinationBalance = token.balanceOf(paymentsDestination);
-        collectPaymentDataBefore.indexerProvisionBalance = staking.getProviderTokensAvailable(
+        collectPaymentData.rewardsDestinationBalance = token.balanceOf(paymentsDestination);
+        collectPaymentData.indexerProvisionBalance = staking.getProviderTokensAvailable(
             _indexer,
             address(subgraphService)
         );
-        collectPaymentDataBefore.delegationPoolBalance = staking.getDelegatedTokensAvailable(
+        collectPaymentData.delegationPoolBalance = staking.getDelegatedTokensAvailable(
             _indexer,
             address(subgraphService)
         );
-        collectPaymentDataBefore.indexerBalance = token.balanceOf(_indexer);
-        collectPaymentDataBefore.curationBalance = token.balanceOf(address(curation));
-        collectPaymentDataBefore.lockedTokens = subgraphService.feesProvisionTracker(_indexer);
-        collectPaymentDataBefore.indexerStake = staking.getStake(_indexer);
-        return collectPaymentDataBefore;
-    }
-
-    function _collectPaymentDataAfter(address _indexer) private view returns (CollectPaymentData memory) {
-        CollectPaymentData memory collectPaymentDataAfter;
-        address paymentsDestination = subgraphService.paymentsDestination(_indexer);
-        collectPaymentDataAfter.rewardsDestinationBalance = token.balanceOf(paymentsDestination);
-        collectPaymentDataAfter.indexerProvisionBalance = staking.getProviderTokensAvailable(
-            _indexer,
-            address(subgraphService)
-        );
-        collectPaymentDataAfter.delegationPoolBalance = staking.getDelegatedTokensAvailable(
-            _indexer,
-            address(subgraphService)
-        );
-        collectPaymentDataAfter.indexerBalance = token.balanceOf(_indexer);
-        collectPaymentDataAfter.curationBalance = token.balanceOf(address(curation));
-        collectPaymentDataAfter.lockedTokens = subgraphService.feesProvisionTracker(_indexer);
-        collectPaymentDataAfter.indexerStake = staking.getStake(_indexer);
-        return collectPaymentDataAfter;
+        collectPaymentData.indexerBalance = token.balanceOf(_indexer);
+        collectPaymentData.curationBalance = token.balanceOf(address(curation));
+        collectPaymentData.lockedTokens = subgraphService.feesProvisionTracker(_indexer);
+        collectPaymentData.indexerStake = staking.getStake(_indexer);
+        return collectPaymentData;
     }
 
     function _handleQueryFeeCollection(
@@ -423,7 +405,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         // Check the stake claim
         ILinkedList.List memory claimsList = _getClaimList(_indexer);
         bytes32 claimId = _buildStakeClaimId(_indexer, claimsList.nonce - 1);
-        IDataServiceFees.StakeClaim memory stakeClaim = _getStakeClaim(claimId);
+        StakeClaims.StakeClaim memory stakeClaim = _getStakeClaim(claimId);
         uint64 disputePeriod = disputeManager.getDisputePeriod();
         assertEq(stakeClaim.tokens, tokensToLock);
         assertEq(stakeClaim.createdAt, block.timestamp);
@@ -540,12 +522,12 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
     }
 
     function _buildStakeClaimId(address _indexer, uint256 _nonce) private view returns (bytes32) {
-        return keccak256(abi.encodePacked(address(subgraphService), _indexer, _nonce));
+        return StakeClaims.buildStakeClaimId(address(subgraphService), _indexer, _nonce);
     }
 
-    function _getStakeClaim(bytes32 _claimId) private view returns (IDataServiceFees.StakeClaim memory) {
+    function _getStakeClaim(bytes32 _claimId) private view returns (StakeClaims.StakeClaim memory) {
         (uint256 tokens, uint256 createdAt, uint256 releasableAt, bytes32 nextClaim) = subgraphService.claims(_claimId);
-        return IDataServiceFees.StakeClaim(tokens, createdAt, releasableAt, nextClaim);
+        return StakeClaims.StakeClaim(tokens, createdAt, releasableAt, nextClaim);
     }
 
     // This doesn't matter for testing because the metadata is not decoded onchain but it's expected to be of the form:

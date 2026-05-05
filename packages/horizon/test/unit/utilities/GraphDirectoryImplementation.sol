@@ -22,6 +22,7 @@ contract GraphDirectoryImplementation is GraphDirectory {
     function getContractFromController(bytes memory contractName) external view returns (address) {
         return _graphController().getContractProxy(keccak256(contractName));
     }
+
     function graphToken() external view returns (IGraphToken) {
         return _graphToken();
     }

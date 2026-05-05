@@ -2,7 +2,7 @@
 pragma solidity ^0.8.27;
 
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
-import { IAllocationManager } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocationManager.sol";
+import { AllocationHandler } from "../../../../../contracts/libraries/AllocationHandler.sol";
 import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManager.sol";
 
 import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
@@ -270,7 +270,7 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
 
         // Attempt to collect on closed allocation should revert
         vm.expectRevert(
-            abi.encodeWithSelector(IAllocationManager.AllocationManagerAllocationClosed.selector, allocationId)
+            abi.encodeWithSelector(AllocationHandler.AllocationHandlerAllocationClosed.selector, allocationId)
         );
         subgraphService.collect(users.indexer, paymentType, data);
     }

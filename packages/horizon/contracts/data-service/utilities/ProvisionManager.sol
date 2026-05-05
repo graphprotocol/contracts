@@ -132,9 +132,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      * @param serviceProvider The address of the service provider.
      */
     modifier onlyValidProvision(address serviceProvider) virtual {
-        IHorizonStaking.Provision memory provision = _getProvision(serviceProvider);
-        _checkProvisionTokens(provision);
-        _checkProvisionParameters(provision, false);
+        _requireValidProvision(serviceProvider);
         _;
     }
 
@@ -186,7 +184,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      * @param _max The maximum allowed value for the provision tokens.
      */
     function _setProvisionTokensRange(uint256 _min, uint256 _max) internal {
-        require(_min <= _max, ProvisionManagerInvalidRange(_min, _max));
+        _requireLTE(_min, _max);
         _minimumProvisionTokens = _min;
         _maximumProvisionTokens = _max;
         emit ProvisionTokensRangeSet(_min, _max);
@@ -198,7 +196,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      * @param _max The maximum allowed value for the max verifier cut.
      */
     function _setVerifierCutRange(uint32 _min, uint32 _max) internal {
-        require(_min <= _max, ProvisionManagerInvalidRange(_min, _max));
+        _requireLTE(_min, _max);
         require(PPMMath.isValidPPM(_max), ProvisionManagerInvalidRange(_min, _max));
         _minimumVerifierCut = _min;
         _maximumVerifierCut = _max;
@@ -211,10 +209,21 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      * @param _max The maximum allowed value for the thawing period.
      */
     function _setThawingPeriodRange(uint64 _min, uint64 _max) internal {
-        require(_min <= _max, ProvisionManagerInvalidRange(_min, _max));
+        _requireLTE(_min, _max);
         _minimumThawingPeriod = _min;
         _maximumThawingPeriod = _max;
         emit ThawingPeriodRangeSet(_min, _max);
+    }
+
+    /**
+     * @notice Checks if a provision of a service provider is valid according
+     * to the parameter ranges established.
+     * @param _serviceProvider The address of the service provider.
+     */
+    function _requireValidProvision(address _serviceProvider) internal view {
+        IHorizonStaking.Provision memory provision = _getProvision(_serviceProvider);
+        _checkProvisionTokens(provision);
+        _checkProvisionParameters(provision, false);
     }
 
     // -- checks --
@@ -224,8 +233,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      * @param _serviceProvider The address of the service provider.
      */
     function _checkProvisionTokens(address _serviceProvider) internal view virtual {
-        IHorizonStaking.Provision memory provision = _getProvision(_serviceProvider);
-        _checkProvisionTokens(provision);
+        _checkProvisionTokens(_getProvision(_serviceProvider));
     }
 
     /**
@@ -248,8 +256,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      * @param _checkPending If true, checks the pending provision parameters.
      */
     function _checkProvisionParameters(address _serviceProvider, bool _checkPending) internal view virtual {
-        IHorizonStaking.Provision memory provision = _getProvision(_serviceProvider);
-        _checkProvisionParameters(provision, _checkPending);
+        _checkProvisionParameters(_getProvision(_serviceProvider), _checkPending);
     }
 
     /**
@@ -329,5 +336,14 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      */
     function _checkValueInRange(uint256 _value, uint256 _min, uint256 _max, bytes memory _revertMessage) private pure {
         require(_value.isInRange(_min, _max), ProvisionManagerInvalidValue(_revertMessage, _value, _min, _max));
+    }
+
+    /**
+     * @notice Requires that a value is less than or equal to another value.
+     * @param _a The value to check.
+     * @param _b The value to compare against.
+     */
+    function _requireLTE(uint256 _a, uint256 _b) private pure {
+        require(_a <= _b, ProvisionManagerInvalidRange(_a, _b));
     }
 }

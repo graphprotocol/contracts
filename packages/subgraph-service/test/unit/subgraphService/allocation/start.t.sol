@@ -5,7 +5,7 @@ import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/utilities/ProvisionManager.sol";
 import { ProvisionTracker } from "@graphprotocol/horizon/contracts/data-service/libraries/ProvisionTracker.sol";
 import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
-import { IAllocationManager } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocationManager.sol";
+import { AllocationHandler } from "../../../../contracts/libraries/AllocationHandler.sol";
 import { ILegacyAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/ILegacyAllocation.sol";
 import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
 import { SubgraphServiceTest } from "../SubgraphService.t.sol";
@@ -94,7 +94,7 @@ contract SubgraphServiceAllocationStartTest is SubgraphServiceTest {
         bytes32 digest = subgraphService.encodeAllocationProof(users.indexer, address(0));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(allocationIdPrivateKey, digest);
         bytes memory data = abi.encode(subgraphDeployment, tokens, address(0), abi.encodePacked(r, s, v));
-        vm.expectRevert(abi.encodeWithSelector(IAllocationManager.AllocationManagerInvalidZeroAllocationId.selector));
+        vm.expectRevert(abi.encodeWithSelector(AllocationHandler.AllocationHandlerInvalidZeroAllocationId.selector));
         subgraphService.startService(users.indexer, data);
     }
 
@@ -110,7 +110,7 @@ contract SubgraphServiceAllocationStartTest is SubgraphServiceTest {
         bytes memory data = abi.encode(subgraphDeployment, tokens, allocationId, abi.encodePacked(r, s, v));
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAllocationManager.AllocationManagerInvalidAllocationProof.selector,
+                AllocationHandler.AllocationHandlerInvalidAllocationProof.selector,
                 signer,
                 allocationId
             )

@@ -3,7 +3,7 @@ pragma solidity ^0.8.27;
 
 import { HorizonStakingSharedTest } from "../../shared/horizon-staking/HorizonStakingShared.t.sol";
 import { DataServiceImpFees } from "../implementations/DataServiceImpFees.sol";
-import { IDataServiceFees } from "@graphprotocol/interfaces/contracts/data-service/IDataServiceFees.sol";
+import { StakeClaims } from "../../../../contracts/data-service/libraries/StakeClaims.sol";
 import { ProvisionTracker } from "../../../../contracts/data-service/libraries/ProvisionTracker.sol";
 import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
 
@@ -13,7 +13,7 @@ contract DataServiceFeesTest is HorizonStakingSharedTest {
         useIndexer
         useProvisionDataService(address(dataService), PROVISION_TOKENS, 0, 0)
     {
-        vm.expectRevert(abi.encodeWithSignature("DataServiceFeesZeroTokens()"));
+        vm.expectRevert(abi.encodeWithSignature("StakeClaimsZeroTokens()"));
         dataService.lockStake(users.indexer, 0);
     }
 
@@ -145,7 +145,7 @@ contract DataServiceFeesTest is HorizonStakingSharedTest {
 
         // it should emit a an event
         vm.expectEmit();
-        emit IDataServiceFees.StakeClaimLocked(
+        emit StakeClaims.StakeClaimLocked(
             serviceProvider,
             calcValues.predictedClaimId,
             calcValues.stakeToLock,
@@ -207,14 +207,14 @@ contract DataServiceFeesTest is HorizonStakingSharedTest {
                 break;
             }
 
-            emit IDataServiceFees.StakeClaimReleased(serviceProvider, calcValues.head, claimTokens, releasableAt);
+            emit StakeClaims.StakeClaimReleased(serviceProvider, calcValues.head, claimTokens, releasableAt);
             calcValues.head = nextClaim;
             calcValues.tokensReleased += claimTokens;
             calcValues.claimsCount++;
         }
 
         // it should emit a an event
-        emit IDataServiceFees.StakeClaimsReleased(serviceProvider, calcValues.claimsCount, calcValues.tokensReleased);
+        emit StakeClaims.StakeClaimsReleased(serviceProvider, calcValues.claimsCount, calcValues.tokensReleased);
         dataService.releaseStake(numClaimsToRelease);
 
         // after state
