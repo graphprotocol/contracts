@@ -20,3 +20,12 @@ Extend `_requirePayer()` to also check `rcauOffers` for a payer match when neith
 TBD
 
 ---
+
+Resolved by persisting `agreement.payer` from the first `offer()` instead of waiting until
+`accept()`. `_requirePayer` is replaced by an inline `agreement.payer` check at the
+`cancel()` call site, reading the persisted address directly without falling back through
+`rcaOffers`. `_offerUpdate` likewise reads `agreement.payer` instead of decoding the
+stored RCA bytes on every update offer. As a consequence, cancelling a pre-acceptance
+RCA offer and cancelling a pending RCAU offer are fully independent operations that may
+be performed in either order — neither path leaves the other unreachable, because the
+persistent `agreement.payer` continues to authorize the surviving offer.

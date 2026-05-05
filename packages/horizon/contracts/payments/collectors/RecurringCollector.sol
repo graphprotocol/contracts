@@ -214,19 +214,26 @@ contract RecurringCollector is
         RecurringCollectionAgreement calldata rca,
         bytes calldata signature
     ) external whenNotPaused returns (bytes16 agreementId) {
+        bytes32 rcaHash;
+        (agreementId, rcaHash) = _rcaIdAndHash(rca);
+
+        RecurringCollectorStorage storage $ = _getStorage();
+        AgreementData storage agreement = $.agreements[agreementId];
+
         require(
             block.timestamp <= rca.deadline,
             RecurringCollectorAgreementDeadlineElapsed(block.timestamp, rca.deadline)
         );
 
-        bytes32 rcaHash;
-        (agreementId, rcaHash) = _rcaIdAndHash(rca);
-
         _requireAuthorization(rca.payer, rcaHash, signature, agreementId, OFFER_TYPE_NEW);
+
+        if ($.rcaOffers[agreementId].offerHash != rcaHash) {
+            $.rcaOffers[agreementId] = StoredOffer({ offerHash: rcaHash, data: abi.encode(rca) });
+            emit OfferStored(agreementId, rca.payer, OFFER_TYPE_NEW, rcaHash);
+        }
 
         _validateAndStoreAgreement(rca, agreementId, rcaHash);
 
-        AgreementData storage agreement = _getStorage().agreements[agreementId];
         require(
             agreement.state == AgreementState.NotAccepted,
             RecurringCollectorAgreementIncorrectState(agreementId, agreement.state)
@@ -302,7 +309,8 @@ contract RecurringCollector is
      * @dev Caller must be the data service for the agreement.
      */
     function cancel(bytes16 agreementId, CancelAgreementBy by) external whenNotPaused {
-        AgreementData storage agreement = _getAgreementStorage(agreementId);
+        RecurringCollectorStorage storage $ = _getStorage();
+        AgreementData storage agreement = $.agreements[agreementId];
         require(
             agreement.state == AgreementState.Accepted,
             RecurringCollectorAgreementIncorrectState(agreementId, agreement.state)
@@ -317,6 +325,9 @@ contract RecurringCollector is
         } else {
             agreement.state = AgreementState.CanceledByServiceProvider;
         }
+
+        bytes32 pendingHash = $.rcauOffers[agreementId].offerHash;
+        if (pendingHash != bytes32(0) && pendingHash != agreement.activeTermsHash) delete $.rcauOffers[agreementId];
 
         emit AgreementCanceled(agreement.dataService, agreement.payer, agreement.serviceProvider, agreementId, by);
     }
@@ -345,6 +356,12 @@ contract RecurringCollector is
             rcau.nonce == expectedNonce,
             RecurringCollectorInvalidUpdateNonce(rcau.agreementId, expectedNonce, rcau.nonce)
         );
+
+        RecurringCollectorStorage storage $ = _getStorage();
+        if ($.rcauOffers[rcau.agreementId].offerHash != rcauHash) {
+            $.rcauOffers[rcau.agreementId] = StoredOffer({ offerHash: rcauHash, data: abi.encode(rcau) });
+            emit OfferStored(rcau.agreementId, agreement.payer, OFFER_TYPE_UPDATE, rcauHash);
+        }
 
         _validateAndStoreUpdate(agreement, rcau, rcauHash);
         agreement.updateNonce = rcau.nonce;
@@ -432,6 +449,7 @@ contract RecurringCollector is
         else revert RecurringCollectorInvalidCollectData(data);
 
         details = _getAgreementDetails(agreementId, versionHash, index);
+        require(msg.sender == details.payer, RecurringCollectorUnauthorizedCaller(msg.sender, details.payer));
     }
 
     /**
@@ -447,11 +465,26 @@ contract RecurringCollector is
 
         (agreementId, versionHash) = _rcaIdAndHash(rca);
 
-        require(msg.sender == rca.payer, RecurringCollectorUnauthorizedCaller(msg.sender, rca.payer));
-        _requirePayerToSupportEligibilityCheck(rca.payer, rca.conditions);
+        if ($.rcaOffers[agreementId].offerHash != versionHash) {
+            AgreementData storage agreement = $.agreements[agreementId];
+            require(
+                agreement.state == AgreementState.NotAccepted,
+                RecurringCollectorAgreementIncorrectState(agreementId, agreement.state)
+            );
+            require(
+                block.timestamp <= rca.deadline,
+                RecurringCollectorAgreementDeadlineElapsed(block.timestamp, rca.deadline)
+            );
+            _requirePayerToSupportEligibilityCheck(rca.payer, rca.conditions);
 
-        $.rcaOffers[agreementId] = StoredOffer({ offerHash: versionHash, data: _data });
-        emit OfferStored(agreementId, rca.payer, OFFER_TYPE_NEW, versionHash);
+            agreement.payer = rca.payer;
+            agreement.dataService = rca.dataService;
+            agreement.serviceProvider = rca.serviceProvider;
+            agreement.activeTermsHash = versionHash;
+
+            $.rcaOffers[agreementId] = StoredOffer({ offerHash: versionHash, data: _data });
+            emit OfferStored(agreementId, rca.payer, OFFER_TYPE_NEW, versionHash);
+        }
 
         index = VERSION_CURRENT;
     }
@@ -468,30 +501,25 @@ contract RecurringCollector is
     ) private returns (bytes16 agreementId, bytes32 versionHash, uint256 index) {
         RecurringCollectorStorage storage $ = _getStorage();
         RecurringCollectionAgreementUpdate memory rcau = abi.decode(_data, (RecurringCollectionAgreementUpdate));
-        agreementId = rcau.agreementId;
-
-        // Payer check: look up the existing agreement or the stored RCA offer
-        AgreementData storage agreement = $.agreements[agreementId];
-        address payer = agreement.payer;
-        if (payer == address(0)) {
-            // Not yet accepted — check stored RCA offer payer
-            require(
-                $.rcaOffers[agreementId].offerHash != bytes32(0),
-                RecurringCollectorAgreementIncorrectState(agreementId, AgreementState.NotAccepted)
-            );
-            RecurringCollectionAgreement memory rca = abi.decode(
-                $.rcaOffers[agreementId].data,
-                (RecurringCollectionAgreement)
-            );
-            payer = rca.payer;
-        }
-        require(msg.sender == payer, RecurringCollectorUnauthorizedCaller(msg.sender, payer));
-        _requirePayerToSupportEligibilityCheck(payer, rcau.conditions);
-
         versionHash = _hashRCAU(rcau);
+        agreementId = rcau.agreementId;
+        AgreementData storage agreement = $.agreements[agreementId];
 
-        $.rcauOffers[agreementId] = StoredOffer({ offerHash: versionHash, data: _data });
-        emit OfferStored(agreementId, payer, OFFER_TYPE_UPDATE, versionHash);
+        if ($.rcauOffers[agreementId].offerHash != versionHash) {
+            require(
+                block.timestamp <= rcau.deadline,
+                RecurringCollectorAgreementDeadlineElapsed(block.timestamp, rcau.deadline)
+            );
+            require(
+                agreement.payer != address(0) &&
+                    (agreement.state == AgreementState.NotAccepted || agreement.state == AgreementState.Accepted),
+                RecurringCollectorAgreementIncorrectState(agreementId, agreement.state)
+            );
+            _requirePayerToSupportEligibilityCheck(agreement.payer, rcau.conditions);
+
+            $.rcauOffers[agreementId] = StoredOffer({ offerHash: versionHash, data: _data });
+            emit OfferStored(agreementId, payer, OFFER_TYPE_UPDATE, versionHash);
+        }
 
         index = VERSION_NEXT;
     }
@@ -500,42 +528,19 @@ contract RecurringCollector is
     function cancel(bytes16 agreementId, bytes32 termsHash, uint16 options) external whenNotPaused {
         RecurringCollectorStorage storage $ = _getStorage();
         AgreementData storage agreement = $.agreements[agreementId];
-        _requirePayer($, agreement, agreementId);
+        address payer = agreement.payer;
+        require(payer != address(0), RecurringCollectorAgreementNotFound(agreementId));
+        require(msg.sender == payer, RecurringCollectorUnauthorizedCaller(msg.sender, payer));
 
-        if (agreement.activeTermsHash != termsHash) {
-            if (options & SCOPE_PENDING != 0)
+        if (agreement.activeTermsHash != termsHash || agreement.state == AgreementState.NotAccepted) {
+            if (options & SCOPE_PENDING != 0) {
                 // Pending scope: delete stored offer if hash matches and terms are not currently active
                 if ($.rcaOffers[agreementId].offerHash == termsHash) delete $.rcaOffers[agreementId];
                 else if ($.rcauOffers[agreementId].offerHash == termsHash) delete $.rcauOffers[agreementId];
+            }
         } else if (options & SCOPE_ACTIVE != 0 && agreement.state == AgreementState.Accepted)
             // Active scope and hash matches: cancel accepted agreement
             IDataServiceAgreements(agreement.dataService).cancelIndexingAgreementByPayer(agreementId);
-    }
-
-    /**
-     * @notice Requires that msg.sender is the payer for an agreement.
-     * @dev Checks the on-chain agreement first, then falls back to stored RCA offer.
-     * @param agreement The agreement data
-     * @param agreementId The agreement ID
-     */
-    // solhint-disable-next-line use-natspec
-    function _requirePayer(
-        RecurringCollectorStorage storage $,
-        AgreementData storage agreement,
-        bytes16 agreementId
-    ) private view {
-        if (agreement.payer == msg.sender) return;
-
-        // Not payer on accepted agreement — check stored RCA offer
-        StoredOffer storage rcaOffer = $.rcaOffers[agreementId];
-        if (rcaOffer.offerHash != bytes32(0)) {
-            RecurringCollectionAgreement memory rca = abi.decode(rcaOffer.data, (RecurringCollectionAgreement));
-            require(msg.sender == rca.payer, RecurringCollectorUnauthorizedCaller(msg.sender, rca.payer));
-            return;
-        }
-        if (agreement.payer == address(0)) revert RecurringCollectorAgreementNotFound(agreementId);
-
-        revert RecurringCollectorUnauthorizedCaller(msg.sender, agreement.payer);
     }
 
     /// @inheritdoc IAgreementCollector
