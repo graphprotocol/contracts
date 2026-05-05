@@ -58,6 +58,12 @@ contract RecurringCollector is
     /// that could starve the core collect() call of gas.
     uint256 private constant MAX_PAYER_CALLBACK_GAS = 1_500_000;
 
+    /// @notice Gas overhead between the gasleft() precheck and the actual CALL/STATICCALL opcode.
+    /// Covers ABI encoding, stack/memory setup, and the CALL base cost so that at least
+    /// MAX_PAYER_CALLBACK_GAS is forwarded to the callee. Sized to cover the cold-account
+    /// EIP-2929 access cost (2_600) plus Solidity framing.
+    uint256 private constant CALLBACK_GAS_OVERHEAD = 3_000;
+
     /* solhint-disable gas-small-strings */
     /// @notice The EIP712 typehash for the RecurringCollectionAgreement struct
     bytes32 public constant EIP712_RCA_TYPEHASH =
@@ -730,7 +736,8 @@ contract RecurringCollector is
 
         if ((agreement.conditions & CONDITION_ELIGIBILITY_CHECK) != 0) {
             // 64/63 accounts for EIP-150 63/64 gas forwarding rule.
-            if (gasleft() < (MAX_PAYER_CALLBACK_GAS * 64) / 63) revert RecurringCollectorInsufficientCallbackGas();
+            if (gasleft() < (MAX_PAYER_CALLBACK_GAS * 64) / 63 + CALLBACK_GAS_OVERHEAD)
+                revert RecurringCollectorInsufficientCallbackGas();
 
             // Eligibility gate (opt-in via conditions bitmask): low-level staticcall avoids
             // caller-side ABI decode reverts. Only an explicit return of 0 blocks collection;
@@ -747,7 +754,8 @@ contract RecurringCollector is
         }
 
         if (payer.code.length != 0 && payer != msg.sender) {
-            if (gasleft() < (MAX_PAYER_CALLBACK_GAS * 64) / 63) revert RecurringCollectorInsufficientCallbackGas();
+            if (gasleft() < (MAX_PAYER_CALLBACK_GAS * 64) / 63 + CALLBACK_GAS_OVERHEAD)
+                revert RecurringCollectorInsufficientCallbackGas();
 
             // solhint-disable-next-line avoid-low-level-calls
             (bool beforeOk, ) = payer.call{ gas: MAX_PAYER_CALLBACK_GAS }(
@@ -768,7 +776,8 @@ contract RecurringCollector is
         // Notify contract payers so they can reconcile escrow in the same transaction.
         if (payer != msg.sender && payer.code.length != 0) {
             // 64/63 accounts for EIP-150 63/64 gas forwarding rule.
-            if (gasleft() < (MAX_PAYER_CALLBACK_GAS * 64) / 63) revert RecurringCollectorInsufficientCallbackGas();
+            if (gasleft() < (MAX_PAYER_CALLBACK_GAS * 64) / 63 + CALLBACK_GAS_OVERHEAD)
+                revert RecurringCollectorInsufficientCallbackGas();
             // solhint-disable-next-line avoid-low-level-calls
             (bool afterOk, ) = payer.call{ gas: MAX_PAYER_CALLBACK_GAS }(
                 abi.encodeCall(IAgreementOwner.afterCollection, (agreementId, tokensToCollect))

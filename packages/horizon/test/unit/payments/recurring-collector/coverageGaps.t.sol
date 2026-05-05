@@ -995,6 +995,197 @@ contract RecurringCollectorCoverageGapsTest is RecurringCollectorSharedTest {
         assertEq(dataServiceMock.canceledAgreementId(), agreementId, "Agreement ID should match");
     }
 
+    // ══════════════════════════════════════════════════════════════════════
+    // Gap 20 — _offerNew deadline guard (L481): offer with deadline already past
+    // ══════════════════════════════════════════════════════════════════════
+
+    /// @notice Offering an RCA whose deadline is already past must revert. The deadline guard
+    /// at the entry of {_offerNew} is independent from the collection-window check in
+    /// {_requireValidTerms}; this exercises the deadline-elapsed branch directly.
+    function test_OfferNew_Revert_WhenDeadlineAlreadyPast() public {
+        MockAgreementOwner approver = new MockAgreementOwner();
+        uint64 deadline = uint64(block.timestamp + 100);
+        IRecurringCollector.RecurringCollectionAgreement memory rca = IRecurringCollector.RecurringCollectionAgreement({
+            deadline: deadline,
+            endsAt: uint64(block.timestamp + 365 days),
+            payer: address(approver),
+            dataService: makeAddr("ds"),
+            serviceProvider: makeAddr("sp"),
+            maxInitialTokens: 100 ether,
+            maxOngoingTokensPerSecond: 1 ether,
+            minSecondsPerCollection: 600,
+            maxSecondsPerCollection: 3600,
+            conditions: 0,
+            nonce: 1,
+            metadata: ""
+        });
+
+        // Warp past the deadline before the offer call so the entry-time guard fires.
+        skip(101);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IRecurringCollector.RecurringCollectorAgreementDeadlineElapsed.selector,
+                block.timestamp,
+                deadline
+            )
+        );
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // Gap 21 — _requirePayerToSupportEligibilityCheck (L788): contract payer
+    // sets CONDITION_ELIGIBILITY_CHECK but does not implement IProviderEligibility
+    // ══════════════════════════════════════════════════════════════════════
+
+    /// @notice When an RCA enables CONDITION_ELIGIBILITY_CHECK, the payer must support
+    /// IProviderEligibility via ERC-165. BareAgreementOwner implements IAgreementOwner but
+    /// not IERC165, so ERC165Checker.supportsInterface returns false and the require fires
+    /// at offer time.
+    function test_OfferNew_Revert_WhenEligibilityConditionAndPayerLacksInterface() public {
+        BareAgreementOwner bare = new BareAgreementOwner();
+        IRecurringCollector.RecurringCollectionAgreement memory rca = IRecurringCollector.RecurringCollectionAgreement({
+            deadline: uint64(block.timestamp + 1 hours),
+            endsAt: uint64(block.timestamp + 365 days),
+            payer: address(bare),
+            dataService: makeAddr("ds-elig-bare"),
+            serviceProvider: makeAddr("sp-elig-bare"),
+            maxInitialTokens: 100 ether,
+            maxOngoingTokensPerSecond: 1 ether,
+            minSecondsPerCollection: 600,
+            maxSecondsPerCollection: 3600,
+            conditions: 1, // CONDITION_ELIGIBILITY_CHECK
+            nonce: 1,
+            metadata: ""
+        });
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IRecurringCollector.RecurringCollectorPayerDoesNotSupportEligibilityInterface.selector,
+                address(bare)
+            )
+        );
+        vm.prank(address(bare));
+        _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // Gap 22 / 23 — Callback-gas prechecks (deterministic single-call)
+    //
+    // afterCollection.t.sol uses vm.revertTo in a binary-search loop, which
+    // discards forge coverage traces. Direct calls track them.
+    // ══════════════════════════════════════════════════════════════════════
+
+    /// @notice Eligibility-precheck gas guard reverts under tight gas. Direct call
+    /// so coverage tracks the revert.
+    function test_Collect_Revert_LowGas_EligibilityPrecheck_Direct() public {
+        MockAgreementOwner approver = new MockAgreementOwner();
+        IRecurringCollector.RecurringCollectionAgreement memory rca = _recurringCollectorHelper.sensibleRCA(
+            IRecurringCollector.RecurringCollectionAgreement({
+                deadline: uint64(block.timestamp + 1 hours),
+                endsAt: uint64(block.timestamp + 365 days),
+                payer: address(approver),
+                dataService: makeAddr("ds-elig-low-gas"),
+                serviceProvider: makeAddr("sp-elig-low-gas"),
+                maxInitialTokens: 100 ether,
+                maxOngoingTokensPerSecond: 1 ether,
+                minSecondsPerCollection: 600,
+                maxSecondsPerCollection: 3600,
+                conditions: 0,
+                nonce: 1,
+                metadata: ""
+            })
+        );
+        rca.conditions = 1; // CONDITION_ELIGIBILITY_CHECK
+
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0);
+        _setupValidProvision(rca.serviceProvider, rca.dataService);
+
+        vm.prank(rca.dataService);
+        bytes16 agreementId = _recurringCollector.accept(rca, "");
+
+        skip(rca.minSecondsPerCollection);
+        bytes memory data = _generateCollectData(
+            _generateCollectParams(rca, agreementId, bytes32("col-elig-low"), 1 ether, 0)
+        );
+        bytes memory callData = abi.encodeCall(
+            _recurringCollector.collect,
+            (IGraphPayments.PaymentTypes.IndexingFee, data)
+        );
+
+        // Outer gas just below the 64/63 + overhead threshold (~1.527M) — gasleft() at the
+        // first precheck must fall under threshold and trigger the revert.
+        vm.prank(rca.dataService);
+        (bool ok, bytes memory ret) = address(_recurringCollector).call{ gas: 1_500_000 }(callData);
+        assertFalse(ok, "expected revert");
+        assertTrue(ret.length >= 4, "expected revert reason");
+        bytes4 selector;
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            selector := mload(add(ret, 32))
+        }
+        assertEq(
+            selector,
+            IRecurringCollector.RecurringCollectorInsufficientCallbackGas.selector,
+            "expected InsufficientCallbackGas at eligibility precheck"
+        );
+    }
+
+    /// @notice beforeCollection-precheck gas guard reverts under tight gas. With no
+    /// eligibility flag the first precheck is skipped, so this hits the second guard.
+    function test_Collect_Revert_LowGas_BeforeCollection_Direct() public {
+        MockAgreementOwner approver = new MockAgreementOwner();
+        IRecurringCollector.RecurringCollectionAgreement memory rca = _recurringCollectorHelper.sensibleRCA(
+            IRecurringCollector.RecurringCollectionAgreement({
+                deadline: uint64(block.timestamp + 1 hours),
+                endsAt: uint64(block.timestamp + 365 days),
+                payer: address(approver),
+                dataService: makeAddr("ds-before-low-gas"),
+                serviceProvider: makeAddr("sp-before-low-gas"),
+                maxInitialTokens: 100 ether,
+                maxOngoingTokensPerSecond: 1 ether,
+                minSecondsPerCollection: 600,
+                maxSecondsPerCollection: 3600,
+                conditions: 0, // no eligibility — skip first precheck
+                nonce: 1,
+                metadata: ""
+            })
+        );
+
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0);
+        _setupValidProvision(rca.serviceProvider, rca.dataService);
+
+        vm.prank(rca.dataService);
+        bytes16 agreementId = _recurringCollector.accept(rca, "");
+
+        skip(rca.minSecondsPerCollection);
+        bytes memory data = _generateCollectData(
+            _generateCollectParams(rca, agreementId, bytes32("col-before-low"), 1 ether, 0)
+        );
+        bytes memory callData = abi.encodeCall(
+            _recurringCollector.collect,
+            (IGraphPayments.PaymentTypes.IndexingFee, data)
+        );
+
+        vm.prank(rca.dataService);
+        (bool ok, bytes memory ret) = address(_recurringCollector).call{ gas: 1_500_000 }(callData);
+        assertFalse(ok, "expected revert");
+        assertTrue(ret.length >= 4, "expected revert reason");
+        bytes4 selector;
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            selector := mload(add(ret, 32))
+        }
+        assertEq(
+            selector,
+            IRecurringCollector.RecurringCollectorInsufficientCallbackGas.selector,
+            "expected InsufficientCallbackGas at beforeCollection precheck"
+        );
+    }
+
     /* solhint-enable graph/func-name-mixedcase */
 }
 
