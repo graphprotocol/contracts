@@ -6,6 +6,7 @@ import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token
 import { IGraphTallyCollector } from "@graphprotocol/interfaces/contracts/horizon/IGraphTallyCollector.sol";
 import { IRewardsIssuer } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsIssuer.sol";
 import { IDataService } from "@graphprotocol/interfaces/contracts/data-service/IDataService.sol";
+import { IDataServiceAgreements } from "@graphprotocol/interfaces/contracts/data-service/IDataServiceAgreements.sol";
 import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
 import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
 import { IIndexingAgreement } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IIndexingAgreement.sol";
@@ -54,12 +55,21 @@ contract SubgraphService is
     using TokenUtils for IGraphToken;
     using IndexingAgreement for IndexingAgreement.StorageManager;
 
+    uint256 private constant DEFAULT = 0;
+    uint256 private constant VALID_PROVISION = 1 << 0;
+    uint256 private constant REGISTERED = 1 << 1;
+
     /**
-     * @notice Checks that an indexer is registered
-     * @param indexer The address of the indexer
+     * @notice Modifier that enforces service provider requirements.
+     * @dev Always checks pause state and caller authorization. Additional checks
+     * (provision validity, indexer registration) are selected via a bitmask.
+     * Delegates to {_enforceServiceRequirements} which is emitted once in bytecode
+     * and JUMPed to from each call site, avoiding repeated modifier inlining.
+     * @param serviceProvider The address of the service provider.
+     * @param requirements Bitmask of additional requirement flags.
      */
-    modifier onlyRegisteredIndexer(address indexer) {
-        _checkRegisteredIndexer(indexer);
+    modifier enforceService(address serviceProvider, uint256 requirements) {
+        _enforceServiceRequirements(serviceProvider, requirements);
         _;
     }
 
@@ -121,10 +131,7 @@ contract SubgraphService is
      *    Use zero address for automatically restaking payments.
      */
     /// @inheritdoc IDataService
-    function register(
-        address indexer,
-        bytes calldata data
-    ) external override onlyAuthorizedForProvision(indexer) onlyValidProvision(indexer) whenNotPaused {
+    function register(address indexer, bytes calldata data) external override enforceService(indexer, VALID_PROVISION) {
         (string memory url, string memory geohash, address paymentsDestination_) = abi.decode(
             data,
             (string, string, address)
@@ -157,7 +164,7 @@ contract SubgraphService is
     function acceptProvisionPendingParameters(
         address indexer,
         bytes calldata
-    ) external override onlyAuthorizedForProvision(indexer) whenNotPaused {
+    ) external override enforceService(indexer, DEFAULT) {
         _acceptProvisionParameters(indexer);
         emit ProvisionPendingParametersAccepted(indexer);
     }
@@ -190,14 +197,7 @@ contract SubgraphService is
     function startService(
         address indexer,
         bytes calldata data
-    )
-        external
-        override
-        onlyAuthorizedForProvision(indexer)
-        onlyValidProvision(indexer)
-        onlyRegisteredIndexer(indexer)
-        whenNotPaused
-    {
+    ) external override enforceService(indexer, VALID_PROVISION | REGISTERED) {
         (bytes32 subgraphDeploymentId, uint256 tokens, address allocationId, bytes memory allocationProof) = abi.decode(
             data,
             (bytes32, uint256, address, bytes)
@@ -226,15 +226,9 @@ contract SubgraphService is
      * - address `allocationId`: The id of the allocation
      */
     /// @inheritdoc IDataService
-    function stopService(
-        address indexer,
-        bytes calldata data
-    ) external override onlyAuthorizedForProvision(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
+    function stopService(address indexer, bytes calldata data) external override enforceService(indexer, REGISTERED) {
         address allocationId = abi.decode(data, (address));
-        require(
-            _allocations.get(allocationId).indexer == indexer,
-            SubgraphServiceAllocationNotAuthorized(indexer, allocationId)
-        );
+        _checkAllocationOwnership(indexer, allocationId);
         _onCloseAllocation(allocationId, false);
         _closeAllocation(allocationId, false);
         emit ServiceStopped(indexer, data);
@@ -281,15 +275,7 @@ contract SubgraphService is
         address indexer,
         IGraphPayments.PaymentTypes paymentType,
         bytes calldata data
-    )
-        external
-        override
-        whenNotPaused
-        onlyAuthorizedForProvision(indexer)
-        onlyValidProvision(indexer)
-        onlyRegisteredIndexer(indexer)
-        returns (uint256)
-    {
+    ) external override enforceService(indexer, VALID_PROVISION | REGISTERED) returns (uint256) {
         uint256 paymentCollected = 0;
 
         if (paymentType == IGraphPayments.PaymentTypes.QueryFee) {
@@ -338,17 +324,8 @@ contract SubgraphService is
         address indexer,
         address allocationId,
         uint256 tokens
-    )
-        external
-        onlyAuthorizedForProvision(indexer)
-        onlyValidProvision(indexer)
-        onlyRegisteredIndexer(indexer)
-        whenNotPaused
-    {
-        require(
-            _allocations.get(allocationId).indexer == indexer,
-            SubgraphServiceAllocationNotAuthorized(indexer, allocationId)
-        );
+    ) external enforceService(indexer, VALID_PROVISION | REGISTERED) {
+        _checkAllocationOwnership(indexer, allocationId);
         _resizeAllocation(allocationId, tokens, _delegationRatio);
     }
 
@@ -412,27 +389,21 @@ contract SubgraphService is
      * - Agreement must not have been accepted before
      * - Allocation must not have an agreement already
      *
-     * @dev signedRCA.rca.metadata is an encoding of {IndexingAgreement.AcceptIndexingAgreementMetadata}
+     * @dev rca.metadata is an encoding of {IndexingAgreement.AcceptIndexingAgreementMetadata}
      *
      * Emits {IndexingAgreement.IndexingAgreementAccepted} event
      *
      * @param allocationId The id of the allocation
-     * @param signedRCA The signed Recurring Collection Agreement
+     * @param rca The Recurring Collection Agreement
+     * @param signature ECDSA signature bytes, or empty for contract-approved agreements
      * @return agreementId The ID of the accepted indexing agreement
      */
     function acceptIndexingAgreement(
         address allocationId,
-        // forge-lint: disable-next-line(mixed-case-variable)
-        IRecurringCollector.SignedRCA calldata signedRCA
-    )
-        external
-        whenNotPaused
-        onlyAuthorizedForProvision(signedRCA.rca.serviceProvider)
-        onlyValidProvision(signedRCA.rca.serviceProvider)
-        onlyRegisteredIndexer(signedRCA.rca.serviceProvider)
-        returns (bytes16)
-    {
-        return IndexingAgreement._getStorageManager().accept(_allocations, allocationId, signedRCA);
+        IRecurringCollector.RecurringCollectionAgreement calldata rca,
+        bytes calldata signature
+    ) external enforceService(rca.serviceProvider, VALID_PROVISION | REGISTERED) returns (bytes16) {
+        return IndexingAgreement._getStorageManager().accept(_allocations, allocationId, rca, signature);
     }
 
     /**
@@ -446,20 +417,15 @@ contract SubgraphService is
      * - The indexer must be valid
      *
      * @param indexer The indexer address
-     * @param signedRCAU The signed Recurring Collection Agreement Update
+     * @param rcau The Recurring Collection Agreement Update
+     * @param signature ECDSA signature bytes, or empty for contract-approved updates
      */
     function updateIndexingAgreement(
         address indexer,
-        // forge-lint: disable-next-line(mixed-case-variable)
-        IRecurringCollector.SignedRCAU calldata signedRCAU
-    )
-        external
-        whenNotPaused
-        onlyAuthorizedForProvision(indexer)
-        onlyValidProvision(indexer)
-        onlyRegisteredIndexer(indexer)
-    {
-        IndexingAgreement._getStorageManager().update(indexer, signedRCAU);
+        IRecurringCollector.RecurringCollectionAgreementUpdate calldata rcau,
+        bytes calldata signature
+    ) external enforceService(indexer, VALID_PROVISION | REGISTERED) {
+        IndexingAgreement._getStorageManager().update(indexer, rcau, signature);
     }
 
     /**
@@ -480,21 +446,15 @@ contract SubgraphService is
     function cancelIndexingAgreement(
         address indexer,
         bytes16 agreementId
-    )
-        external
-        whenNotPaused
-        onlyAuthorizedForProvision(indexer)
-        onlyValidProvision(indexer)
-        onlyRegisteredIndexer(indexer)
-    {
+    ) external enforceService(indexer, VALID_PROVISION | REGISTERED) {
         IndexingAgreement._getStorageManager().cancel(indexer, agreementId);
     }
 
     /**
-     * @inheritdoc ISubgraphService
+     * @inheritdoc IDataServiceAgreements
      * @notice Cancel an indexing agreement by payer / signer.
      *
-     * See {ISubgraphService.cancelIndexingAgreementByPayer}.
+     * See {IDataServiceAgreements.cancelIndexingAgreementByPayer}.
      *
      * Requirements:
      * - The caller must be authorized by the payer
@@ -614,11 +574,35 @@ contract SubgraphService is
     }
 
     /**
-     * @notice Checks that an indexer is registered
-     * @param indexer The address of the indexer
+     * @notice Enforces service provider requirements.
+     * @dev Always checks pause state and caller authorization. Additional checks
+     * (provision validity, indexer registration) are selected via bitmask flags.
+     * Single dispatch point emitted once in bytecode, JUMPed to from each call site
+     * via the {enforceService} modifier.
+     * @param _serviceProvider The address of the service provider.
+     * @param _checks Bitmask of additional requirement flags (VALID_PROVISION, REGISTERED).
      */
-    function _checkRegisteredIndexer(address indexer) private view {
-        require(bytes(indexers[indexer].url).length > 0, SubgraphServiceIndexerNotRegistered(indexer));
+    function _enforceServiceRequirements(address _serviceProvider, uint256 _checks) private view {
+        _requireNotPaused();
+        _requireAuthorizedForProvision(_serviceProvider);
+        if (_checks & VALID_PROVISION != 0) _requireValidProvision(_serviceProvider);
+        if (_checks & REGISTERED != 0)
+            require(
+                bytes(indexers[_serviceProvider].url).length > 0,
+                SubgraphServiceIndexerNotRegistered(_serviceProvider)
+            );
+    }
+
+    /**
+     * @notice Checks that the allocation belongs to the given indexer.
+     * @param _indexer The address of the indexer.
+     * @param _allocationId The id of the allocation.
+     */
+    function _checkAllocationOwnership(address _indexer, address _allocationId) internal view {
+        require(
+            _allocations.get(_allocationId).indexer == _indexer,
+            SubgraphServiceAllocationNotAuthorized(_indexer, _allocationId)
+        );
     }
 
     /**
@@ -736,10 +720,7 @@ contract SubgraphService is
      */
     function _collectIndexingRewards(address _indexer, bytes calldata _data) private returns (uint256) {
         (address allocationId, bytes32 poi_, bytes memory poiMetadata_) = abi.decode(_data, (address, bytes32, bytes));
-        require(
-            _allocations.get(allocationId).indexer == _indexer,
-            SubgraphServiceAllocationNotAuthorized(_indexer, allocationId)
-        );
+        _checkAllocationOwnership(_indexer, allocationId);
 
         (uint256 paymentCollected, bool allocationForceClosed) = _presentPoi(
             allocationId,
