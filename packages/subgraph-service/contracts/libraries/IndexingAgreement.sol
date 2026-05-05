@@ -512,9 +512,11 @@ library IndexingAgreement {
 
     /* solhint-disable function-max-lines */
     /**
-     * @notice Collect Indexing fees
-     * @dev Uses the {RecurringCollector} to collect payment from Graph Horizon payments protocol.
-     * Fees are distributed to service provider and delegators by {GraphPayments}
+     * @notice Collect indexing fees for an agreement.
+     * @dev Computes a requested token amount from indexing agreement terms
+     * (`collectionSeconds * (tokensPerSecond + tokensPerEntityPerSecond * entities)`) and passes
+     * it to {RecurringCollector}, which caps it against the RCA payer's limits. The actual payout
+     * is the minimum of the two. Every POI submitted is disputable — no exception for zero POI.
      *
      * Requirements:
      * - Allocation must be open
@@ -707,12 +709,14 @@ library IndexingAgreement {
     }
 
     /**
-     * @notice Calculate tokens to collect based on pre-validated duration
+     * @notice Calculate the data service's requested token amount for a collection.
+     * @dev This is an upper bound based on indexing agreement terms, not a guaranteed payout.
+     * The RecurringCollector further caps the actual payout against the RCA payer's limits.
      * @param _manager The storage manager
      * @param _agreementId The agreement ID
      * @param _entities The number of entities indexed
-     * @param _collectionSeconds Pre-calculated valid collection duration
-     * @return The number of tokens to collect
+     * @param _collectionSeconds Collection duration, already capped at maxSecondsPerCollection
+     * @return The requested token amount (may be narrowed by RecurringCollector)
      */
     function _tokensToCollect(
         StorageManager storage _manager,
