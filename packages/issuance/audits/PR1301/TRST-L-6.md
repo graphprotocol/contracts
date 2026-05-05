@@ -22,3 +22,7 @@ Delete both `rcaOffers[agreementId]` and `rcauOffers[agreementId]` unconditional
 TBD
 
 ---
+
+The described attack requires planting an RCA offer whose EIP-712 hash collides with the active `activeTermsHash`. Because `_hashRCA` and `_hashRCAU` use distinct type hashes (`EIP712_RCA_TYPEHASH` vs `EIP712_RCAU_TYPEHASH`), cross-type collisions require a keccak256 preimage collision? Same-type collisions require the payer to reproduce the exact RCA terms, which is not an attack (the payer authored those terms).
+
+(Cleanup handling will be improved in combination with the response to TRST-L-11.)
