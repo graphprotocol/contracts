@@ -59,7 +59,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @param maxOngoingTokensPerSecond The maximum amount of tokens that can be collected per second
      * except for the first collection
      * @param minSecondsPerCollection The minimum amount of seconds that must pass between collections
-     * @param maxSecondsPerCollection The maximum amount of seconds that can pass between collections
+     * @param maxSecondsPerCollection The maximum seconds of service that can be collected in a single collection
      * @param nonce A unique nonce for preventing collisions (user-chosen)
      * @param metadata Arbitrary metadata to extend functionality if a data service requires it
      *
@@ -99,7 +99,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @param maxOngoingTokensPerSecond The maximum amount of tokens that can be collected per second
      * except for the first collection
      * @param minSecondsPerCollection The minimum amount of seconds that must pass between collections
-     * @param maxSecondsPerCollection The maximum amount of seconds that can pass between collections
+     * @param maxSecondsPerCollection The maximum seconds of service that can be collected in a single collection
      * @param nonce The nonce for preventing replay attacks (must be current nonce + 1)
      * @param metadata Arbitrary metadata to extend functionality if a data service requires it
      */
@@ -130,7 +130,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @param maxOngoingTokensPerSecond The maximum amount of tokens that can be collected per second
      * except for the first collection
      * @param minSecondsPerCollection The minimum amount of seconds that must pass between collections
-     * @param maxSecondsPerCollection The maximum amount of seconds that can pass between collections
+     * @param maxSecondsPerCollection The maximum seconds of service that can be collected in a single collection
      * @param updateNonce The current nonce for updates (prevents replay attacks)
      * @param canceledAt The timestamp when the agreement was canceled
      * @param state The state of the agreement
@@ -180,7 +180,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @param maxInitialTokens The maximum amount of tokens that can be collected in the first collection
      * @param maxOngoingTokensPerSecond The maximum amount of tokens that can be collected per second
      * @param minSecondsPerCollection The minimum amount of seconds that must pass between collections
-     * @param maxSecondsPerCollection The maximum amount of seconds that can pass between collections
+     * @param maxSecondsPerCollection The maximum seconds of service that can be collected in a single collection
      */
     event AgreementAccepted(
         address indexed dataService,
@@ -224,7 +224,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @param maxInitialTokens The maximum amount of tokens that can be collected in the first collection
      * @param maxOngoingTokensPerSecond The maximum amount of tokens that can be collected per second
      * @param minSecondsPerCollection The minimum amount of seconds that must pass between collections
-     * @param maxSecondsPerCollection The maximum amount of seconds that can pass between collections
+     * @param maxSecondsPerCollection The maximum seconds of service that can be collected in a single collection
      */
     event AgreementUpdated(
         address indexed dataService,
@@ -372,14 +372,6 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @param minSeconds Minimum seconds between collections
      */
     error RecurringCollectorCollectionTooSoon(bytes16 agreementId, uint32 secondsSinceLast, uint32 minSeconds);
-
-    /**
-     * @notice Thrown when calling collect() too late
-     * @param agreementId The agreement ID
-     * @param secondsSinceLast Seconds since last collection
-     * @param maxSeconds Maximum seconds between collections
-     */
-    error RecurringCollectorCollectionTooLate(bytes16 agreementId, uint64 secondsSinceLast, uint32 maxSeconds);
 
     /**
      * @notice Thrown when calling update() with an invalid nonce
