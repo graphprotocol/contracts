@@ -885,9 +885,58 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         assertEq(afterWithdraw.tokensThawing, 0, "JIT: nothing left to thaw");
     }
 
-    // ==================== Temp JIT ====================
+    // ==================== Threshold-Based Basis Degradation ====================
+    //
+    // _escrowMinMax computes spare = balance - totalEscrowDeficit (floored at 0)
+    // and checks two gates against sumMaxNextClaimAll (smnca):
+    //
+    //   max gate: smnca * minOnDemandBasisThreshold / 256 < spare   [default threshold=128 -> 0.5x]
+    //   min gate: smnca * (256 + minFullBasisMargin) / 256 < spare  [default margin=16 -> 1.0625x]
+    //
+    // min gate is stricter (1.0625 > 0.5), giving three degradation states:
+    //   Full:      spare > smnca * 1.0625   (min=max=sumMaxNextClaim)
+    //   OnDemand:  0.5*smnca < spare <= 1.0625*smnca  (min=0, max=sumMaxNextClaim)
+    //   JIT-like:  spare <= 0.5*smnca       (min=0, max=0)
 
-    function test_TempJit_TripsOnPartialBeforeCollection() public {
+    // -- Helpers for degradation tests --
+
+    /// @notice Drain SAM balance to zero
+    function _drainSAM() internal {
+        uint256 samBalance = token.balanceOf(address(agreementManager));
+        if (0 < samBalance) {
+            vm.prank(address(agreementManager));
+            token.transfer(address(1), samBalance);
+        }
+    }
+
+    /// @notice Get the effective escrow balance (balance - tokensThawing) for a pair
+    function _effectiveEscrow(address collector, address provider) internal view returns (uint256) {
+        (uint256 balance, uint256 thawing, ) = paymentsEscrow.escrowAccounts(
+            address(agreementManager),
+            collector,
+            provider
+        );
+        return balance - thawing;
+    }
+
+    /// @notice Get full escrow account for a pair
+    function _escrowAccount(
+        address collector,
+        address provider
+    ) internal view returns (uint256 balance, uint256 tokensThawing, uint256 thawEndTimestamp) {
+        return paymentsEscrow.escrowAccounts(address(agreementManager), collector, provider);
+    }
+
+    /// @notice Fund SAM so spare equals exactly the given amount (above totalEscrowDeficit)
+    function _fundToSpare(uint256 targetSpare) internal {
+        _drainSAM();
+        uint256 deficit = agreementManager.getTotalEscrowDeficit();
+        token.mint(address(agreementManager), deficit + targetSpare);
+    }
+
+    // ---- Full basis: min gate (1.0625x) controls Full -> OnDemand ----
+
+    function test_BasisDegradation_Full_BothGatesPass_DepositsToSumMaxNextClaim() public {
         IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
             indexer,
             100 ether,
@@ -895,33 +944,55 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             3600,
             1
         );
-        bytes16 agreementId = _offerAgreement(rca);
+        _offerAgreement(rca);
+        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 pairSmnc = agreementManager.getSumMaxNextClaim(_collector(), indexer);
 
-        // Drain SAM's token balance so beforeCollection can't fully fund
-        uint256 samBalance = token.balanceOf(address(agreementManager));
-        if (0 < samBalance) {
-            vm.prank(address(agreementManager));
-            token.transfer(address(1), samBalance);
-        }
+        // spare > smnca * 1.0625 -- both gates pass -> Full
+        _fundToSpare((smnca * (256 + 16)) / 256 + 1);
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
 
-        // Request collection exceeding escrow balance
-        vm.expectEmit(address(agreementManager));
-        emit IRecurringEscrowManagement.TempJitSet(true, true);
+        assertEq(
+            _effectiveEscrow(address(recurringCollector), indexer),
+            pairSmnc,
+            "Full: deposited to sumMaxNextClaim"
+        );
+    }
 
-        vm.prank(address(recurringCollector));
-        agreementManager.beforeCollection(agreementId, 1_000_000 ether);
+    function test_BasisDegradation_Full_MinGateFail_DegradesToOnDemand() public {
+        // spare at min gate boundary: min gate fails but max gate passes -> OnDemand
+        IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
+            indexer,
+            100 ether,
+            1 ether,
+            3600,
+            1
+        );
+        _offerAgreement(rca);
+        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 pairSmnc = agreementManager.getSumMaxNextClaim(_collector(), indexer);
 
-        // Verify state
-        assertTrue(agreementManager.isTempJit(), "Temp JIT should be tripped");
+        // spare = smnca * 272/256 exactly -- min gate fails (not strictly greater)
+        // but spare > smnca * 128/256, so max gate passes
+        uint256 minGateThreshold = (smnca * (256 + 16)) / 256;
+        _fundToSpare(minGateThreshold);
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+
+        // OnDemand behavior: min=0 (no deposits), max=sumMaxNextClaim (holds ceiling)
+        // Escrow was deposited during offerAgreement, so it should still be at pairSmnc
+        // (max holds, no thaw started because balance <= max)
+        uint256 effective = _effectiveEscrow(address(recurringCollector), indexer);
+        assertEq(effective, pairSmnc, "OnDemand: escrow held at ceiling (no thaw)");
+
+        // Stored basis unchanged
         assertEq(
             uint256(agreementManager.getEscrowBasis()),
             uint256(IRecurringEscrowManagement.EscrowBasis.Full),
-            "Basis unchanged (temp JIT overrides behavior, not escrowBasis)"
+            "Stored basis unchanged"
         );
     }
 
-    function test_BeforeCollection_TripsWhenAvailableEqualsDeficit() public {
-        // Boundary: available == deficit — strict '<' means trip, not deposit
+    function test_BasisDegradation_Full_MinGateBoundary_OneWeiDifference() public {
         IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
             indexer,
             100 ether,
@@ -929,37 +1000,27 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             3600,
             1
         );
-        bytes16 agreementId = _offerAgreement(rca);
+        _offerAgreement(rca);
+        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 pairSmnc = agreementManager.getSumMaxNextClaim(_collector(), indexer);
+        uint256 minGateThreshold = (smnca * (256 + 16)) / 256;
 
-        // Set manager balance to exactly the escrow shortfall
-        (uint256 escrowBalance, , ) = paymentsEscrow.escrowAccounts(
-            address(agreementManager),
-            address(recurringCollector),
-            indexer
-        );
-        uint256 tokensToCollect = escrowBalance + 500 ether;
-        uint256 deficit = tokensToCollect - escrowBalance; // 500 ether
+        // At min gate boundary: OnDemand (min=0, max=smnc)
+        _fundToSpare(minGateThreshold);
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
 
-        // Drain SAM then mint exactly the deficit
-        uint256 samBalance = token.balanceOf(address(agreementManager));
-        if (0 < samBalance) {
-            vm.prank(address(agreementManager));
-            token.transfer(address(1), samBalance);
-        }
-        token.mint(address(agreementManager), deficit);
-        assertEq(token.balanceOf(address(agreementManager)), deficit, "Balance == deficit");
+        // Escrow was pre-deposited, OnDemand holds it (no thaw because balance <= max)
+        assertEq(_effectiveEscrow(address(recurringCollector), indexer), pairSmnc, "At boundary: OnDemand holds");
 
-        vm.expectEmit(address(agreementManager));
-        emit IRecurringEscrowManagement.TempJitSet(true, true);
-
-        vm.prank(address(recurringCollector));
-        agreementManager.beforeCollection(agreementId, tokensToCollect);
-
-        assertTrue(agreementManager.isTempJit(), "Trips when available == deficit");
+        // One wei above: Full (min=max=smnc)
+        _fundToSpare(minGateThreshold + 1);
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        assertEq(_effectiveEscrow(address(recurringCollector), indexer), pairSmnc, "One above boundary: Full deposits");
     }
 
-    function test_BeforeCollection_DepositsWhenAvailableExceedsDeficit() public {
-        // Boundary: available == deficit + 1 — deposits instead of tripping
+    // ---- Full basis: max gate (0.5x) controls OnDemand -> JIT-like ----
+
+    function test_BasisDegradation_Full_MaxGateFail_DegradesToJIT() public {
         IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
             indexer,
             100 ether,
@@ -967,38 +1028,118 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             3600,
             1
         );
-        bytes16 agreementId = _offerAgreement(rca);
+        _offerAgreement(rca);
+        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
 
-        (uint256 escrowBalance, , ) = paymentsEscrow.escrowAccounts(
-            address(agreementManager),
-            address(recurringCollector),
-            indexer
-        );
-        uint256 tokensToCollect = escrowBalance + 500 ether;
-        uint256 deficit = tokensToCollect - escrowBalance; // 500 ether
+        // spare = smnca * 128/256 exactly -- max gate fails -> JIT-like (both 0)
+        uint256 maxGateThreshold = (smnca * 128) / 256;
+        _fundToSpare(maxGateThreshold);
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
 
-        // Drain SAM then mint deficit + 1
-        uint256 samBalance = token.balanceOf(address(agreementManager));
-        if (0 < samBalance) {
-            vm.prank(address(agreementManager));
-            token.transfer(address(1), samBalance);
-        }
-        token.mint(address(agreementManager), deficit + 1);
-
-        vm.prank(address(recurringCollector));
-        agreementManager.beforeCollection(agreementId, tokensToCollect);
-
-        assertFalse(agreementManager.isTempJit(), "No trip when deficit < available");
-        (uint256 newEscrow, , ) = paymentsEscrow.escrowAccounts(
-            address(agreementManager),
-            address(recurringCollector),
-            indexer
-        );
-        assertEq(newEscrow, tokensToCollect, "Escrow topped up to tokensToCollect");
+        (uint256 bal, uint256 thawing, ) = _escrowAccount(address(recurringCollector), indexer);
+        assertEq(thawing, bal, "JIT-like: all escrow thawing");
     }
 
-    function test_TempJit_PreservesBasisOnTrip() public {
-        // Set OnDemand, trip — escrowBasis should NOT change
+    function test_BasisDegradation_Full_MaxGateBoundary_OneWeiDifference() public {
+        IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
+            indexer,
+            100 ether,
+            1 ether,
+            3600,
+            1
+        );
+        _offerAgreement(rca);
+        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 maxGateThreshold = (smnca * 128) / 256;
+
+        // At max gate boundary: JIT-like
+        _fundToSpare(maxGateThreshold);
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        (uint256 bal1, uint256 thawing1, ) = _escrowAccount(address(recurringCollector), indexer);
+        assertEq(thawing1, bal1, "At max boundary: JIT thaws all");
+
+        // Complete thaw
+        vm.warp(block.timestamp + 2 days);
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+
+        // One wei above max gate: OnDemand (max passes, min still fails since 0.5x+1 < 1.0625x)
+        _fundToSpare(maxGateThreshold + 1);
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+
+        // OnDemand: min=0 so no deposit happens (escrow was withdrawn during thaw)
+        // max=smnc so no thaw starts either. Effective balance stays at 0 (nothing to hold).
+        (uint256 bal2, uint256 thawing2, ) = _escrowAccount(address(recurringCollector), indexer);
+        assertEq(thawing2, 0, "One above max boundary: OnDemand no thaw");
+        // No deposit because min=0
+        assertEq(bal2, 0, "OnDemand: no deposit (min=0)");
+    }
+
+    // ---- Intermediate OnDemand state: between the two thresholds ----
+
+    function test_BasisDegradation_Full_IntermediateOnDemand_NoDepositButHoldsEscrow() public {
+        // Verify the intermediate state: min=0 (no deposit), max=smnc (holds ceiling)
+        IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
+            indexer,
+            100 ether,
+            1 ether,
+            3600,
+            1
+        );
+        _offerAgreement(rca);
+        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 pairSmnc = agreementManager.getSumMaxNextClaim(_collector(), indexer);
+
+        // Fund to middle of OnDemand band: 0.5x < spare < 1.0625x
+        // Use spare = 0.75x (halfway in the band)
+        uint256 midSpare = (smnca * 3) / 4;
+        assertTrue(midSpare > (smnca * 128) / 256, "midSpare above max gate");
+        assertTrue(midSpare <= (smnca * (256 + 16)) / 256, "midSpare below min gate");
+
+        _fundToSpare(midSpare);
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+
+        // Escrow was deposited during offerAgreement (when SAM had 1M ether).
+        // OnDemand: max=smnc so holds (no thaw), min=0 so no new deposit.
+        uint256 effective = _effectiveEscrow(address(recurringCollector), indexer);
+        assertEq(effective, pairSmnc, "OnDemand: holds pre-existing escrow at ceiling");
+        (, uint256 thawing, ) = _escrowAccount(address(recurringCollector), indexer);
+        assertEq(thawing, 0, "OnDemand: no thaw");
+    }
+
+    function test_BasisDegradation_Full_IntermediateOnDemand_NoDepositFromZero() public {
+        // Start with zero escrow in OnDemand band -- verify no deposit happens
+        IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
+            indexer,
+            100 ether,
+            1 ether,
+            3600,
+            1
+        );
+        _offerAgreement(rca);
+        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+
+        // Drain to JIT, complete thaw to clear escrow
+        _drainSAM();
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        vm.warp(block.timestamp + 2 days);
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        assertEq(_effectiveEscrow(address(recurringCollector), indexer), 0, "Escrow cleared");
+
+        // Fund to OnDemand band
+        _fundToSpare((smnca * 3) / 4);
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+
+        // OnDemand: min=0 -> no deposit from zero. max=smnc but nothing to hold.
+        assertEq(
+            _effectiveEscrow(address(recurringCollector), indexer),
+            0,
+            "OnDemand: no deposit when starting from zero"
+        );
+    }
+
+    // ---- OnDemand basis: max gate only (min always 0) ----
+
+    function test_BasisDegradation_OnDemand_MaxGatePass_HoldsAtCeiling() public {
         vm.prank(operator);
         agreementManager.setEscrowBasis(IRecurringEscrowManagement.EscrowBasis.OnDemand);
 
@@ -1009,299 +1150,19 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             3600,
             1
         );
-        bytes16 agreementId = _offerAgreement(rca);
+        _offerAgreement(rca);
+        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
 
-        // Drain SAM
-        uint256 samBalance = token.balanceOf(address(agreementManager));
-        if (0 < samBalance) {
-            vm.prank(address(agreementManager));
-            token.transfer(address(1), samBalance);
-        }
-
-        vm.expectEmit(address(agreementManager));
-        emit IRecurringEscrowManagement.TempJitSet(true, true);
-
-        vm.prank(address(recurringCollector));
-        agreementManager.beforeCollection(agreementId, 1_000_000 ether);
-
-        // Basis stays OnDemand (not switched to JIT)
-        assertEq(
-            uint256(agreementManager.getEscrowBasis()),
-            uint256(IRecurringEscrowManagement.EscrowBasis.OnDemand),
-            "Basis unchanged during trip"
-        );
-        assertTrue(agreementManager.isTempJit());
-    }
-
-    function test_TempJit_DoesNotTripWhenFullyCovered() public {
-        IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
-            indexer,
-            100 ether,
-            1 ether,
-            3600,
-            1
-        );
-        bytes16 agreementId = _offerAgreement(rca);
-        uint256 maxClaim = 1 ether * 3600 + 100 ether;
-
-        // Ensure SAM has plenty of tokens
-        token.mint(address(agreementManager), 1_000_000 ether);
-
-        // Request less than escrow balance — no trip
-        vm.prank(address(recurringCollector));
-        agreementManager.beforeCollection(agreementId, maxClaim);
-
-        assertFalse(agreementManager.isTempJit(), "No trip when fully covered");
-    }
-
-    function test_TempJit_DoesNotTripWhenAlreadyActive() public {
-        IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
-            indexer,
-            100 ether,
-            1 ether,
-            3600,
-            1
-        );
-        bytes16 agreementId = _offerAgreement(rca);
-
-        // Drain SAM
-        uint256 samBalance = token.balanceOf(address(agreementManager));
-        if (0 < samBalance) {
-            vm.prank(address(agreementManager));
-            token.transfer(address(1), samBalance);
-        }
-
-        // First trip
-        vm.prank(address(recurringCollector));
-        agreementManager.beforeCollection(agreementId, 1_000_000 ether);
-        assertTrue(agreementManager.isTempJit());
-
-        // Second partial collection — should NOT emit event again
-        vm.recordLogs();
-        vm.prank(address(recurringCollector));
-        agreementManager.beforeCollection(agreementId, 1_000_000 ether);
-
-        // Check no TempJitSet event was emitted
-        Vm.Log[] memory logs = vm.getRecordedLogs();
-        bytes32 tripSig = keccak256("TempJitSet(bool,bool)");
-        bool found = false;
-        for (uint256 i = 0; i < logs.length; i++) {
-            if (logs[i].topics[0] == tripSig) found = true;
-        }
-        assertFalse(found, "No second trip event");
-    }
-
-    function test_TempJit_TripsEvenWhenAlreadyJustInTime() public {
-        // Governor explicitly sets JIT
-        vm.prank(operator);
-        agreementManager.setEscrowBasis(IRecurringEscrowManagement.EscrowBasis.JustInTime);
-
-        IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
-            indexer,
-            100 ether,
-            1 ether,
-            3600,
-            1
-        );
-        bytes16 agreementId = _offerAgreement(rca);
-
-        // Drain SAM so beforeCollection can't cover
-        uint256 samBalance = token.balanceOf(address(agreementManager));
-        if (0 < samBalance) {
-            vm.prank(address(agreementManager));
-            token.transfer(address(1), samBalance);
-        }
-
-        vm.prank(address(recurringCollector));
-        agreementManager.beforeCollection(agreementId, 1_000_000 ether);
-
-        assertTrue(agreementManager.isTempJit(), "Trips even in JIT mode");
-    }
-
-    function test_TempJit_JitStillWorksWhileActive() public {
-        IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
-            indexer,
-            100 ether,
-            1 ether,
-            3600,
-            1
-        );
-        bytes16 agreementId = _offerAgreement(rca);
-
-        // Drain SAM to trip the breaker
-        uint256 samBalance = token.balanceOf(address(agreementManager));
-        if (0 < samBalance) {
-            vm.prank(address(agreementManager));
-            token.transfer(address(1), samBalance);
-        }
-
-        vm.prank(address(recurringCollector));
-        agreementManager.beforeCollection(agreementId, 1_000_000 ether);
-        assertTrue(agreementManager.isTempJit());
-
-        // Now fund SAM and do a JIT top-up while temp JIT is active
-        token.mint(address(agreementManager), 500 ether);
-
-        vm.prank(address(recurringCollector));
-        agreementManager.beforeCollection(agreementId, 500 ether);
-
-        (uint256 escrowBalance, , ) = paymentsEscrow.escrowAccounts(
-            address(agreementManager),
-            address(recurringCollector),
-            indexer
-        );
-        uint256 maxClaim = 1 ether * 3600 + 100 ether;
-        assertTrue(maxClaim <= escrowBalance, "JIT still works during temp JIT");
-    }
-
-    function test_TempJit_RecoveryOnUpdateEscrow() public {
-        // Offer rca1 (fully deposited), drain SAM, offer rca2 (creates undeposited deficit)
-        IRecurringCollector.RecurringCollectionAgreement memory rca1 = _makeRCAForIndexer(
-            indexer,
-            100 ether,
-            1 ether,
-            3600,
-            1
-        );
-        bytes16 agreementId = _offerAgreement(rca1);
-
-        uint256 samBalance = token.balanceOf(address(agreementManager));
-        if (0 < samBalance) {
-            vm.prank(address(agreementManager));
-            token.transfer(address(1), samBalance);
-        }
-
-        IRecurringCollector.RecurringCollectionAgreement memory rca2 = _makeRCAForIndexer(
-            indexer,
-            100 ether,
-            1 ether,
-            3600,
-            2
-        );
-        vm.prank(operator);
-        agreementManager.offerAgreement(rca2, _collector());
-
-        // Trip temp JIT
-        vm.prank(address(recurringCollector));
-        agreementManager.beforeCollection(agreementId, 1_000_000 ether);
-        assertTrue(agreementManager.isTempJit());
-
-        // Mint more than totalEscrowDeficit — recovery requires strict deficit < available
-        uint256 totalEscrowDeficit = agreementManager.getTotalEscrowDeficit();
-        assertTrue(0 < totalEscrowDeficit, "Deficit exists");
-        token.mint(address(agreementManager), totalEscrowDeficit + 1);
-
-        vm.expectEmit(address(agreementManager));
-        emit IRecurringEscrowManagement.TempJitSet(false, true);
-
+        // OnDemand: only max gate matters (min is always 0 because basis != Full)
+        // max gate: smnca * threshold/256 < spare
+        _fundToSpare((smnca * 128) / 256 + 1);
         agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
 
-        assertFalse(agreementManager.isTempJit(), "Temp JIT recovered");
-        assertEq(
-            uint256(agreementManager.getEscrowBasis()),
-            uint256(IRecurringEscrowManagement.EscrowBasis.Full),
-            "Basis still Full"
-        );
+        (, uint256 thawing, ) = _escrowAccount(address(recurringCollector), indexer);
+        assertEq(thawing, 0, "OnDemand: no thaw when max gate passes");
     }
 
-    function test_TempJit_NoRecoveryWhenPartiallyFunded() public {
-        // Offer rca1 (fully deposited), drain, offer rca2 (undeposited — creates deficit)
-        IRecurringCollector.RecurringCollectionAgreement memory rca1 = _makeRCAForIndexer(
-            indexer,
-            100 ether,
-            1 ether,
-            3600,
-            1
-        );
-        bytes16 agreementId = _offerAgreement(rca1);
-
-        uint256 samBalance = token.balanceOf(address(agreementManager));
-        if (0 < samBalance) {
-            vm.prank(address(agreementManager));
-            token.transfer(address(1), samBalance);
-        }
-
-        IRecurringCollector.RecurringCollectionAgreement memory rca2 = _makeRCAForIndexer(
-            indexer,
-            100 ether,
-            1 ether,
-            3600,
-            2
-        );
-        vm.prank(operator);
-        agreementManager.offerAgreement(rca2, _collector());
-
-        // Trip
-        vm.prank(address(recurringCollector));
-        agreementManager.beforeCollection(agreementId, 1_000_000 ether);
-        assertTrue(agreementManager.isTempJit());
-
-        uint256 totalEscrowDeficit = agreementManager.getTotalEscrowDeficit();
-        assertTrue(0 < totalEscrowDeficit, "0 < totalEscrowDeficit");
-
-        // Mint less than totalEscrowDeficit — no recovery
-        token.mint(address(agreementManager), totalEscrowDeficit / 2);
-
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
-
-        assertTrue(agreementManager.isTempJit(), "Still tripped (insufficient balance)");
-        assertEq(
-            uint256(agreementManager.getEscrowBasis()),
-            uint256(IRecurringEscrowManagement.EscrowBasis.Full),
-            "Basis unchanged"
-        );
-    }
-
-    function test_TempJit_NoRecoveryWhenExactlyFunded() public {
-        // Boundary: available == totalEscrowDeficit — strict '<' means no recovery
-        IRecurringCollector.RecurringCollectionAgreement memory rca1 = _makeRCAForIndexer(
-            indexer,
-            100 ether,
-            1 ether,
-            3600,
-            1
-        );
-        bytes16 agreementId = _offerAgreement(rca1);
-
-        uint256 samBalance = token.balanceOf(address(agreementManager));
-        if (0 < samBalance) {
-            vm.prank(address(agreementManager));
-            token.transfer(address(1), samBalance);
-        }
-
-        IRecurringCollector.RecurringCollectionAgreement memory rca2 = _makeRCAForIndexer(
-            indexer,
-            100 ether,
-            1 ether,
-            3600,
-            2
-        );
-        vm.prank(operator);
-        agreementManager.offerAgreement(rca2, _collector());
-
-        // Trip
-        vm.prank(address(recurringCollector));
-        agreementManager.beforeCollection(agreementId, 1_000_000 ether);
-        assertTrue(agreementManager.isTempJit());
-
-        // Mint exactly totalEscrowDeficit — recovery requires strict deficit < available
-        uint256 totalEscrowDeficit = agreementManager.getTotalEscrowDeficit();
-        assertTrue(0 < totalEscrowDeficit, "Deficit exists");
-        token.mint(address(agreementManager), totalEscrowDeficit);
-        assertEq(token.balanceOf(address(agreementManager)), totalEscrowDeficit, "Balance == deficit");
-
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
-
-        assertTrue(agreementManager.isTempJit(), "Still tripped (available == deficit, not >)");
-        assertEq(
-            uint256(agreementManager.getEscrowBasis()),
-            uint256(IRecurringEscrowManagement.EscrowBasis.Full),
-            "Basis unchanged"
-        );
-    }
-
-    function test_TempJit_EscrowBasisPreservedDuringTrip() public {
-        // Set OnDemand, trip, recover — escrowBasis stays OnDemand throughout
+    function test_BasisDegradation_OnDemand_MaxGateFail_ThawsAll() public {
         vm.prank(operator);
         agreementManager.setEscrowBasis(IRecurringEscrowManagement.EscrowBasis.OnDemand);
 
@@ -1312,106 +1173,129 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             3600,
             1
         );
-        bytes16 agreementId = _offerAgreement(rca);
+        _offerAgreement(rca);
+        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
 
-        // Drain and trip
-        uint256 samBalance = token.balanceOf(address(agreementManager));
-        if (0 < samBalance) {
-            vm.prank(address(agreementManager));
-            token.transfer(address(1), samBalance);
-        }
-
-        vm.prank(address(recurringCollector));
-        agreementManager.beforeCollection(agreementId, 1_000_000 ether);
-        assertTrue(agreementManager.isTempJit());
-
-        assertEq(
-            uint256(agreementManager.getEscrowBasis()),
-            uint256(IRecurringEscrowManagement.EscrowBasis.OnDemand),
-            "Basis preserved during trip"
-        );
-
-        // Recovery — mint more than deficit (recovery requires strict deficit < available)
-        token.mint(address(agreementManager), agreementManager.getSumMaxNextClaimAll() + 1);
-
-        vm.expectEmit(address(agreementManager));
-        emit IRecurringEscrowManagement.TempJitSet(false, true);
-
+        // Max gate fails -> max=0 -> thaw everything
+        _fundToSpare((smnca * 128) / 256);
         agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
-        assertFalse(agreementManager.isTempJit());
-        assertEq(
-            uint256(agreementManager.getEscrowBasis()),
-            uint256(IRecurringEscrowManagement.EscrowBasis.OnDemand),
-            "Basis still OnDemand after recovery"
-        );
+
+        (uint256 bal, uint256 thawing, ) = _escrowAccount(address(recurringCollector), indexer);
+        assertEq(thawing, bal, "OnDemand degraded: all thawing");
     }
 
-    function test_TempJit_SetTempJitClearsBreaker() public {
-        IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
-            indexer,
-            100 ether,
-            1 ether,
-            3600,
-            1
-        );
-        bytes16 agreementId = _offerAgreement(rca);
-
-        // Drain and trip
-        uint256 samBalance = token.balanceOf(address(agreementManager));
-        if (0 < samBalance) {
-            vm.prank(address(agreementManager));
-            token.transfer(address(1), samBalance);
-        }
-
-        vm.prank(address(recurringCollector));
-        agreementManager.beforeCollection(agreementId, 1_000_000 ether);
-        assertTrue(agreementManager.isTempJit());
-
-        // Operator clears tempJit directly
-        vm.expectEmit(address(agreementManager));
-        emit IRecurringEscrowManagement.TempJitSet(false, false);
-
-        vm.prank(operator);
-        agreementManager.setTempJit(false);
-
-        assertFalse(agreementManager.isTempJit(), "Operator cleared breaker");
-    }
-
-    function test_TempJit_SetEscrowBasisDoesNotClearBreaker() public {
-        IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
-            indexer,
-            100 ether,
-            1 ether,
-            3600,
-            1
-        );
-        bytes16 agreementId = _offerAgreement(rca);
-
-        // Drain and trip
-        uint256 samBalance = token.balanceOf(address(agreementManager));
-        if (0 < samBalance) {
-            vm.prank(address(agreementManager));
-            token.transfer(address(1), samBalance);
-        }
-
-        vm.prank(address(recurringCollector));
-        agreementManager.beforeCollection(agreementId, 1_000_000 ether);
-        assertTrue(agreementManager.isTempJit());
-
-        // Operator changes basis — tempJit stays active
+    function test_BasisDegradation_OnDemand_MinGateIrrelevant() public {
+        // Even with generous spare (above min gate), OnDemand never deposits
         vm.prank(operator);
         agreementManager.setEscrowBasis(IRecurringEscrowManagement.EscrowBasis.OnDemand);
 
-        assertTrue(agreementManager.isTempJit(), "setEscrowBasis does not clear tempJit");
+        IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
+            indexer,
+            100 ether,
+            1 ether,
+            3600,
+            1
+        );
+        _offerAgreement(rca);
+        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+
+        // Drain to zero, complete thaw
+        _drainSAM();
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        vm.warp(block.timestamp + 2 days);
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+
+        // Fund well above both gates
+        _fundToSpare(smnca * 2);
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+
+        // OnDemand: min=0 always (basis != Full), so no deposit from zero
         assertEq(
-            uint256(agreementManager.getEscrowBasis()),
-            uint256(IRecurringEscrowManagement.EscrowBasis.OnDemand),
-            "Basis changed independently"
+            _effectiveEscrow(address(recurringCollector), indexer),
+            0,
+            "OnDemand: no deposit regardless of spare (min always 0)"
         );
     }
 
-    function test_TempJit_MultipleTripRecoverCycles() public {
-        // Offer rca1 (deposited), drain SAM, offer rca2 (undeposited — creates deficit)
+    // ---- Zero spare ----
+
+    function test_BasisDegradation_ZeroSpare_DegradesToJIT() public {
+        IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
+            indexer,
+            100 ether,
+            1 ether,
+            3600,
+            1
+        );
+        _offerAgreement(rca);
+
+        _drainSAM();
+        assertEq(token.balanceOf(address(agreementManager)), 0, "SAM drained");
+
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+
+        (uint256 bal, uint256 thawing, ) = _escrowAccount(address(recurringCollector), indexer);
+        assertEq(thawing, bal, "JIT: thaws all when spare=0");
+    }
+
+    // ---- Recovery ----
+
+    function test_BasisDegradation_Recovery_JITToOnDemand() public {
+        IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
+            indexer,
+            100 ether,
+            1 ether,
+            3600,
+            1
+        );
+        _offerAgreement(rca);
+        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+
+        // Drain to JIT, complete thaw
+        _drainSAM();
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        vm.warp(block.timestamp + 2 days);
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        assertEq(_effectiveEscrow(address(recurringCollector), indexer), 0, "JIT: zero escrow");
+
+        // Fund to OnDemand band (above max gate, below min gate)
+        _fundToSpare((smnca * 128) / 256 + 1);
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+
+        // OnDemand: min=0 so no deposit, max=smnc but nothing to hold
+        assertEq(_effectiveEscrow(address(recurringCollector), indexer), 0, "OnDemand recovery: no deposit (min=0)");
+        (, uint256 thawing, ) = _escrowAccount(address(recurringCollector), indexer);
+        assertEq(thawing, 0, "OnDemand recovery: no thaw");
+    }
+
+    function test_BasisDegradation_Recovery_JITToFull() public {
+        IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
+            indexer,
+            100 ether,
+            1 ether,
+            3600,
+            1
+        );
+        _offerAgreement(rca);
+        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 pairSmnc = agreementManager.getSumMaxNextClaim(_collector(), indexer);
+
+        // Drain to JIT, complete thaw
+        _drainSAM();
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        vm.warp(block.timestamp + 2 days);
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+
+        // Fund above min gate -> Full
+        _fundToSpare((smnca * (256 + 16)) / 256 + 1);
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+
+        assertEq(_effectiveEscrow(address(recurringCollector), indexer), pairSmnc, "Full: recovered and deposited");
+    }
+
+    // ---- Multi-provider: global degradation ----
+
+    function test_BasisDegradation_MultiProvider_BothDegraded() public {
         IRecurringCollector.RecurringCollectionAgreement memory rca1 = _makeRCAForIndexer(
             indexer,
             100 ether,
@@ -1419,89 +1303,10 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             3600,
             1
         );
-        bytes16 agreementId = _offerAgreement(rca1);
+        _offerAgreement(rca1);
 
-        uint256 samBalance = token.balanceOf(address(agreementManager));
-        if (0 < samBalance) {
-            vm.prank(address(agreementManager));
-            token.transfer(address(1), samBalance);
-        }
+        _drainSAM();
 
-        IRecurringCollector.RecurringCollectionAgreement memory rca2 = _makeRCAForIndexer(
-            indexer,
-            100 ether,
-            1 ether,
-            3600,
-            2
-        );
-        vm.prank(operator);
-        agreementManager.offerAgreement(rca2, _collector());
-
-        uint256 undeposited = agreementManager.getTotalEscrowDeficit();
-        assertTrue(0 < undeposited, "Has undeposited deficit");
-
-        // --- Cycle 1: Trip ---
-        vm.prank(address(recurringCollector));
-        agreementManager.beforeCollection(agreementId, 1_000_000 ether);
-        assertTrue(agreementManager.isTempJit());
-
-        // --- Cycle 1: Recover (mint more than deficit — recovery requires strict deficit < available) ---
-        token.mint(address(agreementManager), undeposited + 1);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
-        assertFalse(agreementManager.isTempJit());
-        assertEq(uint256(agreementManager.getEscrowBasis()), uint256(IRecurringEscrowManagement.EscrowBasis.Full));
-
-        // After recovery, reconcileCollectorProvider deposited into escrow. Drain again and create new deficit.
-        samBalance = token.balanceOf(address(agreementManager));
-        if (0 < samBalance) {
-            vm.prank(address(agreementManager));
-            token.transfer(address(1), samBalance);
-        }
-
-        IRecurringCollector.RecurringCollectionAgreement memory rca3 = _makeRCAForIndexer(
-            indexer,
-            100 ether,
-            1 ether,
-            3600,
-            3
-        );
-        vm.prank(operator);
-        agreementManager.offerAgreement(rca3, _collector());
-
-        undeposited = agreementManager.getTotalEscrowDeficit();
-        assertTrue(0 < undeposited, "New undeposited deficit");
-
-        // --- Cycle 2: Trip ---
-        vm.prank(address(recurringCollector));
-        agreementManager.beforeCollection(agreementId, 1_000_000 ether);
-        assertTrue(agreementManager.isTempJit());
-
-        // --- Cycle 2: Recover (mint more than deficit) ---
-        token.mint(address(agreementManager), undeposited + 1);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
-        assertFalse(agreementManager.isTempJit());
-        assertEq(uint256(agreementManager.getEscrowBasis()), uint256(IRecurringEscrowManagement.EscrowBasis.Full));
-    }
-
-    function test_TempJit_MultiProvider() public {
-        // Offer rca1 (deposited), drain SAM, offer rca2 (creates deficit → 0 < totalEscrowDeficit)
-        IRecurringCollector.RecurringCollectionAgreement memory rca1 = _makeRCAForIndexer(
-            indexer,
-            100 ether,
-            1 ether,
-            3600,
-            1
-        );
-        bytes16 id1 = _offerAgreement(rca1);
-
-        // Drain SAM so rca2 can't be deposited
-        uint256 samBalance = token.balanceOf(address(agreementManager));
-        if (0 < samBalance) {
-            vm.prank(address(agreementManager));
-            token.transfer(address(1), samBalance);
-        }
-
-        // Offer rca2 directly (no mint) — escrow stays undeposited, creates deficit
         IRecurringCollector.RecurringCollectionAgreement memory rca2 = _makeRCAForIndexer(
             indexer2,
             100 ether,
@@ -1511,33 +1316,313 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         );
         vm.prank(operator);
         agreementManager.offerAgreement(rca2, _collector());
-        assertTrue(0 < agreementManager.getTotalEscrowDeficit(), "should have undeposited escrow");
 
-        // Trip via indexer's agreement
-        vm.prank(address(recurringCollector));
-        agreementManager.beforeCollection(id1, 1_000_000 ether);
-        assertTrue(agreementManager.isTempJit());
-
-        // Both providers should see JIT behavior (thaw everything)
         agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
         agreementManager.reconcileCollectorProvider(address(_collector()), indexer2);
 
-        IPaymentsEscrow.EscrowAccount memory acc1;
-        (acc1.balance, acc1.tokensThawing, acc1.thawEndTimestamp) = paymentsEscrow.escrowAccounts(
+        (uint256 bal1, uint256 thawing1, ) = _escrowAccount(address(recurringCollector), indexer);
+        (uint256 bal2, uint256 thawing2, ) = _escrowAccount(address(recurringCollector), indexer2);
+
+        assertEq(thawing1, bal1, "indexer: degraded thaws all");
+        assertEq(thawing2, bal2, "indexer2: degraded thaws all");
+    }
+
+    function test_BasisDegradation_MultiProvider_RecoveryRestoresBoth() public {
+        IRecurringCollector.RecurringCollectionAgreement memory rca1 = _makeRCAForIndexer(
+            indexer,
+            100 ether,
+            1 ether,
+            3600,
+            1
+        );
+        _offerAgreement(rca1);
+
+        IRecurringCollector.RecurringCollectionAgreement memory rca2 = _makeRCAForIndexer(
+            indexer2,
+            50 ether,
+            2 ether,
+            1800,
+            2
+        );
+        _offerAgreement(rca2);
+
+        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 pairSmnc1 = agreementManager.getSumMaxNextClaim(_collector(), indexer);
+        uint256 pairSmnc2 = agreementManager.getSumMaxNextClaim(_collector(), indexer2);
+
+        // Drain and degrade
+        _drainSAM();
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer2);
+
+        // Complete thaws
+        vm.warp(block.timestamp + 2 days);
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer2);
+
+        // Fund above min gate -> both recover to Full
+        _fundToSpare((smnca * (256 + 16)) / 256 + 1);
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer2);
+
+        assertEq(_effectiveEscrow(address(recurringCollector), indexer), pairSmnc1, "indexer: recovered to Full");
+        assertEq(_effectiveEscrow(address(recurringCollector), indexer2), pairSmnc2, "indexer2: recovered to Full");
+    }
+
+    // ---- offerAgreement can trigger instant degradation ----
+
+    function test_BasisDegradation_OfferAgreement_TriggersInstantDegradation() public {
+        IRecurringCollector.RecurringCollectionAgreement memory rca1 = _makeRCAForIndexer(
+            indexer,
+            100 ether,
+            1 ether,
+            3600,
+            1
+        );
+        _offerAgreement(rca1);
+        uint256 pairSmnc1 = agreementManager.getSumMaxNextClaim(_collector(), indexer);
+
+        assertEq(
+            _effectiveEscrow(address(recurringCollector), indexer),
+            pairSmnc1,
+            "indexer: initially fully escrowed"
+        );
+
+        // Fund to just above min gate for current smnca
+        _drainSAM();
+        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 deficit = agreementManager.getTotalEscrowDeficit();
+        token.mint(address(agreementManager), deficit + (smnca * (256 + 16)) / 256 + 1);
+
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        assertEq(
+            _effectiveEscrow(address(recurringCollector), indexer),
+            pairSmnc1,
+            "indexer: still Full after careful funding"
+        );
+
+        // Offer large new agreement -- increases smnca, pushing spare below min gate
+        IRecurringCollector.RecurringCollectionAgreement memory rca2 = _makeRCAForIndexer(
+            indexer2,
+            500 ether,
+            10 ether,
+            7200,
+            2
+        );
+        vm.prank(operator);
+        agreementManager.offerAgreement(rca2, _collector());
+
+        // Reconcile indexer -- existing provider's escrow now degraded
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+
+        // New smnca much larger, spare likely below max gate too -> JIT-like
+        (uint256 bal, uint256 thawing, ) = _escrowAccount(address(recurringCollector), indexer);
+        assertEq(thawing, bal, "indexer: degraded after new offer increased smnca");
+    }
+
+    // ---- Stored escrowBasis never changes automatically ----
+
+    function test_BasisDegradation_StoredBasisUnchanged() public {
+        IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
+            indexer,
+            100 ether,
+            1 ether,
+            3600,
+            1
+        );
+        _offerAgreement(rca);
+
+        assertEq(
+            uint256(agreementManager.getEscrowBasis()),
+            uint256(IRecurringEscrowManagement.EscrowBasis.Full),
+            "Basis: Full before degradation"
+        );
+
+        _drainSAM();
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+
+        assertEq(
+            uint256(agreementManager.getEscrowBasis()),
+            uint256(IRecurringEscrowManagement.EscrowBasis.Full),
+            "Basis: still Full after degradation"
+        );
+
+        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        vm.warp(block.timestamp + 2 days);
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        _fundToSpare((smnca * (256 + 16)) / 256 + 1);
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+
+        assertEq(
+            uint256(agreementManager.getEscrowBasis()),
+            uint256(IRecurringEscrowManagement.EscrowBasis.Full),
+            "Basis: still Full after recovery"
+        );
+    }
+
+    // ---- Edge case: no agreements (smnca = 0) ----
+
+    function test_BasisDegradation_NoAgreements_NoRevert() public {
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        assertEq(_effectiveEscrow(address(recurringCollector), indexer), 0, "No agreements: zero escrow");
+    }
+
+    // ---- Custom params ----
+
+    function test_BasisDegradation_CustomMargin_WiderOnDemandBand() public {
+        // Increase margin to 128 -> min gate threshold = smnca * 384/256 = 1.5x
+        // OnDemand band becomes 0.5x < spare <= 1.5x (much wider)
+        vm.prank(operator);
+        agreementManager.setMinFullBasisMargin(128);
+
+        IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
+            indexer,
+            100 ether,
+            1 ether,
+            3600,
+            1
+        );
+        _offerAgreement(rca);
+        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 pairSmnc = agreementManager.getSumMaxNextClaim(_collector(), indexer);
+
+        // spare = smnca * 1.2 -- above max gate (0.5) but below min gate (1.5)
+        _fundToSpare((smnca * 307) / 256); // ~1.2x
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+
+        // OnDemand: holds pre-deposited escrow (max=smnc), no deposit (min=0)
+        assertEq(
+            _effectiveEscrow(address(recurringCollector), indexer),
+            pairSmnc,
+            "OnDemand with wide band: holds at ceiling"
+        );
+
+        // Fund above 1.5x -> Full
+        _fundToSpare((smnca * (256 + 128)) / 256 + 1);
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+
+        assertEq(_effectiveEscrow(address(recurringCollector), indexer), pairSmnc, "Full with wide band: deposited");
+    }
+
+    function test_BasisDegradation_CustomThreshold_HigherMaxGate() public {
+        // Increase threshold to 200 -> max gate threshold = smnca * 200/256 ~ 0.78x
+        vm.prank(operator);
+        agreementManager.setMinOnDemandBasisThreshold(200);
+
+        IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
+            indexer,
+            100 ether,
+            1 ether,
+            3600,
+            1
+        );
+        _offerAgreement(rca);
+        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+
+        // spare = smnca * 0.6 -- below new max gate (0.78) -> JIT-like
+        _fundToSpare((smnca * 154) / 256); // ~0.6x
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+
+        (uint256 bal, uint256 thawing, ) = _escrowAccount(address(recurringCollector), indexer);
+        assertEq(thawing, bal, "JIT with higher threshold: thaws all at 0.6x");
+
+        // spare = smnca * 0.85 -- above new max gate (0.78) -> OnDemand
+        vm.warp(block.timestamp + 2 days);
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        _fundToSpare((smnca * 218) / 256); // ~0.85x
+        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+
+        // OnDemand: no deposit (min=0), no thaw (max=smnc)
+        (uint256 bal2, uint256 thawing2, ) = _escrowAccount(address(recurringCollector), indexer);
+        assertEq(thawing2, 0, "OnDemand with higher threshold: no thaw at 0.85x");
+        assertEq(bal2, 0, "OnDemand with higher threshold: no deposit (min=0, escrow cleared)");
+    }
+
+    function test_BeforeCollection_JitTopUpStillWorks_WhenDegraded() public {
+        IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
+            indexer,
+            100 ether,
+            1 ether,
+            3600,
+            1
+        );
+        bytes16 agreementId = _offerAgreement(rca);
+
+        // Drain SAM
+        uint256 samBalance = token.balanceOf(address(agreementManager));
+        if (0 < samBalance) {
+            vm.prank(address(agreementManager));
+            token.transfer(address(1), samBalance);
+        }
+
+        // Mint just enough for JIT top-up
+        token.mint(address(agreementManager), 500 ether);
+
+        vm.prank(address(recurringCollector));
+        agreementManager.beforeCollection(agreementId, 500 ether);
+
+        // JIT top-up should have succeeded
+        IPaymentsEscrow.EscrowAccount memory acc;
+        (acc.balance, acc.tokensThawing, acc.thawEndTimestamp) = paymentsEscrow.escrowAccounts(
             address(agreementManager),
             address(recurringCollector),
             indexer
         );
-        IPaymentsEscrow.EscrowAccount memory acc2;
-        (acc2.balance, acc2.tokensThawing, acc2.thawEndTimestamp) = paymentsEscrow.escrowAccounts(
-            address(agreementManager),
-            address(recurringCollector),
-            indexer2
-        );
+        assertTrue(500 ether <= acc.balance, "JIT top-up works when degraded");
+    }
 
-        // Both providers should be thawing (JIT mode via temp JIT)
-        assertEq(acc1.tokensThawing, acc1.balance, "indexer: JIT thaws all");
-        assertEq(acc2.tokensThawing, acc2.balance, "indexer2: JIT thaws all");
+    // ==================== Setters ====================
+
+    function test_SetMinOnDemandBasisThreshold() public {
+        assertEq(agreementManager.getMinOnDemandBasisThreshold(), 128, "Default threshold");
+
+        vm.expectEmit(address(agreementManager));
+        emit IRecurringEscrowManagement.MinOnDemandBasisThresholdSet(128, 64);
+
+        vm.prank(operator);
+        agreementManager.setMinOnDemandBasisThreshold(64);
+
+        assertEq(agreementManager.getMinOnDemandBasisThreshold(), 64, "Updated threshold");
+    }
+
+    function test_SetMinOnDemandBasisThreshold_NoopWhenSame() public {
+        vm.recordLogs();
+        vm.prank(operator);
+        agreementManager.setMinOnDemandBasisThreshold(128); // same as default
+
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        for (uint256 i = 0; i < logs.length; i++) {
+            assertTrue(
+                logs[i].topics[0] != IRecurringEscrowManagement.MinOnDemandBasisThresholdSet.selector,
+                "Should not emit when unchanged"
+            );
+        }
+    }
+
+    function test_SetMinFullBasisMargin() public {
+        assertEq(agreementManager.getMinFullBasisMargin(), 16, "Default margin");
+
+        vm.expectEmit(address(agreementManager));
+        emit IRecurringEscrowManagement.MinFullBasisMarginSet(16, 32);
+
+        vm.prank(operator);
+        agreementManager.setMinFullBasisMargin(32);
+
+        assertEq(agreementManager.getMinFullBasisMargin(), 32, "Updated margin");
+    }
+
+    function test_SetMinFullBasisMargin_NoopWhenSame() public {
+        vm.recordLogs();
+        vm.prank(operator);
+        agreementManager.setMinFullBasisMargin(16); // same as default
+
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        for (uint256 i = 0; i < logs.length; i++) {
+            assertTrue(
+                logs[i].topics[0] != IRecurringEscrowManagement.MinFullBasisMarginSet.selector,
+                "Should not emit when unchanged"
+            );
+        }
     }
 
     /* solhint-enable graph/func-name-mixedcase */

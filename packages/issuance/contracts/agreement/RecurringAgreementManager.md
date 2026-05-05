@@ -115,7 +115,20 @@ The split ensures smooth transitions between levels. When degradation occurs, mi
 
 ### Automatic Degradation
 
-The setting is a ceiling, not a mandate. **Full → OnDemand** when `available <= totalEscrowDeficit` (RAM's balance can't close the system-wide gap): min drops to 0, max stays at `sumMaxNextClaim`. Degradation never reaches JustInTime automatically — only explicit operator setting or temp JIT.
+The setting is a ceiling, not a mandate. `_escrowMinMax` computes `spare = balance - totalEscrowDeficit` (floored at 0) and compares it against `sumMaxNextClaimAll` scaled by two configurable uint8 parameters (fractional units of 1/256):
+
+| Gate | Controls                                 | Condition (active when true)                                                            | Parameter (default)                     |
+| ---- | ---------------------------------------- | --------------------------------------------------------------------------------------- | --------------------------------------- |
+| max  | Hold escrow at `sumMaxNextClaim` ceiling | `sumMaxNextClaimAll * minOnDemandBasisThreshold / 256 < spare`                          | `minOnDemandBasisThreshold` (128 = 50%) |
+| min  | Proactively deposit to `sumMaxNextClaim` | `sumMaxNextClaimAll * (256 + minFullBasisMargin) / 256 < spare` (requires basis = Full) | `minFullBasisMargin` (16 ~ 6% margin)   |
+
+The min gate is stricter (0.5x < 1.0625x), giving three effective states as `spare` decreases:
+
+1. **Full** (`smnca × 1.0625 < spare`): both gates pass — min = max = `sumMaxNextClaim`
+2. **OnDemand** (`smnca × 0.5 < spare ≤ smnca × 1.0625`): min gate fails, max holds — min = 0, max = `sumMaxNextClaim` (no new deposits, but existing escrow up to max is held)
+3. **JIT** (`spare ≤ smnca × 0.5`): both gates fail — min = max = 0 (thaw everything)
+
+**Operator caution — new agreements can trigger instant degradation.** `offerAgreement()` and `offerAgreementUpdate()` increase `sumMaxNextClaim` (and therefore `totalEscrowDeficit`) without checking whether the RAM has sufficient balance to maintain the current escrow mode. A single offer can push `spare` below the threshold, instantly degrading escrow mode for **all** (collector, provider) pairs — not just the new agreement. Existing providers who had fully-escrowed agreements silently lose their proactive deposits. The operator (AGREEMENT_MANAGER_ROLE holder) should verify escrow headroom before offering agreements. An on-chain guard was considered but excluded due to contract size constraints (Spurious Dragon 24576-byte limit).
 
 ### `_updateEscrow` Flow
 
@@ -132,40 +145,27 @@ Per-agreement reconciliation (`reconcileAgreement`) re-reads agreement state fro
 
 ### Global Tracking
 
-| Storage field                       | Type    | Updated at                                                                  |
-| ----------------------------------- | ------- | --------------------------------------------------------------------------- |
-| `escrowBasis`                       | enum    | `setEscrowBasis()`                                                          |
-| `sumMaxNextClaimAll`                | uint256 | Every `sumMaxNextClaim[c][p]` mutation                                      |
-| `totalEscrowDeficit`                | uint256 | Every `sumMaxNextClaim[c][p]` or `escrowSnap[c][p]` mutation                |
-| `totalAgreementCount`               | uint256 | `offerAgreement` (+1), `revokeOffer` (-1), `removeAgreement` (-1)           |
-| `escrowSnap[c][p]`                  | mapping | End of `_updateEscrow` via snapshot diff                                    |
-| `tempJit`                           | bool    | `beforeCollection` (trip), `_updateEscrow` (recover), `setTempJit` (manual) |
-| `issuanceAllocator`                 | address | `setIssuanceAllocator()` (governor)                                         |
-| `ensuredIncomingDistributedToBlock` | uint64  | `_ensureIncomingDistributionToCurrentBlock()` (per-block dedup)             |
+| Storage field                       | Type    | Updated at                                                           |
+| ----------------------------------- | ------- | -------------------------------------------------------------------- |
+| `escrowBasis`                       | enum    | `setEscrowBasis()`                                                   |
+| `sumMaxNextClaimAll`                | uint256 | Every `sumMaxNextClaim[c][p]` mutation                               |
+| `totalEscrowDeficit`                | uint256 | Every `sumMaxNextClaim[c][p]` or `escrowSnap[c][p]` mutation         |
+| `totalAgreementCount`               | uint256 | `offerAgreement` (+1), `revokeOffer` (-1), `reconcileAgreement` (-1) |
+| `escrowSnap[c][p]`                  | mapping | End of `_updateEscrow` via snapshot diff                             |
+| `minOnDemandBasisThreshold`         | uint8   | `setMinOnDemandBasisThreshold()` (operator)                          |
+| `minFullBasisMargin`                | uint8   | `setMinFullBasisMargin()` (operator)                                 |
+| `issuanceAllocator`                 | address | `setIssuanceAllocator()` (governor)                                  |
+| `ensuredIncomingDistributedToBlock` | uint64  | `_ensureIncomingDistributionToCurrentBlock()` (per-block dedup)      |
 
 **`totalEscrowDeficit`** is maintained incrementally as `Σ max(0, sumMaxNextClaim[c][p] - escrowSnap[c][p])` per (collector, provider). Over-deposited pairs cannot mask another pair's deficit. At each mutation point, the pair's deficit is recomputed before and after.
-
-### Temp JIT
-
-If `beforeCollection` can't fully deposit for a collection (`available <= deficit`), it deposits nothing and activates temporary JIT mode. While active, `_escrowMinMax` returns `(0, 0)` — JIT-only behavior — regardless of the configured `escrowBasis`. The configured basis is preserved and takes effect again on recovery.
-
-**Trigger**: `beforeCollection` activates temp JIT when `available <= deficit` (all-or-nothing: no partial deposits).
-
-**Recovery**: `_updateEscrow` clears temp JIT when `totalEscrowDeficit < available`. Recovery uses `totalEscrowDeficit` (sum of per-(collector, provider) deficits) rather than total sumMaxNextClaim, correctly accounting for already-deposited escrow. During JIT mode, thaws complete and tokens return to RAM, naturally building toward recovery.
-
-**Operator override**: `setTempJit(bool)` allows direct control. `setEscrowBasis` does not affect `tempJit` — the two settings are independent.
-
-### Upgrade Safety
-
-Default storage value 0 maps to `JustInTime`, so `initialize()` sets `escrowBasis = Full` as the default. Future upgrades must set it explicitly via a reinitializer. `tempJit` defaults to `false` (0), which is correct — no temp JIT on fresh deployment.
 
 ## Roles
 
 - **GOVERNOR_ROLE**: Sets issuance allocator, eligibility oracle; grants `DATA_SERVICE_ROLE`, `COLLECTOR_ROLE`, and other roles; admin of `OPERATOR_ROLE`
-- **OPERATOR_ROLE**: Sets escrow basis and temp JIT; admin of `AGREEMENT_MANAGER_ROLE`
+- **OPERATOR_ROLE**: Sets escrow basis and threshold/margin parameters; admin of `AGREEMENT_MANAGER_ROLE`
   - **AGREEMENT_MANAGER_ROLE**: Offers agreements/updates, revokes offers, cancels agreements
-- **PAUSE_ROLE**: Pauses contract (reconcile/remove remain available)
-- **Permissionless**: `reconcileAgreement`, `removeAgreement`, `reconcileCollectorProvider`
+- **PAUSE_ROLE**: Pauses contract (reconcile remains available)
+- **Permissionless**: `reconcileAgreement`, `reconcileCollectorProvider`
 - **RecurringAgreementHelper** (permissionless): `reconcile(provider)`, `reconcileBatch(ids[])`
 
 ## Deployment

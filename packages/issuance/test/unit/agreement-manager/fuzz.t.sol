@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import { IRecurringAgreementManagement } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreementManagement.sol";
 import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 
@@ -67,14 +66,17 @@ contract RecurringAgreementManagerFuzzTest is RecurringAgreementManagerSharedTes
             indexer
         );
 
-        // In Full mode (default):
-        // If totalEscrowDeficit < available: Full deposits required (there is buffer).
-        // Otherwise (available <= totalEscrowDeficit): degrades to OnDemand (no buffer, deposit target = 0).
-        // JIT beforeCollection is the safety net for underfunded escrow.
-        if (maxNextClaim < availableTokens) {
+        // In Full mode (default), basis degrades based on spare = balance - totalEscrowDeficit.
+        // Before deposit: deficit = maxNextClaim, smnca = maxNextClaim.
+        // spare = availableTokens - maxNextClaim (if availableTokens > maxNextClaim, else 0).
+        // Full requires smnca * (256+16)/256 = maxNextClaim * 272/256 < spare.
+        // OnDemand requires smnca * 128/256 = maxNextClaim/2 < spare (but min=0, so no deposit).
+        // So Full deposits only when availableTokens > maxNextClaim + maxNextClaim * 272/256.
+        uint256 fullThreshold = maxNextClaim + (maxNextClaim * 272) / 256;
+        if (fullThreshold < availableTokens) {
             assertEq(escrowBalance, maxNextClaim);
         } else {
-            // Degraded to OnDemand: no deposit (no buffer or insufficient)
+            // Degraded — no deposit (OnDemand/JIT both have min=0)
             assertEq(escrowBalance, 0);
         }
     }

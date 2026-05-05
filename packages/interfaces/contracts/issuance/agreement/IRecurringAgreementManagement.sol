@@ -160,6 +160,11 @@ interface IRecurringAgreementManagement {
      * @dev Calculates max next claim from RCA parameters, stores the authorized hash
      * for the {IAgreementOwner} callback, and deposits into escrow.
      * Requires AGREEMENT_MANAGER_ROLE.
+     *
+     * WARNING: increases `sumMaxNextClaim` (and `totalEscrowDeficit`) without checking escrow
+     * headroom. A single offer can push `spare` below the degradation threshold, instantly
+     * degrading the escrow mode for ALL (collector, provider) pairs. The caller should verify
+     * sufficient balance before calling. See RecurringAgreementManager.md, Automatic Degradation.
      * @param rca The Recurring Collection Agreement parameters
      * @param collector The RecurringCollector contract to use for this agreement
      * @return agreementId The deterministic agreement ID
@@ -177,6 +182,12 @@ interface IRecurringAgreementManagement {
      * pending update as a separate escrow entry alongside the current agreement.
      * If a previous pending update exists, it is replaced.
      * Requires AGREEMENT_MANAGER_ROLE.
+     *
+     * WARNING: potentially increases `sumMaxNextClaim` (and `totalEscrowDeficit`), without
+     * checking escrow headroom. A single update can push `spare` below the degradation threshold,
+     * instantly degrading the escrow mode for ALL (collector, provider) pairs. The caller should
+     * verify sufficient balance before calling.
+     * See RecurringAgreementManager.md, Automatic Degradation.
      * @param rcau The Recurring Collection Agreement Update parameters
      * @return agreementId The agreement ID from the RCAU
      */
@@ -238,7 +249,7 @@ interface IRecurringAgreementManagement {
      * @dev Permissionless. First updates escrow state (deposit deficit, thaw excess,
      * withdraw completed thaws), then removes pair tracking when both pairAgreementCount
      * and escrow balance are zero. Also serves as the permissionless "poke" to rebalance
-     * escrow after {IRecurringEscrowManagement-setEscrowBasis} or {IRecurringEscrowManagement-setTempJit}
+     * escrow after {IRecurringEscrowManagement-setEscrowBasis} or threshold/margin
      * changes. Returns true if the pair still has agreements or escrow is still thawing.
      * @param collector The collector address
      * @param provider The provider address

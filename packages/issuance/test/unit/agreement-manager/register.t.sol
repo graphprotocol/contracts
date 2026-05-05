@@ -41,8 +41,10 @@ contract RecurringAgreementManagerOfferTest is RecurringAgreementManagerSharedTe
 
         uint256 expectedMaxClaim = 1 ether * 3600 + 100 ether;
 
-        // Fund with surplus so Full mode stays active (deficit < balance required)
-        token.mint(address(agreementManager), expectedMaxClaim + 1);
+        // Fund with surplus so Full mode stays active.
+        // spare = balance - deficit (deficit = expectedMaxClaim before deposit).
+        // Full requires smnca * (256 + 16) / 256 = expectedMaxClaim * 272 / 256 < spare
+        token.mint(address(agreementManager), expectedMaxClaim + (expectedMaxClaim * 272) / 256 + 1);
         vm.prank(operator);
         agreementManager.offerAgreement(rca, _collector());
 

@@ -149,13 +149,18 @@ interface IRecurringAgreements {
     function getTotalAgreementCount() external view returns (uint256 count);
 
     /**
-     * @notice Check whether temporary JIT mode is currently active
-     * @dev When active, the system operates in JIT-only mode regardless of the configured
-     * escrow basis. The configured basis is preserved and takes effect again when
-     * temp JIT recovers (totalEscrowDeficit < available) or operator calls {setTempJit}.
-     * @return active True if temporary JIT mode is active
+     * @notice Get the minimum spare balance threshold for OnDemand basis.
+     * @dev Effective basis limited to JustInTime when spare < sumMaxNextClaimAll * threshold / 256.
+     * @return threshold The numerator over 256
      */
-    function isTempJit() external view returns (bool active);
+    function getMinOnDemandBasisThreshold() external view returns (uint8 threshold);
+
+    /**
+     * @notice Get the minimum spare balance margin for Full basis.
+     * @dev Effective basis limited to OnDemand when spare < sumMaxNextClaimAll * (256 + margin) / 256.
+     * @return margin The margin added to 256
+     */
+    function getMinFullBasisMargin() external view returns (uint8 margin);
 
     /**
      * @notice Get the number of collectors with active agreements

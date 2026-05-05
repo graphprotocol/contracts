@@ -20,3 +20,9 @@ Add a separate configuration flag (e.g., `allowModeDegradation`) that must be ex
 ## Team Response
 
 TBD
+
+---
+
+Acknowledged. The risk is documented in [RecurringAgreementManager.md — Automatic Degradation](../../contracts/agreement/RecurringAgreementManager.md#automatic-degradation), including the operator caution about pre-offer headroom checks.
+
+An on-chain guard was prototyped but added ~2.7KB to the contract, exceeding the Spurious Dragon 24576-byte limit. The operator (AGREEMENT_MANAGER_ROLE holder) is a trusted role expected to verify escrow headroom before offering agreements.

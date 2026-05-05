@@ -25,7 +25,8 @@ interface IRecurringAgreementHelper {
      * @param totalEscrowDeficit Total unfunded escrow across all pairs
      * @param totalAgreementCount Total number of tracked agreements
      * @param escrowBasis Configured escrow level (Full / OnDemand / JustInTime)
-     * @param tempJit Whether the temporary JIT breaker is active
+     * @param minOnDemandBasisThreshold Threshold for OnDemand basis (numerator over 256)
+     * @param minFullBasisMargin Margin for Full basis (added to 256)
      * @param collectorCount Number of collectors with active agreements
      */
     struct GlobalAudit {
@@ -34,7 +35,8 @@ interface IRecurringAgreementHelper {
         uint256 totalEscrowDeficit;
         uint256 totalAgreementCount;
         IRecurringEscrowManagement.EscrowBasis escrowBasis;
-        bool tempJit;
+        uint8 minOnDemandBasisThreshold;
+        uint8 minFullBasisMargin;
         uint256 collectorCount;
     }
 

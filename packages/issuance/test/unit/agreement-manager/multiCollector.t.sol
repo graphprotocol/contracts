@@ -145,10 +145,6 @@ contract RecurringAgreementManagerMultiCollectorTest is RecurringAgreementManage
             1
         );
         uint256 maxClaim1 = 1 ether * 3600 + 100 ether;
-        // Fund with surplus so Full mode stays active (deficit < balance required)
-        token.mint(address(agreementManager), maxClaim1 + 1);
-        vm.prank(operator);
-        agreementManager.offerAgreement(rca1, _collector());
 
         // Offer via collector2
         (IRecurringCollector.RecurringCollectionAgreement memory rca2, ) = _makeRCAForCollector(
@@ -160,8 +156,16 @@ contract RecurringAgreementManagerMultiCollectorTest is RecurringAgreementManage
             2
         );
         uint256 maxClaim2 = 2 ether * 7200 + 200 ether;
-        // Fund with surplus so Full mode stays active (deficit < balance required)
-        token.mint(address(agreementManager), maxClaim2 + 1);
+
+        // Fund generously so Full mode stays active through both offers.
+        // After both: smnca = maxClaim1 + maxClaim2, deficit = smnca.
+        // spare = balance - deficit. Full requires smnca * 272 / 256 < spare.
+        uint256 totalMaxClaim = maxClaim1 + maxClaim2;
+        token.mint(address(agreementManager), totalMaxClaim + (totalMaxClaim * 272) / 256 + 1);
+
+        vm.prank(operator);
+        agreementManager.offerAgreement(rca1, _collector());
+
         vm.prank(operator);
         agreementManager.offerAgreement(rca2, IRecurringCollector(address(collector2)));
 

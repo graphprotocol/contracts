@@ -56,12 +56,18 @@ interface IRecurringEscrowManagement {
     event EscrowBasisSet(EscrowBasis indexed oldBasis, EscrowBasis indexed newBasis);
 
     /**
-     * @notice Emitted when temporary JIT mode is activated or deactivated
-     * @param active True when entering temp JIT, false when recovering
-     * @param automatic True when triggered by the system (beforeCollection/reconcileCollectorProvider),
-     * false when triggered by operator (setTempJit/setEscrowBasis)
+     * @notice Emitted when the OnDemand basis threshold is changed
+     * @param oldThreshold The previous threshold
+     * @param newThreshold The new threshold
      */
-    event TempJitSet(bool indexed active, bool indexed automatic);
+    event MinOnDemandBasisThresholdSet(uint8 oldThreshold, uint8 newThreshold);
+
+    /**
+     * @notice Emitted when the Full basis margin is changed
+     * @param oldMargin The previous margin
+     * @param newMargin The new margin
+     */
+    event MinFullBasisMarginSet(uint8 oldMargin, uint8 newMargin);
 
     // solhint-enable gas-indexed-events
 
@@ -77,11 +83,20 @@ interface IRecurringEscrowManagement {
     function setEscrowBasis(EscrowBasis basis) external;
 
     /**
-     * @notice Manually activate or deactivate temporary JIT mode
-     * @dev Requires OPERATOR_ROLE. When activated, the system operates in JIT-only mode
-     * regardless of the configured escrow basis. When deactivated, the configured basis
-     * takes effect again. Emits {TempJitSet}.
-     * @param active True to activate temp JIT, false to deactivate
+     * @notice Set the minimum spare balance threshold for OnDemand basis.
+     * @dev Requires OPERATOR_ROLE. The effective basis is limited to JustInTime
+     * when spare balance (balance - totalEscrowDeficit) is not strictly greater than
+     * sumMaxNextClaimAll * minOnDemandBasisThreshold / 256.
+     * @param threshold The numerator over 256 for the spare threshold
      */
-    function setTempJit(bool active) external;
+    function setMinOnDemandBasisThreshold(uint8 threshold) external;
+
+    /**
+     * @notice Set the minimum spare balance margin for Full basis.
+     * @dev Requires OPERATOR_ROLE. The effective basis is limited to OnDemand
+     * when spare balance is not strictly greater than
+     * sumMaxNextClaimAll * (256 + minFullBasisMargin) / 256.
+     * @param margin The margin added to 256 for the spare threshold numerator
+     */
+    function setMinFullBasisMargin(uint8 margin) external;
 }

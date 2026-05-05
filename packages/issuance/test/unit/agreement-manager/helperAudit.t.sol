@@ -64,7 +64,8 @@ contract RecurringAgreementHelperAuditTest is RecurringAgreementManagerSharedTes
         assertEq(g.totalEscrowDeficit, 0);
         assertEq(g.totalAgreementCount, 0);
         assertEq(uint256(g.escrowBasis), uint256(IRecurringEscrowManagement.EscrowBasis.Full));
-        assertFalse(g.tempJit);
+        assertEq(g.minOnDemandBasisThreshold, 128);
+        assertEq(g.minFullBasisMargin, 16);
         assertEq(g.collectorCount, 0);
     }
 
