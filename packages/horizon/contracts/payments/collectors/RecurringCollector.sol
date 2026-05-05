@@ -343,10 +343,17 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
             require(tokensAvailable > 0, RecurringCollectorUnauthorizedDataService(agreement.dataService));
         }
 
-        uint256 tokensToCollect = 0;
-        if (_params.tokens != 0) {
-            tokensToCollect = _requireValidCollect(agreement, _params.agreementId, _params.tokens, collectionSeconds);
+        // Always validate temporal constraints (min/maxSecondsPerCollection) even for
+        // zero-token collections, to prevent bypassing temporal windows while updating
+        // lastCollectionAt.
+        uint256 tokensToCollect = _requireValidCollect(
+            agreement,
+            _params.agreementId,
+            _params.tokens,
+            collectionSeconds
+        );
 
+        if (_params.tokens != 0) {
             uint256 slippage = _params.tokens - tokensToCollect;
             /* solhint-disable gas-strict-inequalities */
             require(
