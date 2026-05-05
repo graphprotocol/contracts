@@ -849,5 +849,162 @@ contract RecurringCollectorCoverageGapsTest is RecurringCollectorSharedTest {
         assertEq(dataAfter.length, 0, "Offer data should be empty after cancel");
     }
 
+    // ══════════════════════════════════════════════════════════════════════
+    // Gap 16 — _requirePayer: agreement not found (L528)
+    // ══════════════════════════════════════════════════════════════════════
+
+    function test_Cancel_Revert_WhenAgreementNotFound() public {
+        bytes16 fakeId = bytes16(keccak256("nonexistent"));
+        address caller = makeAddr("randomCaller");
+
+        vm.expectRevert(
+            abi.encodeWithSelector(IRecurringCollector.RecurringCollectorAgreementNotFound.selector, fakeId)
+        );
+        vm.prank(caller);
+        _recurringCollector.cancel(fakeId, bytes32(0), SCOPE_ACTIVE);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // Gap 17 — _requirePayer: unauthorized caller (L530)
+    // ══════════════════════════════════════════════════════════════════════
+
+    function test_Cancel_Revert_WhenUnauthorizedCaller(FuzzyTestAccept calldata fuzzy) public {
+        (
+            IRecurringCollector.RecurringCollectionAgreement memory rca,
+            ,
+            ,
+            bytes16 agreementId
+        ) = _sensibleAuthorizeAndAccept(fuzzy);
+
+        address imposter = makeAddr("imposter");
+        vm.assume(imposter != rca.payer);
+
+        bytes32 activeHash = _recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IRecurringCollector.RecurringCollectorUnauthorizedCaller.selector,
+                imposter,
+                rca.payer
+            )
+        );
+        vm.prank(imposter);
+        _recurringCollector.cancel(agreementId, activeHash, SCOPE_ACTIVE);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // Gap 18 — IAgreementCollector.cancel with SCOPE_PENDING to delete RCAU offer (L501)
+    // ══════════════════════════════════════════════════════════════════════
+
+    function test_Cancel_PendingScope_DeletesRcauOffer() public {
+        MockAgreementOwner approver = new MockAgreementOwner();
+        IRecurringCollector.RecurringCollectionAgreement memory rca = _recurringCollectorHelper.sensibleRCA(
+            IRecurringCollector.RecurringCollectionAgreement({
+                deadline: uint64(block.timestamp + 1 hours),
+                endsAt: uint64(block.timestamp + 365 days),
+                payer: address(approver),
+                dataService: makeAddr("ds"),
+                serviceProvider: makeAddr("sp"),
+                maxInitialTokens: 100 ether,
+                maxOngoingTokensPerSecond: 1 ether,
+                minSecondsPerCollection: 600,
+                maxSecondsPerCollection: 3600,
+                conditions: 0,
+                nonce: 1,
+                metadata: ""
+            })
+        );
+        _setupValidProvision(rca.serviceProvider, rca.dataService);
+
+        // Offer and accept
+        vm.prank(address(approver));
+        bytes16 agreementId = _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0).agreementId;
+        vm.prank(rca.dataService);
+        _recurringCollector.accept(rca, "");
+
+        // Offer an update
+        IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = IRecurringCollector
+            .RecurringCollectionAgreementUpdate({
+                agreementId: agreementId,
+                deadline: uint64(block.timestamp + 1 hours),
+                endsAt: rca.endsAt + 100 days,
+                maxInitialTokens: rca.maxInitialTokens * 2,
+                maxOngoingTokensPerSecond: rca.maxOngoingTokensPerSecond,
+                minSecondsPerCollection: rca.minSecondsPerCollection,
+                maxSecondsPerCollection: rca.maxSecondsPerCollection,
+                conditions: 0,
+                nonce: 1,
+                metadata: ""
+            });
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
+
+        // Verify RCAU offer exists
+        (, bytes memory pendingData) = _recurringCollector.getAgreementOfferAt(agreementId, 1);
+        assertTrue(pendingData.length > 0, "RCAU offer should exist");
+
+        // Cancel via IAgreementCollector.cancel with RCAU hash and SCOPE_PENDING
+        bytes32 rcauHash = _recurringCollector.hashRCAU(rcau);
+        vm.prank(address(approver));
+        _recurringCollector.cancel(agreementId, rcauHash, SCOPE_PENDING);
+
+        // Verify RCAU offer is deleted
+        (, bytes memory afterData) = _recurringCollector.getAgreementOfferAt(agreementId, 1);
+        assertEq(afterData.length, 0, "RCAU offer should be deleted after cancel");
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // Gap 19 — IAgreementCollector.cancel with SCOPE_ACTIVE on accepted (L502-504)
+    // ══════════════════════════════════════════════════════════════════════
+
+    function test_Cancel_ActiveScope_CallsDataService() public {
+        MockAgreementOwner approver = new MockAgreementOwner();
+        MockDataServiceForCancel dataServiceMock = new MockDataServiceForCancel();
+
+        IRecurringCollector.RecurringCollectionAgreement memory rca = _recurringCollectorHelper.sensibleRCA(
+            IRecurringCollector.RecurringCollectionAgreement({
+                deadline: uint64(block.timestamp + 1 hours),
+                endsAt: uint64(block.timestamp + 365 days),
+                payer: address(approver),
+                dataService: address(dataServiceMock),
+                serviceProvider: makeAddr("sp"),
+                maxInitialTokens: 100 ether,
+                maxOngoingTokensPerSecond: 1 ether,
+                minSecondsPerCollection: 600,
+                maxSecondsPerCollection: 3600,
+                conditions: 0,
+                nonce: 1,
+                metadata: ""
+            })
+        );
+        _setupValidProvision(rca.serviceProvider, address(dataServiceMock));
+
+        // Offer and accept
+        vm.prank(address(approver));
+        bytes16 agreementId = _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0).agreementId;
+        vm.prank(address(dataServiceMock));
+        _recurringCollector.accept(rca, "");
+
+        // Cancel via IAgreementCollector.cancel with active hash and SCOPE_ACTIVE
+        bytes32 activeHash = _recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
+        vm.prank(address(approver));
+        _recurringCollector.cancel(agreementId, activeHash, SCOPE_ACTIVE);
+
+        // Verify the mock was called
+        assertTrue(dataServiceMock.cancelCalled(), "cancelIndexingAgreementByPayer should have been called");
+        assertEq(dataServiceMock.canceledAgreementId(), agreementId, "Agreement ID should match");
+    }
+
     /* solhint-enable graph/func-name-mixedcase */
+}
+
+/// @notice Minimal mock data service that implements cancelIndexingAgreementByPayer
+contract MockDataServiceForCancel {
+    bool public cancelCalled;
+    bytes16 public canceledAgreementId;
+
+    function cancelIndexingAgreementByPayer(bytes16 agreementId) external {
+        cancelCalled = true;
+        canceledAgreementId = agreementId;
+    }
 }

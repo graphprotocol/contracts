@@ -450,10 +450,7 @@ contract SubgraphService is
      * @param indexer The indexer address
      * @param agreementId The id of the agreement
      */
-    function cancelIndexingAgreement(
-        address indexer,
-        bytes16 agreementId
-    ) external enforceService(indexer, VALID_PROVISION | REGISTERED) {
+    function cancelIndexingAgreement(address indexer, bytes16 agreementId) external enforceService(indexer, DEFAULT) {
         IndexingAgreement._getStorageManager().cancel(indexer, agreementId);
     }
 
