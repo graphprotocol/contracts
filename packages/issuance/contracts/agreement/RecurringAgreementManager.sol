@@ -283,30 +283,22 @@ contract RecurringAgreementManager is
 
     /// @inheritdoc IRecurringAgreementManagement
     function offerAgreement(
-        IRecurringCollector.RecurringCollectionAgreement calldata rca,
-        IRecurringCollector collector
-    ) external onlyRole(AGREEMENT_MANAGER_ROLE) whenNotPaused returns (bytes16 agreementId) {
-        require(rca.payer == address(this), PayerMustBeManager(rca.payer, address(this)));
-        require(rca.serviceProvider != address(0), ServiceProviderZeroAddress());
-        require(hasRole(DATA_SERVICE_ROLE, rca.dataService), UnauthorizedDataService(rca.dataService));
+        IAgreementCollector collector,
+        uint8 offerType,
+        bytes calldata offerData
+    ) external onlyRole(AGREEMENT_MANAGER_ROLE) nonReentrant returns (bytes16 agreementId) {
         require(hasRole(COLLECTOR_ROLE, address(collector)), UnauthorizedCollector(address(collector)));
 
-        RecurringAgreementManagerStorage storage $ = _getStorage();
+        // Forward to collector — no callback to msg.sender, we reconcile after return
+        IAgreementCollector.AgreementDetails memory details = collector.offer(offerType, offerData, 0);
+        require(hasRole(DATA_SERVICE_ROLE, details.dataService), UnauthorizedDataService(details.dataService));
+        agreementId = details.agreementId;
 
-        agreementId = collector.generateAgreementId(
-            rca.payer,
-            rca.dataService,
-            rca.serviceProvider,
-            rca.deadline,
-            rca.nonce
-        );
-        require($.agreements[agreementId].provider == address(0), AgreementAlreadyOffered(agreementId));
+        require(agreementId != bytes16(0), AgreementIdZero());
+        require(details.payer == address(this), PayerMismatch(details.payer));
+        require(details.serviceProvider != address(0), ServiceProviderZeroAddress());
 
-        bytes32 agreementHash = collector.hashRCA(rca);
-        uint256 maxNextClaim = _createAgreement($, agreementId, rca, collector, agreementHash);
-        _updateEscrow($, address(collector), rca.serviceProvider);
-
-        emit AgreementOffered(agreementId, rca.serviceProvider, maxNextClaim);
+        _reconcileAgreement(_getStorage(), address(collector), agreementId);
     }
 
     /// @inheritdoc IRecurringAgreementManagement
@@ -408,30 +400,14 @@ contract RecurringAgreementManager is
 
     /// @inheritdoc IRecurringAgreementManagement
     function cancelAgreement(
-        bytes16 agreementId
-    ) external onlyRole(AGREEMENT_MANAGER_ROLE) whenNotPaused nonReentrant returns (bool gone) {
-        RecurringAgreementManagerStorage storage $ = _getStorage();
-        AgreementInfo storage agreement = $.agreements[agreementId];
-        if (agreement.provider == address(0)) return true;
-
-        IRecurringCollector.AgreementData memory rca = agreement.collector.getAgreement(agreementId);
-
-        // Not accepted — use revokeOffer instead
-        require(rca.state != IRecurringCollector.AgreementState.NotAccepted, AgreementNotAccepted(agreementId));
-
-        // If still active, route cancellation through the data service.
-        // Note: external call before state update — safe because caller must hold
-        // AGREEMENT_MANAGER_ROLE and data service is governance-gated. nonReentrant
-        // provides defence-in-depth (see CEI note in contract header).
-        if (rca.state == IRecurringCollector.AgreementState.Accepted) {
-            IDataServiceAgreements ds = agreement.dataService;
-            require(address(ds).code.length != 0, InvalidDataService(address(ds)));
-            ds.cancelIndexingAgreementByPayer(agreementId);
-            emit AgreementCanceled(agreementId, agreement.provider);
-        }
-        // else: already canceled (CanceledByPayer or CanceledByServiceProvider) — skip cancel call, just reconcile
-
-        return _reconcileAndCleanup($, agreementId, agreement);
+        IAgreementCollector collector,
+        bytes16 agreementId,
+        bytes32 versionHash,
+        uint16 options
+    ) external onlyRole(AGREEMENT_MANAGER_ROLE) nonReentrant {
+        // Forward to collector — no callback to msg.sender, we reconcile after return
+        collector.cancel(agreementId, versionHash, options);
+        _reconcileAgreement(_getStorage(), address(collector), agreementId);
     }
 
     /// @inheritdoc IRecurringAgreementManagement
@@ -1012,7 +988,7 @@ contract RecurringAgreementManager is
 
         if (account.tokensThawing == 0) {
             if (max < account.balance) {
-                unint256 excess = account.balance - max;
+                uint256 excess = account.balance - max;
                 if (thawThreshold <= excess)
                     // Thaw excess above max (might have withdrawn allowing a new thaw to start)
                     PAYMENTS_ESCROW.adjustThaw(collector, provider, excess, false);
