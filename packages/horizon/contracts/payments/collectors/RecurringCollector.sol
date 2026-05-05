@@ -731,36 +731,40 @@ contract RecurringCollector is
     ) private {
         address payer = agreement.payer;
         address provider = agreement.serviceProvider;
-        // Payer callbacks use gas-capped low-level calls to prevent gas siphoning and
-        // caller-side ABI decode reverts. Failures emit events but do not block collection.
 
+        // Eligibility gate (opt-in via conditions bitmask). Assembly staticcall caps returndata
+        // copy to 32 bytes, preventing returndata bombing. Only an explicit return of 0 blocks
+        // collection; reverts, short returndata, and malformed responses are treated as "no
+        // opinion" (collection proceeds).
         if ((agreement.conditions & CONDITION_ELIGIBILITY_CHECK) != 0) {
-            // 64/63 accounts for EIP-150 63/64 gas forwarding rule.
             if (gasleft() < (MAX_PAYER_CALLBACK_GAS * 64) / 63 + CALLBACK_GAS_OVERHEAD)
                 revert RecurringCollectorInsufficientCallbackGas();
-
-            // Eligibility gate (opt-in via conditions bitmask): low-level staticcall avoids
-            // caller-side ABI decode reverts. Only an explicit return of 0 blocks collection;
-            // reverts, short returndata, and malformed responses are treated as "no opinion"
-            // (collection proceeds).
-            // solhint-disable-next-line avoid-low-level-calls
-            (bool success, bytes memory result) = payer.staticcall{ gas: MAX_PAYER_CALLBACK_GAS }(
-                abi.encodeCall(IProviderEligibility.isEligible, (provider))
-            );
-            if (success && !(result.length < 32) && abi.decode(result, (uint256)) == 0)
+            bytes memory cd = abi.encodeCall(IProviderEligibility.isEligible, (provider));
+            bool success;
+            uint256 returnLen;
+            uint256 result;
+            // solhint-disable-next-line no-inline-assembly
+            assembly {
+                success := staticcall(MAX_PAYER_CALLBACK_GAS, payer, add(cd, 0x20), mload(cd), 0x00, 0x20)
+                returnLen := returndatasize()
+                result := mload(0x00)
+            }
+            if (success && !(returnLen < 32) && result == 0)
                 revert RecurringCollectorCollectionNotEligible(agreementId, provider);
-            if (!success || result.length < 32)
+            if (!success || returnLen < 32)
                 emit PayerCallbackFailed(agreementId, payer, PayerCallbackStage.EligibilityCheck);
         }
 
+        // Assembly call copies 0 bytes of returndata, preventing returndata bombing.
         if (payer.code.length != 0 && payer != msg.sender) {
             if (gasleft() < (MAX_PAYER_CALLBACK_GAS * 64) / 63 + CALLBACK_GAS_OVERHEAD)
                 revert RecurringCollectorInsufficientCallbackGas();
-
-            // solhint-disable-next-line avoid-low-level-calls
-            (bool beforeOk, ) = payer.call{ gas: MAX_PAYER_CALLBACK_GAS }(
-                abi.encodeCall(IAgreementOwner.beforeCollection, (agreementId, tokensToCollect))
-            );
+            bytes memory cd = abi.encodeCall(IAgreementOwner.beforeCollection, (agreementId, tokensToCollect));
+            bool beforeOk;
+            // solhint-disable-next-line no-inline-assembly
+            assembly {
+                beforeOk := call(MAX_PAYER_CALLBACK_GAS, payer, 0, add(cd, 0x20), mload(cd), 0, 0)
+            }
             if (!beforeOk) emit PayerCallbackFailed(agreementId, payer, PayerCallbackStage.BeforeCollection);
         }
     }
@@ -778,10 +782,16 @@ contract RecurringCollector is
             // 64/63 accounts for EIP-150 63/64 gas forwarding rule.
             if (gasleft() < (MAX_PAYER_CALLBACK_GAS * 64) / 63 + CALLBACK_GAS_OVERHEAD)
                 revert RecurringCollectorInsufficientCallbackGas();
-            // solhint-disable-next-line avoid-low-level-calls
-            (bool afterOk, ) = payer.call{ gas: MAX_PAYER_CALLBACK_GAS }(
-                abi.encodeCall(IAgreementOwner.afterCollection, (agreementId, tokensToCollect))
+            // Assembly call copies 0 bytes of returndata, preventing returndata bombing.
+            bytes memory afterCallData = abi.encodeCall(
+                IAgreementOwner.afterCollection,
+                (agreementId, tokensToCollect)
             );
+            bool afterOk;
+            // solhint-disable-next-line no-inline-assembly
+            assembly {
+                afterOk := call(MAX_PAYER_CALLBACK_GAS, payer, 0, add(afterCallData, 0x20), mload(afterCallData), 0, 0)
+            }
             if (!afterOk) emit PayerCallbackFailed(agreementId, payer, PayerCallbackStage.AfterCollection);
         }
     }
