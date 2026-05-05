@@ -1,4 +1,4 @@
-# TRST-L-8: EOA payer signatures cannot be revoked before deadline
+# TRST-L-7: EOA payer signatures cannot be revoked before deadline
 
 - **Severity:** Low
 - **Category:** Functionality flaws

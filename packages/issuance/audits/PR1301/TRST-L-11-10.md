@@ -1,4 +1,4 @@
-# TRST-L-11: Inaccurate state flags returned by getAgreementDetails() and \_offerUpdate()
+# TRST-L-10: Inaccurate state flags returned by getAgreementDetails() and \_offerUpdate()
 
 - **Severity:** Low
 - **Category:** Logical flaws

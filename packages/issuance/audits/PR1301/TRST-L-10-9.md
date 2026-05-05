@@ -1,4 +1,4 @@
-# TRST-L-10: EIP-7702 payer code change enables callback gas griefing after acceptance
+# TRST-L-9: EIP-7702 payer code change enables callback gas griefing after acceptance
 
 - **Severity:** Low
 - **Category:** Type confusion
