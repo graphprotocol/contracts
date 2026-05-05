@@ -336,7 +336,26 @@ contract RecurringCollector is
 
         _requireAuthorization(agreement.payer, rcauHash, signature, rcau.agreementId, OFFER_TYPE_UPDATE);
 
+        uint32 expectedNonce = agreement.updateNonce + 1;
+        require(
+            rcau.nonce == expectedNonce,
+            RecurringCollectorInvalidUpdateNonce(rcau.agreementId, expectedNonce, rcau.nonce)
+        );
+
         _validateAndStoreUpdate(agreement, rcau, rcauHash);
+        agreement.updateNonce = rcau.nonce;
+
+        emit AgreementUpdated(
+            agreement.dataService,
+            agreement.payer,
+            agreement.serviceProvider,
+            rcau.agreementId,
+            rcau.endsAt,
+            rcau.maxInitialTokens,
+            rcau.maxOngoingTokensPerSecond,
+            rcau.minSecondsPerCollection,
+            rcau.maxSecondsPerCollection
+        );
     }
 
     /// @inheritdoc IRecurringCollector
@@ -1032,13 +1051,6 @@ contract RecurringCollector is
     ) private {
         RecurringCollectorStorage storage $ = _getStorage();
 
-        // validate nonce to prevent replay attacks
-        uint32 expectedNonce = _agreement.updateNonce + 1;
-        require(
-            _rcau.nonce == expectedNonce,
-            RecurringCollectorInvalidUpdateNonce(_rcau.agreementId, expectedNonce, _rcau.nonce)
-        );
-
         _requireValidTerms(
             _rcau.endsAt, _rcau.minSecondsPerCollection, _rcau.maxSecondsPerCollection,
             _agreement.payer, _rcau.conditions, _rcau.maxOngoingTokensPerSecond
@@ -1049,7 +1061,7 @@ contract RecurringCollector is
         if ($.rcaOffers[_rcau.agreementId].offerHash == _agreement.activeTermsHash)
             delete $.rcaOffers[_rcau.agreementId];
 
-        // update the agreement
+        // update the agreement terms
         _agreement.endsAt = _rcau.endsAt;
         _agreement.maxInitialTokens = _rcau.maxInitialTokens;
         _agreement.maxOngoingTokensPerSecond = _rcau.maxOngoingTokensPerSecond;
@@ -1057,19 +1069,6 @@ contract RecurringCollector is
         _agreement.maxSecondsPerCollection = _rcau.maxSecondsPerCollection;
         _agreement.conditions = _rcau.conditions;
         _agreement.activeTermsHash = _rcauHash;
-        _agreement.updateNonce = _rcau.nonce;
-
-        emit AgreementUpdated(
-            _agreement.dataService,
-            _agreement.payer,
-            _agreement.serviceProvider,
-            _rcau.agreementId,
-            _agreement.endsAt,
-            _agreement.maxInitialTokens,
-            _agreement.maxOngoingTokensPerSecond,
-            _agreement.minSecondsPerCollection,
-            _agreement.maxSecondsPerCollection
-        );
     }
 
     /**
