@@ -15,6 +15,7 @@ import { IIssuanceAllocationStatus } from "@graphprotocol/interfaces/contracts/i
 import { IIssuanceAllocationData } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationData.sol";
 import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceTarget.sol";
 import { BaseUpgradeable } from "../common/BaseUpgradeable.sol";
+import { IGraphToken } from "../common/IGraphToken.sol";
 import { ReentrancyGuardTransient } from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
@@ -324,10 +325,10 @@ contract IssuanceAllocator is
      * @notice Constructor for the IssuanceAllocator contract
      * @dev This contract is upgradeable, but we use the constructor to pass the Graph Token address
      * to the base contract.
-     * @param _graphToken Address of the Graph Token contract
+     * @param _graphToken The Graph Token contract
      * @custom:oz-upgrades-unsafe-allow constructor
      */
-    constructor(address _graphToken) BaseUpgradeable(_graphToken) {}
+    constructor(IGraphToken _graphToken) BaseUpgradeable(_graphToken) {}
 
     // -- Initialization --
 

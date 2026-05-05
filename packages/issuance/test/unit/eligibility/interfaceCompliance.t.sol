@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.33;
+pragma solidity ^0.8.27;
 
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
 
 import { IProviderEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IProviderEligibility.sol";
 import { IRewardsEligibilityAdministration } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibilityAdministration.sol";
+import { IRewardsEligibilityMaintenance } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibilityMaintenance.sol";
 import { IRewardsEligibilityReporting } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibilityReporting.sol";
 import { IRewardsEligibilityStatus } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibilityStatus.sol";
 import { IPausableControl } from "@graphprotocol/interfaces/contracts/issuance/common/IPausableControl.sol";
@@ -28,6 +29,10 @@ contract RewardsEligibilityOracleInterfaceTest is RewardsEligibilityOracleShared
 
     function test_SupportsIRewardsEligibilityAdministration() public view {
         assertTrue(oracle.supportsInterface(type(IRewardsEligibilityAdministration).interfaceId));
+    }
+
+    function test_SupportsIRewardsEligibilityMaintenance() public view {
+        assertTrue(oracle.supportsInterface(type(IRewardsEligibilityMaintenance).interfaceId));
     }
 
     function test_SupportsIRewardsEligibilityReporting() public view {
@@ -58,7 +63,11 @@ contract RewardsEligibilityOracleInterfaceTest is RewardsEligibilityOracleShared
     }
 
     function test_InterfaceId_IRewardsEligibilityAdministration() public pure {
-        assertEq(type(IRewardsEligibilityAdministration).interfaceId, bytes4(0x9a69f6aa));
+        assertEq(type(IRewardsEligibilityAdministration).interfaceId, bytes4(0x428f54e5));
+    }
+
+    function test_InterfaceId_IRewardsEligibilityMaintenance() public pure {
+        assertEq(type(IRewardsEligibilityMaintenance).interfaceId, bytes4(0x6f001113));
     }
 
     function test_InterfaceId_IRewardsEligibilityReporting() public pure {
@@ -66,7 +75,7 @@ contract RewardsEligibilityOracleInterfaceTest is RewardsEligibilityOracleShared
     }
 
     function test_InterfaceId_IRewardsEligibilityStatus() public pure {
-        assertEq(type(IRewardsEligibilityStatus).interfaceId, bytes4(0x53740f19));
+        assertEq(type(IRewardsEligibilityStatus).interfaceId, bytes4(0x054cdbc2));
     }
 
     /* solhint-enable graph/func-name-mixedcase */
