@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.27;
 
+// solhint-disable gas-strict-inequalities
+
 import { EIP712Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
@@ -211,12 +213,10 @@ contract RecurringCollector is
         RecurringCollectionAgreement calldata rca,
         bytes calldata signature
     ) external whenNotPaused returns (bytes16 agreementId) {
-        /* solhint-disable gas-strict-inequalities */
         require(
-            rca.deadline >= block.timestamp,
+            block.timestamp <= rca.deadline,
             RecurringCollectorAgreementDeadlineElapsed(block.timestamp, rca.deadline)
         );
-        /* solhint-enable gas-strict-inequalities */
 
         bytes32 rcaHash;
         (agreementId, rcaHash) = _rcaIdAndHash(rca);
@@ -325,12 +325,10 @@ contract RecurringCollector is
     function update(RecurringCollectionAgreementUpdate calldata rcau, bytes calldata signature) external whenNotPaused {
         AgreementData storage agreement = _requireValidUpdateTarget(rcau.agreementId);
 
-        /* solhint-disable gas-strict-inequalities */
         require(
-            rcau.deadline >= block.timestamp,
+            block.timestamp <= rcau.deadline,
             RecurringCollectorAgreementDeadlineElapsed(block.timestamp, rcau.deadline)
         );
-        /* solhint-enable gas-strict-inequalities */
 
         bytes32 rcauHash = _hashRCAU(rcau);
 
@@ -658,12 +656,10 @@ contract RecurringCollector is
 
         if (_params.tokens != 0) {
             uint256 slippage = _params.tokens - tokensToCollect;
-            /* solhint-disable gas-strict-inequalities */
             require(
                 slippage <= _params.maxSlippage,
                 RecurringCollectorExcessiveSlippage(_params.tokens, tokensToCollect, _params.maxSlippage)
             );
-            /* solhint-enable gas-strict-inequalities */
         }
         agreement.lastCollectionAt = uint64(block.timestamp);
 
@@ -816,7 +812,6 @@ contract RecurringCollector is
         // Collection window needs to be at least MIN_SECONDS_COLLECTION_WINDOW
         require(
             _maxSecondsPerCollection > _minSecondsPerCollection &&
-                // solhint-disable-next-line gas-strict-inequalities
                 (_maxSecondsPerCollection - _minSecondsPerCollection >= MIN_SECONDS_COLLECTION_WINDOW),
             RecurringCollectorAgreementInvalidCollectionWindow(
                 MIN_SECONDS_COLLECTION_WINDOW,
@@ -827,7 +822,6 @@ contract RecurringCollector is
 
         // Agreement needs to last at least one min collection window
         require(
-            // solhint-disable-next-line gas-strict-inequalities
             _endsAt - block.timestamp >= _minSecondsPerCollection + MIN_SECONDS_COLLECTION_WINDOW,
             RecurringCollectorAgreementInvalidDuration(
                 _minSecondsPerCollection + MIN_SECONDS_COLLECTION_WINDOW,
@@ -881,7 +875,6 @@ contract RecurringCollector is
             block.timestamp > _agreement.endsAt;
         if (!canceledOrElapsed) {
             require(
-                // solhint-disable-next-line gas-strict-inequalities
                 _collectionSeconds >= _agreement.minSecondsPerCollection,
                 RecurringCollectorCollectionTooSoon(
                     _agreementId,
@@ -1253,7 +1246,6 @@ contract RecurringCollector is
         uint256 maxOngoingTokensPerSecond,
         uint256 maxInitialTokens
     ) private pure returns (uint256) {
-        // solhint-disable-next-line gas-strict-inequalities
         if (windowEnd <= windowStart) return 0;
         uint256 windowSeconds = windowEnd - windowStart;
         uint256 effectiveSeconds = windowSeconds < maxSecondsPerCollection ? windowSeconds : maxSecondsPerCollection;
