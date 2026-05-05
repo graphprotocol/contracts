@@ -20,3 +20,7 @@ Use the introduced `CONDITION_ELIGIBILITY_CHECK` flag in place of the live `code
 TBD
 
 ---
+
+Using `CONDITION_ELIGIBILITY_CHECK` for callback dispatch does not seem appropriate. The eligibility check is an agreement term, not a proxy for payer type and contract payers can legitimately offer agreements without this condition. The provider agreeing to the check requires greater trust in the payer. Gating callbacks on this flag would deny `beforeCollection`/`afterCollection` to contract payers for agreements without eligibility gating.
+
+With the returndata bombing fix (TRST-M-4), the gas impact of an EIP-7702 EOA gaining callbacks is bounded and predictable. We do not believe this as a significant attack vector. The `beforeCollection`/`afterCollection` callbacks are non-reverting and non-blocking. A payer adding code via EIP-7702 to better handle escrow reconciliation could be a valid use case and in the best interests of all parties.
