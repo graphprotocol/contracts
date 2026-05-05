@@ -459,7 +459,7 @@ contract RecurringCollector is
         uint256 index;
         if (offerType == OFFER_TYPE_NEW) (agreementId, versionHash, index) = _offerNew(data);
         else if (offerType == OFFER_TYPE_UPDATE) (agreementId, versionHash, index) = _offerUpdate(data);
-        else revert RecurringCollectorInvalidCollectData(data);
+        else revert RecurringCollectorInvalidOfferType(offerType);
 
         details = _getAgreementDetails(agreementId, versionHash, index);
         require(msg.sender == details.payer, RecurringCollectorUnauthorizedCaller(msg.sender, details.payer));

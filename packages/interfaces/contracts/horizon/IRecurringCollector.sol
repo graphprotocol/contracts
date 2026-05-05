@@ -297,6 +297,12 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
     error RecurringCollectorInvalidCollectData(bytes invalidData);
 
     /**
+     * @notice Thrown when offer() is called with an unrecognized offer type
+     * @param offerType The unrecognized offer type
+     */
+    error RecurringCollectorInvalidOfferType(uint8 offerType);
+
+    /**
      * @notice Thrown when interacting with an agreement that has an incorrect state
      * @param agreementId The agreement ID
      * @param incorrectState The incorrect state
