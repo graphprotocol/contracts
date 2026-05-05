@@ -1261,9 +1261,6 @@ contract RecurringCollector is
      * @return The maximum tokens that could be collected
      */
     function _getMaxNextClaim(AgreementData storage _a) private view returns (uint256) {
-        // CanceledByServiceProvider = immediately non-collectable
-        if (_a.state == AgreementState.CanceledByServiceProvider) return 0;
-        // Only Accepted and CanceledByPayer are collectable
         if (_a.state != AgreementState.Accepted && _a.state != AgreementState.CanceledByPayer) return 0;
 
         uint256 collectionStart = _agreementCollectionStartAt(_a);
