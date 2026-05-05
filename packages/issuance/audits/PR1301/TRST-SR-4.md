@@ -9,3 +9,13 @@ The RecurringCollector wraps all payer callbacks (`beforeCollection()`, `afterCo
 This creates a systemic tension: the try/catch is necessary for liveness (ensuring providers can collect), but it trades state consistency for availability. Over time, if callbacks fail repeatedly (due to gas issues, contract bugs, or the stale snapshot issue in TRST-H-3), the divergence between the RAM's internal accounting and the actual escrow state can compound silently with no on-chain signal.
 
 There is no event emitted when a callback fails, making it difficult for off-chain monitoring to detect and respond to these silent failures.
+
+## Team Response
+
+TBD
+
+---
+
+Non-reverting callbacks are intentional — collector liveness takes priority over payer state updates. Callbacks now use low-level `call`/`staticcall` with gas caps instead of try/catch. The snap-refresh fix (TRST-H-3) ensures the next successful `_reconcileProviderEscrow` call self-corrects any divergence. Permissionless `reconcileAgreement` and `reconcileProvider` provide external recovery paths.
+
+Failed callbacks emit `PayerCallbackFailed(agreementId, payer, stage)` with a `PayerCallbackStage` enum (`EligibilityCheck`, `BeforeCollection`, `AfterCollection`), giving off-chain monitoring a signal to detect failures and trigger reconciliation.

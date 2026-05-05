@@ -20,3 +20,7 @@ Enforce a minimum gas reservation before each callback. Before calling `beforeCo
 ## Team Response
 
 TBD
+
+---
+
+Fixed. Added `MAX_PAYER_CALLBACK_GAS` constant (1,500,000 gas) in `RecurringCollector._collect()`. All external calls to payer contracts (`isEligible`, `beforeCollection`, `afterCollection`) now use gas-capped low-level `call`/`staticcall`, preventing gas siphoning via the 63/64 forwarding rule. A `gasleft()` guard before the callback block reverts with `RecurringCollectorInsufficientCallbackGas` when insufficient gas remains, ensuring core payment logic always has enough gas to complete.

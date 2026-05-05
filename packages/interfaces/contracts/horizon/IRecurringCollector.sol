@@ -392,6 +392,29 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
     error RecurringCollectorCollectionNotEligible(bytes16 agreementId, address serviceProvider);
 
     /**
+     * @notice Thrown when an offer sets CONDITION_ELIGIBILITY_CHECK but the payer
+     * does not support IProviderEligibility (via ERC-165)
+     * @param payer The payer address
+     */
+    error RecurringCollectorPayerDoesNotSupportEligibilityInterface(address payer);
+
+    /**
+     * @notice Thrown when the caller does not provide enough gas for the payer callback
+     * after collection
+     */
+    error RecurringCollectorInsufficientCallbackGas();
+
+    /**
+     * @notice Emitted when a payer callback (beforeCollection / afterCollection) reverts.
+     * @dev The try/catch ensures provider liveness but this event enables off-chain
+     * monitoring to detect repeated failures and trigger reconciliation.
+     * @param agreementId The agreement ID
+     * @param payer The payer contract whose callback reverted
+     * @param stage Whether the failure occurred before or after collection
+     */
+    event PayerCallbackFailed(bytes16 indexed agreementId, address indexed payer, PayerCallbackStage stage);
+
+    /**
      * @notice Emitted when an offer (RCA or RCAU) is stored via {IAgreementCollector.offer}
      * @param agreementId The agreement ID
      * @param payer The payer that stored the offer

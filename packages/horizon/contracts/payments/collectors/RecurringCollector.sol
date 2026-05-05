@@ -3,13 +3,13 @@ pragma solidity ^0.8.27;
 
 import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import { Authorizable } from "../../utilities/Authorizable.sol";
 import { GraphDirectory } from "../../utilities/GraphDirectory.sol";
 // solhint-disable-next-line no-unused-import
 import { IPaymentsCollector } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsCollector.sol"; // for @inheritdoc
-import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import { IAgreementOwner } from "@graphprotocol/interfaces/contracts/horizon/IAgreementOwner.sol";
 import {
     IAgreementCollector,
@@ -40,6 +40,14 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
 
     /// @notice The minimum number of seconds that must be between two collections
     uint32 public constant MIN_SECONDS_COLLECTION_WINDOW = 600;
+
+    /// @notice Condition flag: agreement requires eligibility checks before collection
+    uint16 public constant CONDITION_ELIGIBILITY_CHECK = 1;
+
+    /// @notice Maximum gas forwarded to payer contract callbacks (beforeCollection / afterCollection).
+    /// Caps gas available to payer implementations, preventing 63/64-rule gas siphoning attacks
+    /// that could starve the core collect() call of gas.
+    uint256 private constant MAX_PAYER_CALLBACK_GAS = 1_500_000;
 
     /* solhint-disable gas-small-strings */
     /// @notice The EIP712 typehash for the RecurringCollectionAgreement struct
@@ -144,6 +152,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         );
 
         _requireValidCollectionWindowParams(_rca.endsAt, _rca.minSecondsPerCollection, _rca.maxSecondsPerCollection);
+        _requirePayerToSupportEligibilityCheck(_rca.payer, _rca.conditions);
 
         AgreementData storage agreement = _getAgreementStorage(agreementId);
         // check that the agreement is not already accepted
@@ -560,23 +569,9 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         }
         agreement.lastCollectionAt = uint64(block.timestamp);
 
-        // Hard eligibility gate for contract payers that opt in via ERC165
-        if (0 < tokensToCollect && 0 < agreement.payer.code.length) {
-            try IERC165(agreement.payer).supportsInterface(type(IProviderEligibility).interfaceId) returns (
-                bool supported
-            ) {
-                if (supported) {
-                    require(
-                        IProviderEligibility(agreement.payer).isEligible(agreement.serviceProvider),
-                        RecurringCollectorCollectionNotEligible(_params.agreementId, agreement.serviceProvider)
-                    );
-                }
-            } catch {}
-            // Let contract payers top up escrow if short
-            try IAgreementOwner(agreement.payer).beforeCollection(_params.agreementId, tokensToCollect) {} catch {}
-        }
-
         if (0 < tokensToCollect) {
+            _preCollectCallbacks(agreement, _params.agreementId, tokensToCollect);
+
             _graphPaymentsEscrow().collect(
                 _paymentType,
                 agreement.payer,
@@ -607,14 +602,90 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
             _params.dataServiceCut
         );
 
-        // Notify contract payers so they can reconcile escrow in the same transaction
-        if (0 < agreement.payer.code.length) {
-            try IAgreementOwner(agreement.payer).afterCollection(_params.agreementId, tokensToCollect) {} catch {}
-        }
-
+        if (0 < tokensToCollect) _postCollectCallback(agreement.payer, _params.agreementId, tokensToCollect);
         return tokensToCollect;
     }
     /* solhint-enable function-max-lines */
+
+    /**
+     * @notice Validates that a contract payer supports IProviderEligibility via ERC-165.
+     * @param payer The payer address to validate
+     * @param conditions The conditions bitmask
+     */
+    function _requirePayerToSupportEligibilityCheck(address payer, uint16 conditions) private view {
+        if (conditions & CONDITION_ELIGIBILITY_CHECK != 0) {
+            require(
+                ERC165Checker.supportsInterface(payer, type(IProviderEligibility).interfaceId),
+                RecurringCollectorPayerDoesNotSupportEligibilityInterface(payer)
+            );
+        }
+    }
+
+    /**
+     * @notice Executes pre-collection callbacks: eligibility check and beforeCollection notification.
+     * @dev Extracted from _collect to reduce stack depth for coverage builds.
+     * @param agreement The agreement storage data
+     * @param agreementId The agreement ID
+     * @param tokensToCollect The amount of tokens to collect
+     */
+    function _preCollectCallbacks(
+        AgreementData storage agreement,
+        bytes16 agreementId,
+        uint256 tokensToCollect
+    ) private {
+        address payer = agreement.payer;
+        address provider = agreement.serviceProvider;
+        // Payer callbacks use gas-capped low-level calls to prevent gas siphoning and
+        // caller-side ABI decode reverts. Failures emit events but do not block collection.
+
+        if ((agreement.conditions & CONDITION_ELIGIBILITY_CHECK) != 0) {
+            // 64/63 accounts for EIP-150 63/64 gas forwarding rule.
+            if (gasleft() < (MAX_PAYER_CALLBACK_GAS * 64) / 63) revert RecurringCollectorInsufficientCallbackGas();
+
+            // Eligibility gate (opt-in via conditions bitmask): low-level staticcall avoids
+            // caller-side ABI decode reverts. Only an explicit return of 0 blocks collection;
+            // reverts, short returndata, and malformed responses are treated as "no opinion"
+            // (collection proceeds).
+            // solhint-disable-next-line avoid-low-level-calls
+            (bool success, bytes memory result) = payer.staticcall{ gas: MAX_PAYER_CALLBACK_GAS }(
+                abi.encodeCall(IProviderEligibility.isEligible, (provider))
+            );
+            if (success && !(result.length < 32) && abi.decode(result, (uint256)) == 0)
+                revert RecurringCollectorCollectionNotEligible(agreementId, provider);
+            if (!success || result.length < 32)
+                emit PayerCallbackFailed(agreementId, payer, PayerCallbackStage.EligibilityCheck);
+        }
+
+        if (payer.code.length != 0 && payer != msg.sender) {
+            if (gasleft() < (MAX_PAYER_CALLBACK_GAS * 64) / 63) revert RecurringCollectorInsufficientCallbackGas();
+
+            // solhint-disable-next-line avoid-low-level-calls
+            (bool beforeOk, ) = payer.call{ gas: MAX_PAYER_CALLBACK_GAS }(
+                abi.encodeCall(IAgreementOwner.beforeCollection, (agreementId, tokensToCollect))
+            );
+            if (!beforeOk) emit PayerCallbackFailed(agreementId, payer, PayerCallbackStage.BeforeCollection);
+        }
+    }
+
+    /**
+     * @notice Executes post-collection callback: afterCollection notification.
+     * @dev Extracted from _collect to reduce stack depth for coverage builds.
+     * @param payer The payer address
+     * @param agreementId The agreement ID
+     * @param tokensToCollect The amount of tokens collected
+     */
+    function _postCollectCallback(address payer, bytes16 agreementId, uint256 tokensToCollect) private {
+        // Notify contract payers so they can reconcile escrow in the same transaction.
+        if (payer != msg.sender && payer.code.length != 0) {
+            // 64/63 accounts for EIP-150 63/64 gas forwarding rule.
+            if (gasleft() < (MAX_PAYER_CALLBACK_GAS * 64) / 63) revert RecurringCollectorInsufficientCallbackGas();
+            // solhint-disable-next-line avoid-low-level-calls
+            (bool afterOk, ) = payer.call{ gas: MAX_PAYER_CALLBACK_GAS }(
+                abi.encodeCall(IAgreementOwner.afterCollection, (agreementId, tokensToCollect))
+            );
+            if (!afterOk) emit PayerCallbackFailed(agreementId, payer, PayerCallbackStage.AfterCollection);
+        }
+    }
 
     /**
      * @notice Requires that the collection window parameters are valid.
@@ -842,6 +913,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         );
 
         _requireValidCollectionWindowParams(_rcau.endsAt, _rcau.minSecondsPerCollection, _rcau.maxSecondsPerCollection);
+        _requirePayerToSupportEligibilityCheck(_agreement.payer, _rcau.conditions);
 
         // Reverts on overflow — rejecting excessive terms that could prevent collection
         _rcau.maxOngoingTokensPerSecond * _rcau.maxSecondsPerCollection * 1024;
