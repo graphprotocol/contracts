@@ -22,6 +22,11 @@
     "eip712Version": "1",
     "revokeSignerThawingPeriod": 10000
   },
+  "RecurringCollector": {
+    "eip712Name": "RecurringCollector",
+    "eip712Version": "1",
+    "revokeSignerThawingPeriod": 10000
+  },
   "RewardsManager": {
     "issuancePerBlock": "114155251141552511415n"
   },

@@ -45,5 +45,10 @@
     "eip712Name": "GraphTallyCollector",
     "eip712Version": "1",
     "revokeSignerThawingPeriod": 2592000
+  },
+  "RecurringCollector": {
+    "eip712Name": "RecurringCollector",
+    "eip712Version": "1",
+    "revokeSignerThawingPeriod": 2592000
   }
 }

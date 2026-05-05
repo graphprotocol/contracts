@@ -8,6 +8,8 @@ import { IPaymentsCollector } from "@graphprotocol/interfaces/contracts/horizon/
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
 import { RecurringCollector } from "../../../../contracts/payments/collectors/RecurringCollector.sol";
+import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import { ERC1967Utils } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils.sol";
 
 import { Bounder } from "../../../unit/utils/Bounder.t.sol";
 import { PartialControllerMock } from "../../mocks/PartialControllerMock.t.sol";
@@ -36,20 +38,26 @@ contract RecurringCollectorSharedTest is Test, Bounder {
     PaymentsEscrowMock internal _paymentsEscrow;
     HorizonStakingMock internal _horizonStaking;
     RecurringCollectorHelper internal _recurringCollectorHelper;
+    address internal _proxyAdmin;
 
-    function setUp() public {
+    function setUp() public virtual {
         _paymentsEscrow = new PaymentsEscrowMock();
         _horizonStaking = new HorizonStakingMock();
         PartialControllerMock.Entry[] memory entries = new PartialControllerMock.Entry[](2);
         entries[0] = PartialControllerMock.Entry({ name: "PaymentsEscrow", addr: address(_paymentsEscrow) });
         entries[1] = PartialControllerMock.Entry({ name: "Staking", addr: address(_horizonStaking) });
-        _recurringCollector = new RecurringCollector(
-            "RecurringCollector",
-            "1",
-            address(new PartialControllerMock(entries)),
-            1
+        address controller = address(new PartialControllerMock(entries));
+        RecurringCollector implementation = new RecurringCollector(controller, 1);
+        address proxyAdminOwner = makeAddr("proxyAdminOwner");
+        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
+            address(implementation),
+            proxyAdminOwner,
+            abi.encodeCall(RecurringCollector.initialize, ("RecurringCollector", "1"))
         );
-        _recurringCollectorHelper = new RecurringCollectorHelper(_recurringCollector);
+        _recurringCollector = RecurringCollector(address(proxy));
+        // Store the actual ProxyAdmin contract address to exclude from fuzz inputs
+        _proxyAdmin = address(uint160(uint256(vm.load(address(proxy), ERC1967Utils.ADMIN_SLOT))));
+        _recurringCollectorHelper = new RecurringCollectorHelper(_recurringCollector, _proxyAdmin);
     }
 
     function _sensibleAuthorizeAndAccept(
