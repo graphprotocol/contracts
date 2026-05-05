@@ -57,6 +57,9 @@ import { ReentrancyGuardTransient } from "@openzeppelin/contracts/utils/Reentran
  * {forceRemoveAgreement} as an operator escape hatch. Once tracked, reconciliation proceeds
  * even if COLLECTOR_ROLE is later revoked, ensuring orderly settlement.
  *
+ * Collectors own agreement uniqueness, replay protection, and state transitions; this
+ * contract does not re-check them.
+ *
  * {offerAgreement} and {cancelAgreement} forward to the collector then reconcile locally.
  * The collector does not callback to `msg.sender`, so these methods own the full call
  * sequence and hold the reentrancy lock for the entire operation.
