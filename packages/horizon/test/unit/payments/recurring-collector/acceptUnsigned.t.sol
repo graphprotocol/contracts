@@ -60,7 +60,6 @@ contract RecurringCollectorAcceptUnsignedTest is RecurringCollectorSharedTest {
             rca.payer,
             rca.serviceProvider,
             expectedId,
-            uint64(block.timestamp),
             rca.endsAt,
             rca.maxInitialTokens,
             rca.maxOngoingTokensPerSecond,

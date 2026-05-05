@@ -87,7 +87,6 @@ contract RecurringCollectorUpdateUnsignedTest is RecurringCollectorSharedTest {
             rca.payer,
             rca.serviceProvider,
             agreementId,
-            uint64(block.timestamp),
             rcau.endsAt,
             rcau.maxInitialTokens,
             rcau.maxOngoingTokensPerSecond,
