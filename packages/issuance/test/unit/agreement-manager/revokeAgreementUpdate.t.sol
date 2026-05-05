@@ -2,17 +2,17 @@
 pragma solidity ^0.8.27;
 
 import { IRecurringAgreementManagement } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreementManagement.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { IRecurringAgreements } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreements.sol";
 import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
-import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 
 import { RecurringAgreementManagerSharedTest } from "./shared.t.sol";
 
-contract RecurringAgreementManagerRevokeAgreementUpdateTest is RecurringAgreementManagerSharedTest {
+contract RecurringAgreementManagerCancelPendingUpdateTest is RecurringAgreementManagerSharedTest {
     /* solhint-disable graph/func-name-mixedcase */
 
-    function test_RevokeAgreementUpdate_ClearsPendingState() public {
+    function test_CancelPendingUpdate_ClearsPendingState() public {
         (IRecurringCollector.RecurringCollectionAgreement memory rca, ) = _makeRCAWithId(
             100 ether,
             1 ether,
@@ -21,7 +21,6 @@ contract RecurringAgreementManagerRevokeAgreementUpdateTest is RecurringAgreemen
         );
 
         bytes16 agreementId = _offerAgreement(rca);
-        uint256 originalMaxClaim = 1 ether * 3600 + 100 ether;
 
         // Offer a pending update
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _makeRCAU(
@@ -35,28 +34,19 @@ contract RecurringAgreementManagerRevokeAgreementUpdateTest is RecurringAgreemen
         );
         _offerAgreementUpdate(rcau);
 
-        uint256 pendingMaxClaim = 2 ether * 7200 + 200 ether;
-        assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), originalMaxClaim + pendingMaxClaim);
+        // max(current, pending) = max(3700, 14600) = 14600
+        uint256 pendingMaxClaim = 14600 ether;
+        assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), pendingMaxClaim);
 
-        // Revoke the pending update
-        vm.prank(operator);
-        bool revoked = agreementManager.revokeAgreementUpdate(agreementId);
-        assertTrue(revoked);
+        // Cancel pending update clears pending terms on the collector and reconciles
+        _cancelPendingUpdate(agreementId);
 
-        // Pending state should be fully cleared
-        IRecurringAgreements.AgreementInfo memory info = agreementManager.getAgreementInfo(agreementId);
-        assertEq(info.pendingUpdateMaxNextClaim, 0, "pending escrow should be zero");
-        assertEq(info.pendingUpdateNonce, 0, "pending nonce should be zero");
-        assertEq(info.pendingUpdateHash, bytes32(0), "pending hash should be zero");
-
-        // sumMaxNextClaim should only include the base claim
+        // sumMaxNextClaim drops to active-only (3700) since pending was cleared
+        uint256 originalMaxClaim = 1 ether * 3600 + 100 ether;
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), originalMaxClaim);
-
-        // The update hash should no longer be authorized
-        bytes32 updateHash = recurringCollector.hashRCAU(rcau);
     }
 
-    function test_RevokeAgreementUpdate_EmitsEvent() public {
+    function test_CancelPendingUpdate_EmitsEvent() public {
         (IRecurringCollector.RecurringCollectionAgreement memory rca, ) = _makeRCAWithId(
             100 ether,
             1 ether,
@@ -77,16 +67,24 @@ contract RecurringAgreementManagerRevokeAgreementUpdateTest is RecurringAgreemen
         );
         _offerAgreementUpdate(rcau);
 
-        uint256 pendingMaxClaim = 2 ether * 7200 + 200 ether;
+        // Read pending terms hash from the collector
+        bytes32 pendingHash = recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
+
+        // Before cancel: maxNextClaim = max(active=3700, pending=14600) = 14600
+        // After cancel: pending deleted, maxNextClaim = active-only = 3700
+        uint256 oldMaxClaim = agreementManager
+            .getAgreementInfo(IAgreementCollector(address(recurringCollector)), agreementId)
+            .maxNextClaim;
+        uint256 activeOnlyClaim = 1 ether * 3600 + 100 ether;
 
         vm.expectEmit(address(agreementManager));
-        emit IRecurringAgreementManagement.AgreementUpdateRevoked(agreementId, pendingMaxClaim, 1);
+        emit IRecurringAgreementManagement.AgreementReconciled(agreementId, oldMaxClaim, activeOnlyClaim);
 
         vm.prank(operator);
-        agreementManager.revokeAgreementUpdate(agreementId);
+        agreementManager.cancelAgreement(IAgreementCollector(address(recurringCollector)), agreementId, pendingHash, 0);
     }
 
-    function test_RevokeAgreementUpdate_ReturnsFalse_WhenNoPending() public {
+    function test_CancelPendingUpdate_CanOfferNewUpdateAfterCancel() public {
         (IRecurringCollector.RecurringCollectionAgreement memory rca, ) = _makeRCAWithId(
             100 ether,
             1 ether,
@@ -95,73 +93,7 @@ contract RecurringAgreementManagerRevokeAgreementUpdateTest is RecurringAgreemen
         );
 
         bytes16 agreementId = _offerAgreement(rca);
-
-        // No pending update — should return false
-        vm.prank(operator);
-        bool revoked = agreementManager.revokeAgreementUpdate(agreementId);
-        assertFalse(revoked);
-    }
-
-    function test_RevokeAgreementUpdate_ReturnsFalse_WhenAlreadyApplied() public {
-        (IRecurringCollector.RecurringCollectionAgreement memory rca, ) = _makeRCAWithId(
-            100 ether,
-            1 ether,
-            3600,
-            uint64(block.timestamp + 365 days)
-        );
-
-        bytes16 agreementId = _offerAgreement(rca);
-
-        // Offer update
-        IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _makeRCAU(
-            agreementId,
-            200 ether,
-            2 ether,
-            60,
-            7200,
-            uint64(block.timestamp + 730 days),
-            1
-        );
-        _offerAgreementUpdate(rcau);
-
-        // Simulate: accepted with update already applied (updateNonce=1)
-        recurringCollector.setAgreement(
-            agreementId,
-            IRecurringCollector.AgreementData({
-                dataService: rca.dataService,
-                payer: rca.payer,
-                serviceProvider: rca.serviceProvider,
-                acceptedAt: uint64(block.timestamp),
-                lastCollectionAt: 0,
-                endsAt: rcau.endsAt,
-                maxInitialTokens: rcau.maxInitialTokens,
-                maxOngoingTokensPerSecond: rcau.maxOngoingTokensPerSecond,
-                minSecondsPerCollection: rcau.minSecondsPerCollection,
-                maxSecondsPerCollection: rcau.maxSecondsPerCollection,
-                updateNonce: 1,
-                conditions: 0,
-                activeTermsHash: bytes32(0),
-                canceledAt: 0,
-                state: IRecurringCollector.AgreementState.Accepted
-            })
-        );
-
-        // Reconcile inside revokeAgreementUpdate detects the update was applied
-        // and clears it — returns false (nothing left to revoke)
-        vm.prank(operator);
-        bool revoked = agreementManager.revokeAgreementUpdate(agreementId);
-        assertFalse(revoked);
-    }
-
-    function test_RevokeAgreementUpdate_CanOfferNewUpdateAfterRevoke() public {
-        (IRecurringCollector.RecurringCollectionAgreement memory rca, ) = _makeRCAWithId(
-            100 ether,
-            1 ether,
-            3600,
-            uint64(block.timestamp + 365 days)
-        );
-
-        bytes16 agreementId = _offerAgreement(rca);
+        uint256 originalMaxClaim = 1 ether * 3600 + 100 ether;
 
         // Offer update nonce=1
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau1 = _makeRCAU(
@@ -175,12 +107,10 @@ contract RecurringAgreementManagerRevokeAgreementUpdateTest is RecurringAgreemen
         );
         _offerAgreementUpdate(rcau1);
 
-        // Revoke it
-        vm.prank(operator);
-        agreementManager.revokeAgreementUpdate(agreementId);
+        // Cancel pending update on collector, then offer a new update
+        _cancelPendingUpdate(agreementId);
 
-        // Offer a new update with the same nonce (1) — should succeed since the
-        // collector's updateNonce is still 0 and the pending was cleared
+        // Offer a new update with the next valid nonce (2) — collector incremented to 1
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau2 = _makeRCAU(
             agreementId,
             50 ether,
@@ -188,26 +118,34 @@ contract RecurringAgreementManagerRevokeAgreementUpdateTest is RecurringAgreemen
             60,
             1800,
             uint64(block.timestamp + 180 days),
-            1
+            2
         );
         _offerAgreementUpdate(rcau2);
 
-        // New pending should be set
-        uint256 newPendingMaxClaim = 0.5 ether * 1800 + 50 ether;
-        IRecurringAgreements.AgreementInfo memory info = agreementManager.getAgreementInfo(agreementId);
-        assertEq(info.pendingUpdateMaxNextClaim, newPendingMaxClaim);
-        assertEq(info.pendingUpdateNonce, 1);
+        // maxNextClaim = max(3700, 950) = 3700 (active dominates)
+        IRecurringAgreements.AgreementInfo memory info = agreementManager.getAgreementInfo(
+            IAgreementCollector(address(recurringCollector)),
+            agreementId
+        );
+        assertEq(info.maxNextClaim, originalMaxClaim);
     }
 
-    function test_RevokeAgreementUpdate_Revert_WhenNotOffered() public {
+    function test_CancelPendingUpdate_RejectsUnknown_WhenNotOffered() public {
         bytes16 fakeId = bytes16(keccak256("fake"));
 
-        vm.expectRevert(abi.encodeWithSelector(IRecurringAgreementManagement.AgreementNotOffered.selector, fakeId));
+        // cancelAgreement is a passthrough — unknown agreement triggers AgreementRejected via callback
+        vm.expectEmit(address(agreementManager));
+        emit IRecurringAgreementManagement.AgreementRejected(
+            fakeId,
+            address(recurringCollector),
+            IRecurringAgreementManagement.AgreementRejectionReason.UnknownAgreement
+        );
+
         vm.prank(operator);
-        agreementManager.revokeAgreementUpdate(fakeId);
+        agreementManager.cancelAgreement(IAgreementCollector(address(recurringCollector)), fakeId, bytes32(0), 0);
     }
 
-    function test_RevokeAgreementUpdate_Revert_WhenNotOperator() public {
+    function test_CancelPendingUpdate_Revert_WhenNotOperator() public {
         (IRecurringCollector.RecurringCollectionAgreement memory rca, ) = _makeRCAWithId(
             100 ether,
             1 ether,
@@ -226,10 +164,10 @@ contract RecurringAgreementManagerRevokeAgreementUpdateTest is RecurringAgreemen
             )
         );
         vm.prank(nonOperator);
-        agreementManager.revokeAgreementUpdate(agreementId);
+        agreementManager.cancelAgreement(IAgreementCollector(address(recurringCollector)), agreementId, bytes32(0), 0);
     }
 
-    function test_RevokeAgreementUpdate_Revert_WhenPaused() public {
+    function test_CancelPendingUpdate_Succeeds_WhenPaused() public {
         (IRecurringCollector.RecurringCollectionAgreement memory rca, ) = _makeRCAWithId(
             100 ether,
             1 ether,
@@ -251,9 +189,9 @@ contract RecurringAgreementManagerRevokeAgreementUpdateTest is RecurringAgreemen
         agreementManager.pause();
         vm.stopPrank();
 
-        vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
+        // Role-gated functions should succeed even when paused
         vm.prank(operator);
-        agreementManager.revokeAgreementUpdate(agreementId);
+        agreementManager.cancelAgreement(IAgreementCollector(address(recurringCollector)), agreementId, bytes32(0), 0);
     }
 
     /* solhint-enable graph/func-name-mixedcase */

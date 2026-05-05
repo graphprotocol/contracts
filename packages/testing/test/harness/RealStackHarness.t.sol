@@ -16,6 +16,10 @@ import { IGraphToken as IssuanceIGraphToken } from "issuance/common/IGraphToken.
 // Interfaces
 import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
+import {
+    IAgreementCollector,
+    OFFER_TYPE_NEW
+} from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
 import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
@@ -175,6 +179,7 @@ abstract contract RealStackHarness is Test {
                 minSecondsPerCollection: 60,
                 maxSecondsPerCollection: maxSecondsPerCollection,
                 nonce: 1,
+                conditions: 0,
                 metadata: ""
             });
     }
@@ -183,7 +188,7 @@ abstract contract RealStackHarness is Test {
     function _offerAgreement(IRecurringCollector.RecurringCollectionAgreement memory rca) internal returns (bytes16) {
         token.mint(address(ram), 1_000_000 ether);
         vm.prank(operator);
-        return ram.offerAgreement(rca, IRecurringCollector(address(recurringCollector)));
+        return ram.offerAgreement(IAgreementCollector(address(recurringCollector)), OFFER_TYPE_NEW, abi.encode(rca));
     }
 
     /// @notice Offer and accept an agreement via the unsigned path, returning the agreement ID

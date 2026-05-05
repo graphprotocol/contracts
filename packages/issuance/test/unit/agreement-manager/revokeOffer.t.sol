@@ -1,17 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringAgreementManagement } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreementManagement.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
+import { IRecurringAgreements } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreements.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
-import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { RecurringAgreementManagerSharedTest } from "./shared.t.sol";
 
-contract RecurringAgreementManagerRevokeOfferTest is RecurringAgreementManagerSharedTest {
+contract RecurringAgreementManagerCancelOfferedTest is RecurringAgreementManagerSharedTest {
     /* solhint-disable graph/func-name-mixedcase */
 
-    function test_RevokeOffer_ClearsAgreement() public {
+    function test_CancelOffered_ClearsAgreement() public {
         (IRecurringCollector.RecurringCollectionAgreement memory rca, ) = _makeRCAWithId(
             100 ether,
             1 ether,
@@ -20,21 +25,23 @@ contract RecurringAgreementManagerRevokeOfferTest is RecurringAgreementManagerSh
         );
 
         bytes16 agreementId = _offerAgreement(rca);
-        assertEq(agreementManager.getProviderAgreementCount(indexer), 1);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
 
         uint256 maxClaim = 1 ether * 3600 + 100 ether;
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), maxClaim);
 
-        vm.prank(operator);
-        bool gone = agreementManager.revokeOffer(agreementId);
+        bool gone = _cancelAgreement(agreementId);
         assertTrue(gone);
 
-        assertEq(agreementManager.getProviderAgreementCount(indexer), 0);
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 0);
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), 0);
-        assertEq(agreementManager.getAgreementMaxNextClaim(agreementId), 0);
+        assertEq(
+            agreementManager.getAgreementMaxNextClaim(IAgreementCollector(address(recurringCollector)), agreementId),
+            0
+        );
     }
 
-    function test_RevokeOffer_InvalidatesHash() public {
+    function test_CancelOffered_FullyRemovesTracking() public {
         (IRecurringCollector.RecurringCollectionAgreement memory rca, ) = _makeRCAWithId(
             100 ether,
             1 ether,
@@ -44,16 +51,18 @@ contract RecurringAgreementManagerRevokeOfferTest is RecurringAgreementManagerSh
 
         bytes16 agreementId = _offerAgreement(rca);
 
-        // Hash is authorized before revoke
-        bytes32 rcaHash = recurringCollector.hashRCA(rca);
+        _cancelAgreement(agreementId);
 
-        vm.prank(operator);
-        agreementManager.revokeOffer(agreementId);
-
-        // Hash should be rejected after revoke (agreement no longer exists)
+        // Agreement info should be zeroed out after cancel
+        IRecurringAgreements.AgreementInfo memory info = agreementManager.getAgreementInfo(
+            IAgreementCollector(address(recurringCollector)),
+            agreementId
+        );
+        assertEq(info.provider, address(0));
+        assertEq(info.maxNextClaim, 0);
     }
 
-    function test_RevokeOffer_ClearsPendingUpdate() public {
+    function test_CancelOffered_ClearsPendingUpdate() public {
         (IRecurringCollector.RecurringCollectionAgreement memory rca, ) = _makeRCAWithId(
             100 ether,
             1 ether,
@@ -76,17 +85,17 @@ contract RecurringAgreementManagerRevokeOfferTest is RecurringAgreementManagerSh
         _offerAgreementUpdate(rcau);
 
         uint256 originalMaxClaim = 1 ether * 3600 + 100 ether;
-        uint256 pendingMaxClaim = 2 ether * 7200 + 200 ether;
-        assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), originalMaxClaim + pendingMaxClaim);
+        // max(current, pending) = max(3700, 14600) = 14600
+        uint256 pendingMaxClaim = 14600 ether;
+        assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), pendingMaxClaim);
 
-        vm.prank(operator);
-        agreementManager.revokeOffer(agreementId);
+        _cancelAgreement(agreementId);
 
         // Both original and pending should be cleared
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), 0);
     }
 
-    function test_RevokeOffer_EmitsEvent() public {
+    function test_CancelOffered_EmitsEvent() public {
         (IRecurringCollector.RecurringCollectionAgreement memory rca, ) = _makeRCAWithId(
             100 ether,
             1 ether,
@@ -97,40 +106,27 @@ contract RecurringAgreementManagerRevokeOfferTest is RecurringAgreementManagerSh
         bytes16 agreementId = _offerAgreement(rca);
 
         vm.expectEmit(address(agreementManager));
-        emit IRecurringAgreementManagement.OfferRevoked(agreementId, indexer);
+        emit IRecurringAgreementManagement.AgreementRemoved(agreementId);
 
-        vm.prank(operator);
-        agreementManager.revokeOffer(agreementId);
+        _cancelAgreement(agreementId);
     }
 
-    function test_RevokeOffer_Revert_WhenAlreadyAccepted() public {
-        (IRecurringCollector.RecurringCollectionAgreement memory rca, ) = _makeRCAWithId(
-            100 ether,
-            1 ether,
-            3600,
-            uint64(block.timestamp + 365 days)
-        );
-
-        bytes16 agreementId = _offerAgreement(rca);
-
-        // Simulate acceptance in RC
-        _setAgreementAccepted(agreementId, rca, uint64(block.timestamp));
-
-        vm.expectRevert(
-            abi.encodeWithSelector(IRecurringAgreementManagement.AgreementAlreadyAccepted.selector, agreementId)
-        );
-        vm.prank(operator);
-        agreementManager.revokeOffer(agreementId);
-    }
-
-    function test_RevokeOffer_ReturnsTrue_WhenNotOffered() public {
+    function test_CancelOffered_RejectsUnknown_WhenNotOffered() public {
         bytes16 fakeId = bytes16(keccak256("fake"));
+
+        // cancelAgreement is a passthrough — unknown agreement triggers AgreementRejected via callback
+        vm.expectEmit(address(agreementManager));
+        emit IRecurringAgreementManagement.AgreementRejected(
+            fakeId,
+            address(recurringCollector),
+            IRecurringAgreementManagement.AgreementRejectionReason.UnknownAgreement
+        );
+
         vm.prank(operator);
-        bool gone = agreementManager.revokeOffer(fakeId);
-        assertTrue(gone);
+        agreementManager.cancelAgreement(IAgreementCollector(address(recurringCollector)), fakeId, bytes32(0), 0);
     }
 
-    function test_RevokeOffer_Revert_WhenNotOperator() public {
+    function test_CancelOffered_Revert_WhenNotOperator() public {
         (IRecurringCollector.RecurringCollectionAgreement memory rca, ) = _makeRCAWithId(
             100 ether,
             1 ether,
@@ -141,6 +137,7 @@ contract RecurringAgreementManagerRevokeOfferTest is RecurringAgreementManagerSh
         bytes16 agreementId = _offerAgreement(rca);
 
         address nonOperator = makeAddr("nonOperator");
+        bytes32 activeHash = recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.expectRevert(
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
@@ -149,10 +146,10 @@ contract RecurringAgreementManagerRevokeOfferTest is RecurringAgreementManagerSh
             )
         );
         vm.prank(nonOperator);
-        agreementManager.revokeOffer(agreementId);
+        agreementManager.cancelAgreement(IAgreementCollector(address(recurringCollector)), agreementId, activeHash, 0);
     }
 
-    function test_RevokeOffer_Revert_WhenPaused() public {
+    function test_CancelOffered_Succeeds_WhenPaused() public {
         (IRecurringCollector.RecurringCollectionAgreement memory rca, ) = _makeRCAWithId(
             100 ether,
             1 ether,
@@ -167,9 +164,10 @@ contract RecurringAgreementManagerRevokeOfferTest is RecurringAgreementManagerSh
         agreementManager.pause();
         vm.stopPrank();
 
-        vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
+        // Role-gated functions should succeed even when paused
+        bytes32 activeHash = recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
         vm.prank(operator);
-        agreementManager.revokeOffer(agreementId);
+        agreementManager.cancelAgreement(IAgreementCollector(address(recurringCollector)), agreementId, activeHash, 0);
     }
 
     /* solhint-enable graph/func-name-mixedcase */

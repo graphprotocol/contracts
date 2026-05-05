@@ -5,6 +5,10 @@ import { Vm } from "forge-std/Vm.sol";
 
 import { IRecurringEscrowManagement } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringEscrowManagement.sol";
 import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
+import {
+    IAgreementCollector,
+    OFFER_TYPE_NEW
+} from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 
 import { RecurringAgreementManagerSharedTest } from "./shared.t.sol";
@@ -83,13 +87,10 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
 
         _offerAgreement(rca1);
         uint256 maxClaim1 = 1 ether * 3600 + 100 ether;
-        assertEq(agreementManager.getSumMaxNextClaimAll(), maxClaim1);
-        assertEq(agreementManager.getTotalAgreementCount(), 1);
-
+        assertEq(agreementManager.getSumMaxNextClaim(), maxClaim1);
         _offerAgreement(rca2);
         uint256 maxClaim2 = 2 ether * 7200 + 200 ether;
-        assertEq(agreementManager.getSumMaxNextClaimAll(), maxClaim1 + maxClaim2);
-        assertEq(agreementManager.getTotalAgreementCount(), 2);
+        assertEq(agreementManager.getSumMaxNextClaim(), maxClaim1 + maxClaim2);
     }
 
     function test_GlobalTracking_TotalUndeposited() public {
@@ -126,7 +127,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         assertEq(agreementManager.getTotalEscrowDeficit(), maxClaim, "JIT: totalEscrowDeficit = sumMaxNextClaim");
     }
 
-    function test_GlobalTracking_RevokeDecrementsCountAndRequired() public {
+    function test_GlobalTracking_CancelDecrementsCountAndRequired() public {
         IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCAForIndexer(
             indexer,
             100 ether,
@@ -137,14 +138,10 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
 
         bytes16 agreementId = _offerAgreement(rca);
         uint256 maxClaim = 1 ether * 3600 + 100 ether;
-        assertEq(agreementManager.getSumMaxNextClaimAll(), maxClaim);
-        assertEq(agreementManager.getTotalAgreementCount(), 1);
+        assertEq(agreementManager.getSumMaxNextClaim(), maxClaim);
+        _cancelAgreement(agreementId);
 
-        vm.prank(operator);
-        agreementManager.revokeOffer(agreementId);
-
-        assertEq(agreementManager.getSumMaxNextClaimAll(), 0);
-        assertEq(agreementManager.getTotalAgreementCount(), 0);
+        assertEq(agreementManager.getSumMaxNextClaim(), 0);
     }
 
     function test_GlobalTracking_RemoveDecrementsCountAndRequired() public {
@@ -157,13 +154,10 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         );
 
         bytes16 agreementId = _offerAgreement(rca);
-        assertEq(agreementManager.getTotalAgreementCount(), 1);
-
         _setAgreementCanceledBySP(agreementId, rca);
-        agreementManager.reconcileAgreement(agreementId);
+        agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
 
-        assertEq(agreementManager.getSumMaxNextClaimAll(), 0);
-        assertEq(agreementManager.getTotalAgreementCount(), 0);
+        assertEq(agreementManager.getSumMaxNextClaim(), 0);
     }
 
     function test_GlobalTracking_ReconcileUpdatesRequired() public {
@@ -177,15 +171,13 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
 
         bytes16 agreementId = _offerAgreement(rca);
         uint256 maxClaim = 1 ether * 3600 + 100 ether;
-        assertEq(agreementManager.getSumMaxNextClaimAll(), maxClaim);
+        assertEq(agreementManager.getSumMaxNextClaim(), maxClaim);
 
         // SP cancels — reconcile sets maxNextClaim to 0
         _setAgreementCanceledBySP(agreementId, rca);
-        agreementManager.reconcileAgreement(agreementId);
+        agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
 
-        assertEq(agreementManager.getSumMaxNextClaimAll(), 0);
-        // Reconcile now deletes settled agreements inline
-        assertEq(agreementManager.getTotalAgreementCount(), 0);
+        assertEq(agreementManager.getSumMaxNextClaim(), 0);
     }
 
     function test_GlobalTracking_TotalUndeposited_MultiProvider() public {
@@ -228,7 +220,6 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         uint256 samBalance = token.balanceOf(address(agreementManager));
         if (0 < samBalance) {
             vm.prank(address(agreementManager));
-            // forge-lint: disable-next-line(erc20-unchecked-transfer)
             token.transfer(address(1), samBalance);
         }
 
@@ -241,7 +232,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             2
         );
         vm.prank(operator);
-        agreementManager.offerAgreement(rca2, _collector());
+        agreementManager.offerAgreement(_collector(), OFFER_TYPE_NEW, abi.encode(rca2));
         uint256 maxClaim2 = 2 ether * 7200 + 200 ether;
 
         // indexer is fully deposited (undeposited = 0), indexer2 has full deficit (undeposited = maxClaim2)
@@ -294,7 +285,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
 
         // SP cancels, remove (triggers thaw of all excess)
         _setAgreementCanceledBySP(agreementId, rca);
-        agreementManager.reconcileAgreement(agreementId);
+        agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);
 
         IPaymentsEscrow.EscrowAccount memory account;
         (account.balance, account.tokensThawing, account.thawEndTimestamp) = paymentsEscrow.escrowAccounts(
@@ -325,7 +316,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         agreementManager.setEscrowBasis(IRecurringEscrowManagement.EscrowBasis.JustInTime);
 
         // Update escrow — should thaw everything
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         IPaymentsEscrow.EscrowAccount memory account;
         (account.balance, account.tokensThawing, account.thawEndTimestamp) = paymentsEscrow.escrowAccounts(
@@ -429,7 +420,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         // OnDemand thaw ceiling = required — no thaw expected (balance == thawCeiling)
         vm.prank(operator);
         agreementManager.setEscrowBasis(IRecurringEscrowManagement.EscrowBasis.OnDemand);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         IPaymentsEscrow.EscrowAccount memory account;
         (account.balance, account.tokensThawing, account.thawEndTimestamp) = paymentsEscrow.escrowAccounts(
@@ -460,7 +451,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         // JustInTime would thaw everything
         vm.prank(operator);
         agreementManager.setEscrowBasis(IRecurringEscrowManagement.EscrowBasis.JustInTime);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         IPaymentsEscrow.EscrowAccount memory jitAccount;
         (jitAccount.balance, jitAccount.tokensThawing, jitAccount.thawEndTimestamp) = paymentsEscrow.escrowAccounts(
@@ -473,7 +464,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         // Switch to OnDemand — min=0, min <= liquid=0, so thaw is left alone
         vm.prank(operator);
         agreementManager.setEscrowBasis(IRecurringEscrowManagement.EscrowBasis.OnDemand);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         IPaymentsEscrow.EscrowAccount memory odAccount;
         (odAccount.balance, odAccount.tokensThawing, odAccount.thawEndTimestamp) = paymentsEscrow.escrowAccounts(
@@ -535,7 +526,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             );
             token.mint(address(agreementManager), 100_000 ether);
             vm.prank(operator);
-            agreementManager.offerAgreement(rca, _collector());
+            agreementManager.offerAgreement(_collector(), OFFER_TYPE_NEW, abi.encode(rca));
         }
 
         // sumMaxNextClaim should be larger than totalEscrowDeficit (degradation occurred: Full -> OnDemand)
@@ -583,13 +574,19 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         // Switch through all modes — agreement data preserved
         vm.prank(operator);
         agreementManager.setEscrowBasis(IRecurringEscrowManagement.EscrowBasis.OnDemand);
-        assertEq(agreementManager.getAgreementMaxNextClaim(agreementId), maxClaim);
+        assertEq(
+            agreementManager.getAgreementMaxNextClaim(IAgreementCollector(address(recurringCollector)), agreementId),
+            maxClaim
+        );
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), maxClaim);
 
         vm.prank(operator);
         agreementManager.setEscrowBasis(IRecurringEscrowManagement.EscrowBasis.JustInTime);
-        assertEq(agreementManager.getAgreementMaxNextClaim(agreementId), maxClaim);
-        assertEq(agreementManager.getProviderAgreementCount(indexer), 1);
+        assertEq(
+            agreementManager.getAgreementMaxNextClaim(IAgreementCollector(address(recurringCollector)), agreementId),
+            maxClaim
+        );
+        assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(recurringCollector)), indexer), 1);
     }
 
     function test_ModeSwitch_UpdateEscrowAppliesNewMode() public {
@@ -609,7 +606,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         // Switch to JustInTime and update escrow
         vm.prank(operator);
         agreementManager.setEscrowBasis(IRecurringEscrowManagement.EscrowBasis.JustInTime);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         IPaymentsEscrow.EscrowAccount memory account;
         (account.balance, account.tokensThawing, account.thawEndTimestamp) = paymentsEscrow.escrowAccounts(
@@ -675,7 +672,10 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         vm.prank(address(recurringCollector));
         agreementManager.afterCollection(agreementId, 500 ether);
 
-        uint256 newMaxClaim = agreementManager.getAgreementMaxNextClaim(agreementId);
+        uint256 newMaxClaim = agreementManager.getAgreementMaxNextClaim(
+            IAgreementCollector(address(recurringCollector)),
+            agreementId
+        );
         assertEq(newMaxClaim, 1 ether * 3600, "maxNextClaim = ongoing only after first collection");
     }
 
@@ -692,7 +692,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         bytes16 agreementId = _offerAgreement(rca);
         uint256 maxClaim = 1 ether * 3600 + 100 ether;
 
-        assertEq(agreementManager.getSumMaxNextClaimAll(), maxClaim);
+        assertEq(agreementManager.getSumMaxNextClaim(), maxClaim);
 
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _makeRCAU(
             agreementId,
@@ -705,8 +705,9 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         );
         _offerAgreementUpdate(rcau);
 
-        uint256 pendingMaxClaim = 2 ether * 7200 + 200 ether;
-        assertEq(agreementManager.getSumMaxNextClaimAll(), maxClaim + pendingMaxClaim);
+        // max(current, pending) = max(3700, 14600) = 14600
+        uint256 pendingMaxClaim = 14600 ether;
+        assertEq(agreementManager.getSumMaxNextClaim(), pendingMaxClaim);
     }
 
     function test_GlobalTracking_ReplacePendingUpdate() public {
@@ -731,10 +732,13 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         );
         _offerAgreementUpdate(rcau1);
 
-        uint256 pendingMaxClaim1 = 2 ether * 7200 + 200 ether;
-        assertEq(agreementManager.getSumMaxNextClaimAll(), maxClaim + pendingMaxClaim1);
+        // max(current, pending) = max(3700, 14600) = 14600
+        uint256 pendingMaxClaim1 = 14600 ether;
+        assertEq(agreementManager.getSumMaxNextClaim(), pendingMaxClaim1);
 
-        // Replace with different terms (same nonce — collector hasn't accepted either)
+        // Revoke first update, then offer replacement with next valid nonce
+        _cancelPendingUpdate(agreementId);
+
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau2 = _makeRCAU(
             agreementId,
             50 ether,
@@ -742,12 +746,12 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             60,
             1800,
             uint64(block.timestamp + 180 days),
-            1
+            2
         );
         _offerAgreementUpdate(rcau2);
 
-        uint256 pendingMaxClaim2 = 0.5 ether * 1800 + 50 ether;
-        assertEq(agreementManager.getSumMaxNextClaimAll(), maxClaim + pendingMaxClaim2);
+        // max(current, pending) = max(3700, 950) = 3700 (current dominates)
+        assertEq(agreementManager.getSumMaxNextClaim(), maxClaim);
     }
 
     // ==================== Upward Transitions ====================
@@ -777,7 +781,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         // Switch to Full
         vm.prank(operator);
         agreementManager.setEscrowBasis(IRecurringEscrowManagement.EscrowBasis.Full);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         assertEq(
             paymentsEscrow.getBalance(address(agreementManager), address(recurringCollector), indexer),
@@ -801,7 +805,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         // Switch to OnDemand — holds at required (no thaw for 1 agreement)
         vm.prank(operator);
         agreementManager.setEscrowBasis(IRecurringEscrowManagement.EscrowBasis.OnDemand);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         IPaymentsEscrow.EscrowAccount memory odAccount;
         (odAccount.balance, odAccount.tokensThawing, odAccount.thawEndTimestamp) = paymentsEscrow.escrowAccounts(
@@ -814,7 +818,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         // Switch back to Full — no change needed (already at required)
         vm.prank(operator);
         agreementManager.setEscrowBasis(IRecurringEscrowManagement.EscrowBasis.Full);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         IPaymentsEscrow.EscrowAccount memory fullAccount;
         (fullAccount.balance, fullAccount.tokensThawing, fullAccount.thawEndTimestamp) = paymentsEscrow.escrowAccounts(
@@ -851,7 +855,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
 
         // Cancel and remove rca1 — this triggers a thaw for excess
         _setAgreementCanceledBySP(id1, rca1);
-        agreementManager.reconcileAgreement(id1);
+        agreementManager.reconcileAgreement(IAgreementCollector(address(recurringCollector)), id1);
 
         IPaymentsEscrow.EscrowAccount memory beforeSwitch;
         (beforeSwitch.balance, beforeSwitch.tokensThawing, beforeSwitch.thawEndTimestamp) = paymentsEscrow
@@ -863,7 +867,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         // remaining balance thaws after current thaw completes and is withdrawn
         vm.prank(operator);
         agreementManager.setEscrowBasis(IRecurringEscrowManagement.EscrowBasis.JustInTime);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         IPaymentsEscrow.EscrowAccount memory midCycle;
         (midCycle.balance, midCycle.tokensThawing, midCycle.thawEndTimestamp) = paymentsEscrow.escrowAccounts(
@@ -876,7 +880,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
 
         // Complete thaw, withdraw all
         vm.warp(block.timestamp + 2 days);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         IPaymentsEscrow.EscrowAccount memory afterWithdraw;
         (afterWithdraw.balance, afterWithdraw.tokensThawing, afterWithdraw.thawEndTimestamp) = paymentsEscrow
@@ -906,7 +910,6 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         uint256 samBalance = token.balanceOf(address(agreementManager));
         if (0 < samBalance) {
             vm.prank(address(agreementManager));
-            // forge-lint: disable-next-line(erc20-unchecked-transfer)
             token.transfer(address(1), samBalance);
         }
     }
@@ -947,12 +950,12 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             1
         );
         _offerAgreement(rca);
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
         uint256 pairSmnc = agreementManager.getSumMaxNextClaim(_collector(), indexer);
 
         // spare > smnca * 1.0625 -- both gates pass -> Full
         _fundToSpare((smnca * (256 + 16)) / 256 + 1);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         assertEq(
             _effectiveEscrow(address(recurringCollector), indexer),
@@ -971,14 +974,14 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             1
         );
         _offerAgreement(rca);
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
         uint256 pairSmnc = agreementManager.getSumMaxNextClaim(_collector(), indexer);
 
         // spare = smnca * 272/256 exactly -- min gate fails (not strictly greater)
         // but spare > smnca * 128/256, so max gate passes
         uint256 minGateThreshold = (smnca * (256 + 16)) / 256;
         _fundToSpare(minGateThreshold);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         // OnDemand behavior: min=0 (no deposits), max=sumMaxNextClaim (holds ceiling)
         // Escrow was deposited during offerAgreement, so it should still be at pairSmnc
@@ -1003,20 +1006,20 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             1
         );
         _offerAgreement(rca);
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
         uint256 pairSmnc = agreementManager.getSumMaxNextClaim(_collector(), indexer);
         uint256 minGateThreshold = (smnca * (256 + 16)) / 256;
 
         // At min gate boundary: OnDemand (min=0, max=smnc)
         _fundToSpare(minGateThreshold);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         // Escrow was pre-deposited, OnDemand holds it (no thaw because balance <= max)
         assertEq(_effectiveEscrow(address(recurringCollector), indexer), pairSmnc, "At boundary: OnDemand holds");
 
         // One wei above: Full (min=max=smnc)
         _fundToSpare(minGateThreshold + 1);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
         assertEq(_effectiveEscrow(address(recurringCollector), indexer), pairSmnc, "One above boundary: Full deposits");
     }
 
@@ -1031,12 +1034,12 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             1
         );
         _offerAgreement(rca);
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
 
         // spare = smnca * 128/256 exactly -- max gate fails -> JIT-like (both 0)
         uint256 maxGateThreshold = (smnca * 128) / 256;
         _fundToSpare(maxGateThreshold);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         (uint256 bal, uint256 thawing, ) = _escrowAccount(address(recurringCollector), indexer);
         assertEq(thawing, bal, "JIT-like: all escrow thawing");
@@ -1051,22 +1054,22 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             1
         );
         _offerAgreement(rca);
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
         uint256 maxGateThreshold = (smnca * 128) / 256;
 
         // At max gate boundary: JIT-like
         _fundToSpare(maxGateThreshold);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
         (uint256 bal1, uint256 thawing1, ) = _escrowAccount(address(recurringCollector), indexer);
         assertEq(thawing1, bal1, "At max boundary: JIT thaws all");
 
         // Complete thaw
         vm.warp(block.timestamp + 2 days);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         // One wei above max gate: OnDemand (max passes, min still fails since 0.5x+1 < 1.0625x)
         _fundToSpare(maxGateThreshold + 1);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         // OnDemand: min=0 so no deposit happens (escrow was withdrawn during thaw)
         // max=smnc so no thaw starts either. Effective balance stays at 0 (nothing to hold).
@@ -1088,7 +1091,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             1
         );
         _offerAgreement(rca);
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
         uint256 pairSmnc = agreementManager.getSumMaxNextClaim(_collector(), indexer);
 
         // Fund to middle of OnDemand band: 0.5x < spare < 1.0625x
@@ -1098,7 +1101,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         assertTrue(midSpare <= (smnca * (256 + 16)) / 256, "midSpare below min gate");
 
         _fundToSpare(midSpare);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         // Escrow was deposited during offerAgreement (when SAM had 1M ether).
         // OnDemand: max=smnc so holds (no thaw), min=0 so no new deposit.
@@ -1118,18 +1121,18 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             1
         );
         _offerAgreement(rca);
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
 
         // Drain to JIT, complete thaw to clear escrow
         _drainSAM();
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
         vm.warp(block.timestamp + 2 days);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
         assertEq(_effectiveEscrow(address(recurringCollector), indexer), 0, "Escrow cleared");
 
         // Fund to OnDemand band
         _fundToSpare((smnca * 3) / 4);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         // OnDemand: min=0 -> no deposit from zero. max=smnc but nothing to hold.
         assertEq(
@@ -1153,12 +1156,12 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             1
         );
         _offerAgreement(rca);
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
 
         // OnDemand: only max gate matters (min is always 0 because basis != Full)
         // max gate: smnca * threshold/256 < spare
         _fundToSpare((smnca * 128) / 256 + 1);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         (, uint256 thawing, ) = _escrowAccount(address(recurringCollector), indexer);
         assertEq(thawing, 0, "OnDemand: no thaw when max gate passes");
@@ -1176,11 +1179,11 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             1
         );
         _offerAgreement(rca);
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
 
         // Max gate fails -> max=0 -> thaw everything
         _fundToSpare((smnca * 128) / 256);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         (uint256 bal, uint256 thawing, ) = _escrowAccount(address(recurringCollector), indexer);
         assertEq(thawing, bal, "OnDemand degraded: all thawing");
@@ -1199,17 +1202,17 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             1
         );
         _offerAgreement(rca);
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
 
         // Drain to zero, complete thaw
         _drainSAM();
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
         vm.warp(block.timestamp + 2 days);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         // Fund well above both gates
         _fundToSpare(smnca * 2);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         // OnDemand: min=0 always (basis != Full), so no deposit from zero
         assertEq(
@@ -1234,7 +1237,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         _drainSAM();
         assertEq(token.balanceOf(address(agreementManager)), 0, "SAM drained");
 
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         (uint256 bal, uint256 thawing, ) = _escrowAccount(address(recurringCollector), indexer);
         assertEq(thawing, bal, "JIT: thaws all when spare=0");
@@ -1251,18 +1254,18 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             1
         );
         _offerAgreement(rca);
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
 
         // Drain to JIT, complete thaw
         _drainSAM();
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
         vm.warp(block.timestamp + 2 days);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
         assertEq(_effectiveEscrow(address(recurringCollector), indexer), 0, "JIT: zero escrow");
 
         // Fund to OnDemand band (above max gate, below min gate)
         _fundToSpare((smnca * 128) / 256 + 1);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         // OnDemand: min=0 so no deposit, max=smnc but nothing to hold
         assertEq(_effectiveEscrow(address(recurringCollector), indexer), 0, "OnDemand recovery: no deposit (min=0)");
@@ -1279,18 +1282,18 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             1
         );
         _offerAgreement(rca);
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
         uint256 pairSmnc = agreementManager.getSumMaxNextClaim(_collector(), indexer);
 
         // Drain to JIT, complete thaw
         _drainSAM();
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
         vm.warp(block.timestamp + 2 days);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         // Fund above min gate -> Full
         _fundToSpare((smnca * (256 + 16)) / 256 + 1);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         assertEq(_effectiveEscrow(address(recurringCollector), indexer), pairSmnc, "Full: recovered and deposited");
     }
@@ -1317,10 +1320,10 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             2
         );
         vm.prank(operator);
-        agreementManager.offerAgreement(rca2, _collector());
+        agreementManager.offerAgreement(_collector(), OFFER_TYPE_NEW, abi.encode(rca2));
 
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer2);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer2);
 
         (uint256 bal1, uint256 thawing1, ) = _escrowAccount(address(recurringCollector), indexer);
         (uint256 bal2, uint256 thawing2, ) = _escrowAccount(address(recurringCollector), indexer2);
@@ -1348,24 +1351,24 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         );
         _offerAgreement(rca2);
 
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
         uint256 pairSmnc1 = agreementManager.getSumMaxNextClaim(_collector(), indexer);
         uint256 pairSmnc2 = agreementManager.getSumMaxNextClaim(_collector(), indexer2);
 
         // Drain and degrade
         _drainSAM();
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer2);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer2);
 
         // Complete thaws
         vm.warp(block.timestamp + 2 days);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer2);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer2);
 
         // Fund above min gate -> both recover to Full
         _fundToSpare((smnca * (256 + 16)) / 256 + 1);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer2);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer2);
 
         assertEq(_effectiveEscrow(address(recurringCollector), indexer), pairSmnc1, "indexer: recovered to Full");
         assertEq(_effectiveEscrow(address(recurringCollector), indexer2), pairSmnc2, "indexer2: recovered to Full");
@@ -1392,11 +1395,11 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
 
         // Fund to just above min gate for current smnca
         _drainSAM();
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
         uint256 deficit = agreementManager.getTotalEscrowDeficit();
         token.mint(address(agreementManager), deficit + (smnca * (256 + 16)) / 256 + 1);
 
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
         assertEq(
             _effectiveEscrow(address(recurringCollector), indexer),
             pairSmnc1,
@@ -1412,10 +1415,10 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             2
         );
         vm.prank(operator);
-        agreementManager.offerAgreement(rca2, _collector());
+        agreementManager.offerAgreement(_collector(), OFFER_TYPE_NEW, abi.encode(rca2));
 
         // Reconcile indexer -- existing provider's escrow now degraded
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         // New smnca much larger, spare likely below max gate too -> JIT-like
         (uint256 bal, uint256 thawing, ) = _escrowAccount(address(recurringCollector), indexer);
@@ -1441,7 +1444,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         );
 
         _drainSAM();
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         assertEq(
             uint256(agreementManager.getEscrowBasis()),
@@ -1449,11 +1452,11 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             "Basis: still Full after degradation"
         );
 
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
         vm.warp(block.timestamp + 2 days);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
         _fundToSpare((smnca * (256 + 16)) / 256 + 1);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         assertEq(
             uint256(agreementManager.getEscrowBasis()),
@@ -1465,7 +1468,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
     // ---- Edge case: no agreements (smnca = 0) ----
 
     function test_BasisDegradation_NoAgreements_NoRevert() public {
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
         assertEq(_effectiveEscrow(address(recurringCollector), indexer), 0, "No agreements: zero escrow");
     }
 
@@ -1485,12 +1488,12 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             1
         );
         _offerAgreement(rca);
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
         uint256 pairSmnc = agreementManager.getSumMaxNextClaim(_collector(), indexer);
 
         // spare = smnca * 1.2 -- above max gate (0.5) but below min gate (1.5)
         _fundToSpare((smnca * 307) / 256); // ~1.2x
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         // OnDemand: holds pre-deposited escrow (max=smnc), no deposit (min=0)
         assertEq(
@@ -1501,7 +1504,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
 
         // Fund above 1.5x -> Full
         _fundToSpare((smnca * (256 + 128)) / 256 + 1);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         assertEq(_effectiveEscrow(address(recurringCollector), indexer), pairSmnc, "Full with wide band: deposited");
     }
@@ -1519,20 +1522,20 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
             1
         );
         _offerAgreement(rca);
-        uint256 smnca = agreementManager.getSumMaxNextClaimAll();
+        uint256 smnca = agreementManager.getSumMaxNextClaim();
 
         // spare = smnca * 0.6 -- below new max gate (0.78) -> JIT-like
         _fundToSpare((smnca * 154) / 256); // ~0.6x
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         (uint256 bal, uint256 thawing, ) = _escrowAccount(address(recurringCollector), indexer);
         assertEq(thawing, bal, "JIT with higher threshold: thaws all at 0.6x");
 
         // spare = smnca * 0.85 -- above new max gate (0.78) -> OnDemand
         vm.warp(block.timestamp + 2 days);
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
         _fundToSpare((smnca * 218) / 256); // ~0.85x
-        agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
+        agreementManager.reconcileProvider(IAgreementCollector(address(_collector())), indexer);
 
         // OnDemand: no deposit (min=0), no thaw (max=smnc)
         (uint256 bal2, uint256 thawing2, ) = _escrowAccount(address(recurringCollector), indexer);
@@ -1554,7 +1557,6 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         uint256 samBalance = token.balanceOf(address(agreementManager));
         if (0 < samBalance) {
             vm.prank(address(agreementManager));
-            // forge-lint: disable-next-line(erc20-unchecked-transfer)
             token.transfer(address(1), samBalance);
         }
 

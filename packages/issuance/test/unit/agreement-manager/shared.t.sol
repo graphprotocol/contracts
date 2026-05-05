@@ -1,19 +1,39 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { Test } from "forge-std/Test.sol";
 
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
+import {
+    REGISTERED,
+    ACCEPTED,
+    NOTICE_GIVEN,
+    SETTLED,
+    BY_PAYER,
+    BY_PROVIDER,
+    OFFER_TYPE_NEW,
+    OFFER_TYPE_UPDATE
+} from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IGraphToken } from "../../../contracts/common/IGraphToken.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { RecurringAgreementManager } from "../../../contracts/agreement/RecurringAgreementManager.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { RecurringAgreementHelper } from "../../../contracts/agreement/RecurringAgreementHelper.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { MockGraphToken } from "./mocks/MockGraphToken.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { MockPaymentsEscrow } from "./mocks/MockPaymentsEscrow.sol";
+import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { MockRecurringCollector } from "./mocks/MockRecurringCollector.sol";
-import { MockSubgraphService } from "./mocks/MockSubgraphService.sol";
 
 /// @notice Shared test setup for RecurringAgreementManager tests.
 contract RecurringAgreementManagerSharedTest is Test {
@@ -21,7 +41,6 @@ contract RecurringAgreementManagerSharedTest is Test {
     MockGraphToken internal token;
     MockPaymentsEscrow internal paymentsEscrow;
     MockRecurringCollector internal recurringCollector;
-    MockSubgraphService internal mockSubgraphService;
     RecurringAgreementManager internal agreementManager;
     RecurringAgreementHelper internal agreementHelper;
 
@@ -47,8 +66,7 @@ contract RecurringAgreementManagerSharedTest is Test {
         token = new MockGraphToken();
         paymentsEscrow = new MockPaymentsEscrow(address(token));
         recurringCollector = new MockRecurringCollector();
-        mockSubgraphService = new MockSubgraphService();
-        dataService = address(mockSubgraphService);
+        dataService = makeAddr("subgraphService");
 
         // Deploy RecurringAgreementManager behind proxy
         RecurringAgreementManager impl = new RecurringAgreementManager(
@@ -83,7 +101,7 @@ contract RecurringAgreementManagerSharedTest is Test {
         vm.label(address(recurringCollector), "RecurringCollector");
         vm.label(address(agreementManager), "RecurringAgreementManager");
         vm.label(address(agreementHelper), "RecurringAgreementHelper");
-        vm.label(address(mockSubgraphService), "SubgraphService");
+        vm.label(dataService, "SubgraphService");
     }
 
     // -- Helpers --
@@ -112,8 +130,8 @@ contract RecurringAgreementManagerSharedTest is Test {
                 maxOngoingTokensPerSecond: maxOngoingTokensPerSecond,
                 minSecondsPerCollection: minSecondsPerCollection,
                 maxSecondsPerCollection: maxSecondsPerCollection,
-                nonce: 1,
                 conditions: 0,
+                nonce: 1,
                 metadata: ""
             });
     }
@@ -141,7 +159,7 @@ contract RecurringAgreementManagerSharedTest is Test {
         token.mint(address(agreementManager), 1_000_000 ether);
 
         vm.prank(operator);
-        return agreementManager.offerAgreement(rca, _collector());
+        return agreementManager.offerAgreement(_collector(), OFFER_TYPE_NEW, abi.encode(rca));
     }
 
     /// @notice Create a standard RCAU for an existing agreement
@@ -163,18 +181,95 @@ contract RecurringAgreementManagerSharedTest is Test {
                 maxOngoingTokensPerSecond: maxOngoingTokensPerSecond,
                 minSecondsPerCollection: minSecondsPerCollection,
                 maxSecondsPerCollection: maxSecondsPerCollection,
-                nonce: nonce,
                 conditions: 0,
+                nonce: nonce,
                 metadata: ""
             });
     }
 
     /// @notice Offer an RCAU via the operator
-    function _offerAgreementUpdate(
-        IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau
-    ) internal returns (bytes16) {
+    function _offerAgreementUpdate(IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau) internal {
         vm.prank(operator);
-        return agreementManager.offerAgreementUpdate(rcau);
+        agreementManager.offerAgreement(_collector(), OFFER_TYPE_UPDATE, abi.encode(rcau));
+    }
+
+    /// @notice Cancel an agreement by reading the activeTerms hash from the collector
+    /// @return gone True if the agreement was removed (no longer tracked)
+    function _cancelAgreement(bytes16 agreementId) internal returns (bool gone) {
+        bytes32 activeHash = recurringCollector.getAgreementDetails(agreementId, 0).versionHash;
+        vm.prank(operator);
+        agreementManager.cancelAgreement(IAgreementCollector(address(recurringCollector)), agreementId, activeHash, 0);
+        // cancelAgreement is void; the callback handles reconciliation.
+        // Check if the agreement was removed by looking at the provider field.
+        return
+            agreementManager.getAgreementInfo(IAgreementCollector(address(recurringCollector)), agreementId).provider ==
+            address(0);
+    }
+
+    /// @notice Cancel a pending update by reading the pendingTerms hash from the collector
+    /// @return gone True if the agreement was removed (no longer tracked)
+    function _cancelPendingUpdate(bytes16 agreementId) internal returns (bool gone) {
+        bytes32 pendingHash = recurringCollector.getAgreementDetails(agreementId, 1).versionHash;
+        vm.prank(operator);
+        agreementManager.cancelAgreement(IAgreementCollector(address(recurringCollector)), agreementId, pendingHash, 0);
+        return
+            agreementManager.getAgreementInfo(IAgreementCollector(address(recurringCollector)), agreementId).provider ==
+            address(0);
+    }
+
+    /// @notice Build active terms from an RCA
+    function _activeTermsFromRCA(
+        IRecurringCollector.RecurringCollectionAgreement memory rca
+    ) internal pure returns (MockRecurringCollector.MockTerms memory) {
+        return
+            MockRecurringCollector.MockTerms({
+                deadline: 0,
+                endsAt: rca.endsAt,
+                maxInitialTokens: rca.maxInitialTokens,
+                maxOngoingTokensPerSecond: rca.maxOngoingTokensPerSecond,
+                minSecondsPerCollection: rca.minSecondsPerCollection,
+                maxSecondsPerCollection: rca.maxSecondsPerCollection,
+                conditions: 0,
+                hash: bytes32(0)
+            });
+    }
+
+    /// @notice Build empty pending terms
+    function _emptyTerms() internal pure returns (MockRecurringCollector.MockTerms memory) {
+        return
+            MockRecurringCollector.MockTerms({
+                deadline: 0,
+                endsAt: 0,
+                maxInitialTokens: 0,
+                maxOngoingTokensPerSecond: 0,
+                minSecondsPerCollection: 0,
+                maxSecondsPerCollection: 0,
+                conditions: 0,
+                hash: bytes32(0)
+            });
+    }
+
+    /// @notice Build agreement data from common parameters
+    function _buildAgreementStorage(
+        IRecurringCollector.RecurringCollectionAgreement memory rca,
+        uint16 state,
+        uint64 acceptedAt,
+        uint64 collectableUntil,
+        uint64 lastCollectionAt
+    ) internal pure returns (MockRecurringCollector.AgreementStorage memory) {
+        return
+            MockRecurringCollector.AgreementStorage({
+                dataService: rca.dataService,
+                payer: rca.payer,
+                serviceProvider: rca.serviceProvider,
+                acceptedAt: acceptedAt,
+                lastCollectionAt: lastCollectionAt,
+                updateNonce: 0,
+                collectableUntil: collectableUntil,
+                state: state,
+                activeTerms: _activeTermsFromRCA(rca),
+                pendingTerms: _emptyTerms()
+            });
     }
 
     /// @notice Set up a mock agreement in RecurringCollector as Accepted
@@ -185,23 +280,7 @@ contract RecurringAgreementManagerSharedTest is Test {
     ) internal {
         recurringCollector.setAgreement(
             agreementId,
-            IRecurringCollector.AgreementData({
-                dataService: rca.dataService,
-                payer: rca.payer,
-                serviceProvider: rca.serviceProvider,
-                acceptedAt: acceptedAt,
-                lastCollectionAt: 0,
-                endsAt: rca.endsAt,
-                maxInitialTokens: rca.maxInitialTokens,
-                maxOngoingTokensPerSecond: rca.maxOngoingTokensPerSecond,
-                minSecondsPerCollection: rca.minSecondsPerCollection,
-                maxSecondsPerCollection: rca.maxSecondsPerCollection,
-                updateNonce: 0,
-                conditions: 0,
-                activeTermsHash: bytes32(0),
-                canceledAt: 0,
-                state: IRecurringCollector.AgreementState.Accepted
-            })
+            _buildAgreementStorage(rca, REGISTERED | ACCEPTED, acceptedAt, 0, 0)
         );
     }
 
@@ -212,23 +291,13 @@ contract RecurringAgreementManagerSharedTest is Test {
     ) internal {
         recurringCollector.setAgreement(
             agreementId,
-            IRecurringCollector.AgreementData({
-                dataService: rca.dataService,
-                payer: rca.payer,
-                serviceProvider: rca.serviceProvider,
-                acceptedAt: uint64(block.timestamp),
-                lastCollectionAt: 0,
-                endsAt: rca.endsAt,
-                maxInitialTokens: rca.maxInitialTokens,
-                maxOngoingTokensPerSecond: rca.maxOngoingTokensPerSecond,
-                minSecondsPerCollection: rca.minSecondsPerCollection,
-                maxSecondsPerCollection: rca.maxSecondsPerCollection,
-                updateNonce: 0,
-                conditions: 0,
-                activeTermsHash: bytes32(0),
-                canceledAt: uint64(block.timestamp),
-                state: IRecurringCollector.AgreementState.CanceledByServiceProvider
-            })
+            _buildAgreementStorage(
+                rca,
+                REGISTERED | ACCEPTED | NOTICE_GIVEN | SETTLED | BY_PROVIDER,
+                uint64(block.timestamp),
+                uint64(block.timestamp),
+                0
+            )
         );
     }
 
@@ -237,28 +306,18 @@ contract RecurringAgreementManagerSharedTest is Test {
         bytes16 agreementId,
         IRecurringCollector.RecurringCollectionAgreement memory rca,
         uint64 acceptedAt,
-        uint64 canceledAt,
+        uint64 collectableUntil,
         uint64 lastCollectionAt
     ) internal {
         recurringCollector.setAgreement(
             agreementId,
-            IRecurringCollector.AgreementData({
-                dataService: rca.dataService,
-                payer: rca.payer,
-                serviceProvider: rca.serviceProvider,
-                acceptedAt: acceptedAt,
-                lastCollectionAt: lastCollectionAt,
-                endsAt: rca.endsAt,
-                maxInitialTokens: rca.maxInitialTokens,
-                maxOngoingTokensPerSecond: rca.maxOngoingTokensPerSecond,
-                minSecondsPerCollection: rca.minSecondsPerCollection,
-                maxSecondsPerCollection: rca.maxSecondsPerCollection,
-                updateNonce: 0,
-                conditions: 0,
-                activeTermsHash: bytes32(0),
-                canceledAt: canceledAt,
-                state: IRecurringCollector.AgreementState.CanceledByPayer
-            })
+            _buildAgreementStorage(
+                rca,
+                REGISTERED | ACCEPTED | NOTICE_GIVEN | BY_PAYER,
+                acceptedAt,
+                collectableUntil,
+                lastCollectionAt
+            )
         );
     }
 
@@ -271,23 +330,7 @@ contract RecurringAgreementManagerSharedTest is Test {
     ) internal {
         recurringCollector.setAgreement(
             agreementId,
-            IRecurringCollector.AgreementData({
-                dataService: rca.dataService,
-                payer: rca.payer,
-                serviceProvider: rca.serviceProvider,
-                acceptedAt: acceptedAt,
-                lastCollectionAt: lastCollectionAt,
-                endsAt: rca.endsAt,
-                maxInitialTokens: rca.maxInitialTokens,
-                maxOngoingTokensPerSecond: rca.maxOngoingTokensPerSecond,
-                minSecondsPerCollection: rca.minSecondsPerCollection,
-                maxSecondsPerCollection: rca.maxSecondsPerCollection,
-                updateNonce: 0,
-                conditions: 0,
-                activeTermsHash: bytes32(0),
-                canceledAt: 0,
-                state: IRecurringCollector.AgreementState.Accepted
-            })
+            _buildAgreementStorage(rca, REGISTERED | ACCEPTED, acceptedAt, 0, lastCollectionAt)
         );
     }
 }
