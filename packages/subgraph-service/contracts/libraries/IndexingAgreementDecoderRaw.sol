@@ -6,7 +6,7 @@ import { IndexingAgreement } from "./IndexingAgreement.sol";
 /**
  * @title IndexingAgreementDecoderRaw library
  * @author Edge & Node
- * @notice Raw ABI decoder for indexing agreement data structures, propagating native revert on malformed input.
+ * @notice Low-level decoder for indexing agreement data structures, propagating native revert on malformed input.
  */
 library IndexingAgreementDecoderRaw {
     /**

@@ -44,7 +44,6 @@ abstract contract AllocationManager is
         keccak256("AllocationIdProof(address indexer,address allocationId)");
     // solhint-disable-previous-line gas-small-strings
 
-    // forge-lint: disable-next-item(mixed-case-function)
     /**
      * @notice Initializes the contract and parent contracts
      * @param _name The name to use for EIP712 domain separation
@@ -55,24 +54,10 @@ abstract contract AllocationManager is
         __AllocationManager_init_unchained();
     }
 
-    // forge-lint: disable-next-item(mixed-case-function)
     /**
      * @notice Initializes the contract
      */
     function __AllocationManager_init_unchained() internal onlyInitializing {}
-
-    /**
-     * @notice Imports a legacy allocation id into the subgraph service
-     * This is a governor only action that is required to prevent indexers from re-using allocation ids from the
-     * legacy staking contract. It will revert with LegacyAllocationAlreadyMigrated if the allocation has already been migrated.
-     * @param _indexer The address of the indexer
-     * @param _allocationId The id of the allocation
-     * @param _subgraphDeploymentId The id of the subgraph deployment
-     */
-    function _migrateLegacyAllocation(address _indexer, address _allocationId, bytes32 _subgraphDeploymentId) internal {
-        _legacyAllocations.migrate(_indexer, _allocationId, _subgraphDeploymentId);
-        emit LegacyAllocationMigrated(_indexer, _allocationId, _subgraphDeploymentId);
-    }
 
     /**
      * @notice Create an allocation

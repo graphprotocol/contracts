@@ -160,4 +160,56 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         resetPrank(users.delegator);
         _withdrawDelegated(users.indexer, subgraphDataServiceAddress, 0);
     }
+
+    function testWithdrawDelegation_GetThawedTokens(
+        uint256 delegationAmount,
+        uint256 withdrawShares
+    )
+        public
+        useIndexer
+        useProvision(10_000_000 ether, 0, MAX_THAWING_PERIOD)
+        useDelegation(delegationAmount)
+        useUndelegate(withdrawShares)
+    {
+        ILinkedList.List memory thawingRequests = staking.getThawRequestList(
+            IHorizonStakingTypes.ThawRequestType.Delegation,
+            users.indexer,
+            subgraphDataServiceAddress,
+            users.delegator
+        );
+        ThawRequest memory thawRequest = staking.getThawRequest(
+            IHorizonStakingTypes.ThawRequestType.Delegation,
+            thawingRequests.tail
+        );
+
+        // Before thawing period passes, thawed tokens should be 0
+        uint256 thawedTokensBefore = staking.getThawedTokens(
+            IHorizonStakingTypes.ThawRequestType.Delegation,
+            users.indexer,
+            subgraphDataServiceAddress,
+            users.delegator
+        );
+        assertEq(thawedTokensBefore, 0);
+
+        // Skip past thawing period
+        skip(thawRequest.thawingUntil + 1);
+
+        // After thawing period, thawed tokens should match expected amount
+        uint256 thawedTokensAfter = staking.getThawedTokens(
+            IHorizonStakingTypes.ThawRequestType.Delegation,
+            users.indexer,
+            subgraphDataServiceAddress,
+            users.delegator
+        );
+
+        // Thawed tokens should be greater than 0 and should match what we can withdraw
+        assertGt(thawedTokensAfter, 0);
+
+        // Withdraw and verify the amount matches
+        uint256 balanceBefore = token.balanceOf(users.delegator);
+        _withdrawDelegated(users.indexer, subgraphDataServiceAddress, 0);
+        uint256 balanceAfter = token.balanceOf(users.delegator);
+
+        assertEq(balanceAfter - balanceBefore, thawedTokensAfter);
+    }
 }

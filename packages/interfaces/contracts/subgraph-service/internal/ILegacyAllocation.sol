@@ -23,14 +23,8 @@ interface ILegacyAllocation {
     }
 
     /**
-     * @notice Thrown when attempting to migrate an allocation with an existing id
+     * @notice Thrown when attempting to create an allocation with an existing legacy id
      * @param allocationId The allocation id
      */
     error LegacyAllocationAlreadyExists(address allocationId);
-
-    /**
-     * @notice Thrown when trying to get a non-existent allocation
-     * @param allocationId The allocation id
-     */
-    error LegacyAllocationDoesNotExist(address allocationId);
 }

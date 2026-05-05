@@ -9,5 +9,4 @@ struct Users {
     address gateway;
     address verifier;
     address delegator;
-    address legacySlasher;
 }

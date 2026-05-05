@@ -244,7 +244,6 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
         // Now try to accept a different agreement on the same allocation
         // Create a new agreement with different nonce to ensure different agreement ID
         IRecurringCollector.RecurringCollectionAgreement
-            // forge-lint: disable-next-line(mixed-case-variable)
             memory newRCA = _generateAcceptableRecurringCollectionAgreement(ctx, indexerState.addr);
         newRCA.nonce = alternativeNonce; // Different nonce to ensure different agreement ID
 

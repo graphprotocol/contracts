@@ -13,8 +13,6 @@ import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/r
 import { ITokenGateway } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/ITokenGateway.sol";
 import { IGraphProxyAdmin } from "@graphprotocol/interfaces/contracts/contracts/upgrades/IGraphProxyAdmin.sol";
 
-import { ICuration } from "@graphprotocol/interfaces/contracts/contracts/curation/ICuration.sol";
-
 /**
  * @title GraphDirectory contract
  * @author Edge & Node
@@ -55,13 +53,6 @@ abstract contract GraphDirectory {
     /// @notice The Graph Proxy Admin contract address
     IGraphProxyAdmin private immutable GRAPH_PROXY_ADMIN;
 
-    // -- Legacy Graph contracts --
-    // These are required for backwards compatibility on HorizonStakingExtension
-    // TRANSITION PERIOD: remove these once HorizonStakingExtension is removed
-
-    /// @notice The Curation contract address
-    ICuration private immutable GRAPH_CURATION;
-
     /**
      * @notice Emitted when the GraphDirectory is initialized
      * @param graphToken The Graph Token contract address
@@ -73,7 +64,6 @@ abstract contract GraphDirectory {
      * @param graphRewardsManager The Rewards Manager contract address
      * @param graphTokenGateway The Token Gateway contract address
      * @param graphProxyAdmin The Graph Proxy Admin contract address
-     * @param graphCuration The Curation contract address
      */
     event GraphDirectoryInitialized(
         address indexed graphToken,
@@ -84,8 +74,7 @@ abstract contract GraphDirectory {
         address graphEpochManager,
         address graphRewardsManager,
         address graphTokenGateway,
-        address graphProxyAdmin,
-        address graphCuration
+        address graphProxyAdmin
     );
 
     /**
@@ -116,7 +105,6 @@ abstract contract GraphDirectory {
         GRAPH_REWARDS_MANAGER = IRewardsManager(_getContractFromController("RewardsManager"));
         GRAPH_TOKEN_GATEWAY = ITokenGateway(_getContractFromController("GraphTokenGateway"));
         GRAPH_PROXY_ADMIN = IGraphProxyAdmin(_getContractFromController("GraphProxyAdmin"));
-        GRAPH_CURATION = ICuration(_getContractFromController("Curation"));
 
         emit GraphDirectoryInitialized(
             address(GRAPH_TOKEN),
@@ -127,8 +115,7 @@ abstract contract GraphDirectory {
             address(GRAPH_EPOCH_MANAGER),
             address(GRAPH_REWARDS_MANAGER),
             address(GRAPH_TOKEN_GATEWAY),
-            address(GRAPH_PROXY_ADMIN),
-            address(GRAPH_CURATION)
+            address(GRAPH_PROXY_ADMIN)
         );
     }
 
@@ -202,14 +189,6 @@ abstract contract GraphDirectory {
      */
     function _graphProxyAdmin() internal view returns (IGraphProxyAdmin) {
         return GRAPH_PROXY_ADMIN;
-    }
-
-    /**
-     * @notice Get the Curation contract
-     * @return The Curation contract
-     */
-    function _graphCuration() internal view returns (ICuration) {
-        return GRAPH_CURATION;
     }
 
     /**

@@ -3,8 +3,6 @@ import GraphProxyAdminArtifact from '@graphprotocol/contracts/artifacts/contract
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
 import HorizonStakingArtifact from '../../../build/contracts/contracts/staking/HorizonStaking.sol/HorizonStaking.json'
-import HorizonStakingExtensionArtifact from '../../../build/contracts/contracts/staking/HorizonStakingExtension.sol/HorizonStakingExtension.json'
-import ExponentialRebatesArtifact from '../../../build/contracts/contracts/staking/libraries/ExponentialRebates.sol/ExponentialRebates.json'
 import GraphPeripheryModule, { MigratePeripheryModule } from '../periphery/periphery'
 import { upgradeGraphProxy } from '../proxy/GraphProxy'
 import { deployImplementation } from '../proxy/implementation'
@@ -17,25 +15,11 @@ export default buildModule('HorizonStaking', (m) => {
   const subgraphServiceAddress = m.getParameter('subgraphServiceAddress')
   const maxThawingPeriod = m.getParameter('maxThawingPeriod')
 
-  // Deploy HorizonStakingExtension - requires periphery and proxies to be registered in the controller
-  const ExponentialRebates = m.library('ExponentialRebates', ExponentialRebatesArtifact)
-  const HorizonStakingExtension = m.contract(
-    'HorizonStakingExtension',
-    HorizonStakingExtensionArtifact,
-    [Controller, subgraphServiceAddress],
-    {
-      libraries: {
-        ExponentialRebates: ExponentialRebates,
-      },
-      after: [GraphPeripheryModule, HorizonProxiesModule],
-    },
-  )
-
   // Deploy HorizonStaking implementation
   const HorizonStakingImplementation = deployImplementation(m, {
     name: 'HorizonStaking',
     artifact: HorizonStakingArtifact,
-    constructorArgs: [Controller, HorizonStakingExtension, subgraphServiceAddress],
+    constructorArgs: [Controller, subgraphServiceAddress],
   })
 
   // Upgrade proxy to implementation contract
@@ -61,24 +45,11 @@ export const MigrateHorizonStakingDeployerModule = buildModule('HorizonStakingDe
 
   const HorizonStakingProxy = m.contractAt('HorizonStakingProxy', GraphProxyArtifact, horizonStakingAddress)
 
-  // Deploy HorizonStakingExtension - requires periphery and proxies to be registered in the controller
-  const ExponentialRebates = m.library('ExponentialRebates', ExponentialRebatesArtifact)
-  const HorizonStakingExtension = m.contract(
-    'HorizonStakingExtension',
-    HorizonStakingExtensionArtifact,
-    [Controller, subgraphServiceAddress],
-    {
-      libraries: {
-        ExponentialRebates: ExponentialRebates,
-      },
-    },
-  )
-
   // Deploy HorizonStaking implementation
   const HorizonStakingImplementation = deployImplementation(m, {
     name: 'HorizonStaking',
     artifact: HorizonStakingArtifact,
-    constructorArgs: [Controller, HorizonStakingExtension, subgraphServiceAddress],
+    constructorArgs: [Controller, subgraphServiceAddress],
   })
 
   return { HorizonStakingProxy, HorizonStakingImplementation }

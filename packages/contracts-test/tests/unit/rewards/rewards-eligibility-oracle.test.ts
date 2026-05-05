@@ -97,6 +97,9 @@ describe('Rewards - Eligibility Oracle', () => {
       await grt.connect(wallet).approve(staking.address, toGRT('1000000'))
       await grt.connect(wallet).approve(curation.address, toGRT('1000000'))
     }
+
+    // Set the staking contract as the subgraph service so it can call takeRewards
+    await rewardsManager.connect(governor).setSubgraphService(staking.address)
   })
 
   beforeEach(async function () {

@@ -252,7 +252,7 @@ library AllocationHandler {
 
         // Ensure allocation id is not reused
         // need to check both subgraph service (on allocations.create()) and legacy allocations
-        _legacyAllocations.revertIfExists(params.graphStaking, params._allocationId);
+        _legacyAllocations.revertIfExists(params._allocationId);
 
         IAllocation.State memory allocation = _allocations.create(
             params._indexer,
