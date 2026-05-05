@@ -84,7 +84,8 @@ import { ReentrancyGuardTransient } from "@openzeppelin/contracts/utils/Reentran
  * Escalation ladder (targeted → full stop):
  * 1. {emergencyRevokeRole} — disable a specific actor (operator, collector, guardian)
  * 2. {emergencyClearEligibilityOracle} — fail-open if oracle blocks collections
- * 3. Pause this contract — stops all permissionless escrow management
+ * 3. Pause this contract — blocks permissionless state changes, including collection
+ *    callbacks and reconciliation (see cross-contract note above)
  * 4. Pause RecurringCollector — stops all collections and state changes
  * 5. Pause both — full halt
  *
