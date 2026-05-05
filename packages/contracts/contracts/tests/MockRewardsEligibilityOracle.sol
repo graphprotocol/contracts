@@ -4,7 +4,7 @@
 
 pragma solidity ^0.7.6;
 
-import { IRewardsEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibility.sol";
+import { IProviderEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IProviderEligibility.sol";
 import { IERC165 } from "@openzeppelin/contracts/introspection/IERC165.sol";
 
 /**
@@ -13,7 +13,7 @@ import { IERC165 } from "@openzeppelin/contracts/introspection/IERC165.sol";
  * @notice A simple mock contract for the RewardsEligibilityOracle interface
  * @dev A simple mock contract for the RewardsEligibilityOracle interface
  */
-contract MockRewardsEligibilityOracle is IRewardsEligibility, IERC165 {
+contract MockRewardsEligibilityOracle is IProviderEligibility, IERC165 {
     /// @dev Mapping to store eligibility status for each indexer
     mapping(address => bool) private eligible;
 
@@ -50,7 +50,7 @@ contract MockRewardsEligibilityOracle is IRewardsEligibility, IERC165 {
     }
 
     /**
-     * @inheritdoc IRewardsEligibility
+     * @inheritdoc IProviderEligibility
      */
     function isEligible(address indexer) external view override returns (bool) {
         // If the indexer has been explicitly set, return that value
@@ -66,6 +66,6 @@ contract MockRewardsEligibilityOracle is IRewardsEligibility, IERC165 {
      * @inheritdoc IERC165
      */
     function supportsInterface(bytes4 interfaceId) public pure override returns (bool) {
-        return interfaceId == type(IRewardsEligibility).interfaceId || interfaceId == type(IERC165).interfaceId;
+        return interfaceId == type(IProviderEligibility).interfaceId || interfaceId == type(IERC165).interfaceId;
     }
 }

@@ -8,7 +8,7 @@
 pragma solidity ^0.7.6 || ^0.8.27;
 
 import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationDistribution.sol";
-import { IRewardsEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibility.sol";
+import { IProviderEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IProviderEligibility.sol";
 import { IRewardsIssuer } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsIssuer.sol";
 import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManager.sol";
 import { IRewardsManagerDeprecated } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManagerDeprecated.sol";
@@ -102,7 +102,7 @@ abstract contract RewardsManagerV6Storage is RewardsManagerV5Storage {
     /// @dev Address of the rewards eligibility oracle contract
     /// When set, indexers must pass eligibility check to claim rewards.
     /// Zero address disables eligibility checks.
-    IRewardsEligibility internal rewardsEligibilityOracle;
+    IProviderEligibility internal rewardsEligibilityOracle;
 
     /// @dev Address of the issuance allocator
     /// When set, determines GRT issued per block. Zero address uses issuancePerBlock storage value.

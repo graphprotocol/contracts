@@ -340,10 +340,10 @@ async function getRewardsEligibilityOracleChecks(
     const currentREO = (await client.readContract({
       address: rmAddress as `0x${string}`,
       abi: REWARDS_MANAGER_ABI,
-      functionName: 'getRewardsEligibilityOracle',
+      functionName: 'getProviderEligibilityOracle',
     })) as string
     const configured = currentREO.toLowerCase() === reoAddress.toLowerCase()
-    checks.push({ ok: configured, label: 'RM.rewardsEligibilityOracle == this' })
+    checks.push({ ok: configured, label: 'RM.providerEligibilityOracle == this' })
   } catch {
     // Function not available on old RM
   }

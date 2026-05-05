@@ -19,7 +19,7 @@ const func: DeployScriptModule = async (env) => {
   ])
   const client = graph.getPublicClient(env) as PublicClient
 
-  // Apply: RM.rewardsEligibilityOracle = REO (always governance TX)
+  // Apply: RM.providerEligibilityOracle = REO (always governance TX)
   await applyConfiguration(env, client, [createRMIntegrationCondition(reo.address)], {
     contractName: `${Contracts.horizon.RewardsManager.name}-REO`,
     contractAddress: rm.address,

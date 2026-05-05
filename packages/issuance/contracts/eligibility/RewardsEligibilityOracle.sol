@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.27;
 
-import { IRewardsEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibility.sol";
+import { IProviderEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IProviderEligibility.sol";
 import { IRewardsEligibilityAdministration } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibilityAdministration.sol";
 import { IRewardsEligibilityReporting } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibilityReporting.sol";
 import { IRewardsEligibilityStatus } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibilityStatus.sol";
@@ -27,7 +27,7 @@ import { BaseUpgradeable } from "../common/BaseUpgradeable.sol";
  */
 contract RewardsEligibilityOracle is
     BaseUpgradeable,
-    IRewardsEligibility,
+    IProviderEligibility,
     IRewardsEligibilityAdministration,
     IRewardsEligibilityReporting,
     IRewardsEligibilityStatus
@@ -124,7 +124,7 @@ contract RewardsEligibilityOracle is
      */
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
         return
-            interfaceId == type(IRewardsEligibility).interfaceId ||
+            interfaceId == type(IProviderEligibility).interfaceId ||
             interfaceId == type(IRewardsEligibilityAdministration).interfaceId ||
             interfaceId == type(IRewardsEligibilityReporting).interfaceId ||
             interfaceId == type(IRewardsEligibilityStatus).interfaceId ||
@@ -231,7 +231,7 @@ contract RewardsEligibilityOracle is
     // -- View Functions --
 
     /**
-     * @inheritdoc IRewardsEligibility
+     * @inheritdoc IProviderEligibility
      * @dev Returns true if any of the following conditions are met:
      * 1. Eligibility validation is disabled globally
      * 2. Oracle timeout has been exceeded (fail-safe to allow all indexers)

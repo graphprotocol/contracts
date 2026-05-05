@@ -16,7 +16,8 @@ import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/r
 import { IRewardsManagerDeprecated } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManagerDeprecated.sol";
 import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationDistribution.sol";
 import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceTarget.sol";
-import { IRewardsEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibility.sol";
+import { IProviderEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IProviderEligibility.sol";
+import { IProviderEligibilityManagement } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IProviderEligibilityManagement.sol";
 import { RewardsCondition } from "@graphprotocol/interfaces/contracts/contracts/rewards/RewardsCondition.sol";
 
 /**
@@ -44,6 +45,7 @@ contract RewardsManager is
     IERC165,
     IRewardsManager,
     IIssuanceTarget,
+    IProviderEligibilityManagement,
     IRewardsManagerDeprecated,
     RewardsManagerV6Storage
 {
@@ -81,7 +83,8 @@ contract RewardsManager is
         return
             interfaceId == type(IERC165).interfaceId ||
             interfaceId == type(IIssuanceTarget).interfaceId ||
-            interfaceId == type(IRewardsManager).interfaceId;
+            interfaceId == type(IRewardsManager).interfaceId ||
+            interfaceId == type(IProviderEligibilityManagement).interfaceId;
     }
 
     // -- Config --
@@ -207,26 +210,26 @@ contract RewardsManager is
     }
 
     /**
-     * @inheritdoc IRewardsManager
-     * @dev Note that the rewards eligibility oracle can be set to the zero address to disable use of an oracle, in
+     * @inheritdoc IProviderEligibilityManagement
+     * @dev Note that the eligibility oracle can be set to the zero address to disable use of an oracle, in
      * which case no indexers will be denied rewards due to eligibility.
      */
-    function setRewardsEligibilityOracle(address newRewardsEligibilityOracle) external override onlyGovernor {
-        if (address(rewardsEligibilityOracle) != newRewardsEligibilityOracle) {
-            // Check that the contract supports the IRewardsEligibility interface
-            // Allow zero address to disable the oracle
-            if (newRewardsEligibilityOracle != address(0)) {
-                // solhint-disable-next-line gas-small-strings
-                require(
-                    IERC165(newRewardsEligibilityOracle).supportsInterface(type(IRewardsEligibility).interfaceId),
-                    "Contract does not support IRewardsEligibility interface"
-                );
-            }
+    function setProviderEligibilityOracle(IProviderEligibility oracle) external override onlyGovernor {
+        IProviderEligibility oldOracle = rewardsEligibilityOracle;
+        if (address(oldOracle) == address(oracle)) return;
 
-            address oldRewardsEligibilityOracle = address(rewardsEligibilityOracle);
-            rewardsEligibilityOracle = IRewardsEligibility(newRewardsEligibilityOracle);
-            emit RewardsEligibilityOracleSet(oldRewardsEligibilityOracle, newRewardsEligibilityOracle);
+        // Check that the contract supports the IProviderEligibility interface
+        // Allow zero address to disable the oracle
+        if (address(oracle) != address(0)) {
+            // solhint-disable-next-line gas-small-strings
+            require(
+                IERC165(address(oracle)).supportsInterface(type(IProviderEligibility).interfaceId),
+                "Contract does not support IProviderEligibility interface"
+            );
         }
+
+        rewardsEligibilityOracle = oracle;
+        emit ProviderEligibilityOracleSet(oldOracle, oracle);
     }
 
     /**
@@ -335,9 +338,9 @@ contract RewardsManager is
     }
 
     /**
-     * @inheritdoc IRewardsManager
+     * @inheritdoc IProviderEligibilityManagement
      */
-    function getRewardsEligibilityOracle() external view override returns (IRewardsEligibility) {
+    function getProviderEligibilityOracle() external view override returns (IProviderEligibility) {
         return rewardsEligibilityOracle;
     }
 

@@ -746,15 +746,15 @@ export function formatAddress(address: string): string {
 /**
  * Create RewardsManager integration condition for REO
  *
- * Checks that RewardsManager.getRewardsEligibilityOracle() == reoAddress
+ * Checks that RewardsManager.getProviderEligibilityOracle() == reoAddress
  */
 export function createRMIntegrationCondition(reoAddress: string): ParamCondition<string> {
   return {
-    name: 'rewardsEligibilityOracle',
+    name: 'providerEligibilityOracle',
     description: 'RewardsEligibilityOracle',
     abi: REWARDS_MANAGER_ABI,
-    getter: 'getRewardsEligibilityOracle',
-    setter: 'setRewardsEligibilityOracle',
+    getter: 'getProviderEligibilityOracle',
+    setter: 'setProviderEligibilityOracle',
     target: reoAddress,
     compare: addressEquals,
     format: formatAddress,
