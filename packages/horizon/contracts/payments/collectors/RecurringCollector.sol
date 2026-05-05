@@ -563,12 +563,8 @@ contract RecurringCollector is
     }
 
     /// @inheritdoc IAgreementCollector
-    /// @dev This implementation targets only the payer side of the agreement.
-    /// SCOPE_PENDING and SCOPE_ACTIVE enforce `msg.sender == agreement.payer`.
-    /// SCOPE_SIGNED has no caller check in this function; the entry it writes is
-    /// self-keyed by msg.sender and is consulted only later, during payer
-    /// authorization of a signed accept or update. Extending cancel to data-service
-    /// or service-provider callers is left for a future revision.
+    /// @dev Targets the payer side only; extending cancel to data-service or
+    /// service-provider callers is left for a future revision.
     function cancel(bytes16 agreementId, bytes32 termsHash, uint16 options) external whenNotPaused {
         RecurringCollectorStorage storage $ = _getStorage();
         AgreementData storage agreement = $.agreements[agreementId];

@@ -134,8 +134,15 @@ interface IAgreementCollector is IPaymentsCollector {
 
     /**
      * @notice Cancel an agreement, revoke a pending offer, or invalidate a signed offer.
-     * @dev Scopes can be combined. SCOPE_SIGNED is self-authenticating (keyed by msg.sender);
-     * SCOPE_PENDING and SCOPE_ACTIVE require payer authorization and no-op if nothing exists on-chain.
+     * @dev Scopes can be combined but the required caller differs by scope:
+     * - SCOPE_SIGNED is self-authenticating (keyed by msg.sender), so when the payer is represented
+     *   by a separate signer via Authorizable the signer must call this function — calling as the
+     *   payer writes against the wrong key and does not block the signature.
+     * - SCOPE_PENDING and SCOPE_ACTIVE require payer authorization and no-op if nothing exists
+     *   on-chain. The payer (not the signer) must call.
+     * Combining SCOPE_SIGNED with SCOPE_PENDING / SCOPE_ACTIVE in a single call is therefore only
+     * useful when msg.sender is both the payer and the signer, which in this implementation only
+     * happens when an EOA signs for itself as payer.
      * @param agreementId The agreement's ID. For SCOPE_SIGNED, only blocks accept/update when
      * the agreementId matches; passing bytes16(0) undoes a previous cancellation.
      * @param termsHash EIP-712 hash identifying which terms to cancel.
