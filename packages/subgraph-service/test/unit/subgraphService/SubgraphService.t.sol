@@ -151,28 +151,30 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         uint256 previousSubgraphAllocatedTokens = subgraphService.getSubgraphAllocatedTokens(
             allocation.subgraphDeploymentId
         );
+        uint256 oldTokens = allocation.tokens;
 
         vm.expectEmit(address(subgraphService));
-        emit IAllocationManager.AllocationClosed(
+        emit IAllocationManager.AllocationResized(
             allocation.indexer,
             _allocationId,
             allocation.subgraphDeploymentId,
-            allocation.tokens,
-            true
+            0,
+            oldTokens
         );
 
-        // close stale allocation
+        // close stale allocation (resizes to 0 instead of closing)
         subgraphService.closeStaleAllocation(_allocationId);
 
         // update allocation
         allocation = subgraphService.getAllocation(_allocationId);
 
-        // check allocation
-        assertEq(allocation.closedAt, block.timestamp);
+        // check allocation is still open but with zero tokens
+        assertTrue(allocation.isOpen());
+        assertEq(allocation.tokens, 0);
 
         // check subgraph deployment allocated tokens
         uint256 subgraphAllocatedTokens = subgraphService.getSubgraphAllocatedTokens(subgraphDeployment);
-        assertEq(subgraphAllocatedTokens, previousSubgraphAllocatedTokens - allocation.tokens);
+        assertEq(subgraphAllocatedTokens, previousSubgraphAllocatedTokens - oldTokens);
     }
 
     struct IndexingRewardsData {
@@ -431,7 +433,9 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         // For too-young allocations (created in current epoch), the contract returns early
         // without updating other allocation state or emitting IndexingRewardsCollected
         if (currentEpoch > allocation.createdAtEpoch) {
-            assertEq(allocation.accRewardsPending, 0);
+            // Note: after resize (over-allocation), accRewardsPending is re-accumulated from
+            // the token delta and may be non-zero. This is expected — rewards from the resize
+            // delta are captured as pending for the next collection.
             uint256 accRewardsPerAllocatedToken = rewardsManager.onSubgraphAllocationUpdate(
                 allocation.subgraphDeploymentId
             );
@@ -460,19 +464,9 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
             collectPaymentDataBefore.delegationPoolBalance + indexingRewardsData.tokensDelegationRewards
         );
 
-        // If after collecting indexing rewards the indexer is over allocated the allcation should close
-        uint256 tokensAvailable = staking.getTokensAvailable(
-            _indexer,
-            address(subgraphService),
-            subgraphService.getDelegationRatio()
-        );
-        if (allocation.tokens <= tokensAvailable) {
-            // Indexer isn't over allocated so allocation should still be open
-            assertTrue(allocation.isOpen());
-        } else {
-            // Indexer is over allocated so allocation should be closed
-            assertFalse(allocation.isOpen());
-        }
+        // If after collecting indexing rewards the indexer is over allocated the allocation should be
+        // resized down (not closed), so the allocation always remains open
+        assertTrue(allocation.isOpen());
     }
 
     function _migrateLegacyAllocation(address _indexer, address _allocationId, bytes32 _subgraphDeploymentId) internal {

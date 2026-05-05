@@ -210,7 +210,7 @@ contract SubgraphService is
      * @notice Close an allocation, indicating that the indexer has stopped indexing the subgraph deployment
      * @dev This is the equivalent of the `closeAllocation` function in the legacy Staking contract.
      * There are a few notable differences with the legacy function:
-     * - allocations are nowlong lived. All service payments, including indexing rewards, should be collected periodically
+     * - allocations are now long lived. All service payments, including indexing rewards, should be collected periodically
      * without the need of closing the allocation. Allocations should only be closed when indexers want to reclaim the allocated
      * tokens for other purposes.
      * - No POI is required to close an allocation. Indexers should present POIs to collect indexing rewards using {collect}.
@@ -315,8 +315,7 @@ contract SubgraphService is
         IAllocation.State memory allocation = _allocations.get(allocationId);
         require(allocation.isStale(maxPOIStaleness), SubgraphServiceCannotForceCloseAllocation(allocationId));
         require(!allocation.isAltruistic(), SubgraphServiceAllocationIsAltruistic(allocationId));
-        _onCloseAllocation(allocationId, true);
-        _closeAllocation(allocationId, true);
+        _resizeAllocation(allocationId, 0, _delegationRatio);
     }
 
     /// @inheritdoc ISubgraphService
@@ -722,17 +721,13 @@ contract SubgraphService is
         (address allocationId, bytes32 poi_, bytes memory poiMetadata_) = abi.decode(_data, (address, bytes32, bytes));
         _checkAllocationOwnership(_indexer, allocationId);
 
-        (uint256 paymentCollected, bool allocationForceClosed) = _presentPoi(
+        (uint256 paymentCollected, ) = _presentPoi(
             allocationId,
             poi_,
             poiMetadata_,
             _delegationRatio,
             paymentsDestination[_indexer]
         );
-
-        if (allocationForceClosed) {
-            _onCloseAllocation(allocationId, true);
-        }
 
         return paymentCollected;
     }

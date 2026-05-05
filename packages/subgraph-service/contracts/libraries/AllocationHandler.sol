@@ -317,14 +317,14 @@ library AllocationHandler {
      * @param _subgraphAllocatedTokens The mapping of subgraph deployment ids to their allocated tokens
      * @param params The parameters for the POI presentation
      * @return rewardsCollected The amount of tokens collected
-     * @return allocationForceClosed True if the allocation was automatically closed due to over-allocation, false otherwise
+     * @return allocationDownsized True if the allocation was automatically resized down due to over-allocation, false otherwise
      */
     function presentPOI(
         mapping(address allocationId => IAllocation.State allocation) storage _allocations,
         mapping(address indexer => uint256 tokens) storage allocationProvisionTracker,
         mapping(bytes32 subgraphDeploymentId => uint256 tokens) storage _subgraphAllocatedTokens,
         PresentParams calldata params
-    ) external returns (uint256 rewardsCollected, bool allocationForceClosed) {
+    ) external returns (uint256 rewardsCollected, bool allocationDownsized) {
         IAllocation.State memory allocation = _allocations.get(params._allocationId);
         require(allocation.isOpen(), AllocationHandler.AllocationHandlerAllocationClosed(params._allocationId));
         _allocations.presentPOI(params._allocationId); // Always record POI presentation to prevent staleness
@@ -392,7 +392,7 @@ library AllocationHandler {
             );
         }
 
-        // Check if the indexer is over-allocated and force close the allocation if necessary
+        // Check if the indexer is over-allocated and resize the allocation to zero if necessary
         if (
             _isOverAllocated(
                 allocationProvisionTracker,
@@ -401,14 +401,18 @@ library AllocationHandler {
                 params._delegationRatio
             )
         ) {
-            allocationForceClosed = true;
-            _closeAllocation(
+            allocationDownsized = true;
+            _resizeAllocation(
                 _allocations,
                 allocationProvisionTracker,
                 _subgraphAllocatedTokens,
+                params.graphStaking,
                 params.graphRewardsManager,
                 params._allocationId,
-                true
+                allocation,
+                0,
+                params._delegationRatio,
+                params.maxPOIStaleness
             );
         }
     }
@@ -491,6 +495,46 @@ library AllocationHandler {
             AllocationHandler.AllocationHandlerAllocationSameSize(_allocationId, _tokens)
         );
 
+        _resizeAllocation(
+            _allocations,
+            allocationProvisionTracker,
+            _subgraphAllocatedTokens,
+            graphStaking,
+            graphRewardsManager,
+            _allocationId,
+            allocation,
+            _tokens,
+            _delegationRatio,
+            _maxPOIStaleness
+        );
+    }
+
+    /**
+     * @notice Internal resize logic shared by explicit resize and over-allocation downsize.
+     * @dev Caller must validate preconditions (allocation open, tokens changed).
+     * @param _allocations The allocations mapping
+     * @param allocationProvisionTracker The provision tracker mapping
+     * @param _subgraphAllocatedTokens The subgraph allocated tokens mapping
+     * @param graphStaking The staking contract
+     * @param graphRewardsManager The rewards manager contract
+     * @param _allocationId The allocation ID to resize
+     * @param allocation The current allocation state
+     * @param _tokens The new token amount for the allocation
+     * @param _delegationRatio The delegation ratio for provision tracking
+     * @param _maxPOIStaleness The maximum POI staleness threshold
+     */
+    function _resizeAllocation(
+        mapping(address allocationId => IAllocation.State allocation) storage _allocations,
+        mapping(address indexer => uint256 tokens) storage allocationProvisionTracker,
+        mapping(bytes32 subgraphDeploymentId => uint256 tokens) storage _subgraphAllocatedTokens,
+        IHorizonStaking graphStaking,
+        IRewardsManager graphRewardsManager,
+        address _allocationId,
+        IAllocation.State memory allocation,
+        uint256 _tokens,
+        uint32 _delegationRatio,
+        uint256 _maxPOIStaleness
+    ) internal {
         // Update provision tracker
         uint256 oldTokens = allocation.tokens;
         if (_tokens > oldTokens) {

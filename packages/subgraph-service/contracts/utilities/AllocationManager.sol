@@ -118,7 +118,7 @@ abstract contract AllocationManager is
      * @param _delegationRatio The delegation ratio to consider when locking tokens
      * @param _paymentsDestination The address where indexing rewards should be sent
      * @return rewardsCollected Indexing rewards collected
-     * @return allocationForceClosed True if the allocation was force closed due to over-allocation
+     * @return allocationDownsized True if the allocation was resized down due to over-allocation
      */
     // solhint-disable-next-line function-max-lines
     function _presentPoi(
