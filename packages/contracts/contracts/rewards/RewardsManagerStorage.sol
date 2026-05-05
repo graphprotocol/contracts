@@ -5,7 +5,7 @@
 // TODO: Re-enable and fix issues when publishing a new version
 // solhint-disable named-parameters-mapping
 
-pragma solidity ^0.7.6 || 0.8.27 || 0.8.33;
+pragma solidity ^0.7.6 || ^0.8.27;
 
 import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationDistribution.sol";
 import { IRewardsEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibility.sol";

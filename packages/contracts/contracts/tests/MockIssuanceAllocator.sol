@@ -2,7 +2,7 @@
 
 // solhint-disable gas-increment-by-one, gas-indexed-events, named-parameters-mapping, use-natspec
 
-pragma solidity 0.7.6;
+pragma solidity ^0.7.6;
 pragma abicoder v2;
 
 import { IERC165 } from "@openzeppelin/contracts/introspection/IERC165.sol";
