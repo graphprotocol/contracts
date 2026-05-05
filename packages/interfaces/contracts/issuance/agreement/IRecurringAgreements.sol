@@ -69,6 +69,13 @@ interface IRecurringAgreements {
     function getMinThawFraction() external view returns (uint8 fraction);
 
     /**
+     * @notice Minimum residual escrow factor for cleanup.
+     * @dev Pairs with no agreements and escrow below 2^value are dropped from tracking.
+     * @return value The exponent (threshold = 2^value)
+     */
+    function getMinResidualEscrowFactor() external view returns (uint8 value);
+
+    /**
      * @notice Get the sum of maxNextClaim across all (collector, provider) pairs
      * @dev Populated lazily through normal operations.
      * @return tokens The global sum of max next claims

@@ -193,6 +193,12 @@ contract RecurringAgreementManagerCascadeCleanupTest is RecurringAgreementManage
 
         assertEq(agreementManager.getCollectorCount(), 0);
         assertEq(agreementManager.getProviderCount(IAgreementCollector(address(recurringCollector))), 0);
+        // Storage fully released: escrowSnap cleared when sumMaxNextClaim reached 0
+        assertEq(
+            agreementManager.getEscrowSnap(IAgreementCollector(address(recurringCollector)), indexer),
+            0,
+            "escrowSnap should be cleared after pair drop"
+        );
     }
 
     function test_Cascade_ReconcileLastProvider_CollectorCleanedUp_OtherCollectorRemains() public {
@@ -271,6 +277,11 @@ contract RecurringAgreementManagerCascadeCleanupTest is RecurringAgreementManage
         vm.warp(block.timestamp + paymentsEscrow.THAWING_PERIOD() + 1);
         agreementManager.reconcileProvider(IAgreementCollector(address(recurringCollector)), indexer);
         assertEq(agreementManager.getCollectorCount(), 0);
+        assertEq(
+            agreementManager.getEscrowSnap(IAgreementCollector(address(recurringCollector)), indexer),
+            0,
+            "escrowSnap clean before re-add"
+        );
 
         // Re-add — sets repopulate
         (IRecurringCollector.RecurringCollectionAgreement memory rca2, ) = _makeRCAForCollector(recurringCollector, 2);

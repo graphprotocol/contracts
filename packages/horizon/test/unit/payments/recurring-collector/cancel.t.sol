@@ -27,6 +27,8 @@ contract RecurringCollectorCancelTest is RecurringCollectorSharedTest {
         IRecurringCollector.RecurringCollectionAgreement memory fuzzyRCA,
         uint8 unboundedCanceler
     ) public {
+        vm.assume(fuzzyRCA.dataService != _proxyAdmin);
+
         // Generate deterministic agreement ID
         bytes16 agreementId = _recurringCollector.generateAgreementId(
             fuzzyRCA.payer,
