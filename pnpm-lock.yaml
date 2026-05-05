@@ -1303,6 +1303,30 @@ importers:
         specifier: 'catalog:'
         version: 5.9.3
 
+  packages/testing:
+    devDependencies:
+      '@graphprotocol/contracts':
+        specifier: workspace:^
+        version: link:../contracts
+      '@graphprotocol/horizon':
+        specifier: workspace:^
+        version: link:../horizon
+      '@graphprotocol/interfaces':
+        specifier: workspace:^
+        version: link:../interfaces
+      '@graphprotocol/issuance':
+        specifier: workspace:^
+        version: link:../issuance
+      '@openzeppelin/contracts':
+        specifier: ^5.4.0
+        version: 5.4.0
+      '@openzeppelin/contracts-upgradeable':
+        specifier: ^5.4.0
+        version: 5.4.0(@openzeppelin/contracts@5.4.0)
+      forge-std:
+        specifier: 'catalog:'
+        version: https://github.com/foundry-rs/forge-std/tarball/v1.14.0
+
   packages/token-distribution:
     dependencies:
       ajv:

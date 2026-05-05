@@ -213,6 +213,23 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
         subgraphService.cancelIndexingAgreement(indexerState.addr, acceptedAgreementId);
     }
 
+    function test_SubgraphService_CancelIndexingAgreement_Revert_WhenWrongIndexer(Seed memory seed) public {
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerStateA = _withIndexer(ctx);
+        IndexerState memory indexerStateB = _withIndexer(ctx);
+        (, bytes16 acceptedAgreementId) = _withAcceptedIndexingAgreement(ctx, indexerStateA);
+
+        // IndexerB tries to cancel indexerA's agreement
+        bytes memory expectedErr = abi.encodeWithSelector(
+            IndexingAgreement.IndexingAgreementNonCancelableBy.selector,
+            indexerStateA.addr,
+            indexerStateB.addr
+        );
+        vm.expectRevert(expectedErr);
+        resetPrank(indexerStateB.addr);
+        subgraphService.cancelIndexingAgreement(indexerStateB.addr, acceptedAgreementId);
+    }
+
     function test_SubgraphService_CancelIndexingAgreement_OK(Seed memory seed) public {
         Context storage ctx = _newCtx(seed);
         (

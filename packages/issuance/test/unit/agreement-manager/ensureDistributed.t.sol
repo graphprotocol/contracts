@@ -308,7 +308,9 @@ contract RecurringAgreementManagerEnsureDistributedTest is RecurringAgreementMan
         // Deploy a contract that doesn't support ERC165
         address notAllocator = address(new NoERC165Contract());
         vm.prank(governor);
-        vm.expectRevert(abi.encodeWithSelector(RecurringAgreementManager.InvalidIssuanceAllocator.selector, notAllocator));
+        vm.expectRevert(
+            abi.encodeWithSelector(RecurringAgreementManager.InvalidIssuanceAllocator.selector, notAllocator)
+        );
         agreementManager.setIssuanceAllocator(notAllocator);
     }
 

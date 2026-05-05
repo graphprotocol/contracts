@@ -95,7 +95,7 @@ contract RewardsEligibilityOracleEligibilityTest is RewardsEligibilityOracleShar
     // ==================== Edge Cases ====================
 
     function test_NeverRegisteredIndexerEligible_WhenPeriodExceedsTimestamp() public {
-        // TRST-L-1: When eligibilityPeriod > block.timestamp, all indexers become eligible
+        // When eligibilityPeriod > block.timestamp, all indexers become eligible
         // because block.timestamp < 0 + eligibilityPeriod
         _enableValidation();
         _renewEligibility(unauthorized); // set lastOracleUpdateTime

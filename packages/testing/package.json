@@ -1,0 +1,22 @@
+{
+  "name": "@graphprotocol/testing",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Cross-package integration tests for Graph Protocol contracts",
+  "license": "GPL-2.0-or-later",
+  "scripts": {
+    "build": "pnpm build:dep",
+    "build:dep": "pnpm --filter '@graphprotocol/testing^...' run build:self",
+    "test": "forge test",
+    "test:gas": "forge test --match-contract Gas -vv"
+  },
+  "devDependencies": {
+    "@graphprotocol/contracts": "workspace:^",
+    "@graphprotocol/horizon": "workspace:^",
+    "@graphprotocol/interfaces": "workspace:^",
+    "@graphprotocol/issuance": "workspace:^",
+    "@openzeppelin/contracts": "^5.4.0",
+    "@openzeppelin/contracts-upgradeable": "^5.4.0",
+    "forge-std": "catalog:"
+  }
+}

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
+import { IIndexingAgreement } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IIndexingAgreement.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/utilities/ProvisionManager.sol";
@@ -155,6 +156,45 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
         vm.expectRevert(expectedErr);
         resetPrank(indexerState.addr);
         subgraphService.updateIndexingAgreement(indexerState.addr, unacceptableRcau, authData);
+    }
+
+    function test_SubgraphService_UpdateIndexingAgreement_Revert_WhenTermsExceedRCALimit(Seed memory seed) public {
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+        (IRecurringCollector.RecurringCollectionAgreement memory acceptedRca, ) = _withAcceptedIndexingAgreement(
+            ctx,
+            indexerState
+        );
+
+        // Create update with tokensPerSecond exceeding the RCA's maxOngoingTokensPerSecond
+        uint256 excessiveTokensPerSecond = acceptedRca.maxOngoingTokensPerSecond + 1;
+        IRecurringCollector.RecurringCollectionAgreementUpdate
+            memory rcau = _generateAcceptableRecurringCollectionAgreementUpdate(ctx, acceptedRca);
+        rcau.metadata = _encodeUpdateIndexingAgreementMetadataV1(
+            IndexingAgreement.UpdateIndexingAgreementMetadata({
+                version: IIndexingAgreement.IndexingAgreementVersion.V1,
+                terms: abi.encode(
+                    IndexingAgreement.IndexingAgreementTermsV1({
+                        tokensPerSecond: excessiveTokensPerSecond,
+                        tokensPerEntityPerSecond: 0
+                    })
+                )
+            })
+        );
+        rcau.nonce = 1;
+        (
+            IRecurringCollector.RecurringCollectionAgreementUpdate memory signedRcau,
+            bytes memory authData
+        ) = _recurringCollectorHelper.generateSignedRCAU(rcau, ctx.payer.signerPrivateKey);
+
+        bytes memory expectedErr = abi.encodeWithSelector(
+            IndexingAgreement.IndexingAgreementInvalidTerms.selector,
+            excessiveTokensPerSecond,
+            acceptedRca.maxOngoingTokensPerSecond
+        );
+        vm.expectRevert(expectedErr);
+        resetPrank(indexerState.addr);
+        subgraphService.updateIndexingAgreement(indexerState.addr, signedRcau, authData);
     }
 
     function test_SubgraphService_UpdateIndexingAgreement_OK(Seed memory seed) public {
