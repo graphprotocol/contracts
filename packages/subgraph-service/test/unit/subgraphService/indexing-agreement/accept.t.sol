@@ -473,5 +473,63 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
         );
         assertEq(afterOldClose.agreement.allocationId, secondAllocationId, "still bound to second allocation");
     }
+
+    /// @notice Rebinding an already-accepted agreement to a new allocation must still succeed after
+    /// the original RCA's acceptance deadline has elapsed. The collector's idempotent short-circuit
+    /// runs before the deadline check — same-hash re-accept is a no-op and does not consume the
+    /// signature's lifetime. Without this, indexers could not move agreements across allocations
+    /// after the typically-short RCA acceptance window closes.
+    function test_SubgraphService_AcceptIndexingAgreement_Rebinds_AfterRcaDeadline(
+        Seed memory seed,
+        uint256 secondAllocationKey
+    ) public {
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+        (
+            IRecurringCollector.RecurringCollectionAgreement memory acceptedRca,
+            bytes16 agreementId
+        ) = _withAcceptedIndexingAgreement(ctx, indexerState);
+
+        // Top up provision and allocate a second allocation on the same subgraph deployment.
+        uint256 extraTokens = 10_000_000 ether;
+        deal({ token: address(token), to: indexerState.addr, give: extraTokens });
+        resetPrank(indexerState.addr);
+        _addToProvision(indexerState.addr, extraTokens);
+
+        secondAllocationKey = boundKey(secondAllocationKey);
+        address secondAllocationId = vm.addr(secondAllocationKey);
+        vm.assume(secondAllocationId != indexerState.allocationId);
+        vm.assume(ctx.allocations[secondAllocationId] == address(0));
+        ctx.allocations[secondAllocationId] = indexerState.addr;
+
+        bytes memory allocData = _createSubgraphAllocationData(
+            indexerState.addr,
+            indexerState.subgraphDeploymentId,
+            secondAllocationKey,
+            extraTokens
+        );
+        _startService(indexerState.addr, allocData);
+
+        // Warp past the RCA's acceptance deadline. A fresh accept would now revert with
+        // RecurringCollectorAgreementDeadlineElapsed — the rebind must take the idempotent path.
+        vm.warp(uint256(acceptedRca.deadline) + 1);
+
+        (, bytes memory signature) = _recurringCollectorHelper.generateSignedRCA(
+            acceptedRca,
+            ctx.payer.signerPrivateKey
+        );
+
+        resetPrank(indexerState.addr);
+        bytes16 returnedId = subgraphService.acceptIndexingAgreement(secondAllocationId, acceptedRca, signature);
+        assertEq(returnedId, agreementId, "rebind after deadline returns same agreementId");
+
+        IIndexingAgreement.AgreementWrapper memory rebound = subgraphService.getIndexingAgreement(agreementId);
+        assertEq(rebound.agreement.allocationId, secondAllocationId, "rebound to second allocation after deadline");
+        assertEq(
+            uint8(rebound.collectorAgreement.state),
+            uint8(IRecurringCollector.AgreementState.Accepted),
+            "collector state still Accepted after post-deadline rebind"
+        );
+    }
     /* solhint-enable graph/func-name-mixedcase */
 }

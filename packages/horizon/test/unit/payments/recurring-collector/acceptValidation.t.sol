@@ -69,11 +69,11 @@ contract RecurringCollectorAcceptValidationTest is RecurringCollectorSharedTest 
         _recurringCollector.accept(rca, signature);
     }
 
-    // ==================== endsAt validation (L545) ====================
+    // ==================== endsAt validation ====================
 
-    function test_Accept_Revert_WhenEndsAtInPast() public {
+    function test_Accept_Revert_WhenEndsAtNotAfterDeadline() public {
         IRecurringCollector.RecurringCollectionAgreement memory rca = _makeValidRCA();
-        rca.endsAt = uint64(block.timestamp); // endsAt == now, fails "endsAt > block.timestamp"
+        rca.endsAt = rca.deadline; // endsAt == deadline, fails "endsAt > deadline"
 
         _recurringCollectorHelper.authorizeSignerWithChecks(rca.payer, SIGNER_KEY);
         (, bytes memory signature) = _recurringCollectorHelper.generateSignedRCA(rca, SIGNER_KEY);
@@ -81,8 +81,8 @@ contract RecurringCollectorAcceptValidationTest is RecurringCollectorSharedTest 
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                IRecurringCollector.RecurringCollectorAgreementElapsedEndsAt.selector,
-                block.timestamp,
+                IRecurringCollector.RecurringCollectorAgreementEndsBeforeDeadline.selector,
+                rca.deadline,
                 rca.endsAt
             )
         );
@@ -142,12 +142,12 @@ contract RecurringCollectorAcceptValidationTest is RecurringCollectorSharedTest 
 
     function test_Accept_Revert_WhenDurationTooShort() public {
         IRecurringCollector.RecurringCollectionAgreement memory rca = _makeValidRCA();
-        // Need: endsAt - now >= minSecondsPerCollection + MIN_SECONDS_COLLECTION_WINDOW
+        // Need: endsAt - deadline >= minSecondsPerCollection + MIN_SECONDS_COLLECTION_WINDOW
         // Set duration just under the minimum
         uint32 minWindow = _recurringCollector.MIN_SECONDS_COLLECTION_WINDOW();
         rca.minSecondsPerCollection = 600;
         rca.maxSecondsPerCollection = 600 + minWindow; // valid window
-        rca.endsAt = uint64(block.timestamp + rca.minSecondsPerCollection + minWindow - 1); // 1 second too short
+        rca.endsAt = rca.deadline + rca.minSecondsPerCollection + minWindow - 1; // 1 second too short
 
         _recurringCollectorHelper.authorizeSignerWithChecks(rca.payer, SIGNER_KEY);
         (, bytes memory signature) = _recurringCollectorHelper.generateSignedRCA(rca, SIGNER_KEY);
@@ -157,7 +157,7 @@ contract RecurringCollectorAcceptValidationTest is RecurringCollectorSharedTest 
             abi.encodeWithSelector(
                 IRecurringCollector.RecurringCollectorAgreementInvalidDuration.selector,
                 rca.minSecondsPerCollection + minWindow,
-                rca.endsAt - block.timestamp
+                uint256(rca.endsAt - rca.deadline)
             )
         );
         vm.prank(rca.dataService);

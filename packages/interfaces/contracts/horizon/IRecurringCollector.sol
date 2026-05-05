@@ -316,11 +316,11 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
     error RecurringCollectorAgreementAddressNotSet();
 
     /**
-     * @notice Thrown when accepting or upgrading an agreement with an elapsed endsAt
-     * @param currentTimestamp The current timestamp
+     * @notice Thrown when an agreement's endsAt is not strictly after its acceptance deadline.
+     * @param deadline The offer acceptance deadline
      * @param endsAt The agreement end timestamp
      */
-    error RecurringCollectorAgreementElapsedEndsAt(uint256 currentTimestamp, uint64 endsAt);
+    error RecurringCollectorAgreementEndsBeforeDeadline(uint64 deadline, uint64 endsAt);
 
     /**
      * @notice Thrown when accepting or upgrading an agreement with an elapsed endsAt

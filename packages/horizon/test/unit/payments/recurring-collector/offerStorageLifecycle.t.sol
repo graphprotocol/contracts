@@ -215,7 +215,7 @@ contract RecurringCollectorOfferStorageLifecycleTest is RecurringCollectorShared
 
     /// @notice Pre-acceptance cancel of the RCA under SCOPE_PENDING deletes BOTH the RCA offer
     /// and any pending RCAU offer. After cascade, both slots are empty.
-    function test_CancelPreAcceptanceRca_CascadesDeleteRcau() public {
+    function test_CancelPreAcceptanceRca_PreservesPendingRcau() public {
         MockAgreementOwner approver = new MockAgreementOwner();
         IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRca(address(approver));
         bytes32 rcaHash = _recurringCollector.hashRCA(rca);
@@ -239,7 +239,7 @@ contract RecurringCollectorOfferStorageLifecycleTest is RecurringCollectorShared
         assertEq(preCurrentType, OFFER_TYPE_NEW, "RCA stored before cancel");
         assertEq(preNextType, OFFER_TYPE_UPDATE, "RCAU stored before cancel");
 
-        // Cancel the pre-acceptance RCA — one OfferCancelled event, both slots cleared
+        // Cancel the pre-acceptance RCA — one OfferCancelled event; pending RCAU survives
         vm.expectEmit(address(_recurringCollector));
         emit IRecurringCollector.OfferCancelled(address(approver), agreementId, rcaHash);
         vm.prank(address(approver));
@@ -247,7 +247,7 @@ contract RecurringCollectorOfferStorageLifecycleTest is RecurringCollectorShared
 
         IRecurringCollector.AgreementData memory agreement = _recurringCollector.getAgreement(agreementId);
         assertEq(agreement.activeTermsHash, bytes32(0), "activeTermsHash cleared");
-        assertEq(agreement.pendingTermsHash, bytes32(0), "pendingTermsHash cascade-cleared");
+        assertEq(agreement.pendingTermsHash, rcauHash, "pendingTermsHash survives RCA cancel");
 
         (uint8 currentType, bytes memory currentData) = _recurringCollector.getAgreementOfferAt(
             agreementId,
@@ -257,19 +257,14 @@ contract RecurringCollectorOfferStorageLifecycleTest is RecurringCollectorShared
         assertEq(currentData.length, 0, "RCA data empty");
 
         (uint8 nextType, bytes memory nextData) = _recurringCollector.getAgreementOfferAt(agreementId, VERSION_NEXT);
-        assertEq(nextType, OFFER_TYPE_NONE, "RCAU offer cascade-deleted");
-        assertEq(nextData.length, 0, "RCAU data empty");
-
-        // The original rcauHash stored-offer entry is no longer referenced. No version hash
-        // resolves to it — confirmed above — so the cleanup is complete for view purposes.
-        rcauHash; // silence unused warning; kept for clarity in the narrative
+        assertEq(nextType, OFFER_TYPE_UPDATE, "RCAU offer still retrievable");
+        assertEq(keccak256(nextData), keccak256(abi.encode(rcau)), "RCAU data intact");
     }
 
-    /// @notice After a pre-acceptance cascade delete, a follow-up cancel targeting the orphan RCAU
-    /// hash must NOT revert: _requirePayerIfExists short-circuits because agreement.payer was
-    /// zeroed when activeTermsHash was cleared — but the agreement struct still exists. The cancel
-    /// is therefore a no-op targeting already-empty state.
-    function test_CancelPreAcceptanceRca_SubsequentRcauCancel_DoesNotRevert() public {
+    /// @notice Pre-acceptance RCA and pending RCAU can be cancelled in either order —
+    /// agreement.payer is a persistent field, so cancelling one doesn't un-authorize cancelling
+    /// the other.
+    function test_CancelPreAcceptance_EitherOrder() public {
         MockAgreementOwner approver = new MockAgreementOwner();
         IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRca(address(approver));
         bytes32 rcaHash = _recurringCollector.hashRCA(rca);
@@ -287,15 +282,19 @@ contract RecurringCollectorOfferStorageLifecycleTest is RecurringCollectorShared
         vm.prank(address(approver));
         _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
 
-        // Cancel the RCA — cascades the RCAU
+        // Cancel the RCA first
         vm.prank(address(approver));
         _recurringCollector.cancel(agreementId, rcaHash, SCOPE_PENDING);
 
-        // The approver can still cancel(rcauHash) without reverting — the payer slot on the
-        // agreement is still set (clearing is by *termsHash*, not payer field), so the call
-        // enters the pending-hash branch, observes pendingTermsHash == 0, and exits silently.
+        // Then cancel the pending RCAU — must succeed because agreement.payer is persistent
+        vm.expectEmit(address(_recurringCollector));
+        emit IRecurringCollector.OfferCancelled(address(approver), agreementId, rcauHash);
         vm.prank(address(approver));
         _recurringCollector.cancel(agreementId, rcauHash, SCOPE_PENDING);
+
+        IRecurringCollector.AgreementData memory agreement = _recurringCollector.getAgreement(agreementId);
+        assertEq(agreement.activeTermsHash, bytes32(0), "active cleared");
+        assertEq(agreement.pendingTermsHash, bytes32(0), "pending cleared");
     }
 
     /// @notice Pre-acceptance cancel with no pending RCAU still deletes the RCA offer and
