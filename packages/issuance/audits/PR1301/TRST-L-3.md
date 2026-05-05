@@ -3,7 +3,7 @@
 - **Severity:** Low
 - **Category:** Access control issues
 - **Source:** RecurringAgreementManager.sol
-- **Status:** Open
+- **Status:** Fixed
 
 ## Description
 
@@ -19,7 +19,11 @@ Add a pause check to `approveAgreement()` that returns `bytes4(0)` when the cont
 
 ## Team Response
 
-TBD
+Fixed.
+
+## Mitigation Review
+
+Fixed. Underlying code has been refactored, addressing the issue.
 
 ---
 

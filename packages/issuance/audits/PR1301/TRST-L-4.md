@@ -3,7 +3,7 @@
 - **Severity:** Low
 - **Category:** Donation attacks
 - **Source:** RecurringAgreementManager.sol
-- **Status:** Open
+- **Status:** Acknowledged
 
 ## Description
 
@@ -19,7 +19,7 @@ In `_reconcilePairTracking()`, base the removal decision on `pairAgreementCount`
 
 ## Team Response
 
-TBD
+Accepted limitation. Orphaned tracking entries do not affect correctness or funds safety.
 
 ---
 

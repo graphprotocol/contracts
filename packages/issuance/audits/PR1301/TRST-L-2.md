@@ -3,7 +3,7 @@
 - **Severity:** Low
 - **Category:** Arithmetic issues
 - **Source:** RecurringAgreementManager.sol
-- **Status:** Open
+- **Status:** Fixed
 
 ## Description
 
@@ -19,7 +19,11 @@ The `pendingMaxNextClaim` should be computed as stated above, then reduced by th
 
 ## Team Response
 
-TBD
+Fixed.
+
+## Mitigation Review
+
+Refactored so that at any point, the accurate worst-case collection is reflected.
 
 ---
 

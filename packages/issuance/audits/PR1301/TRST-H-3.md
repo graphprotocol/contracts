@@ -3,7 +3,7 @@
 - **Severity:** High
 - **Category:** Logical flaws
 - **Source:** RecurringAgreementManager.sol
-- **Status:** Open
+- **Status:** Fixed
 
 ## Description
 
@@ -21,7 +21,11 @@ Read the fresh escrow balance inside `_escrowMinMax()` when computing the defici
 
 ## Team Response
 
-TBD
+Fixed.
+
+## Mitigation Review
+
+The new code has a `_setEscrowSnap()` call before `_escrowMinMax()`, ensuring the snapshot is updated and fixing the root cause.
 
 ---
 

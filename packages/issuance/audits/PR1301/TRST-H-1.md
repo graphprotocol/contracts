@@ -3,7 +3,7 @@
 - **Severity:** High
 - **Category:** Gas-related issues
 - **Source:** RecurringCollector.sol
-- **Status:** Open
+- **Status:** Fixed
 
 ## Description
 
@@ -19,7 +19,11 @@ Enforce a minimum gas reservation before each callback. Before calling `beforeCo
 
 ## Team Response
 
-TBD
+Fixed.
+
+## Mitigation Review
+
+Issue has been fixed as suggested.
 
 ---
 
