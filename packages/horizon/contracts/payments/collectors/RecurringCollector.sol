@@ -65,7 +65,11 @@ contract RecurringCollector is
     /// @notice The minimum number of seconds that must be between two collections
     uint32 internal constant MIN_SECONDS_COLLECTION_WINDOW = 600;
 
-    /// @notice Condition flag: agreement requires eligibility checks before collection
+    /// @notice Condition flag: agreement requires eligibility checks before collection.
+    /// Setting this flag trusts the payer to apply correct eligibility logic in
+    /// isEligible(). The acceptance-time interface check excludes a pure EOA, but a
+    /// payer that did pass (contract, or EOA with a 7702 delegation at that moment) can
+    /// later answer dishonestly and block collection.
     uint16 internal constant CONDITION_ELIGIBILITY_CHECK = 1 << 0;
 
     /// @notice Condition flag: agreement uses the IAgreementOwner callbacks

@@ -29,3 +29,5 @@ Introduced `CONDITION_AGREEMENT_OWNER` flag that mirrors the eligibility pattern
 The root cause has been addressed. It is recommended to document that turning `CONDITION_ELIGIBILITY_CHECK` on an EOA is considered fully trusting it as it can upgrade to a contract that reverts the eligibility check.
 
 ---
+
+Expanded the NatSpec on `CONDITION_ELIGIBILITY_CHECK` in `RecurringCollector.sol`: the flag trusts the payer to apply correct eligibility logic in `isEligible()`. The acceptance-time interface check excludes a pure EOA, but a payer that did pass (contract, or EOA with a 7702 delegation at that moment) can later answer dishonestly and block collection.
