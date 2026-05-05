@@ -17,6 +17,7 @@ import { IRecurringAgreements } from "@graphprotocol/interfaces/contracts/issuan
 import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
 import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IProviderEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IProviderEligibility.sol";
+import { IEmergencyRoleControl } from "@graphprotocol/interfaces/contracts/issuance/common/IEmergencyRoleControl.sol";
 
 import { BaseUpgradeable } from "../common/BaseUpgradeable.sol";
 import { IGraphToken } from "../common/IGraphToken.sol";
@@ -58,7 +59,8 @@ contract RecurringAgreementManager is
     IRecurringEscrowManagement,
     IProviderEligibilityManagement,
     IRecurringAgreements,
-    IProviderEligibility
+    IProviderEligibility,
+    IEmergencyRoleControl
 {
     using EnumerableSet for EnumerableSet.Bytes32Set;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -69,6 +71,9 @@ contract RecurringAgreementManager is
 
     /// @notice Thrown when the issuance allocator does not support IIssuanceAllocationDistribution
     error InvalidIssuanceAllocator(address allocator);
+
+    /// @notice Thrown when attempting to emergency-revoke the governor role
+    error CannotRevokeGovernorRole();
 
     // -- Role Constants --
 
@@ -196,6 +201,7 @@ contract RecurringAgreementManager is
             interfaceId == type(IProviderEligibilityManagement).interfaceId ||
             interfaceId == type(IRecurringAgreements).interfaceId ||
             interfaceId == type(IProviderEligibility).interfaceId ||
+            interfaceId == type(IEmergencyRoleControl).interfaceId ||
             super.supportsInterface(interfaceId);
     }
 
@@ -342,6 +348,21 @@ contract RecurringAgreementManager is
     }
 
     /// @inheritdoc IRecurringAgreementManagement
+    /// @dev Emergency fail-open: if the oracle is broken or compromised and is wrongly
+    /// blocking collections, the pause guardian can clear it so all providers become eligible.
+    /// The governor can later set a replacement oracle.
+    function emergencyClearEligibilityOracle() external override onlyRole(PAUSE_ROLE) {
+        _setProviderEligibilityOracle(IProviderEligibility(address(0)));
+    }
+
+    /// @inheritdoc IEmergencyRoleControl
+    /// @dev Governor role is excluded to prevent a pause guardian from locking out governance.
+    function emergencyRevokeRole(bytes32 role, address account) external override onlyRole(PAUSE_ROLE) {
+        require(role != GOVERNOR_ROLE, CannotRevokeGovernorRole());
+        _revokeRole(role, account);
+    }
+
+    /// @inheritdoc IRecurringAgreementManagement
     function revokeAgreementUpdate(
         bytes16 agreementId
     ) external onlyRole(AGREEMENT_MANAGER_ROLE) whenNotPaused returns (bool revoked) {
@@ -433,6 +454,7 @@ contract RecurringAgreementManager is
     function setEscrowBasis(EscrowBasis basis) external onlyRole(OPERATOR_ROLE) {
         RecurringAgreementManagerStorage storage $ = _getStorage();
         if ($.escrowBasis == basis) return;
+
         EscrowBasis oldBasis = $.escrowBasis;
         $.escrowBasis = basis;
         emit EscrowBasisSet(oldBasis, basis);
@@ -472,8 +494,14 @@ contract RecurringAgreementManager is
 
     /// @inheritdoc IProviderEligibilityManagement
     function setProviderEligibilityOracle(IProviderEligibility oracle) external onlyRole(GOVERNOR_ROLE) {
+        _setProviderEligibilityOracle(oracle);
+    }
+
+    // solhint-disable-next-line use-natspec
+    function _setProviderEligibilityOracle(IProviderEligibility oracle) private {
         RecurringAgreementManagerStorage storage $ = _getStorage();
         if (address($.providerEligibilityOracle) == address(oracle)) return;
+
         IProviderEligibility oldOracle = $.providerEligibilityOracle;
         $.providerEligibilityOracle = oracle;
         emit ProviderEligibilityOracleSet(oldOracle, oracle);
