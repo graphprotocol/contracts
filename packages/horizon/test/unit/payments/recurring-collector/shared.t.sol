@@ -54,56 +54,73 @@ contract RecurringCollectorSharedTest is Test, Bounder {
 
     function _sensibleAuthorizeAndAccept(
         FuzzyTestAccept calldata _fuzzyTestAccept
-    ) internal returns (IRecurringCollector.SignedRCA memory, uint256 key, bytes16 agreementId) {
+    )
+        internal
+        returns (
+            IRecurringCollector.RecurringCollectionAgreement memory,
+            bytes memory signature,
+            uint256 key,
+            bytes16 agreementId
+        )
+    {
         IRecurringCollector.RecurringCollectionAgreement memory rca = _recurringCollectorHelper.sensibleRCA(
             _fuzzyTestAccept.rca
         );
         key = boundKey(_fuzzyTestAccept.unboundedSignerKey);
-        IRecurringCollector.SignedRCA memory signedRCA;
-        (signedRCA, agreementId) = _authorizeAndAccept(rca, key);
-        return (signedRCA, key, agreementId);
+        (
+            IRecurringCollector.RecurringCollectionAgreement memory acceptedRca,
+            bytes memory sig,
+            bytes16 id
+        ) = _authorizeAndAccept(rca, key);
+        return (acceptedRca, sig, key, id);
     }
 
     // authorizes signer, signs the RCA, and accepts it
     function _authorizeAndAccept(
         IRecurringCollector.RecurringCollectionAgreement memory _rca,
         uint256 _signerKey
-    ) internal returns (IRecurringCollector.SignedRCA memory, bytes16 agreementId) {
+    ) internal returns (IRecurringCollector.RecurringCollectionAgreement memory, bytes memory, bytes16 agreementId) {
         _recurringCollectorHelper.authorizeSignerWithChecks(_rca.payer, _signerKey);
-        IRecurringCollector.SignedRCA memory signedRCA = _recurringCollectorHelper.generateSignedRCA(_rca, _signerKey);
+        (
+            IRecurringCollector.RecurringCollectionAgreement memory rca,
+            bytes memory signature
+        ) = _recurringCollectorHelper.generateSignedRCA(_rca, _signerKey);
 
-        agreementId = _accept(signedRCA);
-        return (signedRCA, agreementId);
+        agreementId = _accept(rca, signature);
+        return (rca, signature, agreementId);
     }
 
-    function _accept(IRecurringCollector.SignedRCA memory _signedRCA) internal returns (bytes16) {
+    function _accept(
+        IRecurringCollector.RecurringCollectionAgreement memory _rca,
+        bytes memory _signature
+    ) internal returns (bytes16) {
         // Set up valid staking provision by default to allow collections to succeed
-        _setupValidProvision(_signedRCA.rca.serviceProvider, _signedRCA.rca.dataService);
+        _setupValidProvision(_rca.serviceProvider, _rca.dataService);
 
         // Calculate the expected agreement ID for verification
         bytes16 expectedAgreementId = _recurringCollector.generateAgreementId(
-            _signedRCA.rca.payer,
-            _signedRCA.rca.dataService,
-            _signedRCA.rca.serviceProvider,
-            _signedRCA.rca.deadline,
-            _signedRCA.rca.nonce
+            _rca.payer,
+            _rca.dataService,
+            _rca.serviceProvider,
+            _rca.deadline,
+            _rca.nonce
         );
 
         vm.expectEmit(address(_recurringCollector));
         emit IRecurringCollector.AgreementAccepted(
-            _signedRCA.rca.dataService,
-            _signedRCA.rca.payer,
-            _signedRCA.rca.serviceProvider,
+            _rca.dataService,
+            _rca.payer,
+            _rca.serviceProvider,
             expectedAgreementId,
             uint64(block.timestamp),
-            _signedRCA.rca.endsAt,
-            _signedRCA.rca.maxInitialTokens,
-            _signedRCA.rca.maxOngoingTokensPerSecond,
-            _signedRCA.rca.minSecondsPerCollection,
-            _signedRCA.rca.maxSecondsPerCollection
+            _rca.endsAt,
+            _rca.maxInitialTokens,
+            _rca.maxOngoingTokensPerSecond,
+            _rca.minSecondsPerCollection,
+            _rca.maxSecondsPerCollection
         );
-        vm.prank(_signedRCA.rca.dataService);
-        bytes16 actualAgreementId = _recurringCollector.accept(_signedRCA);
+        vm.prank(_rca.dataService);
+        bytes16 actualAgreementId = _recurringCollector.accept(_rca, _signature);
 
         // Verify the agreement ID matches expectation
         assertEq(actualAgreementId, expectedAgreementId);
