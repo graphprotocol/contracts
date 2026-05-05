@@ -11,3 +11,5 @@
 Removed unused flags: `AUTO_UPDATE`, `AUTO_UPDATED`, `BY_DATA_SERVICE`, `WITH_NOTICE` and `IF_NOT_ACCEPTED` are dropped from the interface.
 
 NatSpec updated for remaining flags with new semantics.
+
+In RecurringCollector `NOTICE_GIVEN`, `SETTLED`, `BY_PAYER`, `BY_PROVIDER` are now set by `getAgreementDetails` to describe cancel origin and collectability (see TRST-R-12 fix).

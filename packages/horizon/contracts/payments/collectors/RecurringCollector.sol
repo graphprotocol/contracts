@@ -22,6 +22,10 @@ import {
     OFFER_TYPE_UPDATE,
     ACCEPTED,
     REGISTERED,
+    NOTICE_GIVEN,
+    SETTLED,
+    BY_PAYER,
+    BY_PROVIDER,
     UPDATE,
     SCOPE_ACTIVE,
     SCOPE_PENDING,
@@ -566,9 +570,7 @@ contract RecurringCollector is
      * {getAgreementDetails}.
      * @dev Caller supplies the version hash. {offer} passes the hash returned by _offerNew /
      * _offerUpdate (already known from the just-stored offer); {getAgreementDetails} resolves
-     * it via _versionHashAt. Returns empty details when versionHash is zero. The `index`
-     * parameter is plumbed through for TRST-L-11 (per-version flag composition) and is unused
-     * at this stage.
+     * it via _versionHashAt. Returns empty details when versionHash is zero.
      * @param agreementId The agreement ID
      * @param versionHash The EIP-712 hash of the queried version, or bytes32(0) if none
      * @param index Version index (VERSION_CURRENT or VERSION_NEXT) — determines per-version flags
@@ -583,9 +585,10 @@ contract RecurringCollector is
         details.versionHash = versionHash;
 
         AgreementData storage agreement = _getStorage().agreements[agreementId];
+        AgreementState agreementState = agreement.state;
 
         if (index == VERSION_CURRENT) {
-            if (agreement.state != AgreementState.NotAccepted)
+            if (agreementState != AgreementState.NotAccepted)
                 details.state = (0 < agreement.updateNonce) ? ACCEPTED | UPDATE : ACCEPTED;
         } else details.state = UPDATE;
 
@@ -594,6 +597,13 @@ contract RecurringCollector is
         details.payer = agreement.payer;
         details.dataService = agreement.dataService;
         details.serviceProvider = agreement.serviceProvider;
+
+        if (agreementState == AgreementState.CanceledByPayer) details.state |= NOTICE_GIVEN | BY_PAYER;
+        else if (agreementState == AgreementState.CanceledByServiceProvider)
+            details.state |= NOTICE_GIVEN | BY_PROVIDER;
+
+        if (_getMaxNextClaimScoped(agreementId, index == VERSION_CURRENT ? SCOPE_ACTIVE : SCOPE_PENDING) == 0)
+            details.state |= SETTLED;
     }
 
     /**
