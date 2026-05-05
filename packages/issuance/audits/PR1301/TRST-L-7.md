@@ -3,7 +3,7 @@
 - **Severity:** Low
 - **Category:** Functionality flaws
 - **Source:** RecurringCollector.sol
-- **Status:** Open
+- **Status:** Fixed
 
 ## Description
 
@@ -17,8 +17,10 @@ Expose a `cancelSignature(bytes32 hash)` entry point that records the hash as in
 
 ## Team Response
 
-TBD
+Added `SCOPE_SIGNED` flag to `cancel()`, giving EOA signers an on-chain revocation path like contract payers already have via `SCOPE_PENDING`. The signer calls `cancel(agreementId, termsHash, SCOPE_SIGNED)` which records `cancelledOffers[msg.sender][termsHash] = agreementId`. When `accept()` or `update()` later processes a signature, `_requireAuthorization` recovers the signer via ECDSA and rejects if the stored agreementId matches. Self-authenticating (keyed by signer address), idempotent, reversible (calling again with `bytes16(0)` undoes the cancellation), and combinable with other scopes. Also made `cancel` no-op when nothing exists on-chain instead of reverting.
+
+## Mitigation Review
+
+The introduced alternative cancel path is sufficient. It should be clarified that whenever a payer is represented by a signer, `cancel()` should be called by the signer, not payer.
 
 ---
-
-Added `SCOPE_SIGNED` flag to `cancel()`, giving EOA signers an on-chain revocation path like contract payers already have via `SCOPE_PENDING`. The signer calls `cancel(agreementId, termsHash, SCOPE_SIGNED)` which records `cancelledOffers[msg.sender][termsHash] = agreementId`. When `accept()` or `update()` later processes a signature, `_requireAuthorization` recovers the signer via ECDSA and rejects if the stored agreementId matches. Self-authenticating (keyed by signer address), idempotent, reversible (calling again with `bytes16(0)` undoes the cancellation), and combinable with other scopes. Also made `cancel` no-op when nothing exists on-chain instead of reverting.

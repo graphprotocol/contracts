@@ -3,7 +3,7 @@
 - **Severity:** Low
 - **Category:** Type confusion
 - **Source:** RecurringCollector.sol
-- **Status:** Open
+- **Status:** Fixed
 
 ## Description
 
@@ -17,13 +17,15 @@ Use the introduced `CONDITION_ELIGIBILITY_CHECK` flag in place of the live `code
 
 ## Team Response
 
-TBD
-
----
-
 Reusing `CONDITION_ELIGIBILITY_CHECK` for callback dispatch avoided because the eligibility checking is a different concern with different trust assumptions. An agreement can legitimately have one without the other.
 
 Introduced `CONDITION_AGREEMENT_OWNER` flag that mirrors the eligibility pattern:
 
 - `_requirePayerInterfaceSupport` validates `IERC165(payer).supportsInterface(type(IAgreementOwner).interfaceId)` if the flag is set, alongside the existing eligibility check.
 - `_preCollectCallbacks` and `_postCollectCallback` dispatch on `agreement.conditions & CONDITION_AGREEMENT_OWNER`, replacing the `payer.code.length` check.
+
+## Mitigation Review
+
+The root cause has been addressed. It is recommended to document that turning `CONDITION_ELIGIBILITY_CHECK` on an EOA is considered fully trusting it as it can upgrade to a contract that reverts the eligibility check.
+
+---

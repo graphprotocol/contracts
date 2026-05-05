@@ -1,9 +1,11 @@
+<!-- markdownlint-disable MD024 -->
+
 # TRST-M-1: Micro-thaw griefing via permissionless depositTo() and reconcileAgreement()
 
 - **Severity:** Medium
 - **Category:** Griefing attacks
 - **Source:** RecurringAgreementManager.sol
-- **Status:** Open
+- **Status:** Fixed
 
 ## Description
 
@@ -29,8 +31,12 @@ Fixed.
 
 The griefing path remains reachable. Before any agreement is offered, a 1 wei donation to the (collector, provider) escrow account, followed by a permissionless call to `_reconcilePairTracking()` reaches `_updateEscrow()` with min and max at zero, and the thaw threshold is also at zero. Any positive excess passes the `thawThreshold <= excess` check, causing an `adjustThaw(thawTarget = 1)`. The same sequence also occurs after the final collection of an agreement, when `sumMaxNextClaim` transitions to zero via `afterCollection()` -> `_reconcileAndUpdateEscrow()` -> `_reconcileAgreement()`. There should be a nominal, non-negligible minimum thaw amount on top of the fraction check, applied in both `_reconcileProviderEscrow()` and `_withdrawAndRebalance()`. When `escrowBasis` is JustInTime, override the nominal skip so that dust can still be thawed out for solvency.
 
----
-
-Added configurable `minThawFraction` (uint8, default 16 = 6.25% of `sumMaxNextClaim`) that skips thaws below threshold.
+## Team Response
 
 The zero-threshold path when `sumMaxNextClaim = 0` is acknowledged. Timer resets do not occur (`evenIfTimerReset=false` rejects increases), so the vector is limited to postponing pair tracking cleanup via repeated dust deposits. Added `minResidualEscrowFactor` (uint8, default 50, threshold = 2^value ≈ 0.001 GRT for default): pairs with no agreements and escrow below threshold are dropped from tracking. Untracked pairs can still have escrow drained via blind thaw/withdraw on `reconcileProvider`.
+
+## Mitigation Review
+
+The main finding is considered acknowledged. Introduction of `minResidualEscrowFactor` is used only in maintaining of view-related bookkeeping. No new concerns have been introduced.
+
+---
