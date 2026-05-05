@@ -47,6 +47,8 @@ uint8 constant OFFER_TYPE_UPDATE = 2;
 uint8 constant SCOPE_ACTIVE = 1;
 /// @dev Cancel targets pending offers
 uint8 constant SCOPE_PENDING = 2;
+/// @dev Cancel targets signed offers
+uint8 constant SCOPE_SIGNED = 4;
 
 // -- Version indices (shared by getAgreementDetails and getAgreementOfferAt) --
 //
@@ -131,12 +133,14 @@ interface IAgreementCollector is IPaymentsCollector {
     function offer(uint8 offerType, bytes calldata data, uint16 options) external returns (AgreementDetails memory);
 
     /**
-     * @notice Cancel an agreement or revoke a pending offer.
-     * @dev Scopes can be combined. SCOPE_PENDING and SCOPE_ACTIVE require payer authorization
-     * and no-op if nothing exists on-chain.
-     * @param agreementId The agreement's ID.
+     * @notice Cancel an agreement, revoke a pending offer, or invalidate a signed offer.
+     * @dev Scopes can be combined. SCOPE_SIGNED is self-authenticating (keyed by msg.sender);
+     * SCOPE_PENDING and SCOPE_ACTIVE require payer authorization and no-op if nothing exists on-chain.
+     * @param agreementId The agreement's ID. For SCOPE_SIGNED, only blocks accept/update when
+     * the agreementId matches; passing bytes16(0) undoes a previous cancellation.
      * @param termsHash EIP-712 hash identifying which terms to cancel.
-     * @param options Bitmask — SCOPE_ACTIVE (1) active terms, SCOPE_PENDING (2) pending offers.
+     * @param options Bitmask — SCOPE_ACTIVE (1) active terms, SCOPE_PENDING (2) pending offers,
+     * SCOPE_SIGNED (4) signed offers.
      */
     function cancel(bytes16 agreementId, bytes32 termsHash, uint16 options) external;
 
