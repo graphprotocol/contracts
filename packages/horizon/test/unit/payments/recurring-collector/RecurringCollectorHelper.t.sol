@@ -158,11 +158,9 @@ contract RecurringCollectorHelper is AuthorizableHelper, Bounder {
         return rcau;
     }
 
+    /// @dev 600 == RecurringCollector.MIN_SECONDS_COLLECTION_WINDOW
     function _sensibleDeadline(uint256 _seed) internal view returns (uint64) {
-        return
-            uint64(
-                bound(_seed, block.timestamp + 1, block.timestamp + uint256(collector.MIN_SECONDS_COLLECTION_WINDOW()))
-            ); // between now and +MIN_SECONDS_COLLECTION_WINDOW
+        return uint64(bound(_seed, block.timestamp + 1, block.timestamp + 600));
     }
 
     function _sensibleEndsAt(uint256 _seed, uint32 _maxSecondsPerCollection) internal view returns (uint64) {
@@ -184,7 +182,7 @@ contract RecurringCollectorHelper is AuthorizableHelper, Bounder {
             uint32(
                 bound(
                     _seed,
-                    _minSecondsPerCollection + uint256(collector.MIN_SECONDS_COLLECTION_WINDOW()),
+                    _minSecondsPerCollection + 600, // 600 == MIN_SECONDS_COLLECTION_WINDOW
                     60 * 60 * 24 * 30
                 ) // between minSecondsPerCollection + 2h and 30 days
             );

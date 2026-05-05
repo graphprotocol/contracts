@@ -106,7 +106,7 @@ contract RecurringCollectorAcceptValidationTest is RecurringCollectorSharedTest 
         vm.expectRevert(
             abi.encodeWithSelector(
                 IRecurringCollector.RecurringCollectorAgreementInvalidCollectionWindow.selector,
-                _recurringCollector.MIN_SECONDS_COLLECTION_WINDOW(),
+                uint32(600), // MIN_SECONDS_COLLECTION_WINDOW
                 rca.minSecondsPerCollection,
                 rca.maxSecondsPerCollection
             )
@@ -129,7 +129,7 @@ contract RecurringCollectorAcceptValidationTest is RecurringCollectorSharedTest 
         vm.expectRevert(
             abi.encodeWithSelector(
                 IRecurringCollector.RecurringCollectorAgreementInvalidCollectionWindow.selector,
-                _recurringCollector.MIN_SECONDS_COLLECTION_WINDOW(),
+                uint32(600), // MIN_SECONDS_COLLECTION_WINDOW
                 rca.minSecondsPerCollection,
                 rca.maxSecondsPerCollection
             )
@@ -144,7 +144,7 @@ contract RecurringCollectorAcceptValidationTest is RecurringCollectorSharedTest 
         IRecurringCollector.RecurringCollectionAgreement memory rca = _makeValidRCA();
         // Need: endsAt - deadline >= minSecondsPerCollection + MIN_SECONDS_COLLECTION_WINDOW
         // Set duration just under the minimum
-        uint32 minWindow = _recurringCollector.MIN_SECONDS_COLLECTION_WINDOW();
+        uint32 minWindow = 600; // MIN_SECONDS_COLLECTION_WINDOW
         rca.minSecondsPerCollection = 600;
         rca.maxSecondsPerCollection = 600 + minWindow; // valid window
         rca.endsAt = rca.deadline + rca.minSecondsPerCollection + minWindow - 1; // 1 second too short

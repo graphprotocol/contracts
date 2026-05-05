@@ -16,7 +16,7 @@ contract RecurringCollectorViewFunctionsTest is RecurringCollectorSharedTest {
         (, , , bytes16 agreementId) = _sensibleAuthorizeAndAccept(fuzzy);
 
         // Skip past the minimum collection window so collection is possible
-        skip(_recurringCollector.MIN_SECONDS_COLLECTION_WINDOW());
+        skip(600); // MIN_SECONDS_COLLECTION_WINDOW
 
         // Re-read agreement (timestamps don't change but view computes based on block.timestamp)
         (bool isCollectable, uint256 collectionSeconds, ) = _recurringCollector.getCollectionInfo(agreementId);

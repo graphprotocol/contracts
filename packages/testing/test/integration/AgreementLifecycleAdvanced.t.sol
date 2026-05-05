@@ -406,7 +406,7 @@ contract AgreementLifecycleAdvancedTest is FullStackHarness {
             tokensPerEntityPerSecond: 0
         });
 
-        uint16 eligibilityCondition = recurringCollector.CONDITION_ELIGIBILITY_CHECK();
+        uint16 eligibilityCondition = 1; // CONDITION_ELIGIBILITY_CHECK
         IRecurringCollector.RecurringCollectionAgreement memory rca = _buildRCAEx(
             indexer,
             0,
@@ -442,7 +442,7 @@ contract AgreementLifecycleAdvancedTest is FullStackHarness {
             tokensPerEntityPerSecond: 0
         });
 
-        uint16 eligibilityCondition = recurringCollector.CONDITION_ELIGIBILITY_CHECK();
+        uint16 eligibilityCondition = 1; // CONDITION_ELIGIBILITY_CHECK
         IRecurringCollector.RecurringCollectionAgreement memory rca = _buildRCAEx(
             indexer,
             0,
