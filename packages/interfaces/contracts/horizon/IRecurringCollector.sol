@@ -405,6 +405,33 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
     error RecurringCollectorInsufficientCallbackGas();
 
     /**
+     * @notice Thrown when the caller is not the governor
+     * @param account The address of the caller
+     */
+    error RecurringCollectorNotGovernor(address account);
+
+    /**
+     * @notice Thrown when the caller is not a pause guardian
+     * @param account The address of the caller
+     */
+    error RecurringCollectorNotPauseGuardian(address account);
+
+    /**
+     * @notice Thrown when setting a pause guardian to the same status
+     * @param account The address of the pause guardian
+     * @param allowed The (unchanged) allowed status
+     */
+    error RecurringCollectorPauseGuardianNoChange(address account, bool allowed);
+
+    /**
+     * @notice Emitted when a pause guardian is set
+     * @param account The address of the pause guardian
+     * @param allowed The allowed status
+     */
+    event PauseGuardianSet(address indexed account, bool allowed);
+    // solhint-disable-previous-line gas-indexed-events
+
+    /**
      * @notice Emitted when a payer callback (beforeCollection / afterCollection) reverts.
      * @dev The try/catch ensures provider liveness but this event enables off-chain
      * monitoring to detect repeated failures and trigger reconciliation.
@@ -422,6 +449,25 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
      * @param offerHash The EIP-712 hash of the stored offer
      */
     event OfferStored(bytes16 indexed agreementId, address indexed payer, uint8 indexed offerType, bytes32 offerHash);
+
+    /**
+     * @notice Pauses the collector, blocking accept, update, collect, and cancel.
+     * @dev Only callable by a pause guardian. Uses OpenZeppelin Pausable.
+     */
+    function pause() external;
+
+    /**
+     * @notice Unpauses the collector.
+     * @dev Only callable by a pause guardian.
+     */
+    function unpause() external;
+
+    /**
+     * @notice Returns the status of a pause guardian.
+     * @param pauseGuardian The address to check
+     * @return Whether the address is a pause guardian
+     */
+    function pauseGuardians(address pauseGuardian) external view returns (bool);
 
     /**
      * @notice Accept a Recurring Collection Agreement.
