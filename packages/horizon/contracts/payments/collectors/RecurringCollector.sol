@@ -488,7 +488,15 @@ contract RecurringCollector is
                 block.timestamp <= rca.deadline,
                 RecurringCollectorAgreementDeadlineElapsed(block.timestamp, rca.deadline)
             );
-            _requirePayerToSupportEligibilityCheck(rca.payer, rca.conditions);
+            _requireValidTerms(
+                rca.deadline,
+                rca.endsAt,
+                rca.minSecondsPerCollection,
+                rca.maxSecondsPerCollection,
+                rca.payer,
+                rca.conditions,
+                rca.maxOngoingTokensPerSecond
+            );
 
             agreement.payer = rca.payer;
             agreement.dataService = rca.dataService;
@@ -523,12 +531,21 @@ contract RecurringCollector is
                 block.timestamp <= rcau.deadline,
                 RecurringCollectorAgreementDeadlineElapsed(block.timestamp, rcau.deadline)
             );
+            address payer = agreement.payer;
             require(
-                agreement.payer != address(0) &&
+                payer != address(0) &&
                     (agreement.state == AgreementState.NotAccepted || agreement.state == AgreementState.Accepted),
                 RecurringCollectorAgreementIncorrectState(agreementId, agreement.state)
             );
-            _requirePayerToSupportEligibilityCheck(agreement.payer, rcau.conditions);
+            _requireValidTerms(
+                rcau.deadline,
+                rcau.endsAt,
+                rcau.minSecondsPerCollection,
+                rcau.maxSecondsPerCollection,
+                payer,
+                rcau.conditions,
+                rcau.maxOngoingTokensPerSecond
+            );
 
             $.rcauOffers[agreementId] = StoredOffer({ offerHash: versionHash, data: _data });
             emit OfferStored(agreementId, payer, OFFER_TYPE_UPDATE, versionHash);
