@@ -128,7 +128,7 @@ contract RecurringCollectorAcceptUnsignedTest is RecurringCollectorSharedTest {
         _recurringCollector.accept(rca, "");
     }
 
-    function test_AcceptUnsigned_Revert_WhenAlreadyAccepted(FuzzyTestAccept calldata fuzzyTestAccept) public {
+    function test_AcceptUnsigned_Idempotent_WhenAlreadyAccepted(FuzzyTestAccept calldata fuzzyTestAccept) public {
         MockAgreementOwner approver = _newApprover();
         IRecurringCollector.RecurringCollectionAgreement memory rca = _recurringCollectorHelper.sensibleRCA(
             fuzzyTestAccept.rca
@@ -143,16 +143,10 @@ contract RecurringCollectorAcceptUnsignedTest is RecurringCollectorSharedTest {
         vm.prank(rca.dataService);
         bytes16 agreementId = _recurringCollector.accept(rca, "");
 
-        // Stored offer persists, so authorization passes but state check fails
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IRecurringCollector.RecurringCollectorAgreementIncorrectState.selector,
-                agreementId,
-                IRecurringCollector.AgreementState.Accepted
-            )
-        );
+        // Re-accepting the same RCA is a no-op — succeeds without reverting.
         vm.prank(rca.dataService);
-        _recurringCollector.accept(rca, "");
+        bytes16 returnedId = _recurringCollector.accept(rca, "");
+        assertEq(returnedId, agreementId);
     }
 
     function test_AcceptUnsigned_Revert_WhenDeadlineElapsed() public {

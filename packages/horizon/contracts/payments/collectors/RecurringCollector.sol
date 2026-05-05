@@ -220,6 +220,9 @@ contract RecurringCollector is
         RecurringCollectorStorage storage $ = _getStorage();
         AgreementData storage agreement = $.agreements[agreementId];
 
+        // Idempotent: already accepted with the same hash → no-op (skip deadline + auth).
+        if (agreement.state == AgreementState.Accepted && agreement.activeTermsHash == rcaHash) return agreementId;
+
         require(
             block.timestamp <= rca.deadline,
             RecurringCollectorAgreementDeadlineElapsed(block.timestamp, rca.deadline)
@@ -234,10 +237,6 @@ contract RecurringCollector is
 
         _validateAndStoreAgreement(rca, agreementId, rcaHash);
 
-        require(
-            agreement.state == AgreementState.NotAccepted,
-            RecurringCollectorAgreementIncorrectState(agreementId, agreement.state)
-        );
         agreement.acceptedAt = uint64(block.timestamp);
         agreement.state = AgreementState.Accepted;
 
@@ -342,12 +341,16 @@ contract RecurringCollector is
     function update(RecurringCollectionAgreementUpdate calldata rcau, bytes calldata signature) external whenNotPaused {
         AgreementData storage agreement = _requireValidUpdateTarget(rcau.agreementId);
 
+        bytes32 rcauHash = _hashRCAU(rcau);
+
+        // Idempotent: already at this version (state is Accepted per _requireValidUpdateTarget).
+        // Skip deadline + auth since no state change happens.
+        if (agreement.activeTermsHash == rcauHash) return;
+
         require(
             block.timestamp <= rcau.deadline,
             RecurringCollectorAgreementDeadlineElapsed(block.timestamp, rcau.deadline)
         );
-
-        bytes32 rcauHash = _hashRCAU(rcau);
 
         _requireAuthorization(agreement.payer, rcauHash, signature, rcau.agreementId, OFFER_TYPE_UPDATE);
 
@@ -529,7 +532,7 @@ contract RecurringCollector is
         RecurringCollectorStorage storage $ = _getStorage();
         AgreementData storage agreement = $.agreements[agreementId];
         address payer = agreement.payer;
-        require(payer != address(0), RecurringCollectorAgreementNotFound(agreementId));
+        if (payer == address(0)) return;
         require(msg.sender == payer, RecurringCollectorUnauthorizedCaller(msg.sender, payer));
 
         if (agreement.activeTermsHash != termsHash || agreement.state == AgreementState.NotAccepted) {
