@@ -123,6 +123,10 @@ describe('Rewards: Snapshot Inversion', () => {
     curation = contracts.Curation as Curation
     staking = contracts.Staking as IStaking
     rewardsManager = contracts.RewardsManager as RewardsManager
+
+    // Set the staking contract as the subgraph service so RewardsManager
+    // can see allocations via _getSubgraphAllocatedTokens()
+    await rewardsManager.connect(governor).setSubgraphService(staking.address)
   })
 
   beforeEach(async function () {
