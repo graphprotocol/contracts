@@ -33,3 +33,5 @@ Follows the Optimism buffer-constant pattern as suggested.
 Issue has been addressed as suggested. Worst-case scenario tests should be introduced to ensure the defined overhead constant is sufficient in future builds.
 
 ---
+
+Boundary regression tests added on both sides of the precheck: warm path in Foundry, cold path in Hardhat (foundry/REVM does not apply EIP-2929 cold-access cost in this config, so a separate Hardhat test exercises real cold access). Sabotage-verified.
