@@ -503,11 +503,12 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), maxClaim);
 
         // Escrow has zero balance
-        (uint256 escrowBal,,) = paymentsEscrow.escrowAccounts(address(agreementManager), address(recurringCollector), indexer);
-        assertEq(
-            escrowBal,
-            0
+        (uint256 escrowBal, , ) = paymentsEscrow.escrowAccounts(
+            address(agreementManager),
+            address(recurringCollector),
+            indexer
         );
+        assertEq(escrowBal, 0);
 
         // Escrow balance is 0
         assertEq(agreementManager.getEscrowAccount(_collector(), indexer).balance, 0);
@@ -1018,11 +1019,11 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         agreementManager.reconcileAgreement(agreementId);
 
         IPaymentsEscrow.EscrowAccount memory accountBeforeWarp;
-        (accountBeforeWarp.balance, accountBeforeWarp.tokensThawing, accountBeforeWarp.thawEndTimestamp) = paymentsEscrow.escrowAccounts(
-            address(agreementManager),
-            address(recurringCollector),
-            indexer
-        );
+        (
+            accountBeforeWarp.balance,
+            accountBeforeWarp.tokensThawing,
+            accountBeforeWarp.thawEndTimestamp
+        ) = paymentsEscrow.escrowAccounts(address(agreementManager), address(recurringCollector), indexer);
         assertEq(accountBeforeWarp.tokensThawing, maxClaim, "All tokens should be thawing");
         uint256 thawEnd = accountBeforeWarp.thawEndTimestamp;
         assertTrue(0 < thawEnd, "Thaw should be active");
@@ -1045,11 +1046,8 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
 
         // Escrow balance should be unchanged (still thawing)
         IPaymentsEscrow.EscrowAccount memory accountAfter;
-        (accountAfter.balance, accountAfter.tokensThawing, accountAfter.thawEndTimestamp) = paymentsEscrow.escrowAccounts(
-            address(agreementManager),
-            address(recurringCollector),
-            indexer
-        );
+        (accountAfter.balance, accountAfter.tokensThawing, accountAfter.thawEndTimestamp) = paymentsEscrow
+            .escrowAccounts(address(agreementManager), address(recurringCollector), indexer);
         assertEq(accountAfter.balance, maxClaim, "Balance unchanged at boundary");
         assertEq(accountAfter.tokensThawing, maxClaim, "Still thawing at boundary");
     }
@@ -1069,8 +1067,11 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         _setAgreementCanceledBySP(agreementId, rca);
         agreementManager.reconcileAgreement(agreementId);
 
-        (,, uint256 thawEnd) = paymentsEscrow
-            .escrowAccounts(address(agreementManager), address(recurringCollector), indexer);
+        (, , uint256 thawEnd) = paymentsEscrow.escrowAccounts(
+            address(agreementManager),
+            address(recurringCollector),
+            indexer
+        );
 
         // Warp to thawEndTimestamp + 1
         vm.warp(thawEnd + 1);
@@ -1081,11 +1082,12 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         agreementManager.reconcileCollectorProvider(address(_collector()), indexer);
 
         // Escrow should be empty
-        (uint256 finalBalance,,) = paymentsEscrow.escrowAccounts(address(agreementManager), address(recurringCollector), indexer);
-        assertEq(
-            finalBalance,
-            0
+        (uint256 finalBalance, , ) = paymentsEscrow.escrowAccounts(
+            address(agreementManager),
+            address(recurringCollector),
+            indexer
         );
+        assertEq(finalBalance, 0);
     }
 
     // ==================== BeforeCollection Boundary (Issue 2) ====================
@@ -1102,8 +1104,11 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
 
         bytes16 agreementId = _offerAgreement(rca);
 
-        (uint256 escrowBalance,,) = paymentsEscrow
-            .escrowAccounts(address(agreementManager), address(recurringCollector), indexer);
+        (uint256 escrowBalance, , ) = paymentsEscrow.escrowAccounts(
+            address(agreementManager),
+            address(recurringCollector),
+            indexer
+        );
         assertTrue(0 < escrowBalance, "Escrow should be funded");
 
         // Drain manager's free token balance

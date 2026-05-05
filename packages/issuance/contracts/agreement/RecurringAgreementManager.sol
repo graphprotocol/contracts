@@ -5,8 +5,10 @@ pragma solidity ^0.8.27;
 // solhint-disable gas-strict-inequalities
 
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 
 import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceTarget.sol";
+import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationDistribution.sol";
 import { IAgreementOwner } from "@graphprotocol/interfaces/contracts/horizon/IAgreementOwner.sol";
 import { IRecurringAgreementManagement } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreementManagement.sol";
 import { IRecurringEscrowManagement } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringEscrowManagement.sol";
@@ -41,7 +43,10 @@ import { ReentrancyGuardTransient } from "@openzeppelin/contracts/utils/Reentran
  *
  * @custom:security CEI — All external calls target trusted protocol contracts (PaymentsEscrow,
  * GRT, RecurringCollector) except {cancelAgreement}'s call to the data service, which is
- * governance-gated. {nonReentrant} on {cancelAgreement} provides defence-in-depth.
+ * governance-gated, and {_ensureIncomingDistributionToCurrentBlock}'s call to the issuance
+ * allocator, which is also governance-gated. {nonReentrant} on {beforeCollection},
+ * {afterCollection}, and {cancelAgreement} guards against reentrancy through these external
+ * calls as defence-in-depth.
  *
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
@@ -60,6 +65,14 @@ contract RecurringAgreementManager is
     using EnumerableSet for EnumerableSet.Bytes32Set;
     using EnumerableSet for EnumerableSet.AddressSet;
     using EnumerableSetUtil for EnumerableSet.AddressSet;
+
+    /// @notice Emitted when distributeIssuance() reverts (collection continues without fresh issuance)
+    /// @param allocator The allocator that reverted
+    event DistributeIssuanceFailed(address indexed allocator);
+
+    /// @notice Thrown when the issuance allocator does not support IIssuanceAllocationDistribution
+    error InvalidIssuanceAllocator(address allocator);
+
     using EnumerableSetUtil for EnumerableSet.Bytes32Set;
 
     // -- Role Constants --
@@ -94,6 +107,7 @@ contract RecurringAgreementManager is
     // -- Storage (ERC-7201) --
 
     /// @custom:storage-location erc7201:graphprotocol.issuance.storage.RecurringAgreementManager
+    // solhint-disable-next-line gas-struct-packing
     struct RecurringAgreementManagerStorage {
         /// @notice Authorized agreement hashes — maps hash to agreementId (bytes16(0) = not authorized)
         mapping(bytes32 agreementHash => bytes16) authorizedHashes;
@@ -111,18 +125,24 @@ contract RecurringAgreementManager is
         uint256 totalAgreementCount;
         /// @notice Last known escrow balance per (collector, provider) pair (for snapshot diff)
         mapping(address collector => mapping(address provider => uint256)) escrowSnap;
-        /// @notice Optional oracle for checking payment eligibility of service providers
-        IProviderEligibility providerEligibilityOracle;
         /// @notice Set of all collector addresses with active agreements
         EnumerableSet.AddressSet collectors;
         /// @notice Set of provider addresses per collector
         mapping(address collector => EnumerableSet.AddressSet) collectorProviders;
         /// @notice Number of agreements per (collector, provider) pair
         mapping(address collector => mapping(address provider => uint256)) pairAgreementCount;
+        /// @notice The issuance allocator that mints GRT to this contract (20 bytes)
+        /// @dev Packed slot (30/32 bytes): issuanceAllocator (20) + ensuredIncomingDistributedToBlock (8) +
+        /// escrowBasis (1) + tempJit (1). All read together in _updateEscrow / beforeCollection.
+        IIssuanceAllocationDistribution issuanceAllocator;
+        /// @notice Block number when _ensureIncomingDistributionToCurrentBlock last ran
+        uint64 ensuredIncomingDistributedToBlock;
         /// @notice Governance-configured escrow level (not modified by temp JIT)
         EscrowBasis escrowBasis;
         /// @notice Whether temporary JIT mode is active (beforeCollection couldn't deposit)
         bool tempJit;
+        /// @notice Optional oracle for checking payment eligibility of service providers (20/32 bytes in slot)
+        IProviderEligibility providerEligibilityOracle;
     }
 
     // keccak256(abi.encode(uint256(keccak256("graphprotocol.issuance.storage.RecurringAgreementManager")) - 1)) & ~bytes32(uint256(0xff))
@@ -176,8 +196,29 @@ contract RecurringAgreementManager is
     function beforeIssuanceAllocationChange() external virtual override {}
 
     /// @inheritdoc IIssuanceTarget
-    /// @dev No-op: RecurringAgreementManager receives tokens via transfer, does not need the allocator address.
-    function setIssuanceAllocator(address /* issuanceAllocator */) external virtual override onlyRole(GOVERNOR_ROLE) {}
+    /// @dev The allocator is expected to call distributeIssuance() (bringing distribution up to
+    /// the current block) before any configuration change. As a result, the same-block dedup in
+    /// {_ensureIncomingDistributionToCurrentBlock} is harmless: if a prior call already set the
+    /// block marker, the allocator has already distributed. Governance should set the allocator
+    /// in a standalone transaction to avoid interleaving with collection in the same block.
+    /// Even if interleaved, the only effect is a one-block lag before the new allocator's
+    /// distribution is picked up — corrected automatically on the next block.
+    function setIssuanceAllocator(address newIssuanceAllocator) external virtual override onlyRole(GOVERNOR_ROLE) {
+        RecurringAgreementManagerStorage storage $ = _getStorage();
+        if (address($.issuanceAllocator) == newIssuanceAllocator) return;
+
+        if (newIssuanceAllocator != address(0))
+            require(
+                ERC165Checker.supportsInterface(
+                    newIssuanceAllocator,
+                    type(IIssuanceAllocationDistribution).interfaceId
+                ),
+                InvalidIssuanceAllocator(newIssuanceAllocator)
+            );
+
+        emit IssuanceAllocatorSet(address($.issuanceAllocator), newIssuanceAllocator);
+        $.issuanceAllocator = IIssuanceAllocationDistribution(newIssuanceAllocator);
+    }
 
     // -- IAgreementOwner --
 
@@ -192,7 +233,7 @@ contract RecurringAgreementManager is
     }
 
     /// @inheritdoc IAgreementOwner
-    function beforeCollection(bytes16 agreementId, uint256 tokensToCollect) external override {
+    function beforeCollection(bytes16 agreementId, uint256 tokensToCollect) external override nonReentrant {
         RecurringAgreementManagerStorage storage $ = _getStorage();
         AgreementInfo storage agreement = $.agreements[agreementId];
         address provider = agreement.provider;
@@ -202,6 +243,9 @@ contract RecurringAgreementManager is
         // JIT top-up: deposit only when escrow balance cannot cover this collection
         uint256 escrowBalance = _fetchEscrowAccount(msg.sender, provider).balance;
         if (tokensToCollect <= escrowBalance) return;
+
+        // Ensure issuance is distributed so balanceOf reflects all available tokens
+        _ensureIncomingDistributionToCurrentBlock($);
 
         // Strict <: when deficit == available, enter tempJit rather than depleting entire balance
         uint256 deficit = tokensToCollect - escrowBalance;
@@ -215,7 +259,7 @@ contract RecurringAgreementManager is
     }
 
     /// @inheritdoc IAgreementOwner
-    function afterCollection(bytes16 agreementId, uint256 /* tokensCollected */) external override {
+    function afterCollection(bytes16 agreementId, uint256 /* tokensCollected */) external override nonReentrant {
         RecurringAgreementManagerStorage storage $ = _getStorage();
         AgreementInfo storage agreement = $.agreements[agreementId];
         if (agreement.provider == address(0)) return;
@@ -842,6 +886,7 @@ contract RecurringAgreementManager is
      */
     // solhint-disable-next-line use-natspec
     function _updateEscrow(RecurringAgreementManagerStorage storage $, address collector, address provider) private {
+        _ensureIncomingDistributionToCurrentBlock($);
         // Auto-recover from tempJit when balance exceeds deficit (same strict < as beforeCollection/escrowMinMax)
         if ($.tempJit && $.totalEscrowDeficit < GRAPH_TOKEN.balanceOf(address(this))) {
             $.tempJit = false;
@@ -941,6 +986,32 @@ contract RecurringAgreementManager is
             collector,
             provider
         );
+    }
+
+    /**
+     * @notice Trigger issuance distribution so that balanceOf(this) reflects all available tokens.
+     * @dev No-op if allocator is not set or already ensured this block. The local ensuredIncomingDistributedToBlock
+     * check avoids the external call overhead (~2800 gas) on redundant same-block invocations
+     * (e.g. beforeCollection + afterCollection in the same collection tx).
+     */
+    // solhint-disable-next-line use-natspec
+    function _ensureIncomingDistributionToCurrentBlock(RecurringAgreementManagerStorage storage $) private {
+        // Uses low 8 bytes of block.number; consecutive blocks always differ so same-block
+        // dedup works correctly even past uint64 wrap. A false match requires the previous
+        // last call to have been exactly 2^64 blocks ago (~584 billion years at 1 block/s).
+        uint64 blockNum;
+        unchecked {
+            blockNum = uint64(block.number);
+        }
+        if ($.ensuredIncomingDistributedToBlock == blockNum) return;
+        $.ensuredIncomingDistributedToBlock = blockNum;
+
+        IIssuanceAllocationDistribution allocator = $.issuanceAllocator;
+        if (address(allocator) == address(0)) return;
+
+        try allocator.distributeIssuance() {} catch {
+            emit DistributeIssuanceFailed(address(allocator));
+        }
     }
 
     /**

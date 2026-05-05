@@ -12,6 +12,16 @@ It implements seven interfaces:
 - **`IRecurringAgreements`** — read-only queries: agreement info, escrow state, global tracking
 - **`IProviderEligibility`** — delegates payment eligibility checks to an optional oracle
 
+## Issuance Distribution
+
+RAM pulls minted GRT from IssuanceAllocator via `_ensureIncomingDistributionToCurrentBlock()` before any balance-dependent decision. This ensures `balanceOf(address(this))` reflects all available tokens before escrow deposits or JIT calculations.
+
+**Trigger points**: `beforeCollection` (JIT path, when escrow is insufficient) and `_updateEscrow` (all escrow rebalancing). Both may fire in the same transaction, so a per-block deduplication guard (`ensuredIncomingDistributedToBlock`) skips redundant allocator calls.
+
+**Failure tolerance**: Allocator reverts are caught via try-catch — collection continues and a `DistributeIssuanceFailed` event is emitted for monitoring. This prevents a malfunctioning allocator from blocking payments.
+
+**Configuration**: `setIssuanceAllocator(address)` (governor-gated) validates ERC165 support for `IIssuanceAllocationDistribution`. Setting to `address(0)` disables distribution, making the function a no-op. Both `beforeCollection` and `afterCollection` carry `nonReentrant` as defense-in-depth against the external allocator call.
+
 ## Escrow Structure
 
 One escrow account per (RecurringAgreementManager, collector, provider) tuple covers **all** managed RCAs for that (collector, provider) pair. Multiple agreements for the same pair share a single escrow balance:
@@ -122,14 +132,16 @@ Per-agreement reconciliation (`reconcileAgreement`) re-reads agreement state fro
 
 ### Global Tracking
 
-| Storage field         | Type    | Updated at                                                                  |
-| --------------------- | ------- | --------------------------------------------------------------------------- |
-| `escrowBasis`         | enum    | `setEscrowBasis()`                                                          |
-| `sumMaxNextClaimAll`  | uint256 | Every `sumMaxNextClaim[c][p]` mutation                                      |
-| `totalEscrowDeficit`  | uint256 | Every `sumMaxNextClaim[c][p]` or `escrowSnap[c][p]` mutation                |
-| `totalAgreementCount` | uint256 | `offerAgreement` (+1), `revokeOffer` (-1), `removeAgreement` (-1)           |
-| `escrowSnap[c][p]`    | mapping | End of `_updateEscrow` via snapshot diff                                    |
-| `tempJit`             | bool    | `beforeCollection` (trip), `_updateEscrow` (recover), `setTempJit` (manual) |
+| Storage field                       | Type    | Updated at                                                                  |
+| ----------------------------------- | ------- | --------------------------------------------------------------------------- |
+| `escrowBasis`                       | enum    | `setEscrowBasis()`                                                          |
+| `sumMaxNextClaimAll`                | uint256 | Every `sumMaxNextClaim[c][p]` mutation                                      |
+| `totalEscrowDeficit`                | uint256 | Every `sumMaxNextClaim[c][p]` or `escrowSnap[c][p]` mutation                |
+| `totalAgreementCount`               | uint256 | `offerAgreement` (+1), `revokeOffer` (-1), `removeAgreement` (-1)           |
+| `escrowSnap[c][p]`                  | mapping | End of `_updateEscrow` via snapshot diff                                    |
+| `tempJit`                           | bool    | `beforeCollection` (trip), `_updateEscrow` (recover), `setTempJit` (manual) |
+| `issuanceAllocator`                 | address | `setIssuanceAllocator()` (governor)                                         |
+| `ensuredIncomingDistributedToBlock` | uint64  | `_ensureIncomingDistributionToCurrentBlock()` (per-block dedup)             |
 
 **`totalEscrowDeficit`** is maintained incrementally as `Σ max(0, sumMaxNextClaim[c][p] - escrowSnap[c][p])` per (collector, provider). Over-deposited pairs cannot mask another pair's deficit. At each mutation point, the pair's deficit is recomputed before and after.
 

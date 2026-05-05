@@ -84,21 +84,24 @@ contract RecurringAgreementManagerMultiIndexerTest is RecurringAgreementManagerS
         assertEq(agreementManager.getProviderAgreementCount(indexer3), 1);
 
         // Each has independent escrow balance
-        (uint256 indexerBalance,,) = paymentsEscrow.escrowAccounts(address(agreementManager), address(recurringCollector), indexer);
-        assertEq(
-            indexerBalance,
-            maxClaim1
+        (uint256 indexerBalance, , ) = paymentsEscrow.escrowAccounts(
+            address(agreementManager),
+            address(recurringCollector),
+            indexer
         );
-        (uint256 indexer2Balance,,) = paymentsEscrow.escrowAccounts(address(agreementManager), address(recurringCollector), indexer2);
-        assertEq(
-            indexer2Balance,
-            maxClaim2
+        assertEq(indexerBalance, maxClaim1);
+        (uint256 indexer2Balance, , ) = paymentsEscrow.escrowAccounts(
+            address(agreementManager),
+            address(recurringCollector),
+            indexer2
         );
-        (uint256 indexer3Balance,,) = paymentsEscrow.escrowAccounts(address(agreementManager), address(recurringCollector), indexer3);
-        assertEq(
-            indexer3Balance,
-            maxClaim3
+        assertEq(indexer2Balance, maxClaim2);
+        (uint256 indexer3Balance, , ) = paymentsEscrow.escrowAccounts(
+            address(agreementManager),
+            address(recurringCollector),
+            indexer3
         );
+        assertEq(indexer3Balance, maxClaim3);
     }
 
     // -- Isolation: revoke one indexer doesn't affect others --
@@ -341,11 +344,12 @@ contract RecurringAgreementManagerMultiIndexerTest is RecurringAgreementManagerS
         assertEq(acct1.balance - acct1.tokensThawing, 0);
 
         // Indexer2 escrow completely unaffected
-        (uint256 indexer2Bal,,) = paymentsEscrow.escrowAccounts(address(agreementManager), address(recurringCollector), indexer2);
-        assertEq(
-            indexer2Bal,
-            maxClaim2
+        (uint256 indexer2Bal, , ) = paymentsEscrow.escrowAccounts(
+            address(agreementManager),
+            address(recurringCollector),
+            indexer2
         );
+        assertEq(indexer2Bal, maxClaim2);
 
         // reconcileCollectorProvider on indexer2 is a no-op (balance == required, no excess)
         agreementManager.reconcileCollectorProvider(address(_collector()), indexer2);

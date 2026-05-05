@@ -47,11 +47,12 @@ contract RecurringAgreementManagerOfferTest is RecurringAgreementManagerSharedTe
         agreementManager.offerAgreement(rca, _collector());
 
         // Verify escrow was funded
-        (uint256 escrowBalance,,) = paymentsEscrow.escrowAccounts(address(agreementManager), address(recurringCollector), indexer);
-        assertEq(
-            escrowBalance,
-            expectedMaxClaim
+        (uint256 escrowBalance, , ) = paymentsEscrow.escrowAccounts(
+            address(agreementManager),
+            address(recurringCollector),
+            indexer
         );
+        assertEq(escrowBalance, expectedMaxClaim);
     }
 
     function test_Offer_PartialFunding_WhenInsufficientBalance() public {
@@ -73,11 +74,12 @@ contract RecurringAgreementManagerOfferTest is RecurringAgreementManagerSharedTe
 
         // Since available < required, Full degrades to OnDemand (deposit target = 0).
         // No proactive deposit; JIT beforeCollection is the safety net.
-        (uint256 escrowBalanceAfter,,) = paymentsEscrow.escrowAccounts(address(agreementManager), address(recurringCollector), indexer);
-        assertEq(
-            escrowBalanceAfter,
-            0
+        (uint256 escrowBalanceAfter, , ) = paymentsEscrow.escrowAccounts(
+            address(agreementManager),
+            address(recurringCollector),
+            indexer
         );
+        assertEq(escrowBalanceAfter, 0);
         // Escrow balance is 0 since no deposit was made
         assertEq(agreementManager.getEscrowAccount(_collector(), indexer).balance, 0);
     }
@@ -206,7 +208,11 @@ contract RecurringAgreementManagerOfferTest is RecurringAgreementManagerSharedTe
 
         address nonOperator = makeAddr("nonOperator");
         vm.expectRevert(
-            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, nonOperator, AGREEMENT_MANAGER_ROLE)
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                nonOperator,
+                AGREEMENT_MANAGER_ROLE
+            )
         );
         vm.prank(nonOperator);
         agreementManager.offerAgreement(rca, _collector());

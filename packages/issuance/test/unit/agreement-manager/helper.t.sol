@@ -3,6 +3,7 @@ pragma solidity ^0.8.27;
 
 import { Vm } from "forge-std/Vm.sol";
 
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 
 import { RecurringAgreementHelper } from "../../../contracts/agreement/RecurringAgreementHelper.sol";
@@ -17,9 +18,14 @@ contract RecurringAgreementHelperTest is RecurringAgreementManagerSharedTest {
         assertEq(address(agreementHelper.MANAGER()), address(agreementManager));
     }
 
-    function test_Constructor_Revert_ZeroAddress() public {
+    function test_Constructor_Revert_ZeroManager() public {
         vm.expectRevert(RecurringAgreementHelper.ZeroAddress.selector);
         new RecurringAgreementHelper(address(0), token);
+    }
+
+    function test_Constructor_Revert_ZeroGraphToken() public {
+        vm.expectRevert(RecurringAgreementHelper.ZeroAddress.selector);
+        new RecurringAgreementHelper(address(agreementManager), IERC20(address(0)));
     }
 
     // -- reconcile(provider) tests --

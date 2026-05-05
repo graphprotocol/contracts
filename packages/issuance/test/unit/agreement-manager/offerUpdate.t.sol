@@ -39,7 +39,10 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
         uint256 originalMaxClaim = 1 ether * 3600 + 100 ether;
 
         // Required escrow should include both
-        assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), originalMaxClaim + expectedPendingMaxClaim);
+        assertEq(
+            agreementManager.getSumMaxNextClaim(_collector(), indexer),
+            originalMaxClaim + expectedPendingMaxClaim
+        );
         // Original maxNextClaim unchanged
         assertEq(agreementManager.getAgreementMaxNextClaim(agreementId), originalMaxClaim);
     }
@@ -105,11 +108,12 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
         agreementManager.offerAgreementUpdate(rcau);
 
         // Verify escrow was funded for both
-        (uint256 escrowBalance,,) = paymentsEscrow.escrowAccounts(address(agreementManager), address(recurringCollector), indexer);
-        assertEq(
-            escrowBalance,
-            sumMaxNextClaim
+        (uint256 escrowBalance, , ) = paymentsEscrow.escrowAccounts(
+            address(agreementManager),
+            address(recurringCollector),
+            indexer
         );
+        assertEq(escrowBalance, sumMaxNextClaim);
     }
 
     function test_OfferUpdate_ReplacesExistingPending() public {
@@ -224,7 +228,11 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
 
         address nonOperator = makeAddr("nonOperator");
         vm.expectRevert(
-            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, nonOperator, AGREEMENT_MANAGER_ROLE)
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                nonOperator,
+                AGREEMENT_MANAGER_ROLE
+            )
         );
         vm.prank(nonOperator);
         agreementManager.offerAgreementUpdate(rcau);
