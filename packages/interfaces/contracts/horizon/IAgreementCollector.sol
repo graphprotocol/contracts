@@ -44,10 +44,13 @@ uint16 constant AUTO_UPDATED = 512;
 
 // -- Offer type constants --
 
+/// @dev No stored offer — sentinel returned by {IAgreementCollector.getAgreementOfferAt}
+/// when the requested version has no offer data.
+uint8 constant OFFER_TYPE_NONE = 0;
 /// @dev Create a new agreement
-uint8 constant OFFER_TYPE_NEW = 0;
+uint8 constant OFFER_TYPE_NEW = 1;
 /// @dev Update an existing agreement
-uint8 constant OFFER_TYPE_UPDATE = 1;
+uint8 constant OFFER_TYPE_UPDATE = 2;
 
 // -- Cancel scope constants --
 
@@ -154,8 +157,8 @@ interface IAgreementCollector is IPaymentsCollector {
      * original struct. Callers can decode and hash to verify the stored version hash.
      * @param agreementId The ID of the agreement
      * @param index The zero-based version index
-     * @return offerType OFFER_TYPE_NEW (0) or OFFER_TYPE_UPDATE (1)
-     * @return offerData ABI-encoded original offer struct
+     * @return offerType OFFER_TYPE_NEW, OFFER_TYPE_UPDATE, or OFFER_TYPE_NONE when no offer is stored
+     * @return offerData ABI-encoded original offer struct, or empty when offerType is OFFER_TYPE_NONE
      */
     function getAgreementOfferAt(
         bytes16 agreementId,
