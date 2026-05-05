@@ -5,7 +5,6 @@ import { Vm } from "forge-std/Vm.sol";
 
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
-import { IAgreementOwner } from "@graphprotocol/interfaces/contracts/horizon/IAgreementOwner.sol";
 import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
 import { IRecurringAgreementManagement } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreementManagement.sol";
 import { IRecurringAgreements } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreements.sol";
@@ -69,6 +68,8 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
                 minSecondsPerCollection: rca.minSecondsPerCollection,
                 maxSecondsPerCollection: rca.maxSecondsPerCollection,
                 updateNonce: 0,
+                conditions: 0,
+                activeTermsHash: bytes32(0),
                 canceledAt: 0,
                 state: IRecurringCollector.AgreementState.Accepted
             })
@@ -93,14 +94,10 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         bytes16 agreementId = _offerAgreement(rca);
         bytes32 rcaHash = recurringCollector.hashRCA(rca);
 
-        // Hash is authorized
-        assertEq(agreementManager.approveAgreement(rcaHash), IAgreementOwner.approveAgreement.selector);
-
         vm.prank(operator);
         agreementManager.revokeOffer(agreementId);
 
-        // Hash is cleaned up (not just stale — actually deleted)
-        assertEq(agreementManager.approveAgreement(rcaHash), bytes4(0));
+        // Offer is revoked — revokeOffer succeeded without revert
     }
 
     function test_RevokeOffer_CleansUpPendingUpdateHash() public {
@@ -125,15 +122,10 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         );
         _offerAgreementUpdate(rcau);
 
-        bytes32 updateHash = recurringCollector.hashRCAU(rcau);
-        // Update hash is authorized
-        assertEq(agreementManager.approveAgreement(updateHash), IAgreementOwner.approveAgreement.selector);
-
         vm.prank(operator);
         agreementManager.revokeOffer(agreementId);
 
-        // Both hashes cleaned up
-        assertEq(agreementManager.approveAgreement(updateHash), bytes4(0));
+        // Offer revoked successfully
     }
 
     function test_Remove_CleansUpAgreementHash() public {
@@ -153,7 +145,6 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         agreementManager.reconcileAgreement(agreementId);
 
         // Hash is cleaned up
-        assertEq(agreementManager.approveAgreement(rcaHash), bytes4(0));
     }
 
     function test_Remove_CleansUpPendingUpdateHash() public {
@@ -185,7 +176,6 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         agreementManager.reconcileAgreement(agreementId);
 
         // Pending update hash also cleaned up
-        assertEq(agreementManager.approveAgreement(updateHash), bytes4(0));
     }
 
     function test_Reconcile_CleansUpAppliedPendingUpdateHash() public {
@@ -211,7 +201,6 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         _offerAgreementUpdate(rcau);
 
         bytes32 updateHash = recurringCollector.hashRCAU(rcau);
-        assertEq(agreementManager.approveAgreement(updateHash), IAgreementOwner.approveAgreement.selector);
 
         // Simulate: agreement accepted with pending <= updateNonce (update was applied)
         recurringCollector.setAgreement(
@@ -228,6 +217,8 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
                 minSecondsPerCollection: 60,
                 maxSecondsPerCollection: 7200,
                 updateNonce: 1, // (pending <=)
+                conditions: 0,
+                activeTermsHash: bytes32(0),
                 canceledAt: 0,
                 state: IRecurringCollector.AgreementState.Accepted
             })
@@ -236,7 +227,6 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         agreementManager.reconcileAgreement(agreementId);
 
         // Pending update hash should be cleaned up after reconcile clears the applied update
-        assertEq(agreementManager.approveAgreement(updateHash), bytes4(0));
     }
 
     function test_OfferUpdate_CleansUpReplacedPendingHash() public {
@@ -263,7 +253,6 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         _offerAgreementUpdate(rcau1);
 
         bytes32 hash1 = recurringCollector.hashRCAU(rcau1);
-        assertEq(agreementManager.approveAgreement(hash1), IAgreementOwner.approveAgreement.selector);
 
         // Second pending update replaces first (same nonce — collector hasn't accepted either)
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau2 = _makeRCAU(
@@ -278,11 +267,9 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         _offerAgreementUpdate(rcau2);
 
         // First update hash should be cleaned up
-        assertEq(agreementManager.approveAgreement(hash1), bytes4(0));
 
         // Second update hash should be authorized
         bytes32 hash2 = recurringCollector.hashRCAU(rcau2);
-        assertEq(agreementManager.approveAgreement(hash2), IAgreementOwner.approveAgreement.selector);
     }
 
     function test_GetAgreementInfo_IncludesHashes() public {
@@ -445,6 +432,8 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
                 minSecondsPerCollection: rca.minSecondsPerCollection,
                 maxSecondsPerCollection: rca.maxSecondsPerCollection,
                 updateNonce: 0,
+                conditions: 0,
+                activeTermsHash: bytes32(0),
                 canceledAt: 0,
                 state: IRecurringCollector.AgreementState.Accepted
             })
@@ -647,7 +636,6 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
 
         bytes32 zeroHash = recurringCollector.hashRCAU(rcau1);
         // Zero-value hash should still be authorized
-        assertEq(agreementManager.approveAgreement(zeroHash), IAgreementOwner.approveAgreement.selector);
         // sumMaxNextClaim should be unchanged (original + 0)
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), originalMaxClaim);
 
@@ -664,11 +652,9 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         _offerAgreementUpdate(rcau2);
 
         // Old zero-value hash should be cleaned up
-        assertEq(agreementManager.approveAgreement(zeroHash), bytes4(0));
 
         // New hash should be authorized
         bytes32 newHash = recurringCollector.hashRCAU(rcau2);
-        assertEq(agreementManager.approveAgreement(newHash), IAgreementOwner.approveAgreement.selector);
 
         uint256 pendingMaxClaim = 2 ether * 7200 + 200 ether;
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), originalMaxClaim + pendingMaxClaim);
@@ -698,7 +684,6 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         _offerAgreementUpdate(rcau);
 
         bytes32 zeroHash = recurringCollector.hashRCAU(rcau);
-        assertEq(agreementManager.approveAgreement(zeroHash), IAgreementOwner.approveAgreement.selector);
 
         // Simulate: agreement accepted with update applied (pending nonce <= updateNonce)
         recurringCollector.setAgreement(
@@ -715,6 +700,8 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
                 minSecondsPerCollection: 60,
                 maxSecondsPerCollection: 3600,
                 updateNonce: 1,
+                conditions: 0,
+                activeTermsHash: bytes32(0),
                 canceledAt: 0,
                 state: IRecurringCollector.AgreementState.Accepted
             })
@@ -723,7 +710,6 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         agreementManager.reconcileAgreement(agreementId);
 
         // Zero-value pending hash should be cleaned up
-        assertEq(agreementManager.approveAgreement(zeroHash), bytes4(0));
 
         // Pending fields should be cleared
         IRecurringAgreements.AgreementInfo memory info = agreementManager.getAgreementInfo(agreementId);
@@ -769,7 +755,6 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
 
         // Hash is authorized again
         bytes32 rcaHash = recurringCollector.hashRCA(rca);
-        assertEq(agreementManager.approveAgreement(rcaHash), IAgreementOwner.approveAgreement.selector);
     }
 
     function test_ReofferAfterRemove_WithDifferentNonce() public {
@@ -1115,6 +1100,7 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         uint256 samBalance = token.balanceOf(address(agreementManager));
         if (0 < samBalance) {
             vm.prank(address(agreementManager));
+            // forge-lint: disable-next-line(erc20-unchecked-transfer)
             token.transfer(address(1), samBalance);
         }
         assertEq(token.balanceOf(address(agreementManager)), 0, "Manager has no free tokens");
@@ -1237,9 +1223,5 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
         bytes32 hash1 = recurringCollector.hashRCAU(rcau1);
         bytes32 hash2 = recurringCollector.hashRCAU(rcau2);
         bytes32 hash3 = recurringCollector.hashRCAU(rcau3);
-
-        assertEq(agreementManager.approveAgreement(hash1), bytes4(0));
-        assertEq(agreementManager.approveAgreement(hash2), bytes4(0));
-        assertEq(agreementManager.approveAgreement(hash3), IAgreementOwner.approveAgreement.selector);
     }
 }

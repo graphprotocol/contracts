@@ -228,6 +228,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         uint256 samBalance = token.balanceOf(address(agreementManager));
         if (0 < samBalance) {
             vm.prank(address(agreementManager));
+            // forge-lint: disable-next-line(erc20-unchecked-transfer)
             token.transfer(address(1), samBalance);
         }
 
@@ -905,6 +906,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         uint256 samBalance = token.balanceOf(address(agreementManager));
         if (0 < samBalance) {
             vm.prank(address(agreementManager));
+            // forge-lint: disable-next-line(erc20-unchecked-transfer)
             token.transfer(address(1), samBalance);
         }
     }
@@ -1552,6 +1554,7 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         uint256 samBalance = token.balanceOf(address(agreementManager));
         if (0 < samBalance) {
             vm.prank(address(agreementManager));
+            // forge-lint: disable-next-line(erc20-unchecked-transfer)
             token.transfer(address(1), samBalance);
         }
 

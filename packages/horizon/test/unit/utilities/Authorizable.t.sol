@@ -37,8 +37,14 @@ contract AuthorizableTest is Test, Bounder {
         return new AuthorizableImp(_thawPeriod);
     }
 
+    /// @dev Override to exclude addresses that would interfere with fuzz tests
+    /// (e.g. proxy admin addresses that reject non-admin calls with a different error).
+    function assumeValidFuzzAddress(address addr) internal virtual {
+        vm.assume(addr != address(0));
+    }
+
     function test_AuthorizeSigner(uint256 _unboundedKey, address _authorizer) public {
-        vm.assume(_authorizer != address(0));
+        assumeValidFuzzAddress(_authorizer);
         uint256 signerKey = boundKey(_unboundedKey);
 
         authHelper.authorizeSignerWithChecks(_authorizer, signerKey);
@@ -141,15 +147,15 @@ contract AuthorizableTest is Test, Bounder {
     }
 
     function test_ThawSigner(address _authorizer, uint256 _unboundedKey, uint256 _thaw) public withFuzzyThaw(_thaw) {
-        vm.assume(_authorizer != address(0));
+        assumeValidFuzzAddress(_authorizer);
         uint256 signerKey = boundKey(_unboundedKey);
 
         authHelper.authorizeAndThawSignerWithChecks(_authorizer, signerKey);
     }
 
     function test_ThawSigner_Revert_WhenNotAuthorized(address _authorizer, address _signer) public {
-        vm.assume(_authorizer != address(0));
-        vm.assume(_signer != address(0));
+        assumeValidFuzzAddress(_authorizer);
+        assumeValidFuzzAddress(_signer);
 
         bytes memory expectedErr = abi.encodeWithSelector(
             IAuthorizable.AuthorizableSignerNotAuthorized.selector,
@@ -166,7 +172,7 @@ contract AuthorizableTest is Test, Bounder {
         uint256 _unboundedKey,
         uint256 _thaw
     ) public withFuzzyThaw(_thaw) {
-        vm.assume(_authorizer != address(0));
+        assumeValidFuzzAddress(_authorizer);
         (uint256 signerKey, address signer) = boundAddrAndKey(_unboundedKey);
         authHelper.authorizeAndRevokeSignerWithChecks(_authorizer, signerKey);
 
@@ -185,7 +191,7 @@ contract AuthorizableTest is Test, Bounder {
         uint256 _unboundedKey,
         uint256 _thaw
     ) public withFuzzyThaw(_thaw) {
-        vm.assume(_authorizer != address(0));
+        assumeValidFuzzAddress(_authorizer);
         (uint256 signerKey, address signer) = boundAddrAndKey(_unboundedKey);
 
         authHelper.authorizeAndThawSignerWithChecks(_authorizer, signerKey);
@@ -198,8 +204,8 @@ contract AuthorizableTest is Test, Bounder {
     }
 
     function test_CancelThawSigner_Revert_When_NotAuthorized(address _authorizer, address _signer) public {
-        vm.assume(_authorizer != address(0));
-        vm.assume(_signer != address(0));
+        assumeValidFuzzAddress(_authorizer);
+        assumeValidFuzzAddress(_signer);
 
         bytes memory expectedErr = abi.encodeWithSelector(
             IAuthorizable.AuthorizableSignerNotAuthorized.selector,
@@ -216,7 +222,7 @@ contract AuthorizableTest is Test, Bounder {
         uint256 _unboundedKey,
         uint256 _thaw
     ) public withFuzzyThaw(_thaw) {
-        vm.assume(_authorizer != address(0));
+        assumeValidFuzzAddress(_authorizer);
         (uint256 signerKey, address signer) = boundAddrAndKey(_unboundedKey);
         authHelper.authorizeAndRevokeSignerWithChecks(_authorizer, signerKey);
 
@@ -231,7 +237,7 @@ contract AuthorizableTest is Test, Bounder {
     }
 
     function test_CancelThawSigner_Revert_When_NotThawing(address _authorizer, uint256 _unboundedKey) public {
-        vm.assume(_authorizer != address(0));
+        assumeValidFuzzAddress(_authorizer);
         (uint256 signerKey, address signer) = boundAddrAndKey(_unboundedKey);
 
         authHelper.authorizeSignerWithChecks(_authorizer, signerKey);
@@ -247,15 +253,15 @@ contract AuthorizableTest is Test, Bounder {
         uint256 _unboundedKey,
         uint256 _thaw
     ) public withFuzzyThaw(_thaw) {
-        vm.assume(_authorizer != address(0));
+        assumeValidFuzzAddress(_authorizer);
         uint256 signerKey = boundKey(_unboundedKey);
 
         authHelper.authorizeAndRevokeSignerWithChecks(_authorizer, signerKey);
     }
 
     function test_RevokeAuthorizedSigner_Revert_WhenNotAuthorized(address _authorizer, address _signer) public {
-        vm.assume(_authorizer != address(0));
-        vm.assume(_signer != address(0));
+        assumeValidFuzzAddress(_authorizer);
+        assumeValidFuzzAddress(_signer);
 
         bytes memory expectedErr = abi.encodeWithSelector(
             IAuthorizable.AuthorizableSignerNotAuthorized.selector,
@@ -272,7 +278,7 @@ contract AuthorizableTest is Test, Bounder {
         uint256 _unboundedKey,
         uint256 _thaw
     ) public withFuzzyThaw(_thaw) {
-        vm.assume(_authorizer != address(0));
+        assumeValidFuzzAddress(_authorizer);
         (uint256 signerKey, address signer) = boundAddrAndKey(_unboundedKey);
         authHelper.authorizeAndRevokeSignerWithChecks(_authorizer, signerKey);
 
@@ -287,7 +293,7 @@ contract AuthorizableTest is Test, Bounder {
     }
 
     function test_RevokeAuthorizedSigner_Revert_WhenNotThawing(address _authorizer, uint256 _unboundedKey) public {
-        vm.assume(_authorizer != address(0));
+        assumeValidFuzzAddress(_authorizer);
         (uint256 signerKey, address signer) = boundAddrAndKey(_unboundedKey);
 
         authHelper.authorizeSignerWithChecks(_authorizer, signerKey);
@@ -303,7 +309,7 @@ contract AuthorizableTest is Test, Bounder {
         uint256 _thaw,
         uint256 _skip
     ) public withFuzzyThaw(_thaw) {
-        vm.assume(_authorizer != address(0));
+        assumeValidFuzzAddress(_authorizer);
         (uint256 signerKey, address signer) = boundAddrAndKey(_unboundedKey);
 
         authHelper.authorizeAndThawSignerWithChecks(_authorizer, signerKey);

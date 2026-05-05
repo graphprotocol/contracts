@@ -11,14 +11,14 @@ contract MockIssuanceAllocator is IIssuanceAllocationDistribution, IERC165 {
     uint256 public distributeCallCount;
     uint256 public lastDistributedBlock;
 
-    MockGraphToken public immutable graphToken;
-    address public immutable target;
+    MockGraphToken public immutable GRAPH_TOKEN;
+    address public immutable TARGET;
     uint256 public mintPerDistribution;
     bool public shouldRevert;
 
     constructor(MockGraphToken _graphToken, address _target) {
-        graphToken = _graphToken;
-        target = _target;
+        GRAPH_TOKEN = _graphToken;
+        TARGET = _target;
     }
 
     /// @notice Set how many tokens to mint to the target on each distribution call
@@ -37,13 +37,19 @@ contract MockIssuanceAllocator is IIssuanceAllocationDistribution, IERC165 {
         if (lastDistributedBlock == block.number) return block.number;
         lastDistributedBlock = block.number;
         if (mintPerDistribution > 0) {
-            graphToken.mint(target, mintPerDistribution);
+            GRAPH_TOKEN.mint(TARGET, mintPerDistribution);
         }
         return block.number;
     }
 
     function getTargetIssuancePerBlock(address) external pure override returns (TargetIssuancePerBlock memory) {
-        return TargetIssuancePerBlock(0, 0, 0, 0);
+        return
+            TargetIssuancePerBlock({
+                allocatorIssuanceRate: 0,
+                allocatorIssuanceBlockAppliedTo: 0,
+                selfIssuanceRate: 0,
+                selfIssuanceBlockAppliedTo: 0
+            });
     }
 
     function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {

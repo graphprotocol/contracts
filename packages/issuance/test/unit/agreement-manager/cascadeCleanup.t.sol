@@ -42,6 +42,7 @@ contract RecurringAgreementManagerCascadeCleanupTest is RecurringAgreementManage
             minSecondsPerCollection: 60,
             maxSecondsPerCollection: 3600,
             nonce: nonce,
+            conditions: 0,
             metadata: ""
         });
         agreementId = collector.generateAgreementId(
@@ -68,6 +69,7 @@ contract RecurringAgreementManagerCascadeCleanupTest is RecurringAgreementManage
             minSecondsPerCollection: 60,
             maxSecondsPerCollection: 3600,
             nonce: nonce,
+            conditions: 0,
             metadata: ""
         });
         agreementId = recurringCollector.generateAgreementId(

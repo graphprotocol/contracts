@@ -13,7 +13,9 @@ contract RecurringCollectorAcceptTest is RecurringCollectorSharedTest {
     /* solhint-disable graph/func-name-mixedcase */
 
     function test_Accept(FuzzyTestAccept calldata fuzzyTestAccept) public {
-        _sensibleAuthorizeAndAccept(fuzzyTestAccept);
+        (, , , bytes16 agreementId) = _sensibleAuthorizeAndAccept(fuzzyTestAccept);
+        IRecurringCollector.AgreementData memory agreement = _recurringCollector.getAgreement(agreementId);
+        assertEq(uint8(agreement.state), uint8(IRecurringCollector.AgreementState.Accepted));
     }
 
     function test_Accept_Revert_WhenAcceptanceDeadlineElapsed(

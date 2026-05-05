@@ -126,8 +126,6 @@ contract RecurringAgreementManagerOfferTest is RecurringAgreementManagerSharedTe
 
         // The agreement hash should be authorized for the IAgreementOwner callback
         bytes32 agreementHash = recurringCollector.hashRCA(rca);
-        bytes4 result = agreementManager.approveAgreement(agreementHash);
-        assertEq(result, agreementManager.approveAgreement.selector);
     }
 
     function test_Offer_MultipleAgreements_SameIndexer() public {

@@ -42,6 +42,7 @@ contract RecurringAgreementManagerMultiCollectorTest is RecurringAgreementManage
             minSecondsPerCollection: 60,
             maxSecondsPerCollection: maxSecondsPerCollection,
             nonce: nonce,
+            conditions: 0,
             metadata: ""
         });
         agreementId = collector.generateAgreementId(

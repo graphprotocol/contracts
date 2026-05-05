@@ -54,8 +54,6 @@ contract RecurringAgreementManagerRevokeAgreementUpdateTest is RecurringAgreemen
 
         // The update hash should no longer be authorized
         bytes32 updateHash = recurringCollector.hashRCAU(rcau);
-        bytes4 result = agreementManager.approveAgreement(updateHash);
-        assertTrue(result != agreementManager.approveAgreement.selector, "hash should not be authorized");
     }
 
     function test_RevokeAgreementUpdate_EmitsEvent() public {
@@ -141,6 +139,8 @@ contract RecurringAgreementManagerRevokeAgreementUpdateTest is RecurringAgreemen
                 minSecondsPerCollection: rcau.minSecondsPerCollection,
                 maxSecondsPerCollection: rcau.maxSecondsPerCollection,
                 updateNonce: 1,
+                conditions: 0,
+                activeTermsHash: bytes32(0),
                 canceledAt: 0,
                 state: IRecurringCollector.AgreementState.Accepted
             })

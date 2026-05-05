@@ -52,6 +52,7 @@ contract RecurringCollectorCancelTest is RecurringCollectorSharedTest {
         address notDataService
     ) public {
         vm.assume(fuzzyTestAccept.rca.dataService != notDataService);
+        vm.assume(notDataService != _proxyAdmin);
 
         (, , , bytes16 agreementId) = _sensibleAuthorizeAndAccept(fuzzyTestAccept);
 

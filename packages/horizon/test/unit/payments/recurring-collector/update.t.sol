@@ -76,6 +76,7 @@ contract RecurringCollectorUpdateTest is RecurringCollectorSharedTest {
         address notDataService
     ) public {
         vm.assume(fuzzyTestUpdate.fuzzyTestAccept.rca.dataService != notDataService);
+        vm.assume(notDataService != _proxyAdmin);
         (, , uint256 signerKey, bytes16 agreementId) = _sensibleAuthorizeAndAccept(fuzzyTestUpdate.fuzzyTestAccept);
 
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _recurringCollectorHelper.sensibleRCAU(
@@ -241,6 +242,7 @@ contract RecurringCollectorUpdateTest is RecurringCollectorSharedTest {
                 maxOngoingTokensPerSecond: rcau1.maxOngoingTokensPerSecond * 2, // Different terms
                 minSecondsPerCollection: rcau1.minSecondsPerCollection,
                 maxSecondsPerCollection: rcau1.maxSecondsPerCollection,
+                conditions: 0,
                 nonce: 2,
                 metadata: rcau1.metadata
             });
@@ -298,6 +300,7 @@ contract RecurringCollectorUpdateTest is RecurringCollectorSharedTest {
                 maxOngoingTokensPerSecond: rcau1.maxOngoingTokensPerSecond * 2, // Different terms
                 minSecondsPerCollection: rcau1.minSecondsPerCollection,
                 maxSecondsPerCollection: rcau1.maxSecondsPerCollection,
+                conditions: 0,
                 nonce: 2,
                 metadata: rcau1.metadata
             });

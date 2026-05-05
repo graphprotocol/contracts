@@ -9,6 +9,11 @@ import { InvalidControllerMock } from "../../mocks/InvalidControllerMock.t.sol";
 
 contract RecurringCollectorAuthorizableTest is AuthorizableTest {
     function newAuthorizable(uint256 thawPeriod) public override returns (IAuthorizable) {
-        return new RecurringCollector("RecurringCollector", "1", address(new InvalidControllerMock()), thawPeriod);
+        return
+            IAuthorizable(
+                address(
+                    new RecurringCollector("RecurringCollector", "1", address(new InvalidControllerMock()), thawPeriod)
+                )
+            );
     }
 }

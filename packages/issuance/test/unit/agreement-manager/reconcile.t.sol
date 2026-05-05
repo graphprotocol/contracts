@@ -260,6 +260,8 @@ contract RecurringAgreementManagerReconcileTest is RecurringAgreementManagerShar
                 minSecondsPerCollection: rcau.minSecondsPerCollection,
                 maxSecondsPerCollection: rcau.maxSecondsPerCollection,
                 updateNonce: 1,
+                conditions: 0,
+                activeTermsHash: bytes32(0),
                 canceledAt: 0,
                 state: IRecurringCollector.AgreementState.Accepted
             })

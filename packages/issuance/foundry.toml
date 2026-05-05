@@ -20,6 +20,9 @@ evm_version = 'cancun'
 # Exclude test files from coverage reports
 no_match_coverage = "(^test/|^contracts/test/|/mocks/)"
 
+[profile.test]
+via_ir = false
+
 [lint]
 exclude_lints = ["mixed-case-function", "mixed-case-variable"]
 ignore = ["node_modules/**", "test/node_modules/**"]
