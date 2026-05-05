@@ -8,6 +8,7 @@ import { IRecurringEscrowManagement } from "@graphprotocol/interfaces/contracts/
 import { IProviderEligibilityManagement } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IProviderEligibilityManagement.sol";
 import { IRecurringAgreements } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreements.sol";
 import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceTarget.sol";
+import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationDistribution.sol";
 import {
     IAgreementCollector,
     OFFER_TYPE_NEW
@@ -57,13 +58,13 @@ contract RecurringAgreementManagerApproverTest is RecurringAgreementManagerShare
         MockIssuanceAllocator alloc = new MockIssuanceAllocator(token, address(agreementManager));
         vm.expectRevert();
         vm.prank(nonGovernor);
-        agreementManager.setIssuanceAllocator(address(alloc));
+        agreementManager.setIssuanceAllocator(IIssuanceAllocationDistribution(address(alloc)));
     }
 
     function test_SetIssuanceAllocator_Governor() public {
         MockIssuanceAllocator alloc = new MockIssuanceAllocator(token, address(agreementManager));
         vm.prank(governor);
-        agreementManager.setIssuanceAllocator(address(alloc));
+        agreementManager.setIssuanceAllocator(IIssuanceAllocationDistribution(address(alloc)));
     }
 
     // -- View Function Tests --

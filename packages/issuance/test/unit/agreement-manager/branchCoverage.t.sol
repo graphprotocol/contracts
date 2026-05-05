@@ -7,6 +7,7 @@ import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
 import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringAgreementManagement } from "@graphprotocol/interfaces/contracts/issuance/agreement/IRecurringAgreementManagement.sol";
+import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationDistribution.sol";
 import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 
 import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
@@ -15,6 +16,7 @@ import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon
 import { RecurringAgreementManagerSharedTest } from "./shared.t.sol";
 import { IAgreementCollector } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { MockRecurringCollector } from "./mocks/MockRecurringCollector.sol";
+import { MockIssuanceAllocator } from "./mocks/MockIssuanceAllocator.sol";
 
 /// @notice Targeted tests for uncovered branches in RecurringAgreementManager.
 contract RecurringAgreementManagerBranchCoverageTest is RecurringAgreementManagerSharedTest {
@@ -36,7 +38,7 @@ contract RecurringAgreementManagerBranchCoverageTest is RecurringAgreementManage
                 address(recurringCollector)
             )
         );
-        agreementManager.setIssuanceAllocator(address(recurringCollector));
+        agreementManager.setIssuanceAllocator(IIssuanceAllocationDistribution(address(recurringCollector)));
     }
 
     /// @notice Setting allocator to an EOA (no code) also fails ERC165 check.
@@ -44,7 +46,7 @@ contract RecurringAgreementManagerBranchCoverageTest is RecurringAgreementManage
         address eoa = makeAddr("randomEOA");
         vm.prank(governor);
         vm.expectRevert(abi.encodeWithSelector(RecurringAgreementManager.InvalidIssuanceAllocator.selector, eoa));
-        agreementManager.setIssuanceAllocator(eoa);
+        agreementManager.setIssuanceAllocator(IIssuanceAllocationDistribution(eoa));
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -219,6 +221,52 @@ contract RecurringAgreementManagerBranchCoverageTest is RecurringAgreementManage
     //  _withdrawAndRebalance — deposit deficit branch (L854/857–862)
     // ══════════════════════════════════════════════════════════════════════
 
+    // ══════════════════════════════════════════════════════════════════════
+    //  getIssuanceAllocator — view getter (L281-282)
+    // ══════════════════════════════════════════════════════════════════════
+
+    /// @notice getIssuanceAllocator returns the configured allocator and the
+    /// zero default prior to setIssuanceAllocator.
+    function test_GetIssuanceAllocator_ReturnsConfiguredValue() public {
+        assertEq(address(agreementManager.getIssuanceAllocator()), address(0), "Default allocator must be zero");
+
+        MockIssuanceAllocator allocator = new MockIssuanceAllocator(token, address(agreementManager));
+        vm.prank(governor);
+        agreementManager.setIssuanceAllocator(allocator);
+
+        assertEq(
+            address(agreementManager.getIssuanceAllocator()),
+            address(allocator),
+            "Configured allocator must be returned"
+        );
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  offerAgreement — collector returns zero agreementId (L361)
+    // ══════════════════════════════════════════════════════════════════════
+
+    /// @notice A conformant collector must return a non-zero agreementId; RAM
+    /// enforces this invariant with AgreementIdZero.
+    function test_OfferAgreement_Revert_AgreementIdZero() public {
+        ZeroIdCollector rogue = new ZeroIdCollector(dataService, address(agreementManager), indexer);
+        vm.prank(governor);
+        agreementManager.grantRole(COLLECTOR_ROLE, address(rogue));
+
+        // Payload content is irrelevant — the mock returns a zero agreementId unconditionally.
+        IRecurringCollector.RecurringCollectionAgreement memory rca = _makeRCA(
+            100 ether,
+            1 ether,
+            60,
+            3600,
+            uint64(block.timestamp + 365 days)
+        );
+
+        token.mint(address(agreementManager), 1_000_000 ether);
+        vm.prank(operator);
+        vm.expectRevert(IRecurringAgreementManagement.AgreementIdZero.selector);
+        agreementManager.offerAgreement(IAgreementCollector(address(rogue)), OFFER_TYPE_NEW, abi.encode(rca));
+    }
+
     /// @notice When escrow balance drops below min (after collection), reconcile deposits the deficit.
     function test_WithdrawAndRebalance_DepositDeficit() public {
         // Offer agreement in Full mode — escrow gets fully funded
@@ -267,4 +315,29 @@ contract RecurringAgreementManagerBranchCoverageTest is RecurringAgreementManage
     }
 
     /* solhint-enable graph/func-name-mixedcase */
+}
+
+/// @notice Minimal collector stub that returns a zero agreementId with valid
+/// payer/dataService/serviceProvider, used to exercise RAM's AgreementIdZero guard.
+contract ZeroIdCollector {
+    address private immutable _dataService;
+    address private immutable _payer;
+    address private immutable _serviceProvider;
+
+    constructor(address dataService_, address payer_, address serviceProvider_) {
+        _dataService = dataService_;
+        _payer = payer_;
+        _serviceProvider = serviceProvider_;
+    }
+
+    function offer(
+        uint8 /* offerType */,
+        bytes calldata /* data */,
+        uint16 /* options */
+    ) external view returns (IAgreementCollector.AgreementDetails memory details) {
+        details.agreementId = bytes16(0);
+        details.payer = _payer;
+        details.dataService = _dataService;
+        details.serviceProvider = _serviceProvider;
+    }
 }

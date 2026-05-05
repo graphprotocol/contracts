@@ -9,6 +9,7 @@ import {
     OFFER_TYPE_UPDATE,
     SCOPE_ACTIVE,
     SCOPE_PENDING,
+    VERSION_NEXT,
     IAgreementCollector
 } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
@@ -907,7 +908,11 @@ contract RecurringCollectorCoverageGapsTest is RecurringCollectorSharedTest {
 
         IRecurringCollector.AgreementData memory after1 = _recurringCollector.getAgreement(agreementId);
         assertEq(after1.activeTermsHash, bytes32(0), "active should be cleared");
-        assertEq(after1.pendingTermsHash, rcauHash, "pending RCAU should survive RCA cancel");
+        assertEq(
+            _recurringCollector.getAgreementDetails(agreementId, VERSION_NEXT).versionHash,
+            rcauHash,
+            "pending RCAU should survive RCA cancel"
+        );
         assertEq(after1.payer, address(approver), "agreement.payer persists for subsequent auth");
 
         // Now cancel the pending RCAU — payer auth still works via persistent agreement.payer

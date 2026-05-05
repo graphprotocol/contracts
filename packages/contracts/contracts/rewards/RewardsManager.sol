@@ -173,24 +173,25 @@ contract RewardsManager is
      * Note that the IssuanceAllocator can be set to the zero address to disable use of an allocator, and
      * use the local `issuancePerBlock` variable instead to control issuance.
      */
-    function setIssuanceAllocator(address newIssuanceAllocator) external override onlyGovernor {
-        if (address(issuanceAllocator) != newIssuanceAllocator) {
+    function setIssuanceAllocator(IIssuanceAllocationDistribution newIssuanceAllocator) external override onlyGovernor {
+        if (issuanceAllocator != newIssuanceAllocator) {
             // Update rewards calculation before changing the issuance allocator
             updateAccRewardsPerSignal();
 
             // Check that the contract supports the IIssuanceAllocationDistribution interface
             // Allow zero address to disable the allocator
-            if (newIssuanceAllocator != address(0)) {
+            if (address(newIssuanceAllocator) != address(0)) {
                 // solhint-disable-next-line gas-small-strings
                 require(
-                    IERC165(newIssuanceAllocator).supportsInterface(type(IIssuanceAllocationDistribution).interfaceId),
+                    IERC165(address(newIssuanceAllocator)).supportsInterface(
+                        type(IIssuanceAllocationDistribution).interfaceId
+                    ),
                     "Contract does not support IIssuanceAllocationDistribution interface"
                 );
             }
 
-            address oldIssuanceAllocator = address(issuanceAllocator);
-            issuanceAllocator = IIssuanceAllocationDistribution(newIssuanceAllocator);
-            emit IssuanceAllocatorSet(oldIssuanceAllocator, newIssuanceAllocator);
+            emit IssuanceAllocatorSet(issuanceAllocator, newIssuanceAllocator);
+            issuanceAllocator = newIssuanceAllocator;
         }
     }
 
@@ -325,7 +326,7 @@ contract RewardsManager is
     }
 
     /**
-     * @inheritdoc IRewardsManager
+     * @inheritdoc IIssuanceTarget
      */
     function getIssuanceAllocator() external view override returns (IIssuanceAllocationDistribution) {
         return issuanceAllocator;

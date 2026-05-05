@@ -2,7 +2,12 @@
 pragma solidity ^0.8.27;
 
 import { IRecurringCollector } from "@graphprotocol/interfaces/contracts/horizon/IRecurringCollector.sol";
-import { OFFER_TYPE_NEW, OFFER_TYPE_UPDATE } from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
+import {
+    OFFER_TYPE_NEW,
+    OFFER_TYPE_UPDATE,
+    VERSION_CURRENT,
+    VERSION_NEXT
+} from "@graphprotocol/interfaces/contracts/horizon/IAgreementCollector.sol";
 
 import { RecurringCollectorSharedTest } from "./shared.t.sol";
 import { MockAgreementOwner } from "./MockAgreementOwner.t.sol";
@@ -254,9 +259,16 @@ contract RecurringCollectorMixedPathTest is RecurringCollectorSharedTest {
         bytes32 rcauHash = _recurringCollector.hashRCAU(rcau);
 
         // Pre-check: pending is set
-        IRecurringCollector.AgreementData memory before = _recurringCollector.getAgreement(agreementId);
-        assertEq(before.activeTermsHash, rca1Hash, "active should be rca1Hash after offer");
-        assertEq(before.pendingTermsHash, rcauHash, "pending should be rcauHash after offer UPDATE");
+        assertEq(
+            _recurringCollector.getAgreementDetails(agreementId, VERSION_CURRENT).versionHash,
+            rca1Hash,
+            "active should be rca1Hash after offer"
+        );
+        assertEq(
+            _recurringCollector.getAgreementDetails(agreementId, VERSION_NEXT).versionHash,
+            rcauHash,
+            "pending should be rcauHash after offer UPDATE"
+        );
 
         // Step 3: offer different RCA with same primary fields (same agreementId, different terms)
         IRecurringCollector.RecurringCollectionAgreement memory rca2 = rca1;
@@ -266,9 +278,16 @@ contract RecurringCollectorMixedPathTest is RecurringCollectorSharedTest {
         bytes32 rca2Hash = _recurringCollector.hashRCA(rca2);
 
         // Post-check: active replaced, pending preserved (still the original RCAU)
-        IRecurringCollector.AgreementData memory afterOffer = _recurringCollector.getAgreement(agreementId);
-        assertEq(afterOffer.activeTermsHash, rca2Hash, "active should be rca2Hash");
-        assertEq(afterOffer.pendingTermsHash, rcauHash, "pending RCAU should still be queued");
+        assertEq(
+            _recurringCollector.getAgreementDetails(agreementId, VERSION_CURRENT).versionHash,
+            rca2Hash,
+            "active should be rca2Hash"
+        );
+        assertEq(
+            _recurringCollector.getAgreementDetails(agreementId, VERSION_NEXT).versionHash,
+            rcauHash,
+            "pending RCAU should still be queued"
+        );
 
         // The pending offer's $.terms entry must still be retrievable — payer can still accept it
         (uint8 pendingType, bytes memory pendingData) = _recurringCollector.getAgreementOfferAt(agreementId, 1);

@@ -2,6 +2,8 @@
 
 pragma solidity ^0.7.6 || ^0.8.0;
 
+import { IIssuanceAllocationDistribution } from "./IIssuanceAllocationDistribution.sol";
+
 /**
  * @title IIssuanceTarget
  * @author Edge & Node
@@ -13,7 +15,10 @@ interface IIssuanceTarget {
      * @param oldIssuanceAllocator Old issuance allocator address
      * @param newIssuanceAllocator New issuance allocator address
      */
-    event IssuanceAllocatorSet(address indexed oldIssuanceAllocator, address indexed newIssuanceAllocator);
+    event IssuanceAllocatorSet(
+        IIssuanceAllocationDistribution indexed oldIssuanceAllocator,
+        IIssuanceAllocationDistribution indexed newIssuanceAllocator
+    );
 
     /// @notice Emitted before the issuance allocation changes
     event BeforeIssuanceAllocationChange();
@@ -28,10 +33,16 @@ interface IIssuanceTarget {
     function beforeIssuanceAllocationChange() external;
 
     /**
+     * @notice Returns the current issuance allocator
+     * @return The issuance allocator contract (zero address if not set)
+     */
+    function getIssuanceAllocator() external view returns (IIssuanceAllocationDistribution);
+
+    /**
      * @notice Sets the issuance allocator for this target
      * @dev This function facilitates upgrades by providing a standard way for targets
      * to change their allocator. Implementations can define their own access control.
      * @param newIssuanceAllocator Address of the issuance allocator
      */
-    function setIssuanceAllocator(address newIssuanceAllocator) external;
+    function setIssuanceAllocator(IIssuanceAllocationDistribution newIssuanceAllocator) external;
 }
