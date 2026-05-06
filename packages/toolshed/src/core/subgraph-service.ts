@@ -32,6 +32,21 @@ export function encodeCollectQueryFeesData(rav: RAV, signature: string, tokensTo
   )
 }
 
+export function encodeCollectIndexingFeesData(
+  agreementId: string,
+  entities: bigint,
+  poi: BytesLike,
+  poiBlockNumber: bigint,
+  metadata: BytesLike,
+  maxSlippage: bigint,
+) {
+  const innerData = ethers.AbiCoder.defaultAbiCoder().encode(
+    ['uint256', 'bytes32', 'uint256', 'bytes', 'uint256'],
+    [entities, poi, poiBlockNumber, metadata, maxSlippage],
+  )
+  return ethers.AbiCoder.defaultAbiCoder().encode(['bytes16', 'bytes'], [agreementId, innerData])
+}
+
 export function encodeStopServiceData(allocationId: string) {
   return ethers.AbiCoder.defaultAbiCoder().encode(['address'], [allocationId])
 }
