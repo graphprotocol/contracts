@@ -15,4 +15,4 @@ no_match_coverage = "(^test/|/mocks/)"
 
 # Lint configuration
 [lint]
-exclude_lints = ["mixed-case-function", "mixed-case-variable"]
+exclude_lints = ["mixed-case-function", "mixed-case-variable", "block-timestamp"]

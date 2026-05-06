@@ -142,8 +142,13 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
             IRecurringCollector.CancelAgreementBy.Payer
         );
 
-        // Payer calls RC's scoped cancel — triggers the full callback chain
-        resetPrank(acceptedRca.payer);
+        // Payer calls RC's scoped cancel — triggers the full callback chain.
+        // Single-shot vm.prank (not resetPrank/startPrank) so the prank ends with this
+        // call. Otherwise the post-cancel view-reads below would inherit the prank, and
+        // when the fuzzer happens to pick the SubgraphService proxy's admin address as
+        // rca.payer, the proxy would reject those reads with ProxyDeniedAdminAccess.
+        vm.stopPrank();
+        vm.prank(acceptedRca.payer);
         recurringCollector.cancel(agreementId, activeTermsHash, SCOPE_ACTIVE);
 
         // Verify agreement is canceled in RecurringCollector
@@ -162,6 +167,62 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
             uint8(IRecurringCollector.AgreementState.CanceledByPayer),
             "SubgraphService should reflect CanceledByPayer"
         );
+    }
+
+    /// @notice Regression: rca.payer collides with SubgraphService's auto-deployed
+    /// TransparentUpgradeableProxy admin (0x8816d8...). Without the post-cancel prank
+    /// release, the verification reads from subgraphService inherit msg.sender = payer
+    /// = proxyAdmin and revert with ProxyDeniedAdminAccess. Seed lifted from the
+    /// failing fuzz counterexample on CI run 25387077283.
+    function test_SubgraphService_ScopedCancelActive_PayerEqualsProxyAdmin_Regression() public {
+        Seed memory seed;
+        seed.indexer0 = IndexerSeed({
+            addr: 0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38,
+            label: "indexer0",
+            unboundedProvisionTokens: 34685,
+            unboundedAllocationPrivateKey: 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103,
+            subgraphDeploymentId: bytes32(uint256(0x46dd))
+        });
+        seed.indexer1 = IndexerSeed({
+            addr: address(uint160(0x2a59)),
+            label: "indexer1",
+            unboundedProvisionTokens: 10000,
+            unboundedAllocationPrivateKey: 0x114a,
+            subgraphDeploymentId: 0xd8d69c1da829f8277e4e80945a974b3ca009835eb268c14bf9321952f1cf169e
+        });
+        seed.rca = IRecurringCollector.RecurringCollectionAgreement({
+            deadline: 11450,
+            endsAt: 1000000000000000000,
+            payer: 0x8816d87403E337Ff1349af38d49Ee0747079C55D,
+            dataService: 0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38,
+            serviceProvider: address(uint160(0x3e57)),
+            maxInitialTokens: 3783,
+            maxOngoingTokensPerSecond: 16028,
+            minSecondsPerCollection: 208,
+            maxSecondsPerCollection: 876,
+            conditions: 1561,
+            nonce: 0xb59b65b7215c7fb95ac34d2ad5aed7c775c8bc77ad936b1b43e17b95efc8e400,
+            metadata: hex"0000000000000000000000000000000000000000000000000000000000000ad0"
+        });
+        seed.rcau = IRecurringCollector.RecurringCollectionAgreementUpdate({
+            agreementId: bytes16(0),
+            deadline: 962,
+            endsAt: 19984,
+            maxInitialTokens: 432000,
+            maxOngoingTokensPerSecond: 1928028033,
+            minSecondsPerCollection: 247,
+            maxSecondsPerCollection: 766814522,
+            conditions: 32,
+            nonce: 2123,
+            metadata: hex"676f7665726e6f72"
+        });
+        seed.termsV1 = IndexingAgreement.IndexingAgreementTermsV1({
+            tokensPerSecond: 16465,
+            tokensPerEntityPerSecond: 1
+        });
+        seed.payer = PayerSeed({ unboundedSignerPrivateKey: 10000 });
+
+        test_SubgraphService_ScopedCancelActive_ViaRecurringCollector_Integration(seed);
     }
 
     function test_SubgraphService_CollectIndexingRewards_ResizesToZeroWhenOverAllocated_Integration(
