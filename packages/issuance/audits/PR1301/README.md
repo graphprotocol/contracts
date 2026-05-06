@@ -1,17 +1,20 @@
-# Trust Security Audit - PR #1301 / #1312 / #1325
+# Trust Security Audit - PR #1301 / #1312 / #1325 / #1331
 
 **Auditor:** Trust Security
 **Period:** 2026-03-03 to 2026-03-19
 **Commit:** 7405c9d5f73bce04734efb3f609b76d95ffb520e
 **Fix review commit:** 0bbb476f37f85d042927e84d8764fa58eb020ccf
 **2nd fix review commit:** f44fc5a4c74fa5190fd2892ae15a083b79f715f3
-**Report:** [Graph_PR1325_v03.pdf](Graph_PR1325_v03.pdf)
+**3rd fix review commit:** bbec75e04aa14c34d771681528b9a655be1f8249 (post-rebase)
+**Report:** [Graph_PR1331_v04.pdf](Graph_PR1331_v04.pdf)
 
-> **SHA note.** Commits cited above are pre-rebase SHAs on
+> **SHA note.** The first three commits cited above are pre-rebase SHAs on
 > `indexing-payments-management-audit-fix-2-light`, which was rebased onto
 > current `main` as `indexing-payments-management-audit-fixed-rebased`. The pre-rebase tip is
 > preserved at tag `indexing-payments-management-audit-pre-rebase`
-> (`a3c73f87e`). Old → new mapping is at the bottom of this file.
+> (`a3c73f87e`). The 3rd fix review commit is post-rebase only (it
+> records the SHA mapping itself). Old → new mapping is at the bottom of
+> this file.
 
 ## Findings Summary
 
