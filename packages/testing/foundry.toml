@@ -23,5 +23,5 @@ solc_version = '0.8.34'
 evm_version = 'cancun'
 
 [lint]
-exclude_lints = ["mixed-case-function", "mixed-case-variable"]
+exclude_lints = ["mixed-case-function", "mixed-case-variable", "block-timestamp"]
 ignore = ["node_modules/**", "**/node_modules/**"]

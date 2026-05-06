@@ -299,6 +299,16 @@ contract RecurringCollectorAfterCollectionTest is RecurringCollectorSharedTest {
     /// 1_499_500, leaves ~200 gas of headroom. Reducing `OVERHEAD` to ~100 (sabotage check)
     /// drops recorded to ~1_499_220 → fails.
     function test_Collect_Callbacks_ReceiveMaxPayerCallbackGas() public {
+        // Skip under `forge coverage`: the optimizer is disabled there, so dispatch δ
+        // is materially larger than under production settings (optimizer + via_ir). The
+        // whole point of this test is asserting the production margin — measuring against
+        // unoptimized bytecode answers a different question. The package's coverage
+        // scripts set FOUNDRY_COVERAGE=1; running `forge coverage` directly without it
+        // will fail this test loudly, which is the correct outcome.
+        if (vm.envOr("FOUNDRY_COVERAGE", false)) {
+            vm.skip(true);
+        }
+
         uint256 expectedMin = 1_500_000; // mirrors MAX_PAYER_CALLBACK_GAS
         uint256 tolerance = 500;
 
