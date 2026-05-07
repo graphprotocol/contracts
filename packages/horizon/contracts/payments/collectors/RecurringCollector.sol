@@ -1351,8 +1351,11 @@ contract RecurringCollector is
                 );
 
                 if (block.timestamp <= rcau.deadline) {
+                    uint256 collectionStart = _a.state == AgreementState.Accepted
+                        ? _agreementCollectionStartAt(_a)
+                        : block.timestamp;
                     uint256 maxPendingClaim = _maxClaim(
-                        block.timestamp,
+                        collectionStart,
                         rcau.endsAt,
                         rcau.maxSecondsPerCollection,
                         rcau.maxOngoingTokensPerSecond,

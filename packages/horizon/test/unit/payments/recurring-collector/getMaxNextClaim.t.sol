@@ -754,5 +754,240 @@ contract RecurringCollectorGetMaxNextClaimTest is RecurringCollectorSharedTest {
         assertGt(activeScope, 0, "sanity: active scope claim is non-zero");
     }
 
+    /// @notice Envelope invariant across update(): with a pending RCAU stored, the amount any
+    /// subsequent collect() can pay out (after that RCAU is promoted via update()) must not
+    /// exceed the value getMaxNextClaim() returned beforehand. Exercised under conditions
+    /// where update() retroactively widens the per-collect cap relative to the remaining
+    /// `endsAt - now` window.
+    function test_GetMaxNextClaim_PendingScope_CoversPostUpdateCollection() public {
+        MockAgreementOwner approver = new MockAgreementOwner();
+
+        // Original RCA: rate=1, maxSec=3600, endsAt far in the future. maxInitialTokens=0
+        // and minSec=0 to keep the arithmetic clean.
+        IRecurringCollector.RecurringCollectionAgreement memory rca = IRecurringCollector.RecurringCollectionAgreement({
+            deadline: uint64(block.timestamp + 1 hours),
+            endsAt: uint64(block.timestamp + 365 days),
+            payer: address(approver),
+            dataService: makeAddr("ds"),
+            serviceProvider: makeAddr("sp"),
+            maxInitialTokens: 0,
+            maxOngoingTokensPerSecond: 1,
+            minSecondsPerCollection: 0,
+            maxSecondsPerCollection: 3600,
+            conditions: 0,
+            nonce: 1,
+            metadata: ""
+        });
+
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0);
+        _setupValidProvision(rca.serviceProvider, rca.dataService);
+        vm.prank(rca.dataService);
+        bytes16 agreementId = _recurringCollector.accept(rca, "");
+
+        // Long quiet period: 24h elapses without any collection. lastCollectionAt stays 0,
+        // so the collection start (= acceptedAt) is now 86_400s in the past.
+        skip(86_400);
+
+        // Pending RCAU offered: short remaining window (1_200s to endsAt) but generous
+        // maxSec (7_200s) and 10x rate. After update() promotes this, the per-collect cap
+        // is governed by maxSec_new (7_200), not the remaining-window view (1_200).
+        IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = IRecurringCollector
+            .RecurringCollectionAgreementUpdate({
+                agreementId: agreementId,
+                deadline: uint64(block.timestamp),
+                endsAt: uint64(block.timestamp + 1_200),
+                maxInitialTokens: 0,
+                maxOngoingTokensPerSecond: 10,
+                minSecondsPerCollection: 0,
+                maxSecondsPerCollection: 7_200,
+                conditions: 0,
+                nonce: 1,
+                metadata: ""
+            });
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
+
+        // The reservation envelope RAM._reconcileAgreement uses to size escrow.
+        uint256 preUpdateEnvelope = _recurringCollector.getMaxNextClaim(agreementId);
+
+        // Promote the RCAU on the same block. update() overwrites terms but does NOT advance
+        // lastCollectionAt (per the contract's update() docstring).
+        vm.prank(rca.dataService);
+        _recurringCollector.update(rcau, "");
+
+        // Warp to endsAt — worst-case elapsed for a single collect — and request unbounded
+        // tokens. The contract clamps to its internal maxClaim. With new terms applied
+        // retroactively from acceptedAt, this pays out rate_new * maxSec_new = 10 * 7_200.
+        vm.warp(rcau.endsAt);
+        bytes memory data = _generateCollectData(
+            _generateCollectParams(rca, agreementId, keccak256("collect-after-update"), type(uint256).max, 0)
+        );
+        vm.prank(rca.dataService);
+        uint256 actuallyCollected = _recurringCollector.collect(_paymentType(0), data);
+
+        // The post-update collect must fit within the pre-update envelope — otherwise RAM
+        // under-reserves and PaymentsEscrow.collect can revert on insufficient balance.
+        assertLe(
+            actuallyCollected,
+            preUpdateEnvelope,
+            "post-update collect amount must fit within the pre-update envelope"
+        );
+    }
+
+    /// @notice Same envelope invariant as above, but with `lastCollectionAt > 0` (a prior
+    /// collect has already advanced the collection-start anchor). Confirms the issue is not
+    /// specific to the never-collected path nor entangled with `maxInitialTokens` accounting.
+    function test_GetMaxNextClaim_PendingScope_CoversPostUpdateCollection_AfterPriorCollect() public {
+        MockAgreementOwner approver = new MockAgreementOwner();
+
+        IRecurringCollector.RecurringCollectionAgreement memory rca = IRecurringCollector.RecurringCollectionAgreement({
+            deadline: uint64(block.timestamp + 1 hours),
+            endsAt: uint64(block.timestamp + 365 days),
+            payer: address(approver),
+            dataService: makeAddr("ds"),
+            serviceProvider: makeAddr("sp"),
+            maxInitialTokens: 0,
+            maxOngoingTokensPerSecond: 1,
+            minSecondsPerCollection: 0,
+            maxSecondsPerCollection: 3600,
+            conditions: 0,
+            nonce: 1,
+            metadata: ""
+        });
+
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0);
+        _setupValidProvision(rca.serviceProvider, rca.dataService);
+        vm.prank(rca.dataService);
+        bytes16 agreementId = _recurringCollector.accept(rca, "");
+
+        // Anchor lastCollectionAt one hour past acceptedAt via a real collect().
+        skip(1 hours);
+        bytes memory firstCollect = _generateCollectData(
+            _generateCollectParams(rca, agreementId, keccak256("first-collect"), 1, 0)
+        );
+        vm.prank(rca.dataService);
+        _recurringCollector.collect(_paymentType(0), firstCollect);
+
+        // Long quiet period after the prior collect — lastCollectionAt remains anchored.
+        skip(86_400);
+
+        IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = IRecurringCollector
+            .RecurringCollectionAgreementUpdate({
+                agreementId: agreementId,
+                deadline: uint64(block.timestamp),
+                endsAt: uint64(block.timestamp + 1_200),
+                maxInitialTokens: 0,
+                maxOngoingTokensPerSecond: 10,
+                minSecondsPerCollection: 0,
+                maxSecondsPerCollection: 7_200,
+                conditions: 0,
+                nonce: 1,
+                metadata: ""
+            });
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
+
+        uint256 preUpdateEnvelope = _recurringCollector.getMaxNextClaim(agreementId);
+
+        vm.prank(rca.dataService);
+        _recurringCollector.update(rcau, "");
+
+        vm.warp(rcau.endsAt);
+        bytes memory data = _generateCollectData(
+            _generateCollectParams(rca, agreementId, keccak256("collect-after-update"), type(uint256).max, 0)
+        );
+        vm.prank(rca.dataService);
+        uint256 actuallyCollected = _recurringCollector.collect(_paymentType(0), data);
+
+        assertLe(
+            actuallyCollected,
+            preUpdateEnvelope,
+            "post-update collect amount must fit within the pre-update envelope"
+        );
+    }
+
+    /// @notice Same envelope invariant under fuzzed elapsed-time, new rate, new maxSec, and
+    /// remaining-window inputs. Bounds picked to satisfy validator constraints
+    /// (`maxSec >= 600`, `endsAt - deadline >= 600`) while keeping arithmetic well within
+    /// uint256.
+    function testFuzz_GetMaxNextClaim_PendingScope_CoversPostUpdateCollection(
+        uint256 elapsedSinceAccept,
+        uint32 newMaxSec,
+        uint256 newRate,
+        uint64 remainingWindow
+    ) public {
+        elapsedSinceAccept = bound(elapsedSinceAccept, 60, 30 days);
+        newMaxSec = uint32(bound(newMaxSec, 600, 30 days));
+        newRate = bound(newRate, 1, 1e18);
+        remainingWindow = uint64(bound(remainingWindow, 600, 30 days));
+
+        MockAgreementOwner approver = new MockAgreementOwner();
+
+        IRecurringCollector.RecurringCollectionAgreement memory rca = IRecurringCollector.RecurringCollectionAgreement({
+            deadline: uint64(block.timestamp + 1 hours),
+            endsAt: uint64(block.timestamp + 3650 days),
+            payer: address(approver),
+            dataService: makeAddr("ds"),
+            serviceProvider: makeAddr("sp"),
+            maxInitialTokens: 0,
+            maxOngoingTokensPerSecond: 1,
+            minSecondsPerCollection: 0,
+            maxSecondsPerCollection: 3600,
+            conditions: 0,
+            nonce: 1,
+            metadata: ""
+        });
+
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_NEW, abi.encode(rca), 0);
+        _setupValidProvision(rca.serviceProvider, rca.dataService);
+        vm.prank(rca.dataService);
+        bytes16 agreementId = _recurringCollector.accept(rca, "");
+
+        skip(elapsedSinceAccept);
+
+        IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = IRecurringCollector
+            .RecurringCollectionAgreementUpdate({
+                agreementId: agreementId,
+                deadline: uint64(block.timestamp),
+                endsAt: uint64(block.timestamp) + remainingWindow,
+                maxInitialTokens: 0,
+                maxOngoingTokensPerSecond: newRate,
+                minSecondsPerCollection: 0,
+                maxSecondsPerCollection: newMaxSec,
+                conditions: 0,
+                nonce: 1,
+                metadata: ""
+            });
+        vm.prank(address(approver));
+        _recurringCollector.offer(OFFER_TYPE_UPDATE, abi.encode(rcau), 0);
+
+        uint256 preUpdateEnvelope = _recurringCollector.getMaxNextClaim(agreementId);
+
+        vm.prank(rca.dataService);
+        _recurringCollector.update(rcau, "");
+
+        vm.warp(rcau.endsAt);
+        bytes memory data = _generateCollectData(
+            _generateCollectParams(
+                rca,
+                agreementId,
+                keccak256(abi.encode(elapsedSinceAccept, newMaxSec, newRate, remainingWindow)),
+                type(uint256).max,
+                0
+            )
+        );
+        vm.prank(rca.dataService);
+        uint256 actuallyCollected = _recurringCollector.collect(_paymentType(0), data);
+
+        assertLe(
+            actuallyCollected,
+            preUpdateEnvelope,
+            "post-update collect amount must fit within the pre-update envelope"
+        );
+    }
+
     /* solhint-enable graph/func-name-mixedcase */
 }
