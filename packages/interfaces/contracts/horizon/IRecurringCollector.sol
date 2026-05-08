@@ -318,10 +318,11 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
     error RecurringCollectorAgreementEndsBeforeDeadline(uint64 deadline, uint64 endsAt);
 
     /**
-     * @notice Thrown when accepting or upgrading an agreement with an elapsed endsAt
-     * @param allowedMinCollectionWindow The allowed minimum collection window
-     * @param minSecondsPerCollection The minimum seconds per collection
-     * @param maxSecondsPerCollection The maximum seconds per collection
+     * @notice Thrown when the collection window (max - min) is below the required minimum,
+     * or when max <= min.
+     * @param allowedMinCollectionWindow The minimum required collection window in seconds
+     * @param minSecondsPerCollection The provided minimum seconds per collection
+     * @param maxSecondsPerCollection The provided maximum seconds per collection
      */
     error RecurringCollectorAgreementInvalidCollectionWindow(
         uint32 allowedMinCollectionWindow,
@@ -464,10 +465,12 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
 
     /**
      * @notice Accept a Recurring Collection Agreement.
-     * @dev Caller must be the data service the RCA was issued to.
-     * If `signature` is non-empty: checks `rca.deadline >= block.timestamp` and verifies the ECDSA signature.
-     * If `signature` is empty: the payer must be a contract implementing {IAgreementOwner.approveAgreement}
-     * and must return the magic value for the RCA's EIP712 hash.
+     * @dev Caller must be the data service the RCA was issued to. Idempotent: re-accepting an
+     * already-accepted agreement with the same RCA hash is a no-op (skips deadline and auth checks).
+     * Otherwise enforces `block.timestamp <= rca.deadline` and authorizes via one of:
+     * - `signature` non-empty: ECDSA signature recovery against the payer (or its authorized signer);
+     * - `signature` empty: the payer must have previously stored an offer for the same RCA hash via
+     *   {IAgreementCollector.offer}; the stored hash is checked instead of a signature.
      * @param rca The Recurring Collection Agreement to accept
      * @param signature ECDSA signature bytes, or empty for contract-approved agreements
      * @return agreementId The deterministically generated agreement ID
@@ -478,7 +481,11 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
     ) external returns (bytes16 agreementId);
 
     /**
-     * @notice Cancel an indexing agreement.
+     * @notice Cancel a Recurring Collection Agreement.
+     * @dev Caller must be the data service for the agreement; the agreement must be in the
+     * Accepted state. Records `canceledAt = block.timestamp` and transitions to
+     * CanceledByPayer or CanceledByServiceProvider per `by`. Any pending RCAU offer whose
+     * hash differs from the active terms is dropped.
      * @param agreementId The agreement's ID.
      * @param by The party that is canceling the agreement.
      */
@@ -486,10 +493,12 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
 
     /**
      * @notice Update a Recurring Collection Agreement.
-     * @dev Caller must be the data service for the agreement.
-     * If `signature` is non-empty: checks `rcau.deadline >= block.timestamp` and verifies the ECDSA signature.
-     * If `signature` is empty: the payer (stored in the agreement) must be a contract implementing
-     * {IAgreementOwner.approveAgreement} and must return the magic value for the RCAU's EIP712 hash.
+     * @dev Caller must be the data service for the agreement. Idempotent: re-applying an already-applied
+     * RCAU is a no-op (skips deadline and auth checks). Otherwise enforces
+     * `block.timestamp <= rcau.deadline` and authorizes via one of:
+     * - `signature` non-empty: ECDSA signature recovery against the payer (or its authorized signer);
+     * - `signature` empty: the payer must have previously stored an offer for the same RCAU hash via
+     *   {IAgreementCollector.offer}; the stored hash is checked instead of a signature.
      * @param rcau The Recurring Collection Agreement Update to apply
      * @param signature ECDSA signature bytes, or empty for contract-approved updates
      */

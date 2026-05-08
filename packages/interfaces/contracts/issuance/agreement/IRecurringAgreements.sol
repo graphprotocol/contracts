@@ -83,10 +83,10 @@ interface IRecurringAgreements {
     function getSumMaxNextClaim() external view returns (uint256 tokens);
 
     /**
-     * @notice Get the total undeposited escrow across all providers
-     * @dev Maintained incrementally: sum of max(0, sumMaxNextClaim[p] - deposited[p])
-     * for each provider p. Correctly accounts for per-provider deficits without
-     * allowing over-deposited providers to mask under-deposited ones.
+     * @notice Get the total undeposited escrow across all (collector, provider) pairs
+     * @dev Maintained incrementally: sum of max(0, sumMaxNextClaim[c][p] - escrowSnap[c][p])
+     * across all pairs. Per-pair clamping prevents over-deposited pairs from masking
+     * under-deposited ones.
      * @return tokens The total unfunded amount
      */
     function getTotalEscrowDeficit() external view returns (uint256 tokens);

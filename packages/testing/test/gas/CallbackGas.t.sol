@@ -85,7 +85,7 @@ contract CallbackGasTest is RealStackHarness {
         bytes16 agreementId = _offerAgreement(rca);
 
         // Accept on the real RecurringCollector using ContractApproval path (empty signature).
-        // RAM.approveAgreement returns the selector when the hash is authorized.
+        // The RCA hash was pre-registered via _offerAgreement, so the stored-hash check passes.
         vm.prank(dataService);
         recurringCollector.accept(rca, "");
 

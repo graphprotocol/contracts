@@ -135,11 +135,7 @@ contract RecurringCollector is
         }
     }
 
-    /**
-     * @notice List of pause guardians and their allowed status
-     * @param pauseGuardian The address to check
-     * @return Whether the address is a pause guardian
-     */
+    /// @inheritdoc IRecurringCollector
     function pauseGuardians(address pauseGuardian) public view override returns (bool) {
         return _getStorage().pauseGuardians[pauseGuardian];
     }
@@ -208,12 +204,8 @@ contract RecurringCollector is
         emit PauseGuardianSet(_pauseGuardian, _allowed);
     }
 
-    /**
-     * @inheritdoc IPaymentsCollector
-     * @notice Initiate a payment collection through the payments protocol.
-     * See {IPaymentsCollector.collect}.
-     * @dev Caller must be the data service the RCA was issued to.
-     */
+    /// @inheritdoc IPaymentsCollector
+    /// @dev Caller must be the data service the RCA was issued to.
     function collect(
         IGraphPayments.PaymentTypes paymentType,
         bytes calldata data
@@ -225,11 +217,7 @@ contract RecurringCollector is
         }
     }
 
-    /**
-     * @inheritdoc IRecurringCollector
-     * @notice Accept a Recurring Collection Agreement.
-     * @dev Caller must be the data service the RCA was issued to.
-     */
+    /// @inheritdoc IRecurringCollector
     function accept(
         RecurringCollectionAgreement calldata rca,
         bytes calldata signature
@@ -321,12 +309,7 @@ contract RecurringCollector is
         agreement.updateNonce = 0;
     }
 
-    /**
-     * @inheritdoc IRecurringCollector
-     * @notice Cancel a Recurring Collection Agreement.
-     * See {IRecurringCollector.cancel}.
-     * @dev Caller must be the data service for the agreement.
-     */
+    /// @inheritdoc IRecurringCollector
     function cancel(bytes16 agreementId, CancelAgreementBy by) external whenNotPaused {
         RecurringCollectorStorage storage $ = _getStorage();
         AgreementData storage agreement = $.agreements[agreementId];
@@ -351,13 +334,9 @@ contract RecurringCollector is
         emit AgreementCanceled(agreement.dataService, agreement.payer, agreement.serviceProvider, agreementId, by);
     }
 
-    /**
-     * @inheritdoc IRecurringCollector
-     * @notice Update a Recurring Collection Agreement.
-     * @dev Caller must be the data service for the agreement.
-     * @dev Note: Updated pricing terms apply immediately and will affect the next collection
-     * for the entire period since lastCollectionAt.
-     */
+    /// @inheritdoc IRecurringCollector
+    /// @dev Updated pricing terms apply immediately and affect the next collection for the
+    /// entire period since lastCollectionAt.
     function update(RecurringCollectionAgreementUpdate calldata rcau, bytes calldata signature) external whenNotPaused {
         AgreementData storage agreement = _requireValidUpdateTarget(rcau.agreementId);
 

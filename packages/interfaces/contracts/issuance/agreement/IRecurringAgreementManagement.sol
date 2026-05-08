@@ -63,8 +63,9 @@ interface IRecurringAgreementManagement {
 
     /**
      * @notice Emitted when a (collector, provider) pair is removed from tracking
-     * @dev Emitted when the pair has no agreements AND escrow is fully recovered (balance zero).
-     * May cascade inline from agreement deletion or be triggered by {reconcileProvider}.
+     * @dev Emitted when the pair has no agreements AND escrow balance is below the residual
+     * threshold (2^minResidualEscrowFactor). May cascade inline from agreement deletion or be
+     * triggered by {reconcileProvider}.
      * @param collector The collector address
      * @param provider The provider address
      */
