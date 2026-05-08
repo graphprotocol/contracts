@@ -2,7 +2,6 @@
 pragma solidity ^0.8.22;
 
 import { IAgreementCollector } from "./IAgreementCollector.sol";
-import { IGraphPayments } from "./IGraphPayments.sol";
 import { IAuthorizable } from "./IAuthorizable.sol";
 
 /**
@@ -245,12 +244,6 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
     );
 
     /**
-     * @notice Thrown when an agreement does not exist (no accepted state and no stored offer)
-     * @param agreementId The agreement ID that was not found
-     */
-    error RecurringCollectorAgreementNotFound(bytes16 agreementId);
-
-    /**
      * @notice Thrown when accepting an agreement with a zero ID
      */
     error RecurringCollectorAgreementIdZero();
@@ -278,12 +271,6 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
      * @notice Thrown when the signer is invalid
      */
     error RecurringCollectorInvalidSigner();
-
-    /**
-     * @notice Thrown when the payment type is not IndexingFee
-     * @param invalidPaymentType The invalid payment type
-     */
-    error RecurringCollectorInvalidPaymentType(IGraphPayments.PaymentTypes invalidPaymentType);
 
     /**
      * @notice Thrown when the caller is not the data service the RCA was issued to
@@ -348,19 +335,6 @@ interface IRecurringCollector is IAuthorizable, IAgreementCollector {
      * @param invalidDuration The invalid duration
      */
     error RecurringCollectorAgreementInvalidDuration(uint32 requiredMinDuration, uint256 invalidDuration);
-
-    /**
-     * @notice Thrown when calling collect() with a zero collection seconds
-     * @param agreementId The agreement ID
-     * @param currentTimestamp The current timestamp
-     * @param lastCollectionAt The timestamp when the last collection was done
-     *
-     */
-    error RecurringCollectorZeroCollectionSeconds(
-        bytes16 agreementId,
-        uint256 currentTimestamp,
-        uint64 lastCollectionAt
-    );
 
     /**
      * @notice Thrown when calling collect() too soon
