@@ -482,6 +482,143 @@ contract IssuanceAllocatorDistributionTest is IssuanceAllocatorSharedTest {
         assertGt(token.balanceOf(address(trackerTarget)), 0);
     }
 
+    // ==================== Pending Distribution With No Accumulated Self-Minting ====================
+
+    /// @notice Starting from `selfMintingOffset == 0` (no prior accumulation),
+    /// `distributePendingIssuance()` must mint each target only its own allocator-minting
+    /// rate for the period, leaving the self-minting share to the self-minting targets.
+    function test_DistributePendingIssuance_NoOffset_DefaultGetsOwnRateOnly() public {
+        _setIssuanceRate(100 ether);
+
+        // Default must be a real address for end-of-period default-target mint to run.
+        vm.prank(governor);
+        allocator.setDefaultTarget(address(trackerTarget));
+
+        // Self-minting-only target → default absorbs allocator share:
+        //   default.allocatorMintingRate = 80, totalSelfMintingRate = 20.
+        _addTargetWithSelfMinting(IIssuanceTarget(address(simpleTarget)), 0, 20 ether);
+
+        allocator.distributeIssuance();
+        assertEq(allocator.getDistributionState().selfMintingOffset, 0);
+
+        uint256 simpleBalBefore = token.balanceOf(address(simpleTarget));
+        uint256 defaultBalBefore = token.balanceOf(address(trackerTarget));
+
+        uint256 blocksElapsed = 10;
+        vm.roll(block.number + blocksElapsed);
+
+        vm.prank(governor);
+        allocator.distributePendingIssuance();
+
+        // Default receives its own rate only; the 20-per-block self-minting share is
+        // reserved for the self-minting target, not minted to it via the allocator path.
+        assertEq(token.balanceOf(address(simpleTarget)) - simpleBalBefore, 0);
+        assertEq(token.balanceOf(address(trackerTarget)) - defaultBalBefore, 80 ether * blocksElapsed);
+    }
+
+    /// @notice The `toBlockNumber` overload advances `lastDistributionBlock` to exactly the
+    /// requested block, never over-mints to default for the partial period, and the cumulative
+    /// allocator distribution after a subsequent full catch-up matches per-rate over the period.
+    function test_DistributePendingIssuance_NoOffset_ToBlock_Partial() public {
+        _setIssuanceRate(100 ether);
+
+        vm.prank(governor);
+        allocator.setDefaultTarget(address(trackerTarget));
+
+        _addTargetWithSelfMinting(IIssuanceTarget(address(simpleTarget)), 0, 20 ether);
+
+        allocator.distributeIssuance();
+        uint256 lastDistBlock = allocator.getDistributionState().lastDistributionBlock;
+
+        uint256 simpleBalBefore = token.balanceOf(address(simpleTarget));
+        uint256 defaultBalBefore = token.balanceOf(address(trackerTarget));
+
+        uint256 totalBlocks = 10;
+        uint256 partialBlocks = 4;
+        vm.roll(block.number + totalBlocks);
+
+        vm.prank(governor);
+        allocator.distributePendingIssuance(lastDistBlock + partialBlocks);
+
+        // Self-minting-only target receives nothing via the allocator path.
+        assertEq(token.balanceOf(address(simpleTarget)) - simpleBalBefore, 0);
+        // Safety bound: default never exceeds its per-rate share for the partial period.
+        uint256 partialMint = token.balanceOf(address(trackerTarget)) - defaultBalBefore;
+        assertLe(partialMint, 80 ether * partialBlocks);
+        assertEq(allocator.getDistributionState().lastDistributionBlock, lastDistBlock + partialBlocks);
+
+        // Subsequent full catch-up restores the cumulative per-rate total over the full period.
+        allocator.distributeIssuance();
+        assertEq(token.balanceOf(address(trackerTarget)) - defaultBalBefore, 80 ether * totalBlocks);
+        assertEq(allocator.getDistributionState().lastDistributionBlock, lastDistBlock + totalBlocks);
+    }
+
+    /// @notice Starting from `selfMintingOffset == 0` (no prior accumulation), with a
+    /// target that has both allocator-minting and self-minting rates, the target receives
+    /// only its allocator-minting share and the default receives only its own rate.
+    function test_DistributePendingIssuance_NoOffset_MixedTargets() public {
+        _setIssuanceRate(100 ether);
+
+        vm.prank(governor);
+        allocator.setDefaultTarget(address(trackerTarget));
+
+        // simpleTarget: 40 allocator + 20 self → default auto-adjusts to 40 allocator.
+        _addTargetWithSelfMinting(IIssuanceTarget(address(simpleTarget)), 40 ether, 20 ether);
+
+        allocator.distributeIssuance();
+        uint256 simpleBalBefore = token.balanceOf(address(simpleTarget));
+        uint256 defaultBalBefore = token.balanceOf(address(trackerTarget));
+
+        uint256 blocksElapsed = 10;
+        vm.roll(block.number + blocksElapsed);
+
+        vm.prank(governor);
+        allocator.distributePendingIssuance();
+
+        assertEq(token.balanceOf(address(simpleTarget)) - simpleBalBefore, 40 ether * blocksElapsed);
+        assertEq(token.balanceOf(address(trackerTarget)) - defaultBalBefore, 40 ether * blocksElapsed);
+    }
+
+    /// @notice Total tokens minted via `distributePendingIssuance()` over a period
+    /// must not exceed the allocator-minting budget
+    /// `(issuancePerBlock - totalSelfMintingRate) * blocks`. The self-minting share
+    /// belongs to self-minting targets and must not be minted by the allocator.
+    function testFuzz_DistributePendingIssuance_NoOffset_StaysWithinAllocatorBudget(
+        uint256 _selfMintingRate,
+        uint256 _allocatorRate,
+        uint256 _blocksElapsed
+    ) public {
+        uint256 issuancePerBlock = 100 ether;
+        uint256 selfMintingRate = bound(_selfMintingRate, 0, issuancePerBlock);
+        uint256 allocatorRate = bound(_allocatorRate, 0, issuancePerBlock - selfMintingRate);
+        uint256 blocksElapsed = bound(_blocksElapsed, 1, 1_000);
+
+        _setIssuanceRate(issuancePerBlock);
+
+        vm.prank(governor);
+        allocator.setDefaultTarget(address(trackerTarget));
+
+        if (allocatorRate != 0 || selfMintingRate != 0) {
+            _addTargetWithSelfMinting(IIssuanceTarget(address(simpleTarget)), allocatorRate, selfMintingRate);
+        }
+
+        allocator.distributeIssuance();
+        assertEq(allocator.getDistributionState().selfMintingOffset, 0);
+
+        uint256 simpleBalBefore = token.balanceOf(address(simpleTarget));
+        uint256 defaultBalBefore = token.balanceOf(address(trackerTarget));
+
+        vm.roll(block.number + blocksElapsed);
+
+        vm.prank(governor);
+        allocator.distributePendingIssuance();
+
+        uint256 totalMinted = (token.balanceOf(address(simpleTarget)) - simpleBalBefore) +
+            (token.balanceOf(address(trackerTarget)) - defaultBalBefore);
+
+        assertLe(totalMinted, (issuancePerBlock - selfMintingRate) * blocksElapsed);
+    }
+
     // ==================== Reentrancy Protection ====================
 
     function test_Revert_ReentrantSetTargetAllocation() public {
