@@ -486,29 +486,13 @@ contract IssuanceAllocator is
         }
 
         $.lastDistributionBlock = toBlockNumber;
-        _reconcileSelfMintingOffset(toBlockNumber, totalForPeriod, selfMintingOffset);
-        return toBlockNumber;
-    }
-
-    /**
-     * @notice Reconciles self-minting offset after distribution
-     * @param toBlockNumber Block number distributed to
-     * @param totalForPeriod Total issuance budget for the period
-     * @param selfMintingOffset Self-minting offset before reconciliation
-     * @dev Updates accumulated self-minting after distribution.
-     * Subtracts the period budget used (min of accumulated and totalForPeriod).
-     * When caught up to current block, clears all since nothing remains to distribute.
-     */
-    function _reconcileSelfMintingOffset(
-        uint256 toBlockNumber,
-        uint256 totalForPeriod,
-        uint256 selfMintingOffset
-    ) private {
-        IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
-
+        // Reconcile offset: clear on full catch-up, otherwise subtract the period's budget
+        // (clamped at 0). Any clamped residue represents self-minting beyond what the final
+        // rate would allow for the period — the Issuance Upper Bound still holds.
         $.selfMintingOffset = toBlockNumber == block.number
             ? 0
             : (totalForPeriod < selfMintingOffset ? selfMintingOffset - totalForPeriod : 0);
+        return toBlockNumber;
     }
 
     /**
