@@ -54,12 +54,9 @@ import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/int
  * @dev Pause Behavior:
  * - Allocator-minting: Completely suspended during pause. No tokens minted, lastDistributionBlock frozen.
  *   When unpaused, distributes retroactively using current rates for entire undistributed period. (Distribution will be triggered by calling distributeIssuance() when not paused.)
- * - Self-minting: Continues tracking via events and accumulation during pause. Accumulated self-minting
- *   reduces allocator-minting budget when distribution resumes, ensuring total issuance conservation.
- * - Ongoing accumulation: Once accumulation starts (during pause), continues through any unpaused
- *   periods until distribution clears it, preventing loss of self-minting allowances across pause cycles.
- * - Tracking divergence: lastSelfMintingBlock advances during pause (for allowance tracking) while
- *   lastDistributionBlock stays frozen (no allocator-minting). This is intentional and correct.
+ * - Self-minting: tracked unconditionally so the Self-Minting Accumulation invariant holds in
+ *   every reachable state. Distribution reconciles the offset on catch-up.
+ * - lastSelfMintingBlock advances during pause; lastDistributionBlock stays frozen.
  *
  * @dev Issuance Accounting Invariants:
  * The contract maintains strict accounting to ensure total token issuance never exceeds the configured
@@ -75,12 +72,12 @@ import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/int
  *    where totalSelfMintingRate_b is the end-state rate for block b.
  *
  * 3. Rate Constraint: For all blocks b, totalSelfMintingRate_b ≤ issuancePerBlock_b
- *    This follows from invariant (1) since 0 ≤ totalAllocatorRate_b.
+ *    Follows from Allocation Completeness since 0 ≤ totalAllocatorRate_b.
  *
  * 4. Issuance Upper Bound: For any distribution period with blocks = toBlock - fromBlock + 1:
  *    Let issuancePerBlock_final = current issuancePerBlock at distribution time
  *
- *    From invariants (2) and (3):
+ *    From Self-Minting Accumulation and Rate Constraint:
  *      selfMintingOffset ≤ Σ(issuancePerBlock_b)
  *
  *    Allocator-minting budget for period:
@@ -97,7 +94,7 @@ import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/int
  *    Any remaining offset when cleared represents self-minting that occurred beyond what the final
  *    issuancePerBlock rate would allow for the period. This is acceptable because:
  *    a) Self-minting targets were operating under rates that were valid at the time
- *    b) The total minted still respects the Σ(issuancePerBlock_b) bound (invariant 4)
+ *    b) The total minted still respects the Issuance Upper Bound
  *    c) Clearing the offset prevents it from affecting future distributions
  *    d) Off-chain consumers can reconstruct any deviation from IssuanceDistributed,
  *       IssuanceSelfMintAllowance{,Aggregate}, IssuancePerBlockUpdated, and Pausable's
@@ -381,13 +378,9 @@ contract IssuanceAllocator is
         uint256 blocks = block.number - previousBlock;
         uint256 fromBlock = previousBlock + 1;
 
-        // Accumulate if currently paused OR if there's existing accumulated balance.
-        // Once accumulation starts (during pause), continue through any unpaused periods
-        // until distribution clears the accumulation. This is conservative and allows
-        // better recovery when distribution is delayed through pause/unpause cycles.
-        if (paused() || 0 < $.selfMintingOffset) {
-            $.selfMintingOffset += $.totalSelfMintingRate * blocks;
-        }
+        // Maintains the Self-Minting Accumulation invariant unconditionally so the distribution
+        // path can safely bound allocator budget by selfMintingOffset.
+        $.selfMintingOffset += $.totalSelfMintingRate * blocks;
         $.lastSelfMintingBlock = block.number;
 
         // Emit self-minting allowance events based on mode
@@ -414,12 +407,9 @@ contract IssuanceAllocator is
 
     /**
      * @notice Internal implementation for `distributeIssuance`
-     * @dev Handles the actual distribution logic.
-     * @dev Always calls _advanceSelfMintingBlock() first (advances lastSelfMintingBlock, tracks self-minting).
-     * @dev If paused: Returns lastDistributionBlock without distributing allocator-minting (frozen state).
-     * @dev If unpaused: Chooses distribution path based on accumulated self-minting:
-     *      - With accumulation: retroactive distribution path (current rates, reduced allocator budget)
-     *      - Without accumulation: normal distribution path (simple per-block minting)
+     * @dev Always advances self-minting first; returns frozen lastDistributionBlock if paused;
+     * otherwise delegates to _distributePendingIssuance. Self-Minting Accumulation lets a single
+     * distribution path serve every reachable state.
      * @return Block number distributed to
      */
     function _distributeIssuance() private returns (uint256) {
@@ -428,37 +418,7 @@ contract IssuanceAllocator is
 
         if (paused()) return $.lastDistributionBlock;
 
-        return 0 < $.selfMintingOffset ? _distributePendingIssuance(block.number) : _performNormalDistribution();
-    }
-
-    /**
-     * @notice Performs normal (non-pending) issuance distribution
-     * @dev Distributes allocator-minting issuance to all targets based on their rates
-     * @dev Assumes contract is not paused and pending issuance has already been distributed
-     * @return Block number distributed to
-     */
-    function _performNormalDistribution() private returns (uint256) {
-        IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
-
-        uint256 blocks = block.number - $.lastDistributionBlock;
-        if (blocks == 0) return $.lastDistributionBlock;
-
-        uint256 fromBlock = $.lastDistributionBlock + 1;
-
-        for (uint256 i = 0; i < $.targetAddresses.length; ++i) {
-            address target = $.targetAddresses[i];
-            if (target == address(0)) continue;
-
-            AllocationTarget storage targetData = $.allocationTargets[target];
-            if (0 < targetData.allocatorMintingRate) {
-                uint256 amount = targetData.allocatorMintingRate * blocks;
-                GRAPH_TOKEN.mint(target, amount);
-                emit IssuanceDistributed(target, amount, fromBlock, block.number);
-            }
-        }
-
-        $.lastDistributionBlock = block.number;
-        return block.number;
+        return _distributePendingIssuance(block.number);
     }
 
     /**
@@ -478,11 +438,10 @@ contract IssuanceAllocator is
     }
 
     /**
-     * @notice Internal implementation for distributing pending accumulated allocator-minting issuance
+     * @notice Internal implementation for distributing allocator-minting issuance up to a given block
      * @param toBlockNumber Block number to distribute up to
-     * @dev Distributes allocator-minting issuance for undistributed period using current rates,
-     * retroactively applied from lastDistributionBlock to toBlockNumber (inclusive).
-     * Called when 0 < selfMintingOffset, which occurs after pause periods or delayed distribution.
+     * @dev Distributes for [lastDistributionBlock+1, toBlockNumber]. selfMintingOffset bounds
+     * allocator budget so the Issuance Upper Bound holds across any rate variation in the range.
      * @dev Available budget = max(0, issuancePerBlock * blocks - selfMintingOffset).
      * Distribution cases:
      * (1) available < allocatedTotal: proportional distribution to non-default, default gets zero
