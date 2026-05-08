@@ -1,4 +1,4 @@
-import { upgradeTransparentUpgradeableProxy } from '@graphprotocol/horizon/ignition'
+import { deployImplementation, upgradeTransparentUpgradeableProxy } from '@graphprotocol/horizon/ignition'
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 import ProxyAdminArtifact from '@openzeppelin/contracts/build/contracts/ProxyAdmin.json'
 import TransparentUpgradeableProxyArtifact from '@openzeppelin/contracts/build/contracts/TransparentUpgradeableProxy.json'
@@ -41,15 +41,18 @@ export default buildModule('SubgraphService', (m) => {
   })
 
   // Deploy implementation
-  const SubgraphServiceImplementation = m.contract(
-    'SubgraphService',
-    [
-      controllerAddress,
-      disputeManagerProxyAddress,
-      graphTallyCollectorAddress,
-      curationProxyAddress,
-      recurringCollectorAddress,
-    ],
+  const SubgraphServiceImplementation = deployImplementation(
+    m,
+    {
+      name: 'SubgraphService',
+      constructorArgs: [
+        controllerAddress,
+        disputeManagerProxyAddress,
+        graphTallyCollectorAddress,
+        curationProxyAddress,
+        recurringCollectorAddress,
+      ],
+    },
     {
       libraries: {
         StakeClaims,
