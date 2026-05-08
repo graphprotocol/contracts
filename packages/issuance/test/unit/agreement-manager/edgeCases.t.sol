@@ -769,7 +769,7 @@ contract RecurringAgreementManagerEdgeCasesTest is RecurringAgreementManagerShar
 
     // ==================== getProviderAgreements ====================
 
-    function test_GetIndexerAgreements_Empty() public {
+    function test_GetIndexerAgreements_Empty() public view {
         bytes16[] memory ids = _getProviderAgreements(indexer);
         assertEq(ids.length, 0);
     }

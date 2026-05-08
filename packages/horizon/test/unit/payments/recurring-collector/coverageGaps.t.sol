@@ -460,9 +460,6 @@ contract RecurringCollectorCoverageGapsTest is RecurringCollectorSharedTest {
     function test_GetCollectionInfo_ZeroCollectionSeconds(FuzzyTestAccept calldata fuzzy) public {
         (, , , bytes16 agreementId) = _sensibleAuthorizeAndAccept(fuzzy);
 
-        // Read agreement in the same block as accept
-        IRecurringCollector.AgreementData memory agreement = _recurringCollector.getAgreement(agreementId);
-
         (bool isCollectable, uint256 collectionSeconds, ) = _recurringCollector.getCollectionInfo(agreementId);
 
         assertFalse(isCollectable, "Should not be collectable with zero elapsed time");

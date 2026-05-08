@@ -279,7 +279,6 @@ contract RecurringAgreementManagerReconcileTest is RecurringAgreementManagerShar
         );
 
         bytes16 agreementId = _offerAgreement(rca);
-        uint256 originalMaxClaim = 1 ether * 3600 + 100 ether;
 
         // Offer a pending update
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _makeRCAU(
@@ -344,7 +343,6 @@ contract RecurringAgreementManagerReconcileTest is RecurringAgreementManagerShar
         );
 
         bytes16 agreementId = _offerAgreement(rca);
-        uint256 originalMaxClaim = 1 ether * 3600 + 100 ether;
 
         // Offer a pending update
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _makeRCAU(
@@ -578,7 +576,6 @@ contract RecurringAgreementManagerReconcileTest is RecurringAgreementManagerShar
         );
         _offerAgreementUpdate(rcau);
 
-        uint256 originalMaxClaim = 1 ether * 3600 + 100 ether;
         // max(current, pending) = max(3700, 14600) = 14600
         uint256 pendingMaxClaim = 14600 ether;
         assertEq(agreementManager.getSumMaxNextClaim(_collector(), indexer), pendingMaxClaim);

@@ -1,7 +1,7 @@
 export { isProjectBuilt, loadTasks } from './config'
 export { setERC20Balance, setGRTBalance } from './erc20'
 export { getEventData } from './event'
-export { hardhatBaseConfig } from './hardhat.base.config'
+export { hardhatBaseConfig, solidityUserConfig } from './hardhat.base.config'
 export { loadConfig, patchConfig, saveToAddressBook } from './ignition'
 export { requireLocalNetwork } from './local'
 export {

@@ -283,12 +283,12 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
 
     function test_SubgraphService_CollectIndexingFees_AfterCloseStaleAllocation_ResizesToZero(
         Seed memory seed,
-        uint256 entities,
-        bytes32 poi
+        uint256 /* entities */,
+        bytes32 /* poi */
     ) public {
         Context storage ctx = _newCtx(seed);
         IndexerState memory indexerState = _withIndexer(ctx);
-        (, bytes16 acceptedAgreementId) = _withAcceptedIndexingAgreement(ctx, indexerState);
+        _withAcceptedIndexingAgreement(ctx, indexerState);
 
         skip(MAX_POI_STALENESS + 1);
         resetPrank(indexerState.addr);

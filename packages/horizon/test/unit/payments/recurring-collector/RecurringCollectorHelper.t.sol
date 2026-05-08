@@ -177,7 +177,7 @@ contract RecurringCollectorHelper is AuthorizableHelper, Bounder {
     function _sensibleMaxSecondsPerCollection(
         uint32 _seed,
         uint32 _minSecondsPerCollection
-    ) internal view returns (uint32) {
+    ) internal pure returns (uint32) {
         return
             uint32(
                 bound(

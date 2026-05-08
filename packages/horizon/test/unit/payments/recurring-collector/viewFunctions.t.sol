@@ -38,8 +38,6 @@ contract RecurringCollectorViewFunctionsTest is RecurringCollectorSharedTest {
         // Cancel by service provider
         _cancel(rca, agreementId, IRecurringCollector.CancelAgreementBy.ServiceProvider);
 
-        IRecurringCollector.AgreementData memory agreement = _recurringCollector.getAgreement(agreementId);
-
         (bool isCollectable, , IRecurringCollector.AgreementNotCollectableReason reason) = _recurringCollector
             .getCollectionInfo(agreementId);
 
@@ -81,8 +79,6 @@ contract RecurringCollectorViewFunctionsTest is RecurringCollectorSharedTest {
         // Cancel by payer in the same block as accept
         _cancel(rca, agreementId, IRecurringCollector.CancelAgreementBy.Payer);
 
-        IRecurringCollector.AgreementData memory agreement = _recurringCollector.getAgreement(agreementId);
-
         (bool isCollectable, uint256 collectionSeconds, ) = _recurringCollector.getCollectionInfo(agreementId);
 
         // Same block cancel means no time elapsed
@@ -103,8 +99,6 @@ contract RecurringCollectorViewFunctionsTest is RecurringCollectorSharedTest {
         // Skip time then cancel by payer
         skip(rca.minSecondsPerCollection);
         _cancel(rca, agreementId, IRecurringCollector.CancelAgreementBy.Payer);
-
-        IRecurringCollector.AgreementData memory agreement = _recurringCollector.getAgreement(agreementId);
 
         (bool isCollectable, uint256 collectionSeconds, ) = _recurringCollector.getCollectionInfo(agreementId);
 

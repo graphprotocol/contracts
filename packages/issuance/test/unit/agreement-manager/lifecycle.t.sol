@@ -436,7 +436,6 @@ contract RecurringAgreementLifecycleTest is RecurringAgreementManagerSharedTest 
         assertTrue(providerExists); // escrow still thawing, pair stays tracked
 
         // Collector2's agreement untouched
-        uint256 maxClaim1 = 1 ether * 3600 + 100 ether;
         uint256 maxClaim2 = 2 ether * 7200 + 200 ether;
         assertEq(agreementManager.getSumMaxNextClaim(IRecurringCollector(address(collector2)), indexer), maxClaim2);
         assertEq(agreementManager.getAgreementCount(IAgreementCollector(address(collector2)), indexer), 1);

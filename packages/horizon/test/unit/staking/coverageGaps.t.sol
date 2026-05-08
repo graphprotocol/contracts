@@ -31,7 +31,7 @@ contract HorizonStakingCoverageGapsTest is HorizonStakingTest {
 
     function test_GetIdleStake_WithStake(
         uint256 stakeAmount,
-        uint256 provisionAmount,
+        uint256 /* provisionAmount */,
         uint32 maxVerifierCut,
         uint64 thawingPeriod
     ) public useIndexer useProvision(stakeAmount, maxVerifierCut, thawingPeriod) {

@@ -45,8 +45,6 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
 
         _offerAgreementUpdate(rcau);
 
-        // Original maxNextClaim = 1e18 * 3600 + 100e18 = 3700e18
-        uint256 originalMaxClaim = 1 ether * 3600 + 100 ether;
         // Pending = ongoing + initialExtra = 2e18 * 7200 + 200e18 = 14600e18
         uint256 pendingTotal = 2 ether * 7200 + 200 ether;
 
@@ -98,7 +96,6 @@ contract RecurringAgreementManagerOfferUpdateTest is RecurringAgreementManagerSh
             uint64(block.timestamp + 365 days)
         );
 
-        uint256 originalMaxClaim = 1 ether * 3600 + 100 ether;
         // Pending = ongoing + initialExtra = 2e18 * 7200 + 200e18 = 14600e18
         uint256 pendingTotal = 2 ether * 7200 + 200 ether;
         // Contribution = max(pendingTotal, originalMaxClaim) = 14600 (only one agreement)

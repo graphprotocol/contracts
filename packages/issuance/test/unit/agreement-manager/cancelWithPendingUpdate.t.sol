@@ -29,7 +29,6 @@ contract RecurringAgreementManagerCancelWithPendingUpdateTest is RecurringAgreem
         );
 
         bytes16 agreementId = _offerAgreement(rca);
-        uint256 originalMaxClaim = 1 ether * 3600 + 100 ether;
 
         uint64 acceptedAt = uint64(block.timestamp);
         _setAgreementAccepted(agreementId, rca, acceptedAt);

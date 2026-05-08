@@ -128,12 +128,9 @@ contract RecurringCollectorEligibilityTest is RecurringCollectorSharedTest {
 
     function test_Collect_OK_WhenEOAPayer(FuzzyTestCollect calldata fuzzy) public {
         // Use standard ECDSA-signed path (EOA payer)
-        (
-            IRecurringCollector.RecurringCollectionAgreement memory acceptedRca,
-            ,
-            ,
-            bytes16 agreementId
-        ) = _sensibleAuthorizeAndAccept(fuzzy.fuzzyTestAccept);
+        (IRecurringCollector.RecurringCollectionAgreement memory acceptedRca, , , ) = _sensibleAuthorizeAndAccept(
+            fuzzy.fuzzyTestAccept
+        );
 
         (bytes memory data, uint256 collectionSeconds, uint256 tokens) = _generateValidCollection(
             acceptedRca,
