@@ -101,6 +101,15 @@ contract DataServiceFeesTest is HorizonStakingSharedTest {
         _assertReleaseStake(users.indexer, numClaimsToRelease);
     }
 
+    function test_ProcessStakeClaim_RevertWhen_ClaimNotFound() external {
+        StakeClaimsHarness harness = new StakeClaimsHarness();
+        bytes32 unknownClaimId = keccak256("unknown");
+        bytes memory acc = abi.encode(uint256(0), address(0));
+
+        vm.expectRevert(abi.encodeWithSelector(StakeClaims.StakeClaimsClaimNotFound.selector, unknownClaimId));
+        harness.processStakeClaim(unknownClaimId, acc);
+    }
+
     function test_Release_WhenNIsNotValid(
         uint256 tokens,
         uint256 steps
@@ -236,5 +245,14 @@ contract DataServiceFeesTest is HorizonStakingSharedTest {
         }
         assertEq(afterHead, calcValues.head);
         assertEq(afterTail, calcValues.claimsCount == beforeCount ? bytes32(0) : beforeTail);
+    }
+}
+
+contract StakeClaimsHarness {
+    mapping(address serviceProvider => uint256 tokens) public feesProvisionTracker;
+    mapping(bytes32 claimId => StakeClaims.StakeClaim claim) public claims;
+
+    function processStakeClaim(bytes32 claimId, bytes memory acc) external returns (bool, bytes memory) {
+        return StakeClaims.processStakeClaim(feesProvisionTracker, claims, claimId, acc);
     }
 }

@@ -1,5 +1,10 @@
 import { RewardsManager } from '@graphprotocol/contracts'
-import { IERC165__factory, IIssuanceTarget__factory, IRewardsManager__factory } from '@graphprotocol/interfaces/types'
+import {
+  IERC165__factory,
+  IIssuanceTarget__factory,
+  IProviderEligibilityManagement__factory,
+  IRewardsManager__factory,
+} from '@graphprotocol/interfaces/types'
 import { GraphNetworkContracts, toGRT } from '@graphprotocol/sdk'
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
@@ -75,6 +80,11 @@ describe('RewardsManager interfaces', () => {
 
     it('should support IERC165 interface', async function () {
       const supports = await rewardsManager.supportsInterface(IERC165__factory.interfaceId)
+      expect(supports).to.be.true
+    })
+
+    it('should support IProviderEligibilityManagement interface', async function () {
+      const supports = await rewardsManager.supportsInterface(IProviderEligibilityManagement__factory.interfaceId)
       expect(supports).to.be.true
     })
 
