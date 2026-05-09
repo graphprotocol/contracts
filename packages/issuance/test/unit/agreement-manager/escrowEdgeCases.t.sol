@@ -184,7 +184,7 @@ contract RecurringAgreementManagerEscrowEdgeCasesTest is RecurringAgreementManag
 
         // Don't use _offerAgreement since it mints 1M tokens — call directly
         vm.prank(operator);
-        bytes16 agreementId = agreementManager.offerAgreement(_collector(), OFFER_TYPE_NEW, abi.encode(rca));
+        agreementManager.offerAgreement(_collector(), OFFER_TYPE_NEW, abi.encode(rca));
 
         uint256 expectedMaxClaim = 10 ether * 3600 + 500 ether; // 36500 ether
         assertEq(agreementManager.getSumMaxNextClaim(), expectedMaxClaim, "sum should reflect full maxNextClaim");
@@ -265,7 +265,7 @@ contract RecurringAgreementManagerEscrowEdgeCasesTest is RecurringAgreementManag
         );
 
         bytes16 id1 = _offerAgreement(rca1);
-        bytes16 id2 = _offerAgreement(rca2);
+        _offerAgreement(rca2);
 
         uint256 maxClaim1 = 1 ether * 3600 + 100 ether; // 3700 ether
         uint256 maxClaim2 = 2 ether * 7200 + 200 ether; // 14600 ether

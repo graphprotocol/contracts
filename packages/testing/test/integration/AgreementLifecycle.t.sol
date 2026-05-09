@@ -83,46 +83,49 @@ contract AgreementLifecycleTest is FullStackHarness {
         assertEq(uint8(ssAgreement.collectorAgreement.state), uint8(IRecurringCollector.AgreementState.Accepted));
 
         // -- Step 3: Advance time and collect --
-        uint256 collectSeconds = 1800; // 30 minutes
-        skip(collectSeconds);
+        // Block-scoped to release step-3 locals before step 4 — legacy compiler pipeline runs out of stack slots otherwise.
+        {
+            uint256 collectSeconds = 1800; // 30 minutes
+            skip(collectSeconds);
 
-        // Add extra tokens to indexer's provision for stake locking
-        uint256 expectedTokens = tokensPerSecond * collectSeconds;
-        uint256 tokensToLock = expectedTokens * STAKE_TO_FEES_RATIO;
-        _mintTokens(indexer.addr, tokensToLock);
-        vm.startPrank(indexer.addr);
-        token.approve(address(staking), tokensToLock);
-        staking.stakeTo(indexer.addr, tokensToLock);
-        staking.addToProvision(indexer.addr, address(subgraphService), tokensToLock);
-        vm.stopPrank();
+            // Add extra tokens to indexer's provision for stake locking
+            uint256 expectedTokens = tokensPerSecond * collectSeconds;
+            uint256 tokensToLock = expectedTokens * STAKE_TO_FEES_RATIO;
+            _mintTokens(indexer.addr, tokensToLock);
+            vm.startPrank(indexer.addr);
+            token.approve(address(staking), tokensToLock);
+            staking.stakeTo(indexer.addr, tokensToLock);
+            staking.addToProvision(indexer.addr, address(subgraphService), tokensToLock);
+            vm.stopPrank();
 
-        uint256 indexerBalanceBefore = token.balanceOf(indexer.addr);
-        (uint256 escrowBefore, , ) = escrow.escrowAccounts(address(ram), address(recurringCollector), indexer.addr);
+            uint256 indexerBalanceBefore = token.balanceOf(indexer.addr);
+            (uint256 escrowBefore, , ) = escrow.escrowAccounts(address(ram), address(recurringCollector), indexer.addr);
 
-        // Advance past allocation creation epoch so POI isn't "too young"
-        vm.roll(block.number + EPOCH_LENGTH);
+            // Advance past allocation creation epoch so POI isn't "too young"
+            vm.roll(block.number + EPOCH_LENGTH);
 
-        uint256 tokensCollected = _collectIndexingFees(
-            indexer,
-            agreementId,
-            0, // entities
-            keccak256("poi1"),
-            block.number - 1
-        );
+            uint256 tokensCollected = _collectIndexingFees(
+                indexer,
+                agreementId,
+                0, // entities
+                keccak256("poi1"),
+                block.number - 1
+            );
 
-        // Verify tokens flowed correctly
-        assertTrue(tokensCollected > 0, "should collect tokens");
-        uint256 indexerBalanceAfter = token.balanceOf(indexer.addr);
-        uint256 protocolBurn = tokensCollected.mulPPMRoundUp(PROTOCOL_PAYMENT_CUT);
-        assertEq(
-            indexerBalanceAfter - indexerBalanceBefore,
-            tokensCollected - protocolBurn,
-            "indexer received tokens minus protocol cut"
-        );
+            // Verify tokens flowed correctly
+            assertTrue(tokensCollected > 0, "should collect tokens");
+            uint256 indexerBalanceAfter = token.balanceOf(indexer.addr);
+            uint256 protocolBurn = tokensCollected.mulPPMRoundUp(PROTOCOL_PAYMENT_CUT);
+            assertEq(
+                indexerBalanceAfter - indexerBalanceBefore,
+                tokensCollected - protocolBurn,
+                "indexer received tokens minus protocol cut"
+            );
 
-        // Verify escrow changed (RAM's beforeCollection/afterCollection may adjust balance)
-        (uint256 escrowAfter, , ) = escrow.escrowAccounts(address(ram), address(recurringCollector), indexer.addr);
-        assertTrue(escrowAfter < escrowBefore, "escrow balance decreased after collection");
+            // Verify escrow changed (RAM's beforeCollection/afterCollection may adjust balance)
+            (uint256 escrowAfter, , ) = escrow.escrowAccounts(address(ram), address(recurringCollector), indexer.addr);
+            assertTrue(escrowAfter < escrowBefore, "escrow balance decreased after collection");
+        }
 
         // -- Step 4: Reconcile RAM state --
         ram.reconcileAgreement(IAgreementCollector(address(recurringCollector)), agreementId);

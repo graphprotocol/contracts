@@ -151,33 +151,39 @@ abstract contract FullStackHarness is Test {
         // We use type(...).creationCode instead of vm.getCode to get the exact bytecode
         // that will be used by CREATE2, avoiding metadata hash mismatches across packages.
         bytes32 saltGP = keccak256("GraphPaymentsSalt");
-        bytes memory gpCreation = type(GraphPayments).creationCode;
-        address predictedGP = vm.computeCreate2Address(
-            saltGP,
-            keccak256(bytes.concat(gpCreation, abi.encode(address(controller), PROTOCOL_PAYMENT_CUT))),
-            deployer
-        );
-
         bytes32 saltEscrow = keccak256("GraphEscrowSalt");
-        bytes memory escrowCreation = type(PaymentsEscrow).creationCode;
-        address predictedEscrow = vm.computeCreate2Address(
-            saltEscrow,
-            keccak256(bytes.concat(escrowCreation, abi.encode(address(controller), WITHDRAW_ESCROW_THAWING_PERIOD))),
-            deployer
-        );
+        // Block-scoped to release the creationCode/predicted-address locals before later code —
+        // legacy compiler pipeline runs out of stack slots in this function otherwise.
+        {
+            bytes memory gpCreation = type(GraphPayments).creationCode;
+            address predictedGP = vm.computeCreate2Address(
+                saltGP,
+                keccak256(bytes.concat(gpCreation, abi.encode(address(controller), PROTOCOL_PAYMENT_CUT))),
+                deployer
+            );
 
-        // Register in controller (GraphDirectory reads immutably at construction)
-        vm.startPrank(governor);
-        controller.setContractProxy(keccak256("GraphToken"), address(token));
-        controller.setContractProxy(keccak256("Staking"), address(stakingProxy));
-        controller.setContractProxy(keccak256("RewardsManager"), address(rewardsManager));
-        controller.setContractProxy(keccak256("GraphPayments"), predictedGP);
-        controller.setContractProxy(keccak256("PaymentsEscrow"), predictedEscrow);
-        controller.setContractProxy(keccak256("EpochManager"), address(epochManager));
-        controller.setContractProxy(keccak256("GraphTokenGateway"), makeAddr("GraphTokenGateway"));
-        controller.setContractProxy(keccak256("GraphProxyAdmin"), makeAddr("GraphProxyAdmin"));
-        controller.setContractProxy(keccak256("Curation"), address(curation));
-        vm.stopPrank();
+            bytes memory escrowCreation = type(PaymentsEscrow).creationCode;
+            address predictedEscrow = vm.computeCreate2Address(
+                saltEscrow,
+                keccak256(
+                    bytes.concat(escrowCreation, abi.encode(address(controller), WITHDRAW_ESCROW_THAWING_PERIOD))
+                ),
+                deployer
+            );
+
+            // Register in controller (GraphDirectory reads immutably at construction)
+            vm.startPrank(governor);
+            controller.setContractProxy(keccak256("GraphToken"), address(token));
+            controller.setContractProxy(keccak256("Staking"), address(stakingProxy));
+            controller.setContractProxy(keccak256("RewardsManager"), address(rewardsManager));
+            controller.setContractProxy(keccak256("GraphPayments"), predictedGP);
+            controller.setContractProxy(keccak256("PaymentsEscrow"), predictedEscrow);
+            controller.setContractProxy(keccak256("EpochManager"), address(epochManager));
+            controller.setContractProxy(keccak256("GraphTokenGateway"), makeAddr("GraphTokenGateway"));
+            controller.setContractProxy(keccak256("GraphProxyAdmin"), makeAddr("GraphProxyAdmin"));
+            controller.setContractProxy(keccak256("Curation"), address(curation));
+            vm.stopPrank();
+        }
 
         // Deploy DisputeManager
         vm.startPrank(deployer);

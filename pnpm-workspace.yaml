@@ -44,7 +44,7 @@ catalog:
   ethers: ^6.16.0
   glob: ^11.0.2
   globals: ^16.4.0
-  hardhat: ^2.26.0
+  hardhat: ^2.28.0
   hardhat-contract-sizer: ^2.10.0
   hardhat-dependency-compiler: ^1.2.1
   hardhat-gas-reporter: ^1.0.8

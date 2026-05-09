@@ -1373,8 +1373,6 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     }
 
     function _slash(address serviceProvider, address verifier, uint256 tokens, uint256 verifierCutAmount) internal {
-        bool isDelegationSlashingEnabled = staking.isDelegationSlashingEnabled();
-
         // staking contract knows the address of the legacy subgraph service
         // but we cannot read it as it's an immutable, we have to use the global var :/
         bool legacy = verifier == subgraphDataServiceLegacyAddress;
@@ -1393,6 +1391,18 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         calcValues.providerTokensSlashed = Math.min(before.provision.tokens, calcValues.tokensToSlash);
         calcValues.delegationTokensSlashed = calcValues.tokensToSlash - calcValues.providerTokensSlashed;
 
+        _expectSlashEmits(serviceProvider, verifier, verifierCutAmount, calcValues);
+        staking.slash(serviceProvider, tokens, verifierCutAmount, verifier);
+        _assertSlashStateAfter(serviceProvider, verifier, verifierCutAmount, before, calcValues);
+    }
+
+    function _expectSlashEmits(
+        address serviceProvider,
+        address verifier,
+        uint256 verifierCutAmount,
+        CalcValuesSlash memory calcValues
+    ) internal {
+        bool isDelegationSlashingEnabled = staking.isDelegationSlashingEnabled();
         if (calcValues.tokensToSlash > 0) {
             if (verifierCutAmount > 0) {
                 vm.expectEmit(address(token));
@@ -1427,9 +1437,17 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
                 );
             }
         }
-        staking.slash(serviceProvider, tokens, verifierCutAmount, verifier);
+    }
 
-        // after
+    function _assertSlashStateAfter(
+        address serviceProvider,
+        address verifier,
+        uint256 verifierCutAmount,
+        BeforeValuesSlash memory before,
+        CalcValuesSlash memory calcValues
+    ) internal view {
+        bool isDelegationSlashingEnabled = staking.isDelegationSlashingEnabled();
+        bool legacy = verifier == subgraphDataServiceLegacyAddress;
         Provision memory afterProvision = staking.getProvision(serviceProvider, verifier);
         DelegationPoolInternalTest memory afterPool = _getStorageDelegationPoolInternal(
             serviceProvider,
@@ -1440,56 +1458,50 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         uint256 afterStakingBalance = token.balanceOf(address(staking));
         uint256 afterVerifierBalance = token.balanceOf(verifier);
 
-        {
-            uint256 tokensSlashed = calcValues.providerTokensSlashed +
-                (isDelegationSlashingEnabled ? calcValues.delegationTokensSlashed : 0);
-            uint256 provisionThawingTokens = (before.provision.tokensThawing *
-                (before.provision.tokens - calcValues.providerTokensSlashed)) / before.provision.tokens;
+        uint256 tokensSlashed = calcValues.providerTokensSlashed +
+            (isDelegationSlashingEnabled ? calcValues.delegationTokensSlashed : 0);
+        uint256 provisionThawingTokens = (before.provision.tokensThawing *
+            (before.provision.tokens - calcValues.providerTokensSlashed)) / before.provision.tokens;
 
-            // assert
-            assertEq(afterProvision.tokens + calcValues.providerTokensSlashed, before.provision.tokens);
-            assertEq(afterProvision.tokensThawing, provisionThawingTokens);
+        assertEq(afterProvision.tokens + calcValues.providerTokensSlashed, before.provision.tokens);
+        assertEq(afterProvision.tokensThawing, provisionThawingTokens);
+        assertEq(afterProvision.sharesThawing, afterProvision.tokensThawing == 0 ? 0 : before.provision.sharesThawing);
+        assertEq(afterProvision.maxVerifierCut, before.provision.maxVerifierCut);
+        assertEq(afterProvision.maxVerifierCutPending, before.provision.maxVerifierCutPending);
+        assertEq(afterProvision.thawingPeriod, before.provision.thawingPeriod);
+        assertEq(afterProvision.thawingPeriodPending, before.provision.thawingPeriodPending);
+        assertEq(
+            afterProvision.thawingNonce,
+            (before.provision.sharesThawing != 0 && afterProvision.sharesThawing == 0)
+                ? before.provision.thawingNonce + 1
+                : before.provision.thawingNonce
+        );
+        if (isDelegationSlashingEnabled) {
+            uint256 poolThawingTokens = (before.pool.tokensThawing *
+                (before.pool.tokens - calcValues.delegationTokensSlashed)) / before.pool.tokens;
+            assertEq(afterPool.tokens + calcValues.delegationTokensSlashed, before.pool.tokens);
+            assertEq(afterPool.shares, before.pool.shares);
+            assertEq(afterPool.tokensThawing, poolThawingTokens);
+            assertEq(afterPool.sharesThawing, afterPool.tokensThawing == 0 ? 0 : before.pool.sharesThawing);
             assertEq(
-                afterProvision.sharesThawing,
-                afterProvision.tokensThawing == 0 ? 0 : before.provision.sharesThawing
-            );
-            assertEq(afterProvision.maxVerifierCut, before.provision.maxVerifierCut);
-            assertEq(afterProvision.maxVerifierCutPending, before.provision.maxVerifierCutPending);
-            assertEq(afterProvision.thawingPeriod, before.provision.thawingPeriod);
-            assertEq(afterProvision.thawingPeriodPending, before.provision.thawingPeriodPending);
-            assertEq(
-                afterProvision.thawingNonce,
-                (before.provision.sharesThawing != 0 && afterProvision.sharesThawing == 0)
-                    ? before.provision.thawingNonce + 1
-                    : before.provision.thawingNonce
-            );
-            if (isDelegationSlashingEnabled) {
-                uint256 poolThawingTokens = (before.pool.tokensThawing *
-                    (before.pool.tokens - calcValues.delegationTokensSlashed)) / before.pool.tokens;
-                assertEq(afterPool.tokens + calcValues.delegationTokensSlashed, before.pool.tokens);
-                assertEq(afterPool.shares, before.pool.shares);
-                assertEq(afterPool.tokensThawing, poolThawingTokens);
-                assertEq(afterPool.sharesThawing, afterPool.tokensThawing == 0 ? 0 : before.pool.sharesThawing);
-                assertEq(
-                    afterPool.thawingNonce,
-                    (before.pool.sharesThawing != 0 && afterPool.sharesThawing == 0)
-                        ? before.pool.thawingNonce + 1
-                        : before.pool.thawingNonce
-                );
-            }
-
-            assertEq(before.stakingBalance - tokensSlashed, afterStakingBalance);
-            assertEq(before.verifierBalance + verifierCutAmount, afterVerifierBalance);
-
-            assertEq(
-                afterServiceProvider.tokensStaked + calcValues.providerTokensSlashed,
-                before.serviceProvider.tokensStaked
-            );
-            assertEq(
-                afterServiceProvider.tokensProvisioned + calcValues.providerTokensSlashed,
-                before.serviceProvider.tokensProvisioned
+                afterPool.thawingNonce,
+                (before.pool.sharesThawing != 0 && afterPool.sharesThawing == 0)
+                    ? before.pool.thawingNonce + 1
+                    : before.pool.thawingNonce
             );
         }
+
+        assertEq(before.stakingBalance - tokensSlashed, afterStakingBalance);
+        assertEq(before.verifierBalance + verifierCutAmount, afterVerifierBalance);
+
+        assertEq(
+            afterServiceProvider.tokensStaked + calcValues.providerTokensSlashed,
+            before.serviceProvider.tokensStaked
+        );
+        assertEq(
+            afterServiceProvider.tokensProvisioned + calcValues.providerTokensSlashed,
+            before.serviceProvider.tokensProvisioned
+        );
     }
 
     /*

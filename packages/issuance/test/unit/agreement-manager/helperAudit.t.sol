@@ -33,7 +33,7 @@ contract RecurringAgreementHelperAuditTest is RecurringAgreementManagerSharedTes
     // -- Helpers --
 
     function _makeRCAForCollector(
-        MockRecurringCollector collector,
+        MockRecurringCollector /* collector */,
         address provider,
         uint256 nonce
     ) internal view returns (IRecurringCollector.RecurringCollectionAgreement memory rca) {

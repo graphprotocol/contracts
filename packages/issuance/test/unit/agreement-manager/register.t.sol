@@ -72,8 +72,7 @@ contract RecurringAgreementManagerOfferTest is RecurringAgreementManagerSharedTe
             uint64(block.timestamp + 365 days)
         );
 
-        uint256 expectedMaxClaim = 1 ether * 3600 + 100 ether;
-        uint256 available = 500 ether; // Less than expectedMaxClaim
+        uint256 available = 500 ether; // Less than expectedMaxClaim (1 ether * 3600 + 100 ether = 3700 ether)
 
         // Fund with less than needed
         token.mint(address(agreementManager), available);

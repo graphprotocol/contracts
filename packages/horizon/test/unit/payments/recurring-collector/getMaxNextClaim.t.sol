@@ -367,7 +367,10 @@ contract RecurringCollectorGetMaxNextClaimTest is RecurringCollectorSharedTest {
         vm.prank(rca.dataService);
         _recurringCollector.collect(_paymentType(0), data);
 
-        uint256 lastCollectionAt = block.timestamp;
+        // vm.getBlockTimestamp() (external cheatcode CALL) instead of block.timestamp:
+        // under viaIR, the TIMESTAMP opcode is treated as pure and CSE-eliminates the
+        // local, re-reading block.timestamp at the use site post-warp.
+        uint256 lastCollectionAt = vm.getBlockTimestamp();
 
         // Warp past endsAt
         vm.warp(rca.endsAt + 1000);
@@ -391,7 +394,8 @@ contract RecurringCollectorGetMaxNextClaimTest is RecurringCollectorSharedTest {
             bytes16 agreementId
         ) = _sensibleAuthorizeAndAccept(fuzzy);
 
-        uint256 acceptedAt = block.timestamp;
+        // See sibling test for the viaIR/CSE rationale for vm.getBlockTimestamp().
+        uint256 acceptedAt = vm.getBlockTimestamp();
 
         // Warp past endsAt without ever collecting
         vm.warp(rca.endsAt + 1000);

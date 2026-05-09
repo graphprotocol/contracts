@@ -23,7 +23,7 @@ contract HugeReturnPayer is IAgreementOwner, IERC165 {
         return interfaceId == type(IERC165).interfaceId || interfaceId == type(IProviderEligibility).interfaceId;
     }
 
-    function beforeCollection(bytes16, uint256) external {
+    function beforeCollection(bytes16, uint256) external view {
         uint256 size = returnBytes;
         // solhint-disable-next-line no-inline-assembly
         assembly {
@@ -31,7 +31,7 @@ contract HugeReturnPayer is IAgreementOwner, IERC165 {
         }
     }
 
-    function afterCollection(bytes16, uint256) external {
+    function afterCollection(bytes16, uint256) external view {
         uint256 size = returnBytes;
         // solhint-disable-next-line no-inline-assembly
         assembly {

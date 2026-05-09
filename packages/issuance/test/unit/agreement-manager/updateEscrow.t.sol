@@ -522,7 +522,6 @@ contract RecurringAgreementManagerUpdateEscrowTest is RecurringAgreementManagerS
         bytes16 id1 = _offerAgreement(rca1);
         _offerAgreement(rca2);
 
-        uint256 maxClaim1 = 1 ether * 3600 + 100 ether;
         uint256 maxClaim2 = 2 ether * 7200 + 200 ether;
 
         // Reconcile indexer1's agreement (triggers thaw)
