@@ -1,4 +1,4 @@
-# Trust Security Audit - PR #1301 / #1312 / #1325 / #1331
+# Trust Security Audit - PR #1301 / #1312 / #1325 / #1331 / #1334
 
 **Auditor:** Trust Security
 **Period:** 2026-03-03 to 2026-03-19
@@ -6,7 +6,8 @@
 **Fix review commit:** 0bbb476f37f85d042927e84d8764fa58eb020ccf
 **2nd fix review commit:** f44fc5a4c74fa5190fd2892ae15a083b79f715f3
 **3rd fix review commit:** bbec75e04aa14c34d771681528b9a655be1f8249 (post-rebase)
-**Report:** [Graph_PR1331_v04.pdf](Graph_PR1331_v04.pdf)
+**4th fix review commit:** 8d148f39a89e4f569456e098eb4d68f8a8d967e3
+**Report:** [Graph_PR1334_v05.pdf](Graph_PR1334_v05.pdf)
 
 > **SHA note.** The first three commits cited above are pre-rebase SHAs on
 > `indexing-payments-management-audit-fix-2-light`, which was rebased onto
@@ -38,6 +39,13 @@
 | [TRST-L-8](TRST-L-8.md)   | Callback gas precheck does not account for overhead      | Low      | Fixed        |
 | [TRST-L-9](TRST-L-9.md)   | EIP-7702 payer code change enables callback gas griefing | Low      | Fixed        |
 | [TRST-L-10](TRST-L-10.md) | Inaccurate state flags in getAgreementDetails()          | Low      | Fixed        |
+
+## Client-Reported Findings
+
+| ID                        | Title                                                                       |
+| ------------------------- | --------------------------------------------------------------------------- |
+| [TRST-CL-1](TRST-CL-1.md) | RecurringCollector may underreport required claim causing under-reservation |
+| [TRST-CL-2](TRST-CL-2.md) | IssuanceAllocator may skip minting due to hypothetical governance action    |
 
 ## Recommendations
 
