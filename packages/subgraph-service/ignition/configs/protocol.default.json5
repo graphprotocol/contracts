@@ -23,7 +23,8 @@
     "disputeManagerProxyAdminAddress": "",
     "subgraphServiceProxyAddress": "",
     "subgraphServiceProxyAdminAddress": "",
-    "graphTallyCollectorAddress": ""
+    "graphTallyCollectorAddress": "",
+    "recurringCollectorAddress": ""
   },
   "DisputeManager": {
     "disputePeriod": 2419200,
