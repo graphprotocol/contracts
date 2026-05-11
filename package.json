@@ -22,7 +22,7 @@
     "lint:sol": "pnpm -r run lint:sol; prettier -w --cache --log-level warn 'packages/**/*.sol'; pnpm todo",
     "lint:forge": "pnpm -r run lint:forge",
     "lint:md": "markdownlint --fix --ignore-path .gitignore 'packages/**/*.md' 'docs/**/*.md' '*.md'; prettier -w --cache --log-level warn 'packages/**/*.md' 'docs/**/*.md' '*.md'",
-    "lint:json": "prettier -w --cache --log-level warn 'packages/**/*.json' '.changeset/**/*.json' '*.json'",
+    "lint:json": "prettier -w --cache --log-level warn 'packages/**/*.{json,json5}' '.changeset/**/*.json' '*.{json,json5}'",
     "lint:yaml": "npx yaml-lint .github/**/*.{yml,yaml} packages/contracts/task/config/*.yml; prettier -w --cache --log-level warn 'packages/**/*.{yml,yaml}' '.github/**/*.{yml,yaml}'",
     "test": "pnpm build && pnpm -r run test:self",
     "test:prod": "FOUNDRY_PROFILE=prod pnpm test",
@@ -82,7 +82,7 @@
       "markdownlint --fix",
       "prettier -w --cache --log-level warn"
     ],
-    "*.json": "prettier -w --cache --log-level warn",
+    "*.{json,json5}": "prettier -w --cache --log-level warn",
     "*.{yml,yaml}": [
       "npx yamllint",
       "prettier -w --cache --log-level warn"
