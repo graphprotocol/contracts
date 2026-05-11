@@ -1,6 +1,11 @@
 import { expect } from 'chai'
 
-import { computeBytecodeHash, stripMetadata } from '../lib/bytecode-utils.js'
+import {
+  computeBytecodeHash,
+  type LibraryArtifactResolver,
+  type LinkReferences,
+  stripMetadata,
+} from '../lib/bytecode-utils.js'
 import { loadContractsArtifact } from '../lib/deploy-implementation.js'
 
 /**
@@ -101,6 +106,55 @@ describe('Bytecode Utilities', function () {
       const hash = computeBytecodeHash('0x')
       expect(hash).to.be.a('string')
       expect(hash).to.match(/^0x[a-f0-9]{64}$/)
+    })
+
+    it('should handle bytecode with unlinked library placeholders', function () {
+      // Library placeholders are deterministic (keccak256 of "path:name")) and
+      // included as-is in the hash — they're part of the artifact identity
+      const placeholder = '__$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa$__'
+      const code = '0x' + BASE_CODE + '73' + placeholder + METADATA_A
+      const hash = computeBytecodeHash(code)
+      expect(hash).to.be.a('string')
+      expect(hash).to.match(/^0x[a-f0-9]{64}$/)
+    })
+
+    it('should detect code changes around library placeholders', function () {
+      const placeholder = '__$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa$__'
+      const codeA = '0x' + BASE_CODE + '73' + placeholder + METADATA_A
+      const codeB = '0x' + BASE_CODE + '6001' + '73' + placeholder + METADATA_A
+      expect(computeBytecodeHash(codeA)).to.not.equal(computeBytecodeHash(codeB))
+    })
+
+    it('should resolve library placeholders with resolver', async function () {
+      const { keccak256: k, toUtf8Bytes: u } = await import('ethers')
+      const libPath = 'contracts/libs/MyLib.sol'
+      const libName = 'MyLib'
+      const placeholderHash = k(u(`${libPath}:${libName}`)).slice(2, 36)
+      const placeholder = `__$${placeholderHash}$__`
+      // Use placeholder in middle with enough valid hex around it, plus metadata suffix
+      const code = '0x' + BASE_CODE + '73' + placeholder + BASE_CODE + METADATA_A
+
+      const linkRefs: LinkReferences = {
+        [libPath]: { [libName]: [{ length: 20, start: 0 }] },
+      }
+      const libBytecodeA = '0x6001600201'
+      const libBytecodeB = '0x6001600301' // different library code
+
+      const resolver: LibraryArtifactResolver = () => ({
+        deployedBytecode: libBytecodeA,
+      })
+      const resolverB: LibraryArtifactResolver = () => ({
+        deployedBytecode: libBytecodeB,
+      })
+
+      const hashA = computeBytecodeHash(code, linkRefs, resolver)
+      const hashB = computeBytecodeHash(code, linkRefs, resolverB)
+      const hashNoResolver = computeBytecodeHash(code)
+
+      // Different library code should produce different hashes
+      expect(hashA).to.not.equal(hashB)
+      // With resolver should differ from without (zero-filled)
+      expect(hashA).to.not.equal(hashNoResolver)
     })
   })
 })

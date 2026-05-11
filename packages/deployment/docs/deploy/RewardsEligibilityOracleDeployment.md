@@ -5,7 +5,7 @@ Deployment guide for RewardsEligibilityOracle (REO).
 **Related:**
 
 - [Contract specification](../../../issuance/contracts/eligibility/RewardsEligibilityOracle.md) - architecture, operations, troubleshooting
-- [GovernanceWorkflow.md](./GovernanceWorkflow.md) - Safe TX execution
+- [GovernanceWorkflow.md](../GovernanceWorkflow.md) - Safe TX execution
 
 ## Prerequisites
 
@@ -17,26 +17,41 @@ Deployment guide for RewardsEligibilityOracle (REO).
 
 All scripts are idempotent.
 
-| Script                                                                                  | Tag                                       | Actor               | Purpose                                |
-| --------------------------------------------------------------------------------------- | ----------------------------------------- | ------------------- | -------------------------------------- |
-| [01_deploy.ts](../../deploy/rewards/eligibility/01_deploy.ts)                           | `rewards-eligibility-deploy`              | Deployer            | Deploy proxy + implementation          |
-| [02_upgrade.ts](../../deploy/rewards/eligibility/02_upgrade.ts)                         | `rewards-eligibility-upgrade`             | Governance          | Upgrade implementation                 |
-| [04_configure.ts](../../deploy/rewards/eligibility/04_configure.ts)                     | `rewards-eligibility-configure`           | Deployer/Governance | Set parameters                         |
-| [05_transfer_governance.ts](../../deploy/rewards/eligibility/05_transfer_governance.ts) | `rewards-eligibility-transfer-governance` | Deployer            | Grant roles, transfer to governance    |
-| [06_integrate.ts](../../deploy/rewards/eligibility/06_integrate.ts)                     | `rewards-eligibility-integrate`           | Governance          | Connect to RewardsManager              |
-| [09_complete.ts](../../deploy/rewards/eligibility/09_complete.ts)                       | `rewards-eligibility`                     | -                   | Aggregate (deploy, upgrade, configure) |
+| Script                                                                                  | Tag                                       | Actor               | Purpose                                   |
+| --------------------------------------------------------------------------------------- | ----------------------------------------- | ------------------- | ----------------------------------------- |
+| [01_deploy.ts](../../deploy/rewards/eligibility/01_deploy.ts)                           | `RewardsEligibilityOracle{A,B}:deploy`    | Deployer            | Deploy proxy + implementation             |
+| [02_upgrade.ts](../../deploy/rewards/eligibility/02_upgrade.ts)                         | `RewardsEligibilityOracle{A,B}:upgrade`   | Governance          | Upgrade implementation                    |
+| [04_configure.ts](../../deploy/rewards/eligibility/04_configure.ts)                     | `RewardsEligibilityOracle{A,B}:configure` | Deployer/Governance | Set parameters                            |
+| [05_transfer_governance.ts](../../deploy/rewards/eligibility/05_transfer_governance.ts) | `RewardsEligibilityOracle{A,B}:transfer`  | Deployer            | Revoke deployer role, transfer ProxyAdmin |
+| [09_end.ts](../../deploy/rewards/eligibility/09_end.ts)                                 | `RewardsEligibilityOracle{A,B}`           | -                   | Aggregate (deploy, upgrade, configure)    |
+
+Integration with `RewardsManager` is **not** a per-component lifecycle action. Only one of REO-A or REO-B is integrated at a time, which is a goal-level decision. Use the GIP-0088 activation tag instead:
+
+```bash
+pnpm hardhat deploy --tags GIP-0088:eligibility-integrate --network <network>
+```
+
+The testnet-only `MockRewardsEligibilityOracle` is a separate, opt-in path with its own per-component [`06_integrate.ts`](../../deploy/rewards/eligibility/mock/06_integrate.ts). It is **not** part of any GIP-0088 phase tag, so `--tags all` will not pull it in — it runs only when `RewardsEligibilityOracleMock` is named explicitly:
+
+```bash
+pnpm hardhat deploy --tags RewardsEligibilityOracleMock,integrate --network <network>
+```
+
+Intentionally kept off the default deployment path and outside the governance-tx flow; not intended for mainnet. Its governance-tx batch name is `RewardsManager-MockREO` (vs `RewardsManager-REO` for the GIP-0088 A/B activation) so the two cannot collide on the same filesystem.
 
 ### Quick Start
 
 ```bash
-# Full deployment (new install)
-pnpm hardhat deploy --tags rewards-eligibility --network <network>
+# Read-only status (no --tags = no mutations)
+pnpm hardhat deploy --tags RewardsEligibilityOracleA --network <network>
 
 # Individual steps
-pnpm hardhat deploy --tags rewards-eligibility-deploy --network <network>
-pnpm hardhat deploy --tags rewards-eligibility-configure --network <network>
-pnpm hardhat deploy --tags rewards-eligibility-transfer-governance --network <network>
-pnpm hardhat deploy --tags rewards-eligibility-integrate --network <network>
+pnpm hardhat deploy --tags RewardsEligibilityOracleA,deploy --network <network>
+pnpm hardhat deploy --tags RewardsEligibilityOracleA,configure --network <network>
+pnpm hardhat deploy --tags RewardsEligibilityOracleA,transfer --network <network>
+
+# Integrate (only one of A/B at a time — goal-level)
+pnpm hardhat deploy --tags GIP-0088:eligibility-integrate --network <network>
 ```
 
 ## Verification Checklist

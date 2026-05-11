@@ -10,8 +10,9 @@ Before modifying any deployment scripts in `deploy/`, read:
 
 ## Key Rules (from principles)
 
-- **`process.exit(1)` after generating governance TXs** - never return, always exit
+- **`saveGovernanceTx` returns** - governance TX generation returns (not exit), downstream scripts check their own preconditions
 - **Idempotent scripts** - check on-chain state, skip if already done
+- **Shared precondition checks** - use `lib/preconditions.ts` for configure/transfer checks, not inline copies
 - **Package imports** - use `@graphprotocol/deployment/...` not relative paths
 - **Contract registry** - use `Contracts.X` not string literals
 - **Standard numbering** - `01_deploy`, `02_upgrade`, ..., `09_end`
