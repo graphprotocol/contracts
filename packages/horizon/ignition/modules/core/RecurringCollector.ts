@@ -12,7 +12,7 @@ import HorizonProxiesModule from './HorizonProxies'
 export default buildModule('RecurringCollector', (m) => {
   const { Controller } = m.useModule(GraphPeripheryModule)
 
-  const governor = m.getAccount(1)
+  const governor = m.getParameter('governor')
   const revokeSignerThawingPeriod = m.getParameter('revokeSignerThawingPeriod')
   const eip712Name = m.getParameter('eip712Name')
   const eip712Version = m.getParameter('eip712Version')
