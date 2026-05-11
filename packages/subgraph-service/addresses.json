@@ -37,14 +37,14 @@
       "address": "0xc24A3dAC5d06d771f657A48B20cE1a671B78f26b",
       "proxy": "transparent",
       "proxyAdmin": "0x15737D9f8635cAcd43e110327c930bd5EC1fe098",
-      "implementation": "0x8a6361e7355d6936ab17aaacde797d01c0e6c4c4",
+      "implementation": "0xe549fe68aab5a251f2b76c325c497461ec244bd9",
       "implementationDeployment": {
-        "txHash": "0x9f3fc372d88a97832eb47bc1f98176532b9a54fa0c110dab8399f9e55ab0aa9d",
-        "argsData": "0x0000000000000000000000009db3ee191681f092607035d9bda6e59fbeaca69500000000000000000000000096e1b86b2739e8a3d59f40f2532cadf9ce8da088000000000000000000000000382863e7b662027117449bd2c49285582bbbd21b000000000000000000000000de761f075200e75485f4358978fb4d1dc8644fd5",
-        "bytecodeHash": "0x9c25d2f93e6a2a34cc19d00224872e288a8392d5d99b2df680b7e978d148d450",
-        "blockNumber": 240040490,
-        "timestamp": "2026-02-05T20:26:15.000Z",
-        "verified": "https://sepolia.arbiscan.io/address/0x8a6361e7355d6936ab17aaacde797d01c0e6c4c4#code"
+        "txHash": "0xcea5fab7372ecbb7d3810d5b01f347b6da71e1a52eacb625dd76385099f8e0ea",
+        "argsData": "0x0000000000000000000000009db3ee191681f092607035d9bda6e59fbeaca69500000000000000000000000096e1b86b2739e8a3d59f40f2532cadf9ce8da088000000000000000000000000382863e7b662027117449bd2c49285582bbbd21b000000000000000000000000de761f075200e75485f4358978fb4d1dc8644fd50000000000000000000000000b18befc60455121ad66ae6e4a647955fcde3900",
+        "bytecodeHash": "0x8d08acc2dc16818f457d86cdf7bf86d1903a3786cd3f4ec430239dd553473926",
+        "blockNumber": 258351073,
+        "timestamp": "2026-04-10T15:30:03.000Z",
+        "verified": "https://sepolia.arbiscan.io/address/0xe549fe68aab5a251f2b76c325c497461ec244bd9#code"
       },
       "proxyDeployment": {
         "verified": "https://sepolia.arbiscan.io/address/0xc24A3dAC5d06d771f657A48B20cE1a671B78f26b#code"
@@ -54,7 +54,18 @@
       "address": "0x96e1b86b2739e8A3d59F40F2532caDF9cE8Da088",
       "proxy": "transparent",
       "proxyAdmin": "0x154a73CB6ebB5717a15f203d6E160E6F41ecC527",
-      "implementation": "0x28A0cFDE10e8Ea5C7f3E80981728E3eA1228D338"
+      "implementation": "0xa2016b450af51c356295388ba944f1396ae0ab35",
+      "implementationDeployment": {
+        "txHash": "0xb81c006bdfe70d834309bf6bbc32ba8b659508ab4a8283f99c41af52b6933a45",
+        "argsData": "0x0000000000000000000000009db3ee191681f092607035d9bda6e59fbeaca695",
+        "bytecodeHash": "0xff6852f3bcaeb2e092067b1c8239a93f36d945f0bbca82cb721d65b5a953ab25",
+        "blockNumber": 258351091,
+        "timestamp": "2026-04-10T15:30:08.000Z",
+        "verified": "https://sepolia.arbiscan.io/address/0xa2016b450af51c356295388ba944f1396ae0ab35#code"
+      },
+      "proxyDeployment": {
+        "verified": "https://sepolia.arbiscan.io/address/0x96e1b86b2739e8A3d59F40F2532caDF9cE8Da088#code"
+      }
     },
     "L2Curation": {
       "address": "0xDe761f075200E75485F4358978FB4d1dC8644FD5",
