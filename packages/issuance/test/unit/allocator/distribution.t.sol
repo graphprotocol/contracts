@@ -484,7 +484,7 @@ contract IssuanceAllocatorDistributionTest is IssuanceAllocatorSharedTest {
 
     // ==================== Pending Distribution With No Accumulated Self-Minting ====================
 
-    /// @notice Starting from `selfMintingOffset == 0` (no prior accumulation),
+    /// @notice Fresh catch-up case (no residual offset from a prior partial flush):
     /// `distributePendingIssuance()` must mint each target only its own allocator-minting
     /// rate for the period, leaving the self-minting share to the self-minting targets.
     function test_DistributePendingIssuance_NoOffset_DefaultGetsOwnRateOnly() public {
@@ -553,8 +553,8 @@ contract IssuanceAllocatorDistributionTest is IssuanceAllocatorSharedTest {
         assertEq(allocator.getDistributionState().lastDistributionBlock, lastDistBlock + totalBlocks);
     }
 
-    /// @notice Starting from `selfMintingOffset == 0` (no prior accumulation), with a
-    /// target that has both allocator-minting and self-minting rates, the target receives
+    /// @notice Fresh catch-up case (no residual offset from a prior partial flush), with a
+    /// target that has both allocator-minting and self-minting rates: the target receives
     /// only its allocator-minting share and the default receives only its own rate.
     function test_DistributePendingIssuance_NoOffset_MixedTargets() public {
         _setIssuanceRate(100 ether);
