@@ -1,6 +1,7 @@
 import { getLibraryResolver, loadDirectAllocationArtifact } from '@graphprotocol/deployment/lib/artifact-loaders.js'
 import { computeBytecodeHash } from '@graphprotocol/deployment/lib/bytecode-utils.js'
 import { Contracts } from '@graphprotocol/deployment/lib/contract-registry.js'
+import { buildDeploymentMetadata } from '@graphprotocol/deployment/lib/deployment-metadata.js'
 import { ComponentTags, DeploymentActions, shouldSkipAction } from '@graphprotocol/deployment/lib/deployment-tags.js'
 import {
   requireDeployer,
@@ -54,16 +55,14 @@ const func: DeployScriptModule = async (env) => {
       artifact.deployedLinkReferences,
       resolver,
     )
-
-    await graph.updateIssuanceAddressBook(env, {
-      name: Contracts.issuance.DirectAllocation_Implementation.name,
-      address: result.address,
-      deployment: {
-        txHash: result.transaction?.hash ?? '',
-        argsData: result.argsData,
-        bytecodeHash,
-      },
-    })
+    const metadata = buildDeploymentMetadata(result, bytecodeHash)
+    if (metadata) {
+      await graph.updateIssuanceAddressBook(env, {
+        name: Contracts.issuance.DirectAllocation_Implementation.name,
+        address: result.address,
+        deployment: metadata,
+      })
+    }
   }
 
   showDeploymentStatus(env, Contracts.issuance.DirectAllocation_Implementation, result)

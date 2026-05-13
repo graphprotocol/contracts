@@ -3,7 +3,6 @@ import type { Environment } from '@rocketh/core/types'
 import type { PublicClient } from 'viem'
 import { encodeFunctionData } from 'viem'
 
-import type { AnyAddressBookOps } from './address-book-ops.js'
 import { Contracts, type RegistryEntry } from './contract-registry.js'
 import { getGovernor } from './controller-utils.js'
 import {
@@ -15,7 +14,8 @@ import {
 import { loadTransparentProxyArtifact } from './artifact-loaders.js'
 import { INITIALIZE_GOVERNOR_ABI, OZ_PROXY_ADMIN_ABI } from './abis.js'
 import { computeBytecodeHash } from './bytecode-utils.js'
-import { getTargetChainIdFromEnv } from './address-book-utils.js'
+import { getAddressBookForType, getTargetChainIdFromEnv } from './address-book-utils.js'
+import { buildDeploymentMetadata } from './deployment-metadata.js'
 import { deploy, execute, graph } from '../rocketh/deploy.js'
 
 /** ERC1967 admin slot: keccak256("eip1967.proxy.admin") - 1 */
@@ -178,20 +178,14 @@ export async function updateProxyAddressBook(
   proxyAdminAddress?: string,
   implementationDeployment?: DeploymentMetadata,
 ) {
-  const update = {
+  await graphUtils.updateAddressBookForContract(env, contract, {
     name: contract.name,
     address: proxyAddress,
-    proxy: 'transparent' as const,
+    proxy: 'transparent',
     proxyAdmin: proxyAdminAddress,
     implementation: implAddress,
     implementationDeployment,
-  }
-
-  if (contract.addressBook === 'horizon') {
-    await graphUtils.updateHorizonAddressBook(env, update)
-  } else {
-    await graphUtils.updateIssuanceAddressBook(env, update)
-  }
+  })
 }
 
 /**
@@ -322,18 +316,17 @@ export async function deployProxyContract(
       if (onChainImpl.toLowerCase() !== implDep.address.toLowerCase()) {
         // Shared implementation changed — store as pending for governance upgrade
         const targetChainId = await getTargetChainIdFromEnv(env)
-        const addressBook: AnyAddressBookOps =
-          contract.addressBook === 'horizon'
-            ? graph.getHorizonAddressBook(targetChainId)
-            : graph.getIssuanceAddressBook(targetChainId)
+        const addressBook = getAddressBookForType(contract.addressBook, targetChainId)
 
         // Get deployment metadata from the shared implementation's address book entry
         const implMetadata = addressBook.getDeploymentMetadata(sharedImplementation.name)
-        addressBook.setPendingImplementationWithMetadata(
-          contract.name,
-          implDep.address,
-          implMetadata ?? { txHash: '', bytecodeHash: '' },
-        )
+        if (!implMetadata) {
+          throw new Error(
+            `${contract.name}: deployment metadata missing for ${sharedImplementation.name}. ` +
+              `Run ${sharedImplementation.name}'s deploy script (or sync) before re-running.`,
+          )
+        }
+        addressBook.setPendingImplementationWithMetadata(contract.name, implDep.address, implMetadata)
 
         env.showMessage(``)
         env.showMessage(`⚠️  UPGRADE REQUIRED`)
@@ -456,15 +449,9 @@ async function deployProxyWithOwnImpl(
   })
 
   // Build implementation deployment metadata for address book (only if we have required fields)
-  let implementationDeployment: DeploymentMetadata | undefined
-  if (implResult.transaction?.hash && implResult.argsData && implResult.deployedBytecode) {
-    implementationDeployment = {
-      txHash: implResult.transaction.hash,
-      argsData: implResult.argsData,
-      bytecodeHash: computeBytecodeHash(implResult.deployedBytecode),
-      ...(implResult.receipt?.blockNumber && { blockNumber: Number(implResult.receipt.blockNumber) }),
-    }
-  }
+  const implementationDeployment: DeploymentMetadata | undefined = implResult.deployedBytecode
+    ? buildDeploymentMetadata(implResult, computeBytecodeHash(implResult.deployedBytecode))
+    : undefined
 
   // Update address book with per-proxy ProxyAdmin and deployment metadata
   await updateProxyAddressBook(

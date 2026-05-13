@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { Environment } from '@rocketh/core/types'
+import JSON5 from 'json5'
 
 import { getTargetChainIdFromEnv } from './address-book-utils.js'
 
@@ -77,14 +78,6 @@ const DEFAULT_SETTINGS: ResolvedSettings = {
   },
 }
 
-/**
- * Strip single-line // comments from JSON5-style content so it can be parsed
- * by JSON.parse. Preserves strings containing //.
- */
-function stripComments(text: string): string {
-  return text.replace(/^\s*\/\/.*$/gm, '').replace(/,(\s*[}\]])/g, '$1')
-}
-
 function loadConfigFile(chainId: number): DeploymentConfigFile {
   const networkName = CHAIN_CONFIG_MAP[chainId]
   if (!networkName) return {}
@@ -92,7 +85,7 @@ function loadConfigFile(chainId: number): DeploymentConfigFile {
   const configPath = resolve(__dirname, '..', 'config', `${networkName}.json5`)
   try {
     const raw = readFileSync(configPath, 'utf-8')
-    return JSON.parse(stripComments(raw)) as DeploymentConfigFile
+    return JSON5.parse<DeploymentConfigFile>(raw)
   } catch {
     return {}
   }

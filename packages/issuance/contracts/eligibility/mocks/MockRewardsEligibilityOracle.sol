@@ -42,7 +42,7 @@ contract MockRewardsEligibilityOracle is BaseUpgradeable {
     }
 
     /// @notice ERC165 interface detection.
-    /// @dev Supports IRewardsEligibility (0x66e305fd) and inherited interfaces.
+    /// @dev Supports IProviderEligibility (0x66e305fd) and inherited interfaces.
     /// @param interfaceId The interface identifier to check.
     /// @return True if the interface is supported.
     function supportsInterface(bytes4 interfaceId) public view override returns (bool) {

@@ -28,7 +28,9 @@ import {
 } from '@graphprotocol/toolshed/deployments'
 
 import { config as rockethConfig } from '../rocketh/config.js'
+import type { AnyAddressBookOps } from './address-book-ops.js'
 import { AddressBookOps } from './address-book-ops.js'
+import type { AddressBookType } from './contract-registry.js'
 
 const require = createRequire(import.meta.url)
 
@@ -435,4 +437,25 @@ export function getIssuanceAddressBook(chainId?: number): AddressBookOps<GraphIs
   const targetChainId = chainId ?? getForkTargetChainId() ?? 31337
   const baseAddressBook = new GraphIssuanceAddressBook(getIssuanceAddressBookPath(), targetChainId)
   return new AddressBookOps(baseAddressBook)
+}
+
+/**
+ * Get the address book ops for a contract by its declared address book type.
+ *
+ * Single routing point — adding a new address book type will surface as a
+ * TypeScript exhaustiveness error here rather than silently misrouting.
+ */
+export function getAddressBookForType(type: AddressBookType, chainId?: number): AnyAddressBookOps {
+  switch (type) {
+    case 'horizon':
+      return getHorizonAddressBook(chainId)
+    case 'subgraph-service':
+      return getSubgraphServiceAddressBook(chainId)
+    case 'issuance':
+      return getIssuanceAddressBook(chainId)
+    default: {
+      const _exhaustive: never = type
+      throw new Error(`Unknown address book type: ${String(_exhaustive)}`)
+    }
+  }
 }

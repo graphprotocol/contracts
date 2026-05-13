@@ -1,8 +1,7 @@
 import type { Artifact, Environment } from '@rocketh/core/types'
 import { encodeAbiParameters, getAddress } from 'viem'
 
-import { getTargetChainIdFromEnv } from './address-book-utils.js'
-import type { AnyAddressBookOps } from './address-book-ops.js'
+import { getAddressBookForType, getTargetChainIdFromEnv } from './address-book-utils.js'
 import {
   getLibraryResolver,
   linkArtifactLibraries,
@@ -14,6 +13,7 @@ import {
 } from './artifact-loaders.js'
 import { computeBytecodeHash } from './bytecode-utils.js'
 import { getContractMetadata, type AddressBookType, type ArtifactSource, type ProxyType } from './contract-registry.js'
+import { buildDeploymentMetadata } from './deployment-metadata.js'
 import { deploy, graph } from '../rocketh/deploy.js'
 
 // Re-export artifact loaders for backwards compatibility
@@ -285,12 +285,7 @@ export async function deployImplementation(
 
   // Get address book to check pending implementation
   const targetChainId = await getTargetChainIdFromEnv(env)
-  const addressBookInstance: AnyAddressBookOps =
-    addressBook === 'subgraph-service'
-      ? graph.getSubgraphServiceAddressBook(targetChainId)
-      : addressBook === 'issuance'
-        ? graph.getIssuanceAddressBook(targetChainId)
-        : graph.getHorizonAddressBook(targetChainId)
+  const addressBookInstance = getAddressBookForType(addressBook, targetChainId)
 
   // Compute local artifact bytecode hash (for storing with deployment)
   const resolver = getLibraryResolver(artifactSource.type)
@@ -381,13 +376,10 @@ export async function deployImplementation(
   }
 
   // Store with full deployment metadata for verification and reconstruction
-  addressBookInstance.setPendingImplementationWithMetadata(contractName, impl.address, {
-    txHash: impl.transaction?.hash ?? '',
-    argsData: impl.argsData,
-    bytecodeHash: localBytecodeHash,
-    ...(blockNumber !== undefined && { blockNumber }),
-    ...(timestamp && { timestamp }),
-  })
+  const metadata = buildDeploymentMetadata(impl, localBytecodeHash, { blockNumber, timestamp })
+  if (metadata) {
+    addressBookInstance.setPendingImplementationWithMetadata(contractName, impl.address, metadata)
+  }
 
   env.showMessage(`✓ Pending implementation stored with deployment metadata.`)
   env.showMessage(`  Run upgrade task to generate TX and execute.`)

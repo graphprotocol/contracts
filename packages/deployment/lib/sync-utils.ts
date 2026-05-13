@@ -5,6 +5,7 @@ import type { DeploymentMetadata } from '@graphprotocol/toolshed/deployments'
 
 import {
   autoDetectForkNetwork,
+  getAddressBookForType,
   getForkNetwork,
   getForkStateDir,
   getForkTargetChainId,
@@ -212,34 +213,6 @@ export function reconstructDeploymentRecord(
     deployedBytecode: loadedArtifact.deployedBytecode as `0x${string}` | undefined,
     argsData: deploymentMetadata.argsData as `0x${string}`,
     metadata: '',
-  }
-}
-
-/**
- * Create deployment metadata from a deployment result
- *
- * Helper to create DeploymentMetadata from rocketh deployment results
- * for storage in address book.
- *
- * @param txHash - Transaction hash of deployment
- * @param argsData - ABI-encoded constructor arguments
- * @param deployedBytecode - Deployed bytecode for hash computation
- * @param blockNumber - Block number of deployment
- * @param timestamp - Block timestamp (ISO 8601)
- */
-export function createDeploymentMetadata(
-  txHash: string,
-  argsData: string,
-  deployedBytecode: string,
-  blockNumber?: number,
-  timestamp?: string,
-): DeploymentMetadata {
-  return {
-    txHash,
-    argsData,
-    bytecodeHash: computeBytecodeHash(deployedBytecode),
-    ...(blockNumber !== undefined && { blockNumber }),
-    ...(timestamp && { timestamp }),
   }
 }
 
@@ -1090,20 +1063,6 @@ export async function syncContractGroups(
   }
 
   return { success: failures.length === 0, totalSynced, failures }
-}
-
-/**
- * Resolve address book instance for a given address book type and chain ID
- */
-function getAddressBookForType(addressBookType: AddressBookType, chainId: number) {
-  switch (addressBookType) {
-    case 'horizon':
-      return graph.getHorizonAddressBook(chainId)
-    case 'subgraph-service':
-      return graph.getSubgraphServiceAddressBook(chainId)
-    case 'issuance':
-      return graph.getIssuanceAddressBook(chainId)
-  }
 }
 
 /**

@@ -162,9 +162,10 @@
     "DirectAllocation_Implementation": {
       "address": "0xd5de0951759b8306226fa370a9ecca40a31aa2d3",
       "deployment": {
-        "txHash": "",
+        "txHash": "0x8e52d51f893a7fe465e475c20ade5911a3cdb7a8e7b2b625564f49d8ee93bb67",
         "argsData": "0x000000000000000000000000f8c05dcf59e8b28bfd5eed176c562bebcfc7ac04",
-        "bytecodeHash": "0xf11b102de39fbe66879f57214393c7ff7438e050f77802e2c08c71a000002003"
+        "bytecodeHash": "0xf11b102de39fbe66879f57214393c7ff7438e050f77802e2c08c71a000002003",
+        "blockNumber": 258322238
       }
     }
   }

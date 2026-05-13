@@ -23,7 +23,6 @@ export {
   IGraphProxyAdmin as GraphProxyAdmin,
   IGraphTallyCollectorToolshed as GraphTallyCollector,
   IHorizonStakingToolshed as HorizonStaking,
-  IRecurringCollector,
   IL2CurationToolshed as L2Curation,
   IL2GNSToolshed as L2GNS,
   IGraphToken as L2GraphToken,
