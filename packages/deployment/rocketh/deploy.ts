@@ -33,6 +33,8 @@ export interface DeploymentUpdate {
   implementation?: string
   /** Proxy type if this is a proxied contract */
   proxy?: 'transparent' | 'graph'
+  /** Proxy deployment metadata (for verification of the proxy contract itself) */
+  proxyDeployment?: DeploymentMetadata
   /** Implementation deployment metadata (for verification of proxied contracts) */
   implementationDeployment?: DeploymentMetadata
   /** Deployment metadata (for verification of non-proxied contracts) */
@@ -144,6 +146,9 @@ export const graph = {
 function applyDeploymentUpdate(addressBook: AnyAddressBookOps, update: DeploymentUpdate): void {
   if (update.proxy) {
     addressBook.setProxy(update.name, update.address, update.implementation!, update.proxyAdmin!, update.proxy)
+    if (update.proxyDeployment) {
+      addressBook.setProxyDeploymentMetadata(update.name, update.proxyDeployment)
+    }
     if (update.implementationDeployment) {
       addressBook.setImplementationDeploymentMetadata(update.name, update.implementationDeployment)
     }

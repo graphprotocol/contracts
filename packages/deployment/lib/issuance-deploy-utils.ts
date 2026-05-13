@@ -177,6 +177,7 @@ export async function updateProxyAddressBook(
   implAddress?: string,
   proxyAdminAddress?: string,
   implementationDeployment?: DeploymentMetadata,
+  proxyDeployment?: DeploymentMetadata,
 ) {
   await graphUtils.updateAddressBookForContract(env, contract, {
     name: contract.name,
@@ -184,6 +185,7 @@ export async function updateProxyAddressBook(
     proxy: 'transparent',
     proxyAdmin: proxyAdminAddress,
     implementation: implAddress,
+    proxyDeployment,
     implementationDeployment,
   })
 }
@@ -453,6 +455,12 @@ async function deployProxyWithOwnImpl(
     ? buildDeploymentMetadata(implResult, computeBytecodeHash(implResult.deployedBytecode))
     : undefined
 
+  // Build proxy deployment metadata from the proxy artifact bytecode
+  const proxyDeployment = buildDeploymentMetadata(
+    proxyResult,
+    computeBytecodeHash(proxyArtifact.deployedBytecode ?? '0x'),
+  )
+
   // Update address book with per-proxy ProxyAdmin and deployment metadata
   await updateProxyAddressBook(
     env,
@@ -462,6 +470,7 @@ async function deployProxyWithOwnImpl(
     implResult.address,
     proxyAdminAddress,
     implementationDeployment,
+    proxyDeployment,
   )
 
   if (proxyResult.newlyDeployed) {
@@ -532,8 +541,23 @@ async function deployProxyWithSharedImpl(
     abi: implDep.abi,
   })
 
-  // Update address book with per-proxy ProxyAdmin
-  await updateProxyAddressBook(env, graph, contract, proxyResult.address, implDep.address, proxyAdminAddress)
+  // Build proxy deployment metadata from the proxy artifact bytecode
+  const proxyDeployment = buildDeploymentMetadata(
+    proxyResult,
+    computeBytecodeHash(proxyArtifact.deployedBytecode ?? '0x'),
+  )
+
+  // Update address book with per-proxy ProxyAdmin and proxy deployment metadata
+  await updateProxyAddressBook(
+    env,
+    graph,
+    contract,
+    proxyResult.address,
+    implDep.address,
+    proxyAdminAddress,
+    undefined,
+    proxyDeployment,
+  )
 
   if (proxyResult.newlyDeployed) {
     env.showMessage(`✓ ${contract.name} proxy deployed at ${proxyResult.address}`)
