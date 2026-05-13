@@ -6,8 +6,7 @@ import {
   REWARDS_MANAGER_ABI,
   REWARDS_MANAGER_DEPRECATED_ABI,
 } from '@graphprotocol/deployment/lib/abis.js'
-import type { AnyAddressBookOps } from '@graphprotocol/deployment/lib/address-book-ops.js'
-import { getTargetChainIdFromEnv } from '@graphprotocol/deployment/lib/address-book-utils.js'
+import { getAddressBookForType, getTargetChainIdFromEnv } from '@graphprotocol/deployment/lib/address-book-utils.js'
 import { checkConfigurationStatus } from '@graphprotocol/deployment/lib/apply-configuration.js'
 import { getREOConditions } from '@graphprotocol/deployment/lib/contract-checks.js'
 import {
@@ -122,12 +121,7 @@ async function collectProxyUpgrades(env: Environment, builder: TxBuilder, target
   const addressBooks: AddressBookType[] = ['horizon', 'subgraph-service', 'issuance']
   for (const abType of addressBooks) {
     const bookRegistry = CONTRACT_REGISTRY[abType]
-    const ab: AnyAddressBookOps =
-      abType === 'subgraph-service'
-        ? graph.getSubgraphServiceAddressBook(targetChainId)
-        : abType === 'issuance'
-          ? graph.getIssuanceAddressBook(targetChainId)
-          : graph.getHorizonAddressBook(targetChainId)
+    const ab = getAddressBookForType(abType, targetChainId)
 
     for (const [name, metadata] of Object.entries(bookRegistry)) {
       const meta = metadata as ContractMetadata

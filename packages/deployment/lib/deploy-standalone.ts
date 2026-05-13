@@ -59,18 +59,10 @@ export async function deployStandaloneContract(
     env.showMessage(`\n✓ ${contract.name} unchanged at ${result.address}`)
   }
 
-  // Update address book based on which book the contract belongs to
-  if (contract.addressBook === 'horizon') {
-    await graph.updateHorizonAddressBook(env, {
-      name: contract.name,
-      address: result.address,
-    })
-  } else if (contract.addressBook === 'issuance') {
-    await graph.updateIssuanceAddressBook(env, {
-      name: contract.name,
-      address: result.address,
-    })
-  }
+  await graph.updateAddressBookForContract(env, contract, {
+    name: contract.name,
+    address: result.address,
+  })
 
   return {
     address: result.address,

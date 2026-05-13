@@ -20,7 +20,7 @@ import {
   REWARDS_MANAGER_ABI,
 } from './abis.js'
 import type { AddressBookOps } from './address-book-ops.js'
-import { getTargetChainIdFromEnv } from './address-book-utils.js'
+import { getAddressBookForType, getTargetChainIdFromEnv } from './address-book-utils.js'
 import {
   checkIssuanceAllocatorActivation,
   checkOperatorRole,
@@ -986,11 +986,7 @@ export async function showDetailedComponentStatus(
   // Resolve address books
   const horizonBook = graph.getHorizonAddressBook(chainId)
   const addressBook =
-    contract.addressBook === 'horizon'
-      ? horizonBook
-      : contract.addressBook === 'subgraph-service'
-        ? graph.getSubgraphServiceAddressBook(chainId)
-        : graph.getIssuanceAddressBook(chainId)
+    contract.addressBook === 'horizon' ? horizonBook : getAddressBookForType(contract.addressBook, chainId)
 
   // Resolve ownership context
   const ownershipCtx = await resolveOwnershipContext(client, env, chainId)

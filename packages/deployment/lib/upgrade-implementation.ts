@@ -1,8 +1,7 @@
 import type { Environment } from '@rocketh/core/types'
 import { encodeFunctionData } from 'viem'
 
-import { getTargetChainIdFromEnv } from './address-book-utils.js'
-import type { AnyAddressBookOps } from './address-book-ops.js'
+import { getAddressBookForType, getTargetChainIdFromEnv } from './address-book-utils.js'
 import { GRAPH_PROXY_ADMIN_ABI, OZ_PROXY_ADMIN_ABI } from './abis.js'
 import { type AddressBookType, type ProxyType, type RegistryEntry } from './contract-registry.js'
 import { getOnChainImplementation } from './deploy-implementation.js'
@@ -148,12 +147,7 @@ export async function buildUpgradeTxs(
   const { contractName, proxyAdminName, proxyType = 'graph', addressBook = 'horizon' } = config
 
   const targetChainId = await getTargetChainIdFromEnv(env)
-  const addressBookInstance: AnyAddressBookOps =
-    addressBook === 'subgraph-service'
-      ? graph.getSubgraphServiceAddressBook(targetChainId)
-      : addressBook === 'issuance'
-        ? graph.getIssuanceAddressBook(targetChainId)
-        : graph.getHorizonAddressBook(targetChainId)
+  const addressBookInstance = getAddressBookForType(addressBook, targetChainId)
 
   // Check for pending implementation
   const contractEntry = addressBookInstance.getEntry(contractName)
@@ -169,11 +163,13 @@ export async function buildUpgradeTxs(
         if (onChainImpl.toLowerCase() !== implDep.address.toLowerCase()) {
           // Shared implementation changed — auto-set pendingImplementation
           const implMetadata = addressBookInstance.getDeploymentMetadata(implDepName)
-          addressBookInstance.setPendingImplementationWithMetadata(
-            contractName,
-            implDep.address,
-            implMetadata ?? { txHash: '', bytecodeHash: '' },
-          )
+          if (!implMetadata) {
+            throw new Error(
+              `${contractName}: deployment metadata missing for ${implDepName}. ` +
+                `Run the implementation deploy script (or sync) before invoking upgrade.`,
+            )
+          }
+          addressBookInstance.setPendingImplementationWithMetadata(contractName, implDep.address, implMetadata)
           env.showMessage(`  ⚠️  ${contractName}: shared implementation changed, setting pending upgrade`)
           // Fall through to process the upgrade
         } else {

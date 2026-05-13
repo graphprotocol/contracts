@@ -1,5 +1,5 @@
 import { IISSUANCE_TARGET_INTERFACE_ID } from '@graphprotocol/deployment/lib/abis.js'
-import { getTargetChainIdFromEnv } from '@graphprotocol/deployment/lib/address-book-utils.js'
+import { getAddressBookForType, getTargetChainIdFromEnv } from '@graphprotocol/deployment/lib/address-book-utils.js'
 import { checkConfigurationStatus } from '@graphprotocol/deployment/lib/apply-configuration.js'
 import {
   getREOConditions,
@@ -60,10 +60,7 @@ const func: DeployScriptModule = async (env) => {
   const rm = env.getOrNull('RewardsManager')
 
   for (const contract of upgradeContracts) {
-    const ab =
-      contract.addressBook === 'subgraph-service'
-        ? graph.getSubgraphServiceAddressBook(targetChainId)
-        : graph.getHorizonAddressBook(targetChainId)
+    const ab = getAddressBookForType(contract.addressBook, targetChainId)
 
     const result = await getContractStatusLine(client, contract.addressBook, ab, contract.name)
     env.showMessage(`  ${result.line}`)

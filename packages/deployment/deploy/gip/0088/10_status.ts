@@ -4,7 +4,7 @@ import {
   PROVIDER_ELIGIBILITY_MANAGEMENT_ABI,
   SUBGRAPH_SERVICE_CLOSE_GUARD_ABI,
 } from '@graphprotocol/deployment/lib/abis.js'
-import { getTargetChainIdFromEnv } from '@graphprotocol/deployment/lib/address-book-utils.js'
+import { getAddressBookForType, getTargetChainIdFromEnv } from '@graphprotocol/deployment/lib/address-book-utils.js'
 import { addressEquals, isRewardsManagerUpgraded } from '@graphprotocol/deployment/lib/contract-checks.js'
 import { Contracts, type RegistryEntry } from '@graphprotocol/deployment/lib/contract-registry.js'
 import { GoalTags } from '@graphprotocol/deployment/lib/deployment-tags.js'
@@ -53,10 +53,7 @@ export default createStatusModule(GoalTags.GIP_0088, async (env) => {
   const rm = env.getOrNull('RewardsManager')
 
   for (const contract of upgradeContracts) {
-    const ab =
-      contract.addressBook === 'subgraph-service'
-        ? graph.getSubgraphServiceAddressBook(targetChainId)
-        : graph.getHorizonAddressBook(targetChainId)
+    const ab = getAddressBookForType(contract.addressBook, targetChainId)
 
     const result = await getContractStatusLine(client, contract.addressBook, ab, contract.name)
     env.showMessage(`  ${result.line}`)

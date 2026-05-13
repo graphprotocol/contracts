@@ -8,8 +8,8 @@
 
 import { configVariable } from 'hardhat/config'
 
+import { getAddressBookForType } from './address-book-utils.js'
 import { type AddressBookType, CONTRACT_REGISTRY } from './contract-registry.js'
-import { graph } from '../rocketh/deploy.js'
 
 /**
  * Convert network name to env var prefix: arbitrumSepolia → ARBITRUM_SEPOLIA
@@ -88,12 +88,7 @@ export function resolveContractFromRegistry(
  * Get contract address from address book
  */
 export function getContractAddress(addressBook: AddressBookType, contractName: string, chainId: number): string | null {
-  const book =
-    addressBook === 'issuance'
-      ? graph.getIssuanceAddressBook(chainId)
-      : addressBook === 'horizon'
-        ? graph.getHorizonAddressBook(chainId)
-        : graph.getSubgraphServiceAddressBook(chainId)
+  const book = getAddressBookForType(addressBook, chainId)
 
   // Address book type is a union — cast to access entryExists/getEntry with a runtime name
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
