@@ -20,7 +20,12 @@ type MetadataOverrides = {
   timestamp?: string
 }
 
-function toBlockNumber(raw: `0x${string}` | bigint | number | undefined): number | undefined {
+/**
+ * Coerce rocketh's `receipt.blockNumber` (hex string, bigint, or number) to a plain
+ * number. Returns `undefined` for missing values. Use this everywhere instead of
+ * inline `parseInt`/`Number` so the conversion stays consistent.
+ */
+export function toBlockNumber(raw: `0x${string}` | bigint | number | undefined): number | undefined {
   if (raw === undefined) return undefined
   if (typeof raw === 'string') return Number(BigInt(raw))
   return Number(raw)

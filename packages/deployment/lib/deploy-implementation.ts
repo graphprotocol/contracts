@@ -139,7 +139,7 @@ export interface ImplementationDeployResult {
 }
 
 /**
- * Load artifact based on source configuration
+ * Load artifact based on source configuration. Throws if the artifact can't be loaded.
  */
 export function loadArtifactFromSource(source: ArtifactSource): Artifact {
   switch (source.type) {
@@ -153,6 +153,19 @@ export function loadArtifactFromSource(source: ArtifactSource): Artifact {
       return loadIssuanceArtifact(source.path)
     case 'openzeppelin':
       return loadOpenZeppelinArtifact(source.name)
+  }
+}
+
+/**
+ * Like {@link loadArtifactFromSource}, but returns `undefined` instead of throwing.
+ * Intended for sync-style flows where a missing artifact shouldn't abort the pass.
+ */
+export function tryLoadArtifactFromSource(source: ArtifactSource | undefined): Artifact | undefined {
+  if (!source) return undefined
+  try {
+    return loadArtifactFromSource(source)
+  } catch {
+    return undefined
   }
 }
 

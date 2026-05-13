@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs'
 
-import type { Artifact, Environment } from '@rocketh/core/types'
+import type { Environment } from '@rocketh/core/types'
 import type { DeploymentMetadata } from '@graphprotocol/toolshed/deployments'
 
 import {
@@ -13,13 +13,6 @@ import {
   getTargetChainIdFromEnv,
   isForkMode,
 } from './address-book-utils.js'
-import {
-  loadContractsArtifact,
-  loadHorizonBuildArtifact,
-  loadIssuanceArtifact,
-  loadOpenZeppelinArtifact,
-  loadSubgraphServiceArtifact,
-} from './artifact-loaders.js'
 import { computeBytecodeHash } from './bytecode-utils.js'
 import {
   type AddressBookType,
@@ -35,7 +28,9 @@ import {
   computeArtifactBytecodeHash,
   getOnChainImplementation,
   tryComputeArtifactBytecodeHash,
+  tryLoadArtifactFromSource,
 } from './deploy-implementation.js'
+import { toBlockNumber } from './deployment-metadata.js'
 import { graph } from '../rocketh/deploy.js'
 import type { AnyAddressBookOps } from './address-book-ops.js'
 
@@ -55,28 +50,6 @@ function formatAddress(address: string): string {
   } else {
     // Default to full address (showAddresses === '2' or any other value)
     return address
-  }
-}
-
-/**
- * Load artifact from any supported source type
- */
-function loadArtifactFromSource(source: ArtifactSource): Artifact | undefined {
-  try {
-    switch (source.type) {
-      case 'contracts':
-        return loadContractsArtifact(source.path, source.name)
-      case 'horizon':
-        return loadHorizonBuildArtifact(source.path)
-      case 'subgraph-service':
-        return loadSubgraphServiceArtifact(source.name)
-      case 'issuance':
-        return loadIssuanceArtifact(source.path)
-      case 'openzeppelin':
-        return loadOpenZeppelinArtifact(source.name)
-    }
-  } catch {
-    return undefined
   }
 }
 
@@ -183,7 +156,7 @@ export function reconstructDeploymentRecord(
   }
 
   // Verify bytecode hash matches if available
-  const loadedArtifact = loadArtifactFromSource(artifact)
+  const loadedArtifact = tryLoadArtifactFromSource(artifact)
   if (!loadedArtifact) {
     return undefined
   }
@@ -223,7 +196,7 @@ function checkCodeChanged(
 ): { codeChanged: boolean; localHash?: string } {
   if (!artifactSource) return { codeChanged: false }
 
-  const localArtifact = loadArtifactFromSource(artifactSource)
+  const localArtifact = tryLoadArtifactFromSource(artifactSource)
   const localHash = tryComputeArtifactBytecodeHash(artifactSource)
 
   const deploymentMetadata = addressBook.getDeploymentMetadata(contractName)
@@ -594,7 +567,7 @@ export async function syncContract(
         // The artifact is for the implementation, not the proxy itself
         let abi: readonly unknown[] = []
         if (spec.artifact) {
-          const artifact = loadArtifactFromSource(spec.artifact)
+          const artifact = tryLoadArtifactFromSource(spec.artifact)
           if (artifact?.abi) {
             abi = artifact.abi
           }
@@ -612,7 +585,7 @@ export async function syncContract(
         let abi: readonly unknown[] = existing.abi as readonly unknown[]
         // Update ABI from artifact if available (ABI doesn't affect change detection)
         if (spec.artifact) {
-          const artifact = loadArtifactFromSource(spec.artifact)
+          const artifact = tryLoadArtifactFromSource(spec.artifact)
           if (artifact?.abi) {
             abi = artifact.abi
           }
@@ -645,9 +618,7 @@ export async function syncContract(
       const existingProxyDeployment = env.getOrNull(proxyDeploymentName)
       if (existingProxyDeployment?.argsData && existingProxyDeployment.argsData !== '0x') {
         const entry = spec.proxy.addressBook.getEntry(spec.name)
-        const proxyRockethBlockNumber = existingProxyDeployment.receipt?.blockNumber
-          ? parseInt(existingProxyDeployment.receipt.blockNumber as string)
-          : undefined
+        const proxyRockethBlockNumber = toBlockNumber(existingProxyDeployment.receipt?.blockNumber)
         const proxyAddressBookBlockNumber = entry.proxyDeployment?.blockNumber
 
         // Backfill if:
@@ -687,7 +658,7 @@ export async function syncContract(
         let proxyAdminAbi: readonly unknown[] = []
         const proxyAdminMetadata = getContractMetadata(spec.addressBookType, proxyAdminDeploymentName)
         if (proxyAdminMetadata?.artifact) {
-          const proxyAdminArtifact = loadArtifactFromSource(proxyAdminMetadata.artifact)
+          const proxyAdminArtifact = tryLoadArtifactFromSource(proxyAdminMetadata.artifact)
           if (proxyAdminArtifact?.abi) {
             proxyAdminAbi = proxyAdminArtifact.abi
           }
@@ -750,9 +721,7 @@ export async function syncContract(
           // Backfill address book metadata from rocketh if rocketh is newer
           const rockethImpl = env.getOrNull(`${spec.name}_Implementation`)
           if (rockethImpl?.argsData && rockethImpl.argsData !== '0x') {
-            const rockethBlockNumber = rockethImpl.receipt?.blockNumber
-              ? parseInt(rockethImpl.receipt.blockNumber as string)
-              : undefined
+            const rockethBlockNumber = toBlockNumber(rockethImpl.receipt?.blockNumber)
             const bookBlockNumber = implDeployment?.blockNumber
 
             // Backfill if:
@@ -846,7 +815,7 @@ export async function syncContract(
       let bytecode: `0x${string}` = '0x'
       let deployedBytecode: `0x${string}` | undefined
       if (spec.artifact) {
-        const artifact = loadArtifactFromSource(spec.artifact)
+        const artifact = tryLoadArtifactFromSource(spec.artifact)
         if (artifact?.abi) {
           abi = artifact.abi
         }
@@ -876,7 +845,7 @@ export async function syncContract(
     // Address changed - update address but preserve existing bytecode
     let abi: readonly unknown[] = existing.abi as readonly unknown[]
     if (spec.artifact) {
-      const artifact = loadArtifactFromSource(spec.artifact)
+      const artifact = tryLoadArtifactFromSource(spec.artifact)
       if (artifact?.abi) {
         abi = artifact.abi
       }
@@ -902,9 +871,7 @@ export async function syncContract(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const addressBook: any = getAddressBookForType(spec.addressBookType, chainId)
     const entry = addressBook.getEntry(spec.name)
-    const rockethBlockNumber = rockethRecord.receipt?.blockNumber
-      ? parseInt(rockethRecord.receipt.blockNumber as string)
-      : undefined
+    const rockethBlockNumber = toBlockNumber(rockethRecord.receipt?.blockNumber)
     const addressBookBlockNumber = entry.deployment?.blockNumber
 
     const rockethIsNewer =
