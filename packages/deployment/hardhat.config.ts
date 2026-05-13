@@ -188,7 +188,7 @@ const config: HardhatUserConfig = {
 
   // Chain descriptors for fork execution and local development
   chainDescriptors: {
-    // Graph Local Network (rem-local-network, docker-compose stack)
+    // Graph Local Network (chainId 1337)
     1337: {
       name: 'Graph Local Network',
       hardforkHistory: {
@@ -276,9 +276,8 @@ const config: HardhatUserConfig = {
           }
         : undefined,
     },
-    // Graph Local Network (rem-local-network docker-compose stack)
-    // Contracts deployed fresh with hardhat-graph-protocol (Phase 1)
-    // Address books use addresses-local-network.json files
+    // Graph Local Network — chainId 1337, contracts deployed fresh by an
+    // upstream step that populates addresses-local-network.json files.
     localNetwork: {
       type: 'http',
       url: process.env.LOCAL_NETWORK_RPC || 'http://chain:8545',

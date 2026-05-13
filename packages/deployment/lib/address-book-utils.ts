@@ -168,11 +168,11 @@ export function getForkNetwork(networkName?: string): string | null {
 // ============================================================================
 
 /**
- * Check if running against the Graph local network (rem-local-network).
+ * Check if running against the Graph local network (chainId 1337).
  *
- * The local network uses chainId 1337 and deploys contracts from scratch.
- * Address books use addresses-local-network.json files which are symlinked
- * to mounted config files in the Docker container (populated by Phase 1).
+ * The local network deploys contracts from scratch. Address books use
+ * addresses-local-network.json files that the orchestrating dev environment
+ * is expected to symlink (or otherwise create) before this code path runs.
  */
 export function isLocalNetworkMode(): boolean {
   return process.env.HARDHAT_NETWORK === 'localNetwork'
