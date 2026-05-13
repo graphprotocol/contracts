@@ -1,6 +1,6 @@
-import { getLibraryResolver, loadDirectAllocationArtifact } from '@graphprotocol/deployment/lib/artifact-loaders.js'
-import { computeBytecodeHash } from '@graphprotocol/deployment/lib/bytecode-utils.js'
+import { loadDirectAllocationArtifact } from '@graphprotocol/deployment/lib/artifact-loaders.js'
 import { Contracts } from '@graphprotocol/deployment/lib/contract-registry.js'
+import { computeArtifactBytecodeHash } from '@graphprotocol/deployment/lib/deploy-implementation.js'
 import { buildDeploymentMetadata } from '@graphprotocol/deployment/lib/deployment-metadata.js'
 import { ComponentTags, DeploymentActions, shouldSkipAction } from '@graphprotocol/deployment/lib/deployment-tags.js'
 import {
@@ -49,13 +49,10 @@ const func: DeployScriptModule = async (env) => {
   // Persist to address book — only write metadata on new deployments
   // to avoid overwriting stored hash with current artifact when deploy was a no-op
   if (result.newlyDeployed) {
-    const resolver = getLibraryResolver('issuance')
-    const bytecodeHash = computeBytecodeHash(
-      artifact.deployedBytecode ?? '0x',
-      artifact.deployedLinkReferences,
-      resolver,
+    const metadata = buildDeploymentMetadata(
+      result,
+      computeArtifactBytecodeHash(Contracts.issuance.DirectAllocation_Implementation.artifact!),
     )
-    const metadata = buildDeploymentMetadata(result, bytecodeHash)
     if (metadata) {
       await graph.updateIssuanceAddressBook(env, {
         name: Contracts.issuance.DirectAllocation_Implementation.name,

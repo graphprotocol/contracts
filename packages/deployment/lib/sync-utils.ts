@@ -14,7 +14,6 @@ import {
   isForkMode,
 } from './address-book-utils.js'
 import {
-  getLibraryResolver,
   loadContractsArtifact,
   loadHorizonBuildArtifact,
   loadIssuanceArtifact,
@@ -32,7 +31,11 @@ import {
   getContractsByAddressBook,
 } from './contract-registry.js'
 import { SpecialTags } from './deployment-tags.js'
-import { getOnChainImplementation } from './deploy-implementation.js'
+import {
+  computeArtifactBytecodeHash,
+  getOnChainImplementation,
+  tryComputeArtifactBytecodeHash,
+} from './deploy-implementation.js'
 import { graph } from '../rocketh/deploy.js'
 import type { AnyAddressBookOps } from './address-book-ops.js'
 
@@ -128,20 +131,12 @@ export function checkShouldSync(
   // Check bytecode hash if deployment metadata exists
   const metadata = addressBook.getDeploymentMetadata(contractName)
   if (metadata?.bytecodeHash && artifact) {
-    const loadedArtifact = loadArtifactFromSource(artifact)
-    if (loadedArtifact?.deployedBytecode) {
-      const libResolver = getLibraryResolver(artifact.type)
-      const localHash = computeBytecodeHash(
-        loadedArtifact.deployedBytecode,
-        loadedArtifact.deployedLinkReferences,
-        libResolver,
-      )
-      if (metadata.bytecodeHash !== localHash) {
-        return {
-          shouldSync: false,
-          reason: 'local bytecode changed since deployment',
-          warning: `${contractName}: local bytecode differs from deployed (hash mismatch)`,
-        }
+    const localHash = tryComputeArtifactBytecodeHash(artifact)
+    if (localHash && metadata.bytecodeHash !== localHash) {
+      return {
+        shouldSync: false,
+        reason: 'local bytecode changed since deployment',
+        warning: `${contractName}: local bytecode differs from deployed (hash mismatch)`,
       }
     }
   }
@@ -194,12 +189,7 @@ export function reconstructDeploymentRecord(
   }
 
   if (deploymentMetadata.bytecodeHash && loadedArtifact.deployedBytecode) {
-    const libResolver = getLibraryResolver(artifact.type)
-    const localHash = computeBytecodeHash(
-      loadedArtifact.deployedBytecode,
-      loadedArtifact.deployedLinkReferences,
-      libResolver,
-    )
+    const localHash = computeArtifactBytecodeHash(artifact)
     if (deploymentMetadata.bytecodeHash !== localHash) {
       // Bytecode has changed - cannot reconstruct reliably
       return undefined
@@ -234,10 +224,7 @@ function checkCodeChanged(
   if (!artifactSource) return { codeChanged: false }
 
   const localArtifact = loadArtifactFromSource(artifactSource)
-  const resolver = getLibraryResolver(artifactSource.type)
-  const localHash = localArtifact?.deployedBytecode
-    ? computeBytecodeHash(localArtifact.deployedBytecode, localArtifact.deployedLinkReferences, resolver)
-    : undefined
+  const localHash = tryComputeArtifactBytecodeHash(artifactSource)
 
   const deploymentMetadata = addressBook.getDeploymentMetadata(contractName)
   if (deploymentMetadata?.bytecodeHash && localHash) {
@@ -780,10 +767,13 @@ export async function syncContract(
                 rockethBlockNumber > bookBlockNumber)
 
             if (rockethIsNewer) {
+              // Hash from the artifact (with library resolution) so the stored value stays
+              // in lockstep with checkShouldSync's artifact-side comparison. Hashing
+              // rocketh's linked `deployedBytecode` would diverge for library-using impls.
               const metadata: DeploymentMetadata = {
                 txHash: rockethImpl.transaction?.hash ?? '',
                 argsData: rockethImpl.argsData,
-                bytecodeHash: rockethImpl.deployedBytecode ? computeBytecodeHash(rockethImpl.deployedBytecode) : '',
+                bytecodeHash: tryComputeArtifactBytecodeHash(spec.proxy.artifact) ?? '',
                 ...(rockethBlockNumber !== undefined && { blockNumber: rockethBlockNumber }),
               }
               // Write to correct location based on pending vs current
@@ -925,10 +915,13 @@ export async function syncContract(
         rockethBlockNumber > addressBookBlockNumber)
 
     if (rockethIsNewer) {
+      // Hash from the artifact (with library resolution) so the stored value stays in lockstep
+      // with checkShouldSync's artifact-side comparison. Hashing rocketh's linked
+      // `deployedBytecode` would diverge for library-using contracts.
       const deploymentMetadata: DeploymentMetadata = {
         txHash: rockethRecord.transaction?.hash ?? '',
         argsData: rockethRecord.argsData,
-        bytecodeHash: rockethRecord.deployedBytecode ? computeBytecodeHash(rockethRecord.deployedBytecode) : '',
+        bytecodeHash: tryComputeArtifactBytecodeHash(spec.artifact) ?? '',
         ...(rockethBlockNumber !== undefined && { blockNumber: rockethBlockNumber }),
       }
       addressBook.setDeploymentMetadata(spec.name, deploymentMetadata)

@@ -157,6 +157,42 @@ export function loadArtifactFromSource(source: ArtifactSource): Artifact {
 }
 
 /**
+ * Compute the bytecode hash for an artifact source, with library resolution.
+ *
+ * This is the canonical bytecodeHash recorded in address-book deployment metadata —
+ * deploy-time, sync backfill, and `checkShouldSync` all agree on this fingerprint.
+ *
+ * Use this instead of calling `computeBytecodeHash` directly on rocketh's linked
+ * `deployedBytecode`: linked bytecode has real library addresses substituted in,
+ * so its hash diverges from the placeholder-fingerprint hash this helper produces
+ * for any library-using contract.
+ *
+ * Throws if the artifact cannot be loaded.
+ */
+export function computeArtifactBytecodeHash(source: ArtifactSource): string {
+  const artifact = loadArtifactFromSource(source)
+  return computeBytecodeHash(
+    artifact.deployedBytecode ?? '0x',
+    artifact.deployedLinkReferences,
+    getLibraryResolver(source.type),
+  )
+}
+
+/**
+ * Like {@link computeArtifactBytecodeHash}, but returns `undefined` instead of
+ * throwing if the artifact can't be loaded. Intended for sync-style flows where
+ * a missing artifact shouldn't abort the whole pass.
+ */
+export function tryComputeArtifactBytecodeHash(source: ArtifactSource | undefined): string | undefined {
+  if (!source) return undefined
+  try {
+    return computeArtifactBytecodeHash(source)
+  } catch {
+    return undefined
+  }
+}
+
+/**
  * Build ImplementationDeployConfig from registry metadata
  *
  * This helper reduces boilerplate in deploy scripts by using the centralized
@@ -288,12 +324,7 @@ export async function deployImplementation(
   const addressBookInstance = getAddressBookForType(addressBook, targetChainId)
 
   // Compute local artifact bytecode hash (for storing with deployment)
-  const resolver = getLibraryResolver(artifactSource.type)
-  const localBytecodeHash = computeBytecodeHash(
-    artifact.deployedBytecode ?? '0x',
-    artifact.deployedLinkReferences,
-    resolver,
-  )
+  const localBytecodeHash = computeArtifactBytecodeHash(artifactSource)
 
   // 3) Pre-check: skip deployment if bytecodeHash and constructor args match
   // Rocketh's comparison can false-positive when sync creates bare records (e.g., wrong

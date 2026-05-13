@@ -8,8 +8,7 @@ import path from 'path'
 import { decodeAbiParameters } from 'viem'
 
 import type { AnyAddressBookOps } from '../lib/address-book-ops.js'
-import { getLibraryResolver } from '../lib/artifact-loaders.js'
-import { computeBytecodeHash } from '../lib/bytecode-utils.js'
+import { getAddressBookForType } from '../lib/address-book-utils.js'
 import {
   type AddressBookType,
   type ArtifactSource,
@@ -17,10 +16,9 @@ import {
   getContractMetadata,
   getContractsByAddressBook,
 } from '../lib/contract-registry.js'
-import { loadArtifactFromSource } from '../lib/deploy-implementation.js'
+import { computeArtifactBytecodeHash, loadArtifactFromSource } from '../lib/deploy-implementation.js'
 import { checkEtherscanVerified, verifyOZProxy } from '../lib/oz-proxy-verify.js'
 import { resolveConfigVar } from '../lib/task-utils.js'
-import { graph } from '../rocketh/deploy.js'
 
 const ADDRESS_BOOK_TYPES: AddressBookType[] = ['horizon', 'subgraph-service', 'issuance']
 
@@ -295,20 +293,6 @@ async function runVerify(
 }
 
 /**
- * Get address book for a given type and chainId
- */
-function getAddressBook(addressBookType: AddressBookType, chainId: number): AnyAddressBookOps {
-  switch (addressBookType) {
-    case 'horizon':
-      return graph.getHorizonAddressBook(chainId)
-    case 'subgraph-service':
-      return graph.getSubgraphServiceAddressBook(chainId)
-    case 'issuance':
-      return graph.getIssuanceAddressBook(chainId)
-  }
-}
-
-/**
  * Check if local artifact bytecode matches stored bytecodeHash
  *
  * Uses the bytecodeHash stored in address book to verify local artifact
@@ -334,10 +318,9 @@ function checkBytecodeMatch(
       return { matches: false, reason: 'no deployment metadata (not deployed by this system)' }
     }
 
-    // Compare local artifact bytecodeHash with stored hash
-    // Must pass linkReferences and resolver to match how hash was computed at deployment
-    const resolver = getLibraryResolver(metadata.artifact!.type)
-    const localBytecodeHash = computeBytecodeHash(artifact.deployedBytecode, artifact.deployedLinkReferences, resolver)
+    // Compare local artifact bytecodeHash with stored hash. Uses the same artifact-side
+    // hashing as deploy-time so library-using contracts round-trip correctly.
+    const localBytecodeHash = computeArtifactBytecodeHash(metadata.artifact!)
     if (localBytecodeHash !== deploymentMetadata.bytecodeHash) {
       return {
         matches: false,
@@ -371,7 +354,7 @@ async function verifySingleContract(
   proxyOnly: boolean,
   implOnly: boolean,
 ): Promise<VerifyResult> {
-  const addressBook = getAddressBook(addressBookType, chainId)
+  const addressBook = getAddressBookForType(addressBookType, chainId)
 
   // Check if deployed
   if (!addressBook.entryExists(contractName)) {

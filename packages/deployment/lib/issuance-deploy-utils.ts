@@ -5,16 +5,17 @@ import { encodeFunctionData } from 'viem'
 
 import { Contracts, type RegistryEntry } from './contract-registry.js'
 import { getGovernor } from './controller-utils.js'
+import { loadTransparentProxyArtifact } from './artifact-loaders.js'
+import { INITIALIZE_GOVERNOR_ABI, OZ_PROXY_ADMIN_ABI } from './abis.js'
+import { computeBytecodeHash } from './bytecode-utils.js'
+import { getAddressBookForType, getTargetChainIdFromEnv } from './address-book-utils.js'
 import {
+  computeArtifactBytecodeHash,
   deployImplementation,
   getImplementationConfig,
   getOnChainImplementation,
   loadArtifactFromSource,
 } from './deploy-implementation.js'
-import { loadTransparentProxyArtifact } from './artifact-loaders.js'
-import { INITIALIZE_GOVERNOR_ABI, OZ_PROXY_ADMIN_ABI } from './abis.js'
-import { computeBytecodeHash } from './bytecode-utils.js'
-import { getAddressBookForType, getTargetChainIdFromEnv } from './address-book-utils.js'
 import { buildDeploymentMetadata } from './deployment-metadata.js'
 import { deploy, execute, graph } from '../rocketh/deploy.js'
 
@@ -450,10 +451,9 @@ async function deployProxyWithOwnImpl(
     abi: implArtifact.abi,
   })
 
-  // Build implementation deployment metadata for address book (only if we have required fields)
-  const implementationDeployment: DeploymentMetadata | undefined = implResult.deployedBytecode
-    ? buildDeploymentMetadata(implResult, computeBytecodeHash(implResult.deployedBytecode))
-    : undefined
+  // Build implementation deployment metadata. Hash from the artifact (with library resolution)
+  // so the stored value stays in lockstep with sync's artifact-side comparison.
+  const implementationDeployment = buildDeploymentMetadata(implResult, computeArtifactBytecodeHash(contract.artifact!))
 
   // Build proxy deployment metadata from the proxy artifact bytecode
   const proxyDeployment = buildDeploymentMetadata(
