@@ -1,6 +1,6 @@
 {
   "name": "@graphprotocol/interfaces",
-  "version": "0.7.1-dips.0",
+  "version": "0.7.2",
   "publishConfig": {
     "access": "public"
   },
