@@ -19,6 +19,11 @@ packages/*/typechain-types
 packages/*/coverage
 packages/*/types
 
+# Forge crash dumps (also gitignored). Match only the per-package `core` file at the
+# package root — NOT `**/core`, which would also exclude `packages/toolshed/src/core/`
+# and other directories named `core` deeper in the tree.
+packages/*/core
+
 # Editor / OS noise
 .vscode
 .idea
