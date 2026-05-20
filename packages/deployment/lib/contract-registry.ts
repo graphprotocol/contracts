@@ -435,3 +435,25 @@ export function getContractsByAddressBook(addressBook: AddressBookType): Array<[
 export const PROXIED_ISSUANCE_CONTRACTS = Object.entries(ISSUANCE_CONTRACTS)
   .filter(([_, meta]) => 'proxyType' in meta && meta.proxyType === 'transparent')
   .map(([name]) => name)
+
+/**
+ * Iterate every registry entry that is a deployable proxy across all address books.
+ *
+ * Yields fully-resolved {@link RegistryEntry} objects (name + addressBook embedded),
+ * filtered to those that have both `deployable: true` and a `proxyType`. Used by
+ * goal-orchestrator upgrade scripts that need to enumerate every proxy the registry
+ * knows about and feed each through the shared upgrade-TX builder.
+ *
+ * Per-component upgrade scripts (`02_upgrade.ts`) operate on a single entry and
+ * don't need this — they pass `Contracts.<book>.<name>` directly through the
+ * `createUpgradeModule` factory.
+ */
+export function* allUpgradeableEntries(): Generator<RegistryEntry> {
+  const books: AddressBookType[] = ['horizon', 'subgraph-service', 'issuance']
+  for (const ab of books) {
+    for (const entry of Object.values(Contracts[ab]) as RegistryEntry[]) {
+      if (!entry.deployable || !entry.proxyType) continue
+      yield entry
+    }
+  }
+}

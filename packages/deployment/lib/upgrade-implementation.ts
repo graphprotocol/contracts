@@ -88,16 +88,24 @@ export interface ImplementationUpgradeResult {
 }
 
 /**
- * Create upgrade config from registry entry
+ * Create upgrade config from registry entry.
+ *
+ * `implementationName` resolution priority:
+ *   1. Explicit `overrides.implementationName` from the caller.
+ *   2. Stripped form of `entry.sharedImplementation` (e.g. `DirectAllocation_Implementation`
+ *      → `DirectAllocation`). Lets {@link buildUpgradeTxs} detect shared-impl changes
+ *      without each caller having to know the convention.
+ *   3. Undefined (no shared-impl auto-detection).
  */
 function createUpgradeConfigFromRegistry(
   entry: RegistryEntry,
   overrides?: ImplementationUpgradeOverrides,
 ): ImplementationUpgradeConfig {
+  const sharedImplName = entry.sharedImplementation?.replace(/_Implementation$/, '')
   return {
     contractName: entry.name,
     proxyAdminName: overrides?.proxyAdminName ?? entry.proxyAdminName,
-    implementationName: overrides?.implementationName,
+    implementationName: overrides?.implementationName ?? sharedImplName,
     proxyType: entry.proxyType,
     addressBook: entry.addressBook,
   }

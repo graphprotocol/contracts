@@ -9,12 +9,7 @@ import {
 import { getAddressBookForType, getTargetChainIdFromEnv } from '@graphprotocol/deployment/lib/address-book-utils.js'
 import { checkConfigurationStatus } from '@graphprotocol/deployment/lib/apply-configuration.js'
 import { getREOConditions } from '@graphprotocol/deployment/lib/contract-checks.js'
-import {
-  type AddressBookType,
-  CONTRACT_REGISTRY,
-  type ContractMetadata,
-  Contracts,
-} from '@graphprotocol/deployment/lib/contract-registry.js'
+import { allUpgradeableEntries, Contracts } from '@graphprotocol/deployment/lib/contract-registry.js'
 import { canSignAsGovernor, getPauseGuardian } from '@graphprotocol/deployment/lib/controller-utils.js'
 import { getResolvedSettingsForEnv, type ResolvedSettings } from '@graphprotocol/deployment/lib/deployment-config.js'
 import { DeploymentActions, GoalTags, shouldSkipAction } from '@graphprotocol/deployment/lib/deployment-tags.js'
@@ -114,41 +109,21 @@ export default func
 
 /**
  * Iterate every deployable proxy in the registry. For each one with a
- * pendingImplementation in its address book, add the proxy upgrade TX.
+ * pendingImplementation in its address book (or a shared implementation that
+ * has changed on-chain), add the proxy upgrade TX to the shared builder.
+ *
+ * Both the iteration source ({@link allUpgradeableEntries}) and the config
+ * construction (inside {@link buildUpgradeTxs} via `createUpgradeConfigFromRegistry`)
+ * are shared with the per-component `02_upgrade.ts` path. This script is just
+ * the loop that wires every entry into one builder.
  */
 async function collectProxyUpgrades(env: Environment, builder: TxBuilder, targetChainId: number): Promise<number> {
   let added = 0
-  const addressBooks: AddressBookType[] = ['horizon', 'subgraph-service', 'issuance']
-  for (const abType of addressBooks) {
-    const bookRegistry = CONTRACT_REGISTRY[abType]
-    const ab = getAddressBookForType(abType, targetChainId)
-
-    for (const [name, metadata] of Object.entries(bookRegistry)) {
-      const meta = metadata as ContractMetadata
-      if (!meta.deployable || !meta.proxyType) continue
-      if (!ab.entryExists(name)) continue
-      const entry = ab.getEntry(name)
-
-      // Skip contracts with no pending implementation unless they have a
-      // shared implementation that might have changed (auto-detected by buildUpgradeTxs)
-      if (!entry?.pendingImplementation?.address && !meta.sharedImplementation) continue
-
-      // Derive implementationName from sharedImplementation (e.g. 'DirectAllocation_Implementation' → 'DirectAllocation')
-      const implementationName = meta.sharedImplementation?.replace(/_Implementation$/, '')
-
-      const result = await buildUpgradeTxs(
-        env,
-        {
-          contractName: name,
-          proxyType: meta.proxyType,
-          proxyAdminName: meta.proxyAdminName,
-          addressBook: abType,
-          implementationName,
-        },
-        builder,
-      )
-      if (result.upgraded) added++
-    }
+  for (const entry of allUpgradeableEntries()) {
+    const ab = getAddressBookForType(entry.addressBook, targetChainId)
+    if (!ab.entryExists(entry.name)) continue
+    const result = await buildUpgradeTxs(env, entry, builder)
+    if (result.upgraded) added++
   }
   return added
 }
