@@ -7,6 +7,7 @@ import {
   IERC165_ABI,
   IERC165_INTERFACE_ID,
   IISSUANCE_TARGET_INTERFACE_ID,
+  ISSUANCE_ALLOCATOR_ABI,
   ISSUANCE_TARGET_ABI,
   PROVIDER_ELIGIBILITY_MANAGEMENT_ABI,
   REWARDS_ELIGIBILITY_ORACLE_ABI,
@@ -148,6 +149,89 @@ export async function getRewardsManagerRawIssuanceRate(client: PublicClient, rmA
     functionName: 'issuancePerBlock',
   })) as bigint
   return rate
+}
+
+/**
+ * End-state status of the GIP-0088 issuance-connect goal.
+ *
+ * Each sub-flag is independently observable; `complete` is true iff all of them are.
+ * Callers gate idempotency on `complete` and render the sub-flags / underlying values
+ * for human-readable status.
+ *
+ * Preconditions for the read: RM must already be upgraded to implement IIssuanceTarget
+ * (the caller can verify with {@link isRewardsManagerUpgraded}). With an unupgraded RM
+ * the `getIssuanceAllocator` read will revert.
+ *
+ * The shape encoded here is appropriate while GIP-0088 expects RM to be the sole
+ * self-minting target with no allocator-minting share. If a future configuration
+ * has RM share self-minting with another target, or RM also receives allocator-minting,
+ * the `rmAllocationShape` clause needs to relax.
+ */
+export interface IssuanceConnectStatus {
+  /** RM.issuanceAllocator == IA */
+  iaIntegrated: boolean
+  /** GraphToken.isMinter(IA) */
+  iaMinter: boolean
+  /** IA.issuancePerBlock == RM.issuancePerBlock (the migration invariant) */
+  ratesAligned: boolean
+  /** RM holds a non-zero self-minting allocation and no allocator-minting share */
+  rmAllocationShape: boolean
+  /** IA.totalAllocation.totalAllocationRate == IA.issuancePerBlock (100% invariant) */
+  fullyAllocated: boolean
+  /** True iff every sub-flag above is true */
+  complete: boolean
+
+  /** Underlying values for display / diagnostics */
+  currentIssuanceAllocator: string
+  iaRate: bigint
+  rmRate: bigint
+  rmAllocation: { allocatorMintingRate: bigint; selfMintingRate: bigint }
+  iaTotalAllocationRate: bigint
+}
+
+export async function checkIssuanceConnectComplete(
+  client: PublicClient,
+  iaAddress: string,
+  rmAddress: string,
+  gtAddress: string,
+): Promise<IssuanceConnectStatus> {
+  const activation = await checkIssuanceAllocatorActivation(client, iaAddress, rmAddress, gtAddress)
+
+  const iaRate = (await client.readContract({
+    address: iaAddress as `0x${string}`,
+    abi: ISSUANCE_ALLOCATOR_ABI,
+    functionName: 'getIssuancePerBlock',
+  })) as bigint
+  const rmRate = await getRewardsManagerRawIssuanceRate(client, rmAddress)
+  const rmAlloc = (await client.readContract({
+    address: iaAddress as `0x${string}`,
+    abi: ISSUANCE_ALLOCATOR_ABI,
+    functionName: 'getTargetAllocation',
+    args: [rmAddress as `0x${string}`],
+  })) as { totalAllocationRate: bigint; allocatorMintingRate: bigint; selfMintingRate: bigint }
+  const total = (await client.readContract({
+    address: iaAddress as `0x${string}`,
+    abi: ISSUANCE_ALLOCATOR_ABI,
+    functionName: 'getTotalAllocation',
+  })) as { totalAllocationRate: bigint; allocatorMintingRate: bigint; selfMintingRate: bigint }
+
+  const ratesAligned = iaRate > 0n && iaRate === rmRate
+  const rmAllocationShape = rmAlloc.allocatorMintingRate === 0n && rmAlloc.selfMintingRate > 0n
+  const fullyAllocated = iaRate > 0n && total.totalAllocationRate === iaRate
+
+  return {
+    iaIntegrated: activation.iaIntegrated,
+    iaMinter: activation.iaMinter,
+    ratesAligned,
+    rmAllocationShape,
+    fullyAllocated,
+    complete: activation.iaIntegrated && activation.iaMinter && ratesAligned && rmAllocationShape && fullyAllocated,
+    currentIssuanceAllocator: activation.currentIssuanceAllocator,
+    iaRate,
+    rmRate,
+    rmAllocation: { allocatorMintingRate: rmAlloc.allocatorMintingRate, selfMintingRate: rmAlloc.selfMintingRate },
+    iaTotalAllocationRate: total.totalAllocationRate,
+  }
 }
 
 // ============================================================================

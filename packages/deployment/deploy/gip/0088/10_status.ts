@@ -1,11 +1,14 @@
 import {
   IISSUANCE_TARGET_INTERFACE_ID,
-  ISSUANCE_TARGET_ABI,
   PROVIDER_ELIGIBILITY_MANAGEMENT_ABI,
   SUBGRAPH_SERVICE_CLOSE_GUARD_ABI,
 } from '@graphprotocol/deployment/lib/abis.js'
 import { getAddressBookForType, getTargetChainIdFromEnv } from '@graphprotocol/deployment/lib/address-book-utils.js'
-import { addressEquals, isRewardsManagerUpgraded } from '@graphprotocol/deployment/lib/contract-checks.js'
+import {
+  addressEquals,
+  checkIssuanceConnectComplete,
+  isRewardsManagerUpgraded,
+} from '@graphprotocol/deployment/lib/contract-checks.js'
 import { Contracts, type RegistryEntry } from '@graphprotocol/deployment/lib/contract-registry.js'
 import { GoalTags } from '@graphprotocol/deployment/lib/deployment-tags.js'
 import { createStatusModule } from '@graphprotocol/deployment/lib/script-factories.js'
@@ -101,30 +104,20 @@ export default createStatusModule(GoalTags.GIP_0088, async (env) => {
         env.showMessage(`  ○ eligibility-integrate: REO_A not deployed`)
       }
 
-      // issuance-connect: RM.issuanceAllocator == IA + minter role
+      // issuance-connect: strict end-state — shared helper matches issuance_connect.ts's
+      // idempotency gate so status / 09_end / build-batch all agree on "done".
       const ia = env.getOrNull('IssuanceAllocator')
-      if (ia) {
-        const currentIA = (await client.readContract({
-          address: rm.address as `0x${string}`,
-          abi: ISSUANCE_TARGET_ABI,
-          functionName: 'getIssuanceAllocator',
-        })) as string
-        const iaConnected = addressEquals(currentIA, ia.address)
-
-        const gt = env.getOrNull('L2GraphToken')
-        let isMinter = false
-        if (gt) {
-          const { GRAPH_TOKEN_ABI } = await import('@graphprotocol/deployment/lib/abis.js')
-          isMinter = (await client.readContract({
-            address: gt.address as `0x${string}`,
-            abi: GRAPH_TOKEN_ABI,
-            functionName: 'isMinter',
-            args: [ia.address as `0x${string}`],
-          })) as boolean
-        }
-
+      const gt = env.getOrNull('L2GraphToken')
+      if (ia && gt) {
+        const connect = await checkIssuanceConnectComplete(client, ia.address, rm.address, gt.address)
+        const reasons: string[] = []
+        if (!connect.iaIntegrated) reasons.push('not connected')
+        if (!connect.iaMinter) reasons.push('no minter role')
+        if (!connect.ratesAligned) reasons.push('IA/RM rate mismatch')
+        if (!connect.rmAllocationShape) reasons.push('RM allocation shape wrong')
+        if (!connect.fullyAllocated) reasons.push('IA not 100% allocated')
         env.showMessage(
-          `  ${iaConnected && isMinter ? '✓' : '✗'} issuance-connect: RM ↔ IA${!iaConnected ? ' (not connected)' : ''}${!isMinter ? ' (no minter role)' : ''}`,
+          `  ${connect.complete ? '✓' : '✗'} issuance-connect: RM ↔ IA${reasons.length ? ` (${reasons.join(', ')})` : ''}`,
         )
       } else {
         env.showMessage(`  ○ issuance-connect: IA not deployed`)

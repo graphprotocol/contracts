@@ -1,12 +1,13 @@
 import { PROVIDER_ELIGIBILITY_MANAGEMENT_ABI, REWARDS_MANAGER_ABI } from '@graphprotocol/deployment/lib/abis.js'
 import {
   addressEquals,
-  checkIssuanceAllocatorActivation,
+  checkIssuanceConnectComplete,
   isRewardsManagerUpgraded,
 } from '@graphprotocol/deployment/lib/contract-checks.js'
 import { Contracts } from '@graphprotocol/deployment/lib/contract-registry.js'
 import { getResolvedSettingsForEnv } from '@graphprotocol/deployment/lib/deployment-config.js'
 import { DeploymentActions, GoalTags, shouldSkipAction } from '@graphprotocol/deployment/lib/deployment-tags.js'
+import { formatGRT } from '@graphprotocol/deployment/lib/format.js'
 import { requireContracts } from '@graphprotocol/deployment/lib/issuance-deploy-utils.js'
 import { syncComponentsFromRegistry } from '@graphprotocol/deployment/lib/sync-utils.js'
 import { graph } from '@graphprotocol/deployment/rocketh/deploy.js'
@@ -50,16 +51,25 @@ const func: DeployScriptModule = async (env) => {
     process.exit(1)
   }
 
-  // Verify IA activation state (issuance phase)
-  const activation = await checkIssuanceAllocatorActivation(
+  // Verify IA activation state (issuance phase) — uses the strict end-state helper
+  // so 09_end's "complete" verdict matches the issuance-connect idempotency gate.
+  const connect = await checkIssuanceConnectComplete(
     client,
     issuanceAllocator.address,
     rewardsManager.address,
     graphToken.address,
   )
 
-  if (!activation.iaIntegrated) failures.push('IA not integrated with RM')
-  if (!activation.iaMinter) failures.push('IA missing minter role')
+  if (!connect.iaIntegrated) failures.push('IA not integrated with RM')
+  if (!connect.iaMinter) failures.push('IA missing minter role')
+  if (!connect.ratesAligned)
+    failures.push(`IA/RM rate mismatch: IA=${formatGRT(connect.iaRate)}, RM=${formatGRT(connect.rmRate)}`)
+  if (!connect.rmAllocationShape)
+    failures.push(
+      `RM allocation shape wrong: self=${formatGRT(connect.rmAllocation.selfMintingRate)}, allocator=${formatGRT(connect.rmAllocation.allocatorMintingRate)} (expected self>0, allocator=0)`,
+    )
+  if (!connect.fullyAllocated)
+    failures.push(`IA not 100% allocated: ${formatGRT(connect.iaTotalAllocationRate)} of ${formatGRT(connect.iaRate)}`)
 
   // Verify REO integration (eligibility phase)
   const reo = env.getOrNull(Contracts.issuance.RewardsEligibilityOracleA.name)
