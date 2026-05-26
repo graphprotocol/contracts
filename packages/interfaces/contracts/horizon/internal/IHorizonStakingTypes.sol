@@ -74,8 +74,11 @@ interface IHorizonStakingTypes {
      * @dev See {DelegationPoolInternal} for the actual storage representation
      * @param tokens Total tokens as pool reserves
      * @param shares Total shares minted in the pool
-     * @param tokensThawing Tokens thawing in the pool
+     * @param tokensThawing Tokens whose thaw period has not yet expired
      * @param sharesThawing Shares representing the thawing tokens
+     * @param tokensWithdrawable Tokens whose thaw period has expired and are pending explicit withdrawal.
+     * These do not earn rewards. Use `tokens - tokensThawing - tokensWithdrawable` for the
+     * actively-earning delegation base.
      * @param thawingNonce Value of the current thawing nonce. Thaw requests with older nonces are invalid.
      */
     struct DelegationPool {
@@ -83,6 +86,7 @@ interface IHorizonStakingTypes {
         uint256 shares;
         uint256 tokensThawing;
         uint256 sharesThawing;
+        uint256 tokensWithdrawable;
         uint256 thawingNonce;
     }
 
@@ -97,8 +101,10 @@ interface IHorizonStakingTypes {
      * @param tokens Total tokens as pool reserves
      * @param shares Total shares minted in the pool
      * @param delegators Delegation details by delegator
-     * @param tokensThawing Tokens thawing in the pool
+     * @param tokensThawing Tokens whose thaw period has not yet expired
      * @param sharesThawing Shares representing the thawing tokens
+     * @param tokensWithdrawable Tokens whose thaw period has expired and are pending explicit withdrawal.
+     * These do not earn rewards. Updated via {releaseThawedDelegation} or lazily during {withdrawDelegated}.
      * @param thawingNonce Value of the current thawing nonce. Thaw requests with older nonces are invalid.
      */
     struct DelegationPoolInternal {
@@ -111,6 +117,7 @@ interface IHorizonStakingTypes {
         mapping(address delegator => DelegationInternal delegation) delegators;
         uint256 tokensThawing;
         uint256 sharesThawing;
+        uint256 tokensWithdrawable;
         uint256 thawingNonce;
     }
 
@@ -130,11 +137,14 @@ interface IHorizonStakingTypes {
      * @param shares Shares owned by the delegator in the pool
      * @param __DEPRECATED_tokensLocked Tokens locked for undelegation
      * @param __DEPRECATED_tokensLockedUntil Epoch when locked tokens can be withdrawn
+     * @param tokensReleasedPendingWithdrawal Per-delegator tally of tokens moved to the withdrawable
+     * bucket via {releaseThawedDelegation}. Reset to zero when {withdrawDelegated} is called.
      */
     struct DelegationInternal {
         uint256 shares;
         uint256 __DEPRECATED_tokensLocked;
         uint256 __DEPRECATED_tokensLockedUntil;
+        uint256 tokensReleasedPendingWithdrawal;
     }
 
     /**

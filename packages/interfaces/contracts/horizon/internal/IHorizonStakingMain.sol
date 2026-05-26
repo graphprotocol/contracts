@@ -218,6 +218,27 @@ interface IHorizonStakingMain {
     );
 
     /**
+     * @notice Emitted when completed (fully-thawed) delegation thaw requests are moved into
+     * the withdrawable bucket via {releaseThawedDelegation}.
+     * @dev After this event fires, `tokensWithdrawable` on the pool increases by `tokens` and
+     * `tokensThawing` decreases by the same amount. The tokens are still in the pool — they have
+     * not been transferred. A subsequent call to {withdrawDelegated} is required to move them
+     * to the delegator's wallet.
+     * @param serviceProvider The address of the service provider
+     * @param verifier The address of the verifier
+     * @param delegator The address of the delegator whose thaw requests were released
+     * @param thawRequestsReleased The number of thaw requests moved to withdrawable
+     * @param tokens The total tokens moved to withdrawable
+     */
+    event DelegationThawReleased(
+        address indexed serviceProvider,
+        address indexed verifier,
+        address indexed delegator,
+        uint256 thawRequestsReleased,
+        uint256 tokens
+    );
+
+    /**
      * @notice Emitted when `delegator` withdrew delegated `tokens` from `indexer` using `withdrawDelegated`.
      * @dev This event is for the legacy `withdrawDelegated` function.
      * @param indexer The address of the indexer
@@ -815,6 +836,38 @@ interface IHorizonStakingMain {
      * @param nThawRequests The number of thaw requests to fulfill. Set to 0 to fulfill all thaw requests.
      */
     function withdrawDelegated(address serviceProvider, address verifier, uint256 nThawRequests) external;
+
+    /**
+     * @notice Move completed delegation thaw requests into the withdrawable bucket without transferring tokens.
+     * @dev This is a permissionless state-update function — anyone may call it for any delegator.
+     * It traverses `delegator`'s thaw request list for `(serviceProvider, verifier)`, finds every
+     * request whose `thawingUntil` has passed, removes it from the linked list, decrements
+     * `pool.tokensThawing` / `pool.sharesThawing`, and increments `pool.tokensWithdrawable` and
+     * `delegation.tokensReleasedPendingWithdrawal` by the corresponding token amount.
+     *
+     * Calling this before {withdrawDelegated} is optional — {withdrawDelegated} performs the same
+     * release step internally. Its primary use-case is to let bots or dashboards keep pool state
+     * current so that `tokensThawing` accurately reflects only in-period thaw requests and
+     * `tokensWithdrawable` accurately reflects completed-but-not-yet-withdrawn delegation.
+     *
+     * Requirements:
+     * - `delegator` must have at least one thaw request in the list.
+     * - At least one thaw request must have already expired.
+     *
+     * Emits {DelegationThawReleased}.
+     *
+     * @param serviceProvider The service provider address
+     * @param verifier The verifier address
+     * @param delegator The delegator whose completed thaw requests to release
+     * @param nThawRequests Max thaw requests to release. Set to 0 to release all completed ones.
+     * @return Total tokens moved into the withdrawable bucket
+     */
+    function releaseThawedDelegation(
+        address serviceProvider,
+        address verifier,
+        address delegator,
+        uint256 nThawRequests
+    ) external returns (uint256);
 
     /**
      * @notice Re-delegate undelegated tokens from a provision after thawing to a `newServiceProvider` and `newVerifier`.

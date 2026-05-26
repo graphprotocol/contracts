@@ -341,6 +341,16 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     }
 
     /// @inheritdoc IHorizonStakingMain
+    function releaseThawedDelegation(
+        address serviceProvider,
+        address verifier,
+        address delegator,
+        uint256 nThawRequests
+    ) external override notPaused returns (uint256) {
+        return _releaseThawedDelegation(serviceProvider, verifier, delegator, nThawRequests);
+    }
+
+    /// @inheritdoc IHorizonStakingMain
     function setDelegationFeeCut(
         address serviceProvider,
         address verifier,
@@ -919,8 +929,9 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
 
         // Calculate thawing shares to issue - convert delegation pool shares to thawing pool shares
         // delegation pool shares -> delegation pool tokens -> thawing pool shares
+        // Active tokens exclude both in-period thawing and completed-but-not-withdrawn (withdrawable) tokens.
         // Thawing pool is reset/initialized when the pool is empty: prov.tokensThawing == 0
-        uint256 tokens = (_shares * (pool.tokens - pool.tokensThawing)) / pool.shares;
+        uint256 tokens = (_shares * (pool.tokens - pool.tokensThawing - pool.tokensWithdrawable)) / pool.shares;
 
         // Thawing shares are rounded down to protect the pool and avoid taking extra tokens from other participants.
         uint256 thawingShares = pool.tokensThawing == 0 ? tokens : ((tokens * pool.sharesThawing) / pool.tokensThawing);
@@ -983,36 +994,117 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             HorizonStakingInvalidDelegationPoolState(_serviceProvider, _verifier)
         );
 
-        uint256 tokensThawed = 0;
-        uint256 sharesThawing = pool.sharesThawing;
-        uint256 tokensThawing = pool.tokensThawing;
+        // Release any completed thaw requests into the withdrawable bucket first.
+        // This covers the common case where the delegator calls withdrawDelegated directly
+        // without having called releaseThawedDelegation beforehand.
+        _releaseThawedDelegation(_serviceProvider, _verifier, msg.sender, _nThawRequests);
 
-        FulfillThawRequestsParams memory params = FulfillThawRequestsParams({
-            requestType: ThawRequestType.Delegation,
-            serviceProvider: _serviceProvider,
-            verifier: _verifier,
-            owner: msg.sender,
-            tokensThawing: tokensThawing,
-            sharesThawing: sharesThawing,
-            nThawRequests: _nThawRequests,
-            thawingNonce: pool.thawingNonce
-        });
-        (tokensThawed, tokensThawing, sharesThawing) = _fulfillThawRequests(params);
+        // Drain the caller's withdrawable balance.
+        DelegationInternal storage delegation = pool.delegators[msg.sender];
+        uint256 tokensThawed = delegation.tokensReleasedPendingWithdrawal;
+        require(tokensThawed != 0, HorizonStakingNothingThawing());
 
-        // The next subtraction should never revert becase: pool.tokens >= pool.tokensThawing and pool.tokensThawing >= tokensThawed
-        // In the event the pool gets completely slashed tokensThawed will fulfil to 0.
+        // Update pool state. These subtractions are safe:
+        // pool.tokens >= pool.tokensWithdrawable and pool.tokensWithdrawable >= tokensThawed
+        // (enforced by _releaseThawedDelegation accumulation).
         pool.tokens = pool.tokens - tokensThawed;
-        pool.sharesThawing = sharesThawing;
-        pool.tokensThawing = tokensThawing;
+        pool.tokensWithdrawable = pool.tokensWithdrawable - tokensThawed;
+        delegation.tokensReleasedPendingWithdrawal = 0;
 
-        if (tokensThawed != 0) {
-            if (_newServiceProvider != address(0) && _newVerifier != address(0)) {
-                _delegate(_newServiceProvider, _newVerifier, tokensThawed, _minSharesForNewProvider);
-            } else {
-                _graphToken().pushTokens(msg.sender, tokensThawed);
-                emit DelegatedTokensWithdrawn(_serviceProvider, _verifier, msg.sender, tokensThawed);
-            }
+        if (_newServiceProvider != address(0) && _newVerifier != address(0)) {
+            _delegate(_newServiceProvider, _newVerifier, tokensThawed, _minSharesForNewProvider);
+        } else {
+            _graphToken().pushTokens(msg.sender, tokensThawed);
+            emit DelegatedTokensWithdrawn(_serviceProvider, _verifier, msg.sender, tokensThawed);
         }
+    }
+
+    /**
+     * @notice Move completed delegation thaw requests for `_delegator` into the withdrawable bucket.
+     * @dev Traverses the thaw request linked list, processes every request whose `thawingUntil`
+     * has passed (up to `_nThawRequests`, or all if 0), removes each from the list, and updates
+     * `pool.tokensThawing`, `pool.sharesThawing`, `pool.tokensWithdrawable`, and
+     * `delegation.tokensReleasedPendingWithdrawal`.
+     *
+     * Emits {DelegationThawReleased} if any requests were released.
+     *
+     * @param _serviceProvider The service provider address
+     * @param _verifier The verifier address
+     * @param _delegator The delegator whose thaw requests to release
+     * @param _nThawRequests Max requests to process. 0 = release all completed ones.
+     * @return tokensReleased Total tokens moved into the withdrawable bucket
+     */
+    function _releaseThawedDelegation(
+        address _serviceProvider,
+        address _verifier,
+        address _delegator,
+        uint256 _nThawRequests
+    ) private returns (uint256 tokensReleased) {
+        DelegationPoolInternal storage pool = _getDelegationPool(_serviceProvider, _verifier);
+        ILinkedList.List storage thawRequestList = _getThawRequestList(
+            ThawRequestType.Delegation,
+            _serviceProvider,
+            _verifier,
+            _delegator
+        );
+
+        if (thawRequestList.count == 0) {
+            return 0;
+        }
+
+        uint256 tokensThawing = pool.tokensThawing;
+        uint256 sharesThawing = pool.sharesThawing;
+        uint256 thawingNonce = pool.thawingNonce;
+        uint256 requestsReleased = 0;
+        tokensReleased = 0;
+
+        bytes32 thawRequestId = thawRequestList.head;
+        while (thawRequestId != bytes32(0)) {
+            if (_nThawRequests != 0 && requestsReleased >= _nThawRequests) {
+                break;
+            }
+
+            ThawRequest storage thawRequest = _getThawRequest(ThawRequestType.Delegation, thawRequestId);
+            bytes32 nextId = thawRequest.nextRequest;
+
+            if (thawRequest.thawingUntil > block.timestamp) {
+                // Thaw requests are ordered by creation time; the first unexpired request
+                // means all remaining ones are also unexpired.
+                break;
+            }
+
+            if (thawRequest.thawingNonce == thawingNonce) {
+                // sharesThawing is non-zero whenever valid thaw requests exist.
+                uint256 tokens = (thawRequest.shares * tokensThawing) / sharesThawing;
+                tokensThawing -= tokens;
+                sharesThawing -= thawRequest.shares;
+                tokensReleased += tokens;
+            }
+
+            // Remove request from list and storage regardless of nonce validity.
+            thawRequestList.count -= 1;
+            if (thawRequestId == thawRequestList.head) {
+                thawRequestList.head = nextId;
+            }
+            if (thawRequestId == thawRequestList.tail) {
+                thawRequestList.tail = bytes32(0);
+            }
+            delete _thawRequests[ThawRequestType.Delegation][thawRequestId];
+
+            requestsReleased++;
+            thawRequestId = nextId;
+        }
+
+        if (tokensReleased == 0) {
+            return 0;
+        }
+
+        pool.tokensThawing = tokensThawing;
+        pool.sharesThawing = sharesThawing;
+        pool.tokensWithdrawable += tokensReleased;
+        pool.delegators[_delegator].tokensReleasedPendingWithdrawal += tokensReleased;
+
+        emit DelegationThawReleased(_serviceProvider, _verifier, _delegator, requestsReleased, tokensReleased);
     }
 
     /**

@@ -86,6 +86,7 @@ abstract contract HorizonStakingBase is
         pool.shares = poolInternal.shares;
         pool.tokensThawing = poolInternal.tokensThawing;
         pool.sharesThawing = poolInternal.sharesThawing;
+        pool.tokensWithdrawable = poolInternal.tokensWithdrawable;
         pool.thawingNonce = poolInternal.thawingNonce;
         return pool;
     }
@@ -146,6 +147,14 @@ abstract contract HorizonStakingBase is
         address verifier
     ) external view override returns (uint256) {
         return _getDelegatedTokensAvailable(serviceProvider, verifier);
+    }
+
+    /// @inheritdoc IHorizonStakingBase
+    function getDelegatedTokensWithdrawable(
+        address serviceProvider,
+        address verifier
+    ) external view override returns (uint256) {
+        return _getDelegationPool(serviceProvider, verifier).tokensWithdrawable;
     }
 
     /// @inheritdoc IHorizonStakingBase
@@ -355,6 +364,6 @@ abstract contract HorizonStakingBase is
      */
     function _getDelegatedTokensAvailable(address _serviceProvider, address _verifier) private view returns (uint256) {
         DelegationPoolInternal storage poolInternal = _getDelegationPool(_serviceProvider, _verifier);
-        return poolInternal.tokens - poolInternal.tokensThawing;
+        return poolInternal.tokens - poolInternal.tokensThawing - poolInternal.tokensWithdrawable;
     }
 }
