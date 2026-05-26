@@ -1,8 +1,10 @@
 import { existsSync } from 'node:fs'
 
-import type { Environment } from '@rocketh/core/types'
 import type { DeploymentMetadata } from '@graphprotocol/toolshed/deployments'
+import type { Environment } from '@rocketh/core/types'
 
+import { graph } from '../rocketh/deploy.js'
+import type { AnyAddressBookOps } from './address-book-ops.js'
 import {
   autoDetectForkNetwork,
   getAddressBookForType,
@@ -18,12 +20,11 @@ import {
   type AddressBookType,
   type ArtifactSource,
   type ContractMetadata,
-  type RegistryEntry,
   getAddressBookEntryName,
   getContractMetadata,
   getContractsByAddressBook,
+  type RegistryEntry,
 } from './contract-registry.js'
-import { SpecialTags } from './deployment-tags.js'
 import {
   computeArtifactBytecodeHash,
   getOnChainImplementation,
@@ -31,8 +32,7 @@ import {
   tryLoadArtifactFromSource,
 } from './deploy-implementation.js'
 import { toBlockNumber } from './deployment-metadata.js'
-import { graph } from '../rocketh/deploy.js'
-import type { AnyAddressBookOps } from './address-book-ops.js'
+import { SpecialTags } from './deployment-tags.js'
 
 /**
  * Format an address based on SHOW_ADDRESSES environment variable

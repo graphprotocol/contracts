@@ -11,11 +11,10 @@
  * 4. Address Book Factories - Create AddressBookOps instances for each package
  */
 
-import { existsSync, mkdirSync, copyFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 
-import type { Environment } from '@rocketh/core/types'
 import type {
   GraphHorizonContractName,
   GraphIssuanceContractName,
@@ -26,6 +25,7 @@ import {
   GraphIssuanceAddressBook,
   SubgraphServiceAddressBook,
 } from '@graphprotocol/toolshed/deployments'
+import type { Environment } from '@rocketh/core/types'
 
 import { config as rockethConfig } from '../rocketh/config.js'
 import type { AnyAddressBookOps } from './address-book-ops.js'

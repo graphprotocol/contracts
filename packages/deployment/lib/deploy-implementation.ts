@@ -1,6 +1,7 @@
 import type { Artifact, Environment } from '@rocketh/core/types'
 import { encodeAbiParameters, getAddress } from 'viem'
 
+import { deploy, graph } from '../rocketh/deploy.js'
 import { getAddressBookForType, getTargetChainIdFromEnv } from './address-book-utils.js'
 import {
   getLibraryResolver,
@@ -12,9 +13,8 @@ import {
   loadSubgraphServiceArtifact,
 } from './artifact-loaders.js'
 import { computeBytecodeHash } from './bytecode-utils.js'
-import { getContractMetadata, type AddressBookType, type ArtifactSource, type ProxyType } from './contract-registry.js'
+import { type AddressBookType, type ArtifactSource, getContractMetadata, type ProxyType } from './contract-registry.js'
 import { buildDeploymentMetadata } from './deployment-metadata.js'
-import { deploy, graph } from '../rocketh/deploy.js'
 
 // Re-export artifact loaders for backwards compatibility
 export { loadContractsArtifact, loadIssuanceArtifact, loadSubgraphServiceArtifact }

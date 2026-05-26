@@ -1,12 +1,12 @@
 import type { Environment } from '@rocketh/core/types'
 import { encodeFunctionData } from 'viem'
 
-import { getAddressBookForType, getTargetChainIdFromEnv } from './address-book-utils.js'
+import { graph } from '../rocketh/deploy.js'
 import { GRAPH_PROXY_ADMIN_ABI, OZ_PROXY_ADMIN_ABI } from './abis.js'
+import { getAddressBookForType, getTargetChainIdFromEnv } from './address-book-utils.js'
 import { type AddressBookType, type ProxyType, type RegistryEntry } from './contract-registry.js'
 import { getOnChainImplementation } from './deploy-implementation.js'
 import { createGovernanceTxBuilder, saveGovernanceTx } from './execute-governance.js'
-import { graph } from '../rocketh/deploy.js'
 import type { TxBuilder, TxMetadata } from './tx-builder.js'
 
 /**

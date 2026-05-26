@@ -1,10 +1,10 @@
 import type { Environment } from '@rocketh/core/types'
 import type { PublicClient } from 'viem'
 
+import { graph } from '../rocketh/deploy.js'
 import { CONTROLLER_ABI } from './abis.js'
 import { Contracts } from './contract-registry.js'
 import { requireContract } from './issuance-deploy-utils.js'
-import { graph } from '../rocketh/deploy.js'
 
 /**
  * Check if the provider can sign as the protocol governor

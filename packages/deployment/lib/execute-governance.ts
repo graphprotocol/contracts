@@ -1,7 +1,7 @@
 import type { Environment } from '@rocketh/core/types'
 import fs from 'fs'
 import path from 'path'
-import { createPublicClient, createWalletClient, custom, http, parseEther } from 'viem'
+import { createPublicClient, createWalletClient, custom, parseEther } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 
 import { getForkNetwork, getForkStateDir, getTargetChainIdFromEnv, isForkMode } from './address-book-utils.js'

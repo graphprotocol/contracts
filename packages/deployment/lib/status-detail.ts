@@ -8,6 +8,7 @@
 import type { Environment } from '@rocketh/core/types'
 import type { PublicClient } from 'viem'
 
+import { graph } from '../rocketh/deploy.js'
 import {
   ACCESS_CONTROL_ENUMERABLE_ABI,
   CONTROLLER_ABI,
@@ -31,8 +32,7 @@ import type { RegistryEntry } from './contract-registry.js'
 import { getResolvedSettings } from './deployment-config.js'
 import { countPendingGovernanceTxs } from './execute-governance.js'
 import { formatGRT } from './format.js'
-import { getContractStatusLine, type ContractStatusResult, type ProxyAdminOwnershipContext } from './sync-utils.js'
-import { graph } from '../rocketh/deploy.js'
+import { type ContractStatusResult, getContractStatusLine, type ProxyAdminOwnershipContext } from './sync-utils.js'
 
 // ============================================================================
 // Integration Check Types & Helpers

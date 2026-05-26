@@ -1,22 +1,20 @@
 import type { Environment } from '@rocketh/core/types'
 import type { Abi, PublicClient } from 'viem'
 
+import { graph } from '../rocketh/deploy.js'
 import {
   ACCESS_CONTROL_ENUMERABLE_ABI,
   GRAPH_TOKEN_ABI,
   IERC165_ABI,
-  IERC165_INTERFACE_ID,
   IISSUANCE_TARGET_INTERFACE_ID,
   ISSUANCE_ALLOCATOR_ABI,
   ISSUANCE_TARGET_ABI,
   PROVIDER_ELIGIBILITY_MANAGEMENT_ABI,
   REWARDS_ELIGIBILITY_ORACLE_ABI,
-  REWARDS_MANAGER_ABI,
   REWARDS_MANAGER_DEPRECATED_ABI,
 } from './abis.js'
 import { getTargetChainIdFromEnv } from './address-book-utils.js'
 import { getGovernor, getPauseGuardian } from './controller-utils.js'
-import { graph } from '../rocketh/deploy.js'
 
 /**
  * Check if a contract supports a specific interface via ERC165
