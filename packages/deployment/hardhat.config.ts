@@ -17,7 +17,14 @@ import grantRoleTask from './tasks/grant-role.js'
 import { grtBalanceTask, grtMintTask, grtStatusTask, grtTransferTask } from './tasks/grt-tasks.js'
 import listPendingTask from './tasks/list-pending-implementations.js'
 import listRolesTask from './tasks/list-roles.js'
-import { reoDisableTask, reoEnableTask, reoIndexersTask, reoStatusTask } from './tasks/reo-tasks.js'
+import {
+  reoDisableTask,
+  reoEnableTask,
+  reoIndexersTask,
+  reoRemoveExpiredTask,
+  reoRetentionTask,
+  reoStatusTask,
+} from './tasks/reo-tasks.js'
 import resetForkTask from './tasks/reset-fork.js'
 import revokeRoleTask from './tasks/revoke-role.js'
 import { ssStatusTask } from './tasks/ss-tasks.js'
@@ -178,6 +185,8 @@ const config: HardhatUserConfig = {
     reoDisableTask,
     reoEnableTask,
     reoIndexersTask,
+    reoRemoveExpiredTask,
+    reoRetentionTask,
     reoStatusTask,
     ssStatusTask,
     syncTask,
