@@ -1,15 +1,7 @@
 import { task } from 'hardhat/config'
 import { ArgumentType } from 'hardhat/types/arguments'
 import type { NewTaskActionFunction } from 'hardhat/types/tasks'
-import {
-  createPublicClient,
-  createWalletClient,
-  custom,
-  encodeFunctionData,
-  type PublicClient,
-  type WalletClient,
-} from 'viem'
-import { privateKeyToAccount } from 'viem/accounts'
+import { createPublicClient, custom, type PublicClient } from 'viem'
 
 import { ACCESS_CONTROL_ENUMERABLE_ABI } from '../lib/abis.js'
 import {
@@ -19,13 +11,8 @@ import {
   getRoleHash,
   hasAdminRole,
 } from '../lib/contract-checks.js'
-import { createGovernanceTxBuilder } from '../lib/execute-governance.js'
-import {
-  getContractAddress,
-  getDeployerKeyName,
-  resolveConfigVar,
-  resolveContractFromRegistry,
-} from '../lib/task-utils.js'
+import { executeOrSaveGovernance, resolveDeployer } from '../lib/operator-write.js'
+import { getContractAddress, resolveContractFromRegistry } from '../lib/task-utils.js'
 import { graph } from '../rocketh/deploy.js'
 
 interface TaskArgs {
@@ -122,84 +109,26 @@ const action: NewTaskActionFunction<TaskArgs> = async (taskArgs, hre) => {
   console.log(`   Admin role: ${adminInfo.adminRoleName ?? adminInfo.adminRole}`)
   console.log(`   Admin holders: ${adminInfo.adminMembers.length > 0 ? adminInfo.adminMembers.join(', ') : '(none)'}`)
 
-  // Get deployer account (from keystore or env var)
-  const keyName = getDeployerKeyName(networkName)
-  const deployerKey = await resolveConfigVar(hre, keyName)
-
-  let deployer: string | undefined
-  let walletClient: WalletClient | undefined
-
-  if (deployerKey) {
-    const account = privateKeyToAccount(deployerKey as `0x${string}`)
-    deployer = account.address
-    walletClient = createWalletClient({
-      account,
-      transport: custom(conn.provider),
-    })
-  }
-
-  // Check if deployer has admin role
+  const { deployer, walletClient } = await resolveDeployer(hre, { networkName, provider: conn.provider })
   const canExecuteDirectly = deployer ? await hasAdminRole(client, contractAddress, roleHash, deployer) : false
 
-  if (canExecuteDirectly && walletClient && deployer) {
-    console.log(`\n   Deployer has ${adminInfo.adminRoleName ?? 'admin role'}, executing directly...`)
-
-    // Execute directly
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const hash = await (walletClient as any).writeContract({
-      address: contractAddress as `0x${string}`,
-      abi: ACCESS_CONTROL_ENUMERABLE_ABI,
-      functionName: 'grantRole',
-      args: [roleHash, targetAccount as `0x${string}`],
-    })
-
-    console.log(`   TX: ${hash}`)
-
-    // Wait for confirmation
-    const receipt = await client.waitForTransactionReceipt({ hash })
-    if (receipt.status === 'success') {
-      console.log(`\n✓ Role granted successfully\n`)
-    } else {
-      console.error(`\n✗ Transaction failed\n`)
-    }
-  } else {
-    // Generate governance TX
-    console.log(`\n   Requires ${adminInfo.adminRoleName ?? 'admin role'} to grant`)
-    console.log('   Generating governance TX...')
-
-    // Create a minimal environment for the TxBuilder
-    const env = {
-      name: networkName,
-      network: { provider: conn.provider },
-      showMessage: console.log,
-    }
-
-    const txName = `grant-${roleName}-to-${targetAccount.slice(0, 8)}`
-    const builder = await createGovernanceTxBuilder(env as Parameters<typeof createGovernanceTxBuilder>[0], txName, {
-      name: `Grant ${roleName}`,
-      description: `Grant ${roleName} to ${targetAccount} on ${contractName ?? contractAddress}`,
-    })
-
-    // Encode the grantRole call
-    const data = encodeFunctionData({
-      abi: ACCESS_CONTROL_ENUMERABLE_ABI,
-      functionName: 'grantRole',
-      args: [roleHash, targetAccount as `0x${string}`],
-    })
-
-    builder.addTx({
-      to: contractAddress,
-      data,
-      value: '0',
-    })
-
-    const txFile = builder.saveToFile()
-    console.log(`\n✓ Governance TX saved: ${txFile}`)
-    console.log('\nNext steps:')
-    console.log('   • Fork testing: npx hardhat deploy:execute-governance --network fork')
-    console.log('   • Safe multisig: Upload JSON to Transaction Builder')
-    console.log('')
-  }
+  const adminRoleLabel = adminInfo.adminRoleName ?? 'admin role'
+  await executeOrSaveGovernance({
+    conn: { networkName, provider: conn.provider },
+    publicClient: client,
+    walletClient,
+    canExecuteDirectly,
+    to: contractAddress,
+    abi: ACCESS_CONTROL_ENUMERABLE_ABI,
+    functionName: 'grantRole',
+    args: [roleHash, targetAccount as `0x${string}`],
+    roleDescription: adminRoleLabel,
+    requirementMessage: `${adminRoleLabel} to grant`,
+    successMessage: `✓ Role granted successfully`,
+    txName: `grant-${roleName}-to-${targetAccount.slice(0, 8)}`,
+    governanceName: `Grant ${roleName}`,
+    governanceDescription: `Grant ${roleName} to ${targetAccount} on ${contractName ?? contractAddress}`,
+  })
 }
 
 /**

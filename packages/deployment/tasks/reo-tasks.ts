@@ -1,19 +1,11 @@
 import { task } from 'hardhat/config'
 import type { NewTaskActionFunction } from 'hardhat/types/tasks'
-import {
-  createPublicClient,
-  createWalletClient,
-  custom,
-  encodeFunctionData,
-  type PublicClient,
-  type WalletClient,
-} from 'viem'
-import { privateKeyToAccount } from 'viem/accounts'
+import { createPublicClient, custom, type PublicClient } from 'viem'
 
 import { PROVIDER_ELIGIBILITY_MANAGEMENT_ABI, REWARDS_ELIGIBILITY_ORACLE_ABI } from '../lib/abis.js'
 import { accountHasRole, enumerateContractRoles, getRoleHash } from '../lib/contract-checks.js'
-import { createGovernanceTxBuilder } from '../lib/execute-governance.js'
-import { formatDuration, formatTimestamp, getDeployerKeyName, resolveConfigVar } from '../lib/task-utils.js'
+import { executeOrSaveGovernance, resolveDeployer } from '../lib/operator-write.js'
+import { formatDuration, formatTimestamp, getDeployerKeyName } from '../lib/task-utils.js'
 import { graph } from '../rocketh/deploy.js'
 
 // -- Types --
@@ -123,84 +115,25 @@ async function setEligibilityValidation({ enabled, instance, hre }: SetValidatio
   console.log(`   Current: ${currentState ? 'enabled' : 'disabled'}`)
   console.log(`   Target: ${enabled ? 'enabled' : 'disabled'}`)
 
-  // Get deployer account (from keystore or env var)
-  const keyName = getDeployerKeyName(networkName)
-  const deployerKey = await resolveConfigVar(hre, keyName)
-
-  let deployer: string | undefined
-  let walletClient: WalletClient | undefined
-
-  if (deployerKey) {
-    const account = privateKeyToAccount(deployerKey as `0x${string}`)
-    deployer = account.address
-    walletClient = createWalletClient({
-      account,
-      transport: custom(conn.provider),
-    })
-  }
-
-  // Check if deployer has OPERATOR_ROLE
+  const { deployer, walletClient } = await resolveDeployer(hre, { networkName, provider: conn.provider })
   const canExecuteDirectly = deployer ? await accountHasRole(client, reoAddress, operatorRoleHash, deployer) : false
 
-  if (canExecuteDirectly && walletClient && deployer) {
-    console.log(`\n   Deployer has OPERATOR_ROLE, executing directly...`)
-
-    // Execute directly
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const hash = await (walletClient as any).writeContract({
-      address: reoAddress as `0x${string}`,
-      abi: REWARDS_ELIGIBILITY_ORACLE_ABI,
-      functionName: 'setEligibilityValidation',
-      args: [enabled],
-    })
-
-    console.log(`   TX: ${hash}`)
-
-    // Wait for confirmation
-    const receipt = await client.waitForTransactionReceipt({ hash })
-    if (receipt.status === 'success') {
-      console.log(`\n✓ [${instance}] Eligibility validation ${actionLower}d successfully\n`)
-    } else {
-      console.error(`\n✗ Transaction failed\n`)
-    }
-  } else {
-    // Generate governance TX
-    console.log(`\n   Requires OPERATOR_ROLE to ${actionLower}`)
-    console.log('   Generating governance TX...')
-
-    // Create a minimal environment for the TxBuilder
-    const env = {
-      name: networkName,
-      network: { provider: conn.provider },
-      showMessage: console.log,
-    }
-
-    const txName = `reo-${instance.toLowerCase()}-${actionLower}-validation`
-    const builder = await createGovernanceTxBuilder(env as Parameters<typeof createGovernanceTxBuilder>[0], txName, {
-      name: `${action} REO ${instance} Validation`,
-      description: `${action} eligibility validation on ${reoEntryName(instance)}`,
-    })
-
-    // Encode the setEligibilityValidation call
-    const data = encodeFunctionData({
-      abi: REWARDS_ELIGIBILITY_ORACLE_ABI,
-      functionName: 'setEligibilityValidation',
-      args: [enabled],
-    })
-
-    builder.addTx({
-      to: reoAddress,
-      data,
-      value: '0',
-    })
-
-    const txFile = builder.saveToFile()
-    console.log(`\n✓ Governance TX saved: ${txFile}`)
-    console.log('\nNext steps:')
-    console.log('   • Fork testing: npx hardhat deploy:execute-governance --network fork')
-    console.log('   • Safe multisig: Upload JSON to Transaction Builder')
-    console.log('')
-  }
+  await executeOrSaveGovernance({
+    conn: { networkName, provider: conn.provider },
+    publicClient: client,
+    walletClient,
+    canExecuteDirectly,
+    to: reoAddress,
+    abi: REWARDS_ELIGIBILITY_ORACLE_ABI,
+    functionName: 'setEligibilityValidation',
+    args: [enabled],
+    roleDescription: 'OPERATOR_ROLE',
+    requirementMessage: `OPERATOR_ROLE to ${actionLower}`,
+    successMessage: `✓ [${instance}] Eligibility validation ${actionLower}d successfully`,
+    txName: `reo-${instance.toLowerCase()}-${actionLower}-validation`,
+    governanceName: `${action} REO ${instance} Validation`,
+    governanceDescription: `${action} eligibility validation on ${reoEntryName(instance)}`,
+  })
 }
 
 // -- Status for a single instance --
@@ -495,63 +428,25 @@ const retentionAction: NewTaskActionFunction<RetentionTaskArgs> = async (taskArg
   console.log(`   Current: ${formatDuration(currentPeriod)} (${currentPeriod}s)`)
   console.log(`   Target:  ${formatDuration(newPeriod)} (${newPeriod}s)`)
 
-  const keyName = getDeployerKeyName(networkName)
-  const deployerKey = await resolveConfigVar(hre, keyName)
-
-  let deployer: string | undefined
-  let walletClient: WalletClient | undefined
-  if (deployerKey) {
-    const account = privateKeyToAccount(deployerKey as `0x${string}`)
-    deployer = account.address
-    walletClient = createWalletClient({ account, transport: custom(conn.provider) })
-  }
-
+  const { deployer, walletClient } = await resolveDeployer(hre, { networkName, provider: conn.provider })
   const canExecuteDirectly = deployer ? await accountHasRole(client, reoAddress, operatorRoleHash, deployer) : false
 
-  if (canExecuteDirectly && walletClient && deployer) {
-    console.log(`\n   Deployer has OPERATOR_ROLE, executing directly...`)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const hash = await (walletClient as any).writeContract({
-      address: reoAddress as `0x${string}`,
-      abi: REWARDS_ELIGIBILITY_ORACLE_ABI,
-      functionName: 'setIndexerRetentionPeriod',
-      args: [newPeriod],
-    })
-    console.log(`   TX: ${hash}`)
-    const receipt = await client.waitForTransactionReceipt({ hash })
-    if (receipt.status === 'success') {
-      console.log(`\n✓ [${instance}] Retention period set to ${formatDuration(newPeriod)}\n`)
-    } else {
-      console.error(`\n✗ Transaction failed\n`)
-    }
-  } else {
-    console.log(`\n   Requires OPERATOR_ROLE`)
-    console.log('   Generating governance TX...')
-
-    const env = {
-      name: networkName,
-      network: { provider: conn.provider },
-      showMessage: console.log,
-    }
-    const txName = `reo-${instance.toLowerCase()}-retention`
-    const builder = await createGovernanceTxBuilder(env as Parameters<typeof createGovernanceTxBuilder>[0], txName, {
-      name: `Set REO ${instance} Retention Period`,
-      description: `Set indexerRetentionPeriod to ${newPeriod}s on ${reoEntryName(instance)}`,
-    })
-    const data = encodeFunctionData({
-      abi: REWARDS_ELIGIBILITY_ORACLE_ABI,
-      functionName: 'setIndexerRetentionPeriod',
-      args: [newPeriod],
-    })
-    builder.addTx({ to: reoAddress, data, value: '0' })
-
-    const txFile = builder.saveToFile()
-    console.log(`\n✓ Governance TX saved: ${txFile}`)
-    console.log('\nNext steps:')
-    console.log('   • Fork testing: npx hardhat deploy:execute-governance --network fork')
-    console.log('   • Safe multisig: Upload JSON to Transaction Builder')
-    console.log('')
-  }
+  await executeOrSaveGovernance({
+    conn: { networkName, provider: conn.provider },
+    publicClient: client,
+    walletClient,
+    canExecuteDirectly,
+    to: reoAddress,
+    abi: REWARDS_ELIGIBILITY_ORACLE_ABI,
+    functionName: 'setIndexerRetentionPeriod',
+    args: [newPeriod],
+    roleDescription: 'OPERATOR_ROLE',
+    requirementMessage: 'OPERATOR_ROLE',
+    successMessage: `✓ [${instance}] Retention period set to ${formatDuration(newPeriod)}`,
+    txName: `reo-${instance.toLowerCase()}-retention`,
+    governanceName: `Set REO ${instance} Retention Period`,
+    governanceDescription: `Set indexerRetentionPeriod to ${newPeriod}s on ${reoEntryName(instance)}`,
+  })
 }
 
 // -- Remove Expired Indexer Shared Logic --
@@ -630,18 +525,15 @@ const removeExpiredAction: NewTaskActionFunction<RemoveExpiredTaskArgs> = async 
     return
   }
 
-  const keyName = getDeployerKeyName(networkName)
-  const deployerKey = await resolveConfigVar(hre, keyName)
-  if (!deployerKey) {
+  const { deployer, walletClient } = await resolveDeployer(hre, { networkName, provider: conn.provider })
+  if (!deployer || !walletClient) {
+    const keyName = getDeployerKeyName(networkName)
     console.error(`\nError: ${keyName} not configured.`)
     console.error(`  Set it with: npx hardhat keystore set ${keyName}\n`)
     return
   }
 
-  const account = privateKeyToAccount(deployerKey as `0x${string}`)
-  const walletClient = createWalletClient({ account, transport: custom(conn.provider) })
-
-  console.log(`\n   Sender: ${account.address} (permissionless call, paying gas)`)
+  console.log(`\n   Sender: ${deployer} (permissionless call, paying gas)`)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const hash = await (walletClient as any).writeContract({
