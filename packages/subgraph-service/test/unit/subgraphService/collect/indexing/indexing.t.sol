@@ -3,6 +3,7 @@ pragma solidity ^0.8.27;
 
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { AllocationHandler } from "../../../../../contracts/libraries/AllocationHandler.sol";
+import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
 import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManager.sol";
 
 import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
@@ -153,6 +154,102 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
         // forge-lint: disable-next-line(unsafe-typecast)
         bytes memory collectData = abi.encode(allocationId, bytes32("POI"), _getHardcodedPoiMetadata());
         _collect(users.indexer, paymentType, collectData);
+    }
+
+    // Collecting while over-allocated downsizes the allocation to zero tokens and must leave no
+    // pending rewards, so the accrual cannot be collected a second time.
+    function test_SubgraphService_Collect_Indexing_OverAllocated_DoesNotLeavePendingRewards(
+        uint256 tokens
+    ) public useIndexer {
+        tokens = bound(tokens, MINIMUM_PROVISION_TOKENS * 2, 10_000_000_000 ether);
+
+        _createProvision(users.indexer, tokens, FISHERMAN_REWARD_PERCENTAGE, DISPUTE_PERIOD);
+        _register(users.indexer, abi.encode("url", "geoHash", address(0)));
+        bytes memory data = _createSubgraphAllocationData(
+            users.indexer,
+            subgraphDeployment,
+            allocationIdPrivateKey,
+            tokens
+        );
+        _startService(users.indexer, data);
+
+        // Thaw half the provision to make the indexer over-allocated.
+        staking.thaw(users.indexer, address(subgraphService), tokens / 2);
+
+        // Advance so the allocation is old enough to collect rewards.
+        vm.roll(block.number + EPOCH_LENGTH);
+
+        IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
+        // forge-lint: disable-next-line(unsafe-typecast)
+        bytes memory collectData = abi.encode(allocationId, bytes32("POI"), _getHardcodedPoiMetadata());
+        subgraphService.collect(users.indexer, paymentType, collectData);
+
+        IAllocation.State memory afterAlloc = subgraphService.getAllocation(allocationId);
+
+        assertEq(afterAlloc.tokens, 0, "allocation should be resized to zero on over-allocation");
+        assertEq(afterAlloc.accRewardsPending, 0, "collected accrual must leave no pending rewards");
+    }
+
+    // A second collection against the zero-token allocation must not pay the indexer again.
+    // MockRewardsManager.takeRewards ignores accRewardsPending, so it's mocked to the faithful
+    // `pending + delta` value — any pending left behind then surfaces here as a payout.
+    // (The real-RewardsManager integration test in packages/testing covers this without mocking.)
+    function test_SubgraphService_Collect_Indexing_OverAllocated_NoDoubleCollectionPayout(
+        uint256 tokens
+    ) public useIndexer {
+        tokens = bound(tokens, MINIMUM_PROVISION_TOKENS * 2, 10_000_000_000 ether);
+
+        _createProvision(users.indexer, tokens, FISHERMAN_REWARD_PERCENTAGE, DISPUTE_PERIOD);
+        _register(users.indexer, abi.encode("url", "geoHash", address(0)));
+        bytes memory data = _createSubgraphAllocationData(
+            users.indexer,
+            subgraphDeployment,
+            allocationIdPrivateKey,
+            tokens
+        );
+        _startService(users.indexer, data);
+
+        // Make the indexer over-allocated.
+        staking.thaw(users.indexer, address(subgraphService), tokens / 2);
+        vm.roll(block.number + EPOCH_LENGTH);
+
+        IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
+        // forge-lint: disable-next-line(unsafe-typecast)
+        bytes memory collectData = abi.encode(allocationId, bytes32("POI"), _getHardcodedPoiMetadata());
+
+        // First collect: takes rewards and resizes the over-allocated allocation to zero.
+        subgraphService.collect(users.indexer, paymentType, collectData);
+
+        IAllocation.State memory afterFirst = subgraphService.getAllocation(allocationId);
+        assertEq(afterFirst.tokens, 0);
+        uint256 pendingAfterFirst = afterFirst.accRewardsPending;
+
+        // Stage the second collect as if running against the production RewardsManager:
+        //   rewards = accRewardsPending + tokens * (updatedAcc - accRewardsPerAllocatedToken) / 1e18
+        // With tokens=0 and updatedAcc == accRewardsPerAllocatedToken, the delta term is 0, so a
+        // faithful takeRewards returns exactly the remaining accRewardsPending and mints that to
+        // the rewards issuer (the SubgraphService). When pending is 0 this mints nothing.
+        deal(address(token), address(subgraphService), pendingAfterFirst);
+        vm.mockCall(
+            address(rewardsManager),
+            abi.encodeWithSelector(IRewardsManager.takeRewards.selector, allocationId),
+            abi.encode(pendingAfterFirst)
+        );
+
+        uint256 indexerProvisionBefore = staking.getProviderTokensAvailable(users.indexer, address(subgraphService));
+
+        // Roll so the new POI presentation isn't classified as too-young.
+        vm.roll(block.number + EPOCH_LENGTH);
+        subgraphService.collect(users.indexer, paymentType, collectData);
+
+        uint256 indexerProvisionAfter = staking.getProviderTokensAvailable(users.indexer, address(subgraphService));
+
+        // The accrual was paid by the first collect and tokens are now 0, so the second pays nothing.
+        assertEq(
+            indexerProvisionAfter - indexerProvisionBefore,
+            0,
+            "indexer must not be paid again after over-allocation resize"
+        );
     }
 
     function test_SubgraphService_Collect_Indexing_RevertWhen_IndexerIsNotAllocationOwner(

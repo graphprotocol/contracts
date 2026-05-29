@@ -105,6 +105,10 @@ abstract contract FullStackHarness is Test {
     MockCuration internal curation;
     MockEpochManager internal epochManager;
     MockRewardsManager internal rewardsManager;
+    /// @dev The RewardsManager address registered in the Controller. Equals `address(rewardsManager)`
+    ///      in the default (mock) configuration; a subclass may override `_deployRewardsManager` to
+    ///      register a different implementation (e.g. real bytecode — see RealRewardsHarness).
+    address internal rewardsManagerAddress;
 
     // -- Helpers --
     RecurringCollectorHelper internal rcHelper;
@@ -143,9 +147,14 @@ abstract contract FullStackHarness is Test {
         vm.startPrank(deployer);
         token = new MockGRTToken();
         GraphProxy stakingProxy = new GraphProxy(address(0), address(proxyAdmin));
-        rewardsManager = new MockRewardsManager(token, REWARDS_PER_SIGNAL, REWARDS_PER_SUBGRAPH_ALLOCATION_UPDATE);
         curation = new MockCuration();
         epochManager = new MockEpochManager();
+        vm.stopPrank();
+
+        // RewardsManager via pluggable factory (token must already exist). The factory
+        // self-manages pranks and leaves none active. No prank is needed for the predicted-address
+        // computation below; the registration block re-establishes the governor prank.
+        rewardsManagerAddress = _deployRewardsManager();
 
         // Predict GraphPayments and PaymentsEscrow addresses using actual creation code.
         // We use type(...).creationCode instead of vm.getCode to get the exact bytecode
@@ -175,7 +184,7 @@ abstract contract FullStackHarness is Test {
             vm.startPrank(governor);
             controller.setContractProxy(keccak256("GraphToken"), address(token));
             controller.setContractProxy(keccak256("Staking"), address(stakingProxy));
-            controller.setContractProxy(keccak256("RewardsManager"), address(rewardsManager));
+            controller.setContractProxy(keccak256("RewardsManager"), rewardsManagerAddress);
             controller.setContractProxy(keccak256("GraphPayments"), predictedGP);
             controller.setContractProxy(keccak256("PaymentsEscrow"), predictedEscrow);
             controller.setContractProxy(keccak256("EpochManager"), address(epochManager));
@@ -260,6 +269,17 @@ abstract contract FullStackHarness is Test {
 
         // RecurringCollectorHelper
         rcHelper = new RecurringCollectorHelper(recurringCollector, recurringCollectorProxyAdmin);
+    }
+
+    /// @notice Deploy the RewardsManager and return the address to register in the Controller.
+    /// @dev Override to swap the reward-accounting implementation (e.g. real contract bytecode)
+    ///      without touching the rest of the stack. Implementations must self-manage pranks and
+    ///      leave none active on return. Called after `token` exists and before SubgraphService is
+    ///      constructed (GraphDirectory caches the RewardsManager address at construction).
+    function _deployRewardsManager() internal virtual returns (address) {
+        vm.prank(deployer);
+        rewardsManager = new MockRewardsManager(token, REWARDS_PER_SIGNAL, REWARDS_PER_SUBGRAPH_ALLOCATION_UPDATE);
+        return address(rewardsManager);
     }
 
     // ── RAM + IssuanceAllocator deployment ──────────────────────────────

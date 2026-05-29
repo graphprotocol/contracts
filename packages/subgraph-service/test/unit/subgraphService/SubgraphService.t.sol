@@ -433,13 +433,13 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         // For too-young allocations (created in current epoch), the contract returns early
         // without updating other allocation state or emitting IndexingRewardsCollected
         if (currentEpoch > allocation.createdAtEpoch) {
-            // Note: after resize (over-allocation), accRewardsPending is re-accumulated from
-            // the token delta and may be non-zero. This is expected — rewards from the resize
-            // delta are captured as pending for the next collection.
+            // Collecting clears pending rewards and snapshots the accumulator, so nothing remains
+            // collectable afterwards — including when an over-allocation downsize runs in the same call.
             uint256 accRewardsPerAllocatedToken = rewardsManager.onSubgraphAllocationUpdate(
                 allocation.subgraphDeploymentId
             );
             assertEq(allocation.accRewardsPerAllocatedToken, accRewardsPerAllocatedToken);
+            assertEq(allocation.accRewardsPending, 0, "collected accrual must leave no pending rewards");
         }
 
         // Check indexer got paid the correct amount

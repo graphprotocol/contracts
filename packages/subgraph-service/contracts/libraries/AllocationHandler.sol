@@ -409,7 +409,6 @@ library AllocationHandler {
                 params.graphStaking,
                 params.graphRewardsManager,
                 params._allocationId,
-                allocation,
                 0,
                 params._delegationRatio,
                 params.maxPOIStaleness
@@ -502,7 +501,6 @@ library AllocationHandler {
             graphStaking,
             graphRewardsManager,
             _allocationId,
-            allocation,
             _tokens,
             _delegationRatio,
             _maxPOIStaleness
@@ -518,7 +516,6 @@ library AllocationHandler {
      * @param graphStaking The staking contract
      * @param graphRewardsManager The rewards manager contract
      * @param _allocationId The allocation ID to resize
-     * @param allocation The current allocation state
      * @param _tokens The new token amount for the allocation
      * @param _delegationRatio The delegation ratio for provision tracking
      * @param _maxPOIStaleness The maximum POI staleness threshold
@@ -530,11 +527,12 @@ library AllocationHandler {
         IHorizonStaking graphStaking,
         IRewardsManager graphRewardsManager,
         address _allocationId,
-        IAllocation.State memory allocation,
         uint256 _tokens,
         uint32 _delegationRatio,
         uint256 _maxPOIStaleness
     ) internal {
+        IAllocation.State memory allocation = _allocations.get(_allocationId);
+
         // Update provision tracker
         uint256 oldTokens = allocation.tokens;
         if (_tokens > oldTokens) {
