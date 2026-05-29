@@ -374,7 +374,7 @@ library AllocationHandler {
         // Scoped for stack management
         {
             (uint256 tokensIndexerRewards, uint256 tokensDelegationRewards) = _distributeIndexingRewards(
-                allocation,
+                allocation.indexer,
                 rewardsCollected,
                 params
             );
@@ -654,14 +654,14 @@ library AllocationHandler {
 
     /**
      * @notice Distributes indexing rewards to delegators and indexer
-     * @param _allocation The allocation state
+     * @param _indexer The indexer that owns the allocation
      * @param _rewardsCollected Total rewards to distribute
      * @param _params The present params containing staking, token, and destination info
      * @return tokensIndexerRewards Amount sent to indexer
      * @return tokensDelegationRewards Amount sent to delegation pool
      */
     function _distributeIndexingRewards(
-        IAllocation.State memory _allocation,
+        address _indexer,
         uint256 _rewardsCollected,
         PresentParams memory _params
     ) private returns (uint256 tokensIndexerRewards, uint256 tokensDelegationRewards) {
@@ -669,18 +669,18 @@ library AllocationHandler {
 
         // Calculate and distribute delegator share
         uint256 delegatorCut = _params.graphStaking.getDelegationFeeCut(
-            _allocation.indexer,
+            _indexer,
             _params.dataService,
             IGraphPayments.PaymentTypes.IndexingRewards
         );
         IHorizonStakingTypes.DelegationPool memory pool = _params.graphStaking.getDelegationPool(
-            _allocation.indexer,
+            _indexer,
             _params.dataService
         );
         tokensDelegationRewards = pool.shares > 0 ? _rewardsCollected.mulPPM(delegatorCut) : 0;
         if (tokensDelegationRewards > 0) {
             _params.graphToken.approve(address(_params.graphStaking), tokensDelegationRewards);
-            _params.graphStaking.addToDelegationPool(_allocation.indexer, _params.dataService, tokensDelegationRewards);
+            _params.graphStaking.addToDelegationPool(_indexer, _params.dataService, tokensDelegationRewards);
         }
 
         // Distribute indexer share
@@ -688,7 +688,7 @@ library AllocationHandler {
         if (tokensIndexerRewards > 0) {
             if (_params._paymentsDestination == address(0)) {
                 _params.graphToken.approve(address(_params.graphStaking), tokensIndexerRewards);
-                _params.graphStaking.stakeToProvision(_allocation.indexer, _params.dataService, tokensIndexerRewards);
+                _params.graphStaking.stakeToProvision(_indexer, _params.dataService, tokensIndexerRewards);
             } else {
                 _params.graphToken.pushTokens(_params._paymentsDestination, tokensIndexerRewards);
             }
