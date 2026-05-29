@@ -236,10 +236,12 @@ contract RecurringAgreementManagerFundingModesTest is RecurringAgreementManagerS
         uint256 maxClaim2 = 2 ether * 7200 + 200 ether;
 
         // indexer is fully deposited (undeposited = 0), indexer2 has full deficit (undeposited = maxClaim2)
-        // totalEscrowDeficit must be maxClaim2, NOT 0 (the old buggy sumMaxNextClaim - totalInEscrow approach
-        // would compute sumMaxNextClaim = maxClaim1 + maxClaim2, totalInEscrow = maxClaim1,
-        // deficit = maxClaim2 — which happens to be correct here, but would be wrong if indexer
-        // were over-deposited and the excess masked indexer2's deficit)
+        // totalEscrowDeficit must be computed per-provider: it sums each provider's own undeposited
+        // shortfall, so here it equals indexer2's full deficit (maxClaim2) and nothing from indexer.
+        // Per-provider computation is required as a permanent invariant: a naive
+        // sum(maxNextClaim) - totalInEscrow would let one provider's surplus offset another's
+        // shortfall, so if indexer were over-deposited its excess would mask indexer2's deficit and
+        // understate the total. The per-provider sum avoids that by never netting surplus against deficit.
         assertEq(agreementManager.getTotalEscrowDeficit(), maxClaim2, "Undeposited = indexer2's full deficit");
 
         // Verify per-provider escrow state

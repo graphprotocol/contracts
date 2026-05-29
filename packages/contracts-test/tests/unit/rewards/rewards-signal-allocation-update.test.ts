@@ -13,17 +13,16 @@ import { NetworkFixture } from '../lib/fixtures'
 const { HashZero } = constants
 
 /**
- * Test for the signal/allocation update accounting bug fix.
+ * Invariant: signal/allocation update accounting.
  *
- * The bug: When `onSubgraphSignalUpdate()` is called before `onSubgraphAllocationUpdate()`
- * in the SAME BLOCK, the per-signal delta is zero but rewards tracked in `accRewardsForSubgraph`
- * are never distributed to allocations. This causes rewards to be "bricked".
+ * When `onSubgraphSignalUpdate()` runs before `onSubgraphAllocationUpdate()` in the SAME BLOCK,
+ * the per-signal delta is zero. Rewards already tracked in `accRewardsForSubgraph` must still be
+ * distributed to allocations via the snapshot delta
+ * (`accRewardsForSubgraph - accRewardsForSubgraphSnapshot`), rather than relying on the per-signal
+ * delta alone. Distribution must never depend on the ordering of these two calls within a block.
  *
- * The fix: Use the snapshot delta (accRewardsForSubgraph - accRewardsForSubgraphSnapshot) instead
- * of only relying on the per-signal delta for calculating new rewards.
- *
- * IMPORTANT: These tests use evm_setAutomine to batch transactions into the same block,
- * which is necessary to reproduce the bug condition where per-signal delta = 0.
+ * IMPORTANT: These tests use evm_setAutomine to batch transactions into one block so the
+ * per-signal delta is zero, exercising the snapshot-delta path.
  */
 describe('Rewards: Signal and Allocation Update Accounting', () => {
   const graph = hre.graph()
@@ -141,11 +140,11 @@ describe('Rewards: Signal and Allocation Update Accounting', () => {
       // Get final state
       const subgraphAfterAllocation = await rewardsManager.subgraphs(subgraphDeploymentID)
 
-      // THE FIX: accRewardsPerAllocatedToken should be updated even though per-signal delta was 0
-      // With the bug, this would remain unchanged because newRewards=0 caused early return
+      // accRewardsPerAllocatedToken must advance via the snapshot delta even when the per-signal
+      // delta is zero, so accumulated rewards reach allocations regardless of update ordering.
       expect(subgraphAfterAllocation.accRewardsPerAllocatedToken).to.be.gt(
         accRewardsPerAllocatedTokenBefore,
-        'accRewardsPerAllocatedToken should increase (BUG: was not updated when signal update preceded allocation update)',
+        'accRewardsPerAllocatedToken should increase when a signal update precedes an allocation update in the same block',
       )
 
       // Verify snapshot consistency
@@ -196,12 +195,12 @@ describe('Rewards: Signal and Allocation Update Accounting', () => {
       // Get stored state
       const subgraph = await rewardsManager.subgraphs(subgraphDeploymentID)
 
-      // THE BUG: With the original buggy code, accRewardsPerAllocatedToken would remain at 0
-      // because newRewards from per-signal delta is 0, causing early return.
-      // THE FIX: accRewardsPerAllocatedToken should be updated to reflect the accumulated rewards
+      // Even when the per-signal delta is zero, accRewardsPerAllocatedToken must reflect the
+      // rewards accumulated in accRewardsForSubgraph via the snapshot delta, so they are
+      // distributed to allocations rather than stranded.
       expect(subgraph.accRewardsPerAllocatedToken).to.be.gt(
         0,
-        'accRewardsPerAllocatedToken should be non-zero (BUG: rewards were bricked)',
+        'accRewardsPerAllocatedToken should be non-zero so accumulated rewards are distributed, not stranded',
       )
 
       // Verify view function and stored state are consistent
@@ -297,7 +296,8 @@ describe('Rewards: Signal and Allocation Update Accounting', () => {
         'accRewardsPerAllocatedToken should not increase when denied',
       )
 
-      // THE FIX: accRewardsForSubgraphSnapshot should be updated to prevent re-reclaiming
+      // accRewardsForSubgraphSnapshot must advance in the reclaim path so the same rewards
+      // cannot be reclaimed again on a later update.
       expect(subgraphAfter.accRewardsForSubgraphSnapshot).to.be.gte(
         subgraphBefore.accRewardsForSubgraphSnapshot,
         'accRewardsForSubgraphSnapshot should be updated in reclaim path',
@@ -368,12 +368,12 @@ describe('Rewards: Signal and Allocation Update Accounting', () => {
       await helpers.mine(100)
 
       // Call onSubgraphSignalUpdate (simulates curator action)
-      // With Option B fix: rewards should be reclaimed immediately
+      // For a denied subgraph, rewards are reclaimed immediately rather than accumulated.
       const tx = await rewardsManager.connect(governor).onSubgraphSignalUpdate(subgraphDeploymentID)
       const receipt = await tx.wait()
       const afterSignalUpdate = await rewardsManager.subgraphs(subgraphDeploymentID)
 
-      // With Option B: accRewardsForSubgraph should NOT change for denied subgraphs
+      // For a denied subgraph, accRewardsForSubgraph must NOT change
       // (rewards are reclaimed directly, not stored)
       expect(afterSignalUpdate.accRewardsForSubgraph).to.equal(
         afterDenial.accRewardsForSubgraph,
@@ -429,7 +429,8 @@ describe('Rewards: Signal and Allocation Update Accounting', () => {
       const rewardsDuringDenial = await rewardsManager.getAccRewardsForSubgraph(subgraphDeploymentID)
       expect(rewardsDuringDenial).to.equal(rewardsAtDenial, 'View should not increase during denial')
 
-      // Call signal update (with bug, this would NOT reclaim, causing view to jump on next allocation update)
+      // A signal update on a denied subgraph reclaims the accumulated rewards, so the view stays
+      // stable and does not jump on the next allocation update.
       // Configure reclaim address so rewards are reclaimed
       const SUBGRAPH_DENIED = hre.ethers.utils.id('SUBGRAPH_DENIED')
       await rewardsManager.connect(governor).setReclaimAddress(SUBGRAPH_DENIED, governor.address)
@@ -513,7 +514,7 @@ describe('Rewards: Signal and Allocation Update Accounting', () => {
     it('should maintain accounting invariant across mixed updates (with same-block scenarios)', async function () {
       await setupSubgraphWithAllocation()
 
-      // Sequence of operations that could trigger the bug
+      // Sequence exercising the same-block signal/allocation ordering
       await helpers.mine(25)
 
       // First: signal update followed by allocation update in SAME BLOCK

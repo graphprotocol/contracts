@@ -14,12 +14,12 @@ import { RecurringAgreementManagerSharedTest } from "./shared.t.sol";
 contract RecurringAgreementManagerCancelWithPendingUpdateTest is RecurringAgreementManagerSharedTest {
     /* solhint-disable graph/func-name-mixedcase */
 
-    /// @notice Demonstrates the bug: when an accepted agreement with a pending (unapplied)
-    /// update is canceled, the pendingUpdateMaxNextClaim escrow is NOT freed during
-    /// cancelAgreement. The escrow remains locked until the agreement is fully drained
-    /// and deleted, even though the update can never be accepted (collector rejects
-    /// updates on non-Accepted agreements).
-    function test_CancelAgreement_PendingUpdateEscrowNotFreed() public {
+    /// @notice Verifies that a pending (unapplied) update on a canceled agreement does not
+    /// inflate sumMaxNextClaim. When an accepted agreement with a pending update is canceled,
+    /// the pendingUpdateMaxNextClaim escrow must be freed: the update can never be applied
+    /// (the collector rejects updates on non-Accepted agreements), so only the base claim
+    /// counts toward reserved escrow.
+    function test_CancelAgreement_PendingUpdateEscrowFreed() public {
         // 1. Offer and accept an agreement
         (IRecurringCollector.RecurringCollectionAgreement memory rca, ) = _makeRCAWithId(
             100 ether,
@@ -68,16 +68,16 @@ contract RecurringAgreementManagerCancelWithPendingUpdateTest is RecurringAgreem
         );
         assertTrue(exists, "agreement should still exist (has remaining claims)");
 
-        // 4. BUG: The pending update can never be accepted (collector rejects updates on
-        // canceled agreements), yet pendingUpdateMaxNextClaim is still reserved.
+        // 4. The pending update can never be applied — the collector rejects updates on
+        // canceled agreements — so its escrow must not count toward sumMaxNextClaim.
         uint256 sumAfterCancel = agreementManager.getSumMaxNextClaim(_collector(), indexer);
 
-        // The pending escrow should have been freed (zeroed) since the update is dead.
-        // sumMaxNextClaim should only include the base claim, not the dead pending update.
+        // The pending escrow must be freed (zeroed) since the update can no longer be applied.
+        // sumMaxNextClaim must include only the base claim, not the unappliable pending update.
         assertEq(
             sumAfterCancel,
             agreementManager.getAgreementMaxNextClaim(IAgreementCollector(address(recurringCollector)), agreementId),
-            "BUG: sumMaxNextClaim should only include the base claim, not the dead pending update"
+            "sumMaxNextClaim must include only the base claim, not the unappliable pending update"
         );
     }
 

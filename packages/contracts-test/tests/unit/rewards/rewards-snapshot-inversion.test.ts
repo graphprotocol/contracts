@@ -20,17 +20,20 @@ const { HashZero } = constants
  *   S = accRewardsForSubgraphSnapshot (stored snapshot, set at allocation updates)
  *   P = rewardsSinceSignalSnapshot    (pending rewards since last signal snapshot)
  *
- * After a proxy upgrade, subgraphs whose last pre-upgrade interaction was
- * `onSubgraphAllocationUpdate` have A < S. The old code set S from a view function
- * (storage + pending) while leaving A at its stored value, so S leads and A lags.
- * The original code's `A.sub(S).add(P)` reverts on the intermediate `A - S`.
+ * For affected subgraphs, on-chain storage can hold an inverted snapshot state
+ * where A < S: the snapshot S leads (it was written from a view value of
+ * storage + pending) while the accumulator A lags at its stored value.
  *
- * The fix: Rearrange to `A.add(P).sub(S)` — add P first, then subtract S.
- * Since P covers T1→now and the gap S - A covers T1→T2, and now >= T2,
- * we have S - A <= P, so S <= A + P always holds. No clamping needed.
+ * Invariant the reward math must uphold: with an inverted state (A < S), the
+ * computation of A + P - S must never underflow. It does so by adding pending
+ * first and subtracting the snapshot last — `A.add(P).sub(S)` — so the
+ * intermediate `A + P` stays non-negative. Since P covers T1→now and the gap
+ * S - A covers T1→T2, and now >= T2, we have S - A <= P, so S <= A + P always
+ * holds; no clamping is needed. Subtracting the gap S - A discards rewards
+ * already distributed, preventing double-counting.
  *
- * These tests use `hardhat_setStorageAt` to directly create the inverted storage state
- * that exists on-chain for affected subgraphs.
+ * These tests use `hardhat_setStorageAt` to construct the inverted storage state
+ * directly so the invariant can be exercised for affected subgraphs.
  */
 describe('Rewards: Snapshot Inversion', () => {
   const graph = hre.graph()
@@ -202,8 +205,9 @@ describe('Rewards: Snapshot Inversion', () => {
       // Advance enough blocks so P > gap. At ~200 GRT/block, 50 blocks ≈ 10,000 GRT > 7,000.
       await helpers.mine(50)
 
-      // Old code: A.sub(S).add(P) reverts on intermediate A - S when A < S.
-      // Fix: A.add(P).sub(S) adds P first, so A + P >= S always holds.
+      // With an inverted state (A < S), the update must not revert: pending P is
+      // added before the snapshot S is subtracted (A.add(P).sub(S)), so the
+      // intermediate A + P stays non-negative and A + P >= S always holds.
       await expect(rewardsManager.connect(governor).onSubgraphSignalUpdate(subgraphDeploymentID)).to.not.be.reverted
     })
 
@@ -229,11 +233,11 @@ describe('Rewards: Snapshot Inversion', () => {
       // First call with inverted state
       await rewardsManager.connect(governor).onSubgraphSignalUpdate(subgraphDeploymentID)
 
-      // After the fix processes the inverted state, snapshots should be synced
+      // After processing the inverted state, snapshots should be synced
       const after = await rewardsManager.subgraphs(subgraphDeploymentID)
       expect(after.accRewardsForSubgraphSnapshot).to.equal(
         after.accRewardsForSubgraph,
-        'snapshot should equal accumulated after fix processes inverted state',
+        'snapshot should equal accumulated after processing inverted state',
       )
 
       // Subsequent calls should work normally
@@ -272,10 +276,10 @@ describe('Rewards: Snapshot Inversion', () => {
       expect(perAllocBefore).to.be.lt(after.accRewardsPerAllocatedToken, 'should distribute rewards: 0 < (A + P) - S')
 
       // The distributed amount should be less than total new rewards (P)
-      // because the gap represents already-distributed rewards from the old code
+      // because the gap represents already-distributed rewards
       // Undistributed = (A + P) - S = P - gap (since S = A + gap)
       // If P ≈ 2000 GRT and gap = 500 GRT, undistributed ≈ 1500 GRT
-      // Without the gap subtraction, it would have been P ≈ 2000 GRT (double-counting)
+      // Subtracting the gap is what keeps this from being P ≈ 2000 GRT (double-counting)
 
       // Verify snapshots are synced
       expect(after.accRewardsForSubgraphSnapshot).to.equal(after.accRewardsForSubgraph)
@@ -350,7 +354,7 @@ describe('Rewards: Snapshot Inversion', () => {
   })
 
   describe('normal operation (no inversion)', function () {
-    it('should produce identical results when A == S (post-fix steady state)', async function () {
+    it('should produce identical results when A == S (synced snapshot steady state)', async function () {
       await setupSubgraphWithAllocation()
 
       // Ensure snapshots are synced (normal state)
