@@ -59,6 +59,7 @@ abstract contract DataService is GraphDirectory, ProvisionManager, DataServiceV1
         return _getDelegationRatio();
     }
 
+    // forge-lint: disable-next-item(mixed-case-function)
     /**
      * @notice Initializes the contract and any parent contracts.
      */
@@ -67,6 +68,7 @@ abstract contract DataService is GraphDirectory, ProvisionManager, DataServiceV1
         __DataService_init_unchained();
     }
 
+    // forge-lint: disable-next-item(mixed-case-function)
     /**
      * @notice Initializes the contract.
      */

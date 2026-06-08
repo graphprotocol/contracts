@@ -12,6 +12,7 @@ abstract contract AttestationManagerV1Storage {
     /// @dev EIP712 domain separator
     bytes32 internal _domainSeparator;
 
+    // forge-lint: disable-next-item(mixed-case-variable)
     /// @dev Gap to allow adding variables in future upgrades
     uint256[50] private __gap;
 }
