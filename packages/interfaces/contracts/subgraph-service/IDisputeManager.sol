@@ -2,10 +2,9 @@
 
 pragma solidity ^0.8.22;
 
-// TODO: Re-enable and fix issues when publishing a new version
-// solhint-disable gas-indexed-events
-
 import { IAttestation } from "./internal/IAttestation.sol";
+import { IIndexingAgreement } from "./internal/IIndexingAgreement.sol";
+import { ISubgraphService } from "./ISubgraphService.sol";
 
 /**
  * @title IDisputeManager
@@ -20,7 +19,8 @@ interface IDisputeManager {
         Null,
         IndexingDispute,
         QueryDispute,
-        LegacyDispute
+        __DEPRECATED_LegacyDispute,
+        IndexingFeeDispute
     }
 
     /// @notice Status of a dispute
@@ -68,24 +68,28 @@ interface IDisputeManager {
      * @param disputePeriod The dispute period in seconds.
      */
     event DisputePeriodSet(uint64 disputePeriod);
+    // solhint-disable-previous-line gas-indexed-events
 
     /**
      * @notice Emitted when dispute deposit is set.
      * @param disputeDeposit The dispute deposit required to create a dispute.
      */
     event DisputeDepositSet(uint256 disputeDeposit);
+    // solhint-disable-previous-line gas-indexed-events
 
     /**
      * @notice Emitted when max slashing cut is set.
      * @param maxSlashingCut The maximum slashing cut that can be set.
      */
     event MaxSlashingCutSet(uint32 maxSlashingCut);
+    // solhint-disable-previous-line gas-indexed-events
 
     /**
      * @notice Emitted when fisherman reward cut is set.
      * @param fishermanRewardCut The fisherman reward cut.
      */
     event FishermanRewardCutSet(uint32 fishermanRewardCut);
+    // solhint-disable-previous-line gas-indexed-events
 
     /**
      * @notice Emitted when subgraph service is set.
@@ -118,6 +122,32 @@ interface IDisputeManager {
     );
 
     /**
+     * @notice Emitted when an indexing fee dispute is created for `agreementId` and `indexer`
+     * by `fisherman`.
+     * @dev The event emits the amount of `tokens` deposited by the fisherman.
+     * @param disputeId The dispute id
+     * @param indexer The indexer address
+     * @param fisherman The fisherman address
+     * @param tokens The amount of tokens deposited by the fisherman
+     * @param payer The address of the payer of the indexing fee
+     * @param agreementId The agreement id
+     * @param poi The POI disputed
+     * @param entities The entities disputed
+     * @param stakeSnapshot The stake snapshot of the indexer at the time of the dispute
+     */
+    event IndexingFeeDisputeCreated(
+        bytes32 indexed disputeId,
+        address indexed indexer,
+        address indexed fisherman,
+        uint256 tokens,
+        address payer,
+        bytes16 agreementId,
+        bytes32 poi,
+        uint256 entities,
+        uint256 stakeSnapshot
+    );
+
+    /**
      * @notice Emitted when an indexing dispute is created for `allocationId` and `indexer`
      * by `fisherman`.
      * The event emits the amount of `tokens` deposited by the fisherman.
@@ -141,25 +171,6 @@ interface IDisputeManager {
         uint256 blockNumber,
         uint256 stakeSnapshot,
         uint256 cancellableAt
-    );
-
-    /**
-     * @notice Emitted when a legacy dispute is created for `allocationId` and `fisherman`.
-     * The event emits the amount of `tokensSlash` to slash and `tokensRewards` to reward the fisherman.
-     * @param disputeId The dispute id
-     * @param indexer The indexer address
-     * @param fisherman The fisherman address to be credited with the rewards
-     * @param allocationId The allocation id
-     * @param tokensSlash The amount of tokens to slash
-     * @param tokensRewards The amount of tokens to reward the fisherman
-     */
-    event LegacyDisputeCreated(
-        bytes32 indexed disputeId,
-        address indexed indexer,
-        address indexed fisherman,
-        address allocationId,
-        uint256 tokensSlash,
-        uint256 tokensRewards
     );
 
     /**
@@ -357,19 +368,31 @@ interface IDisputeManager {
     error DisputeManagerSubgraphServiceNotSet();
 
     /**
+     * @notice Thrown when the Indexing Agreement is not disputable
+     * @param agreementId The indexing agreement id
+     */
+    error DisputeManagerIndexingAgreementNotDisputable(bytes16 agreementId);
+
+    /**
+     * @notice Thrown when the Indexing Agreement is not disputable
+     * @param version The indexing agreement version
+     */
+    error DisputeManagerIndexingAgreementInvalidVersion(IIndexingAgreement.IndexingAgreementVersion version);
+
+    /**
      * @notice Initialize this contract.
      * @param owner The owner of the contract
-     * @param arbitrator Arbitrator role
-     * @param disputePeriod Dispute period in seconds
-     * @param disputeDeposit Deposit required to create a Dispute
+     * @param arbitrator_ Arbitrator role
+     * @param disputePeriod_ Dispute period in seconds
+     * @param disputeDeposit_ Deposit required to create a Dispute
      * @param fishermanRewardCut_ Percent of slashed funds for fisherman (ppm)
      * @param maxSlashingCut_ Maximum percentage of indexer stake that can be slashed (ppm)
      */
     function initialize(
         address owner,
-        address arbitrator,
-        uint64 disputePeriod,
-        uint256 disputeDeposit,
+        address arbitrator_,
+        uint64 disputePeriod_,
+        uint256 disputeDeposit_,
         uint32 fishermanRewardCut_,
         uint32 maxSlashingCut_
     ) external;
@@ -377,23 +400,23 @@ interface IDisputeManager {
     /**
      * @notice Set the dispute period.
      * @dev Update the dispute period to `_disputePeriod` in seconds
-     * @param disputePeriod Dispute period in seconds
+     * @param newDisputePeriod Dispute period in seconds
      */
-    function setDisputePeriod(uint64 disputePeriod) external;
+    function setDisputePeriod(uint64 newDisputePeriod) external;
 
     /**
      * @notice Set the arbitrator address.
      * @dev Update the arbitrator to `_arbitrator`
-     * @param arbitrator The address of the arbitration contract or party
+     * @param newArbitrator The address of the arbitration contract or party
      */
-    function setArbitrator(address arbitrator) external;
+    function setArbitrator(address newArbitrator) external;
 
     /**
      * @notice Set the dispute deposit required to create a dispute.
      * @dev Update the dispute deposit to `_disputeDeposit` Graph Tokens
-     * @param disputeDeposit The dispute deposit in Graph Tokens
+     * @param newDisputeDeposit The dispute deposit in Graph Tokens
      */
-    function setDisputeDeposit(uint256 disputeDeposit) external;
+    function setDisputeDeposit(uint256 newDisputeDeposit) external;
 
     /**
      * @notice Set the percent reward that the fisherman gets when slashing occurs.
@@ -411,9 +434,9 @@ interface IDisputeManager {
     /**
      * @notice Set the subgraph service address.
      * @dev Update the subgraph service to `_subgraphService`
-     * @param subgraphService The address of the subgraph service contract
+     * @param newSubgraphService The address of the subgraph service contract
      */
-    function setSubgraphService(address subgraphService) external;
+    function setSubgraphService(address newSubgraphService) external;
 
     // -- Dispute --
 
@@ -470,36 +493,26 @@ interface IDisputeManager {
     function createIndexingDispute(address allocationId, bytes32 poi, uint256 blockNumber) external returns (bytes32);
 
     /**
-     * @notice Creates and auto-accepts a legacy dispute.
-     * This disputes can be created to settle outstanding slashing amounts with an indexer that has been
-     * "legacy slashed" during or shortly after the transition period. See {HorizonStakingExtension.legacySlash}
-     * for more details.
-     *
-     * Note that this type of dispute:
-     * - can only be created by the arbitrator
-     * - does not require a bond
-     * - is automatically accepted when created
-     *
-     * Additionally, note that this type of disputes allow the arbitrator to directly set the slash and rewards
-     * amounts, bypassing the usual mechanisms that impose restrictions on those. This is done to give arbitrators
-     * maximum flexibility to ensure outstanding slashing amounts are settled fairly. This function needs to be removed
-     * after the transition period.
+     * @notice Create an indexing fee (version 1) dispute for the arbitrator to resolve.
+     * The disputes are created in reference to a version 1 indexing agreement and specifically
+     * a POI and entities provided when collecting that agreement.
+     * This function is called by a fisherman and it will pull `disputeDeposit` GRT tokens.
      *
      * Requirements:
-     * - Indexer must have been legacy slashed during or shortly after the transition period
-     * - Indexer must have provisioned funds to the Subgraph Service
+     * - fisherman must have previously approved this contract to pull `disputeDeposit` amount
+     *   of tokens from their balance.
      *
-     * @param allocationId The allocation to dispute
-     * @param fisherman The fisherman address to be credited with the rewards
-     * @param tokensSlash The amount of tokens to slash
-     * @param tokensRewards The amount of tokens to reward the fisherman
+     * @param agreementId The indexing agreement to dispute
+     * @param poi The Proof of Indexing (POI) being disputed
+     * @param entities The number of entities disputed
+     * @param blockNumber The block number at which the indexing fee was collected
      * @return The dispute id
      */
-    function createAndAcceptLegacyDispute(
-        address allocationId,
-        address fisherman,
-        uint256 tokensSlash,
-        uint256 tokensRewards
+    function createIndexingFeeDisputeV1(
+        bytes16 agreementId,
+        bytes32 poi,
+        uint256 entities,
+        uint256 blockNumber
     ) external returns (bytes32);
 
     // -- Arbitrator --
@@ -617,4 +630,72 @@ interface IDisputeManager {
         IAttestation.State memory attestation1,
         IAttestation.State memory attestation2
     ) external pure returns (bool);
+
+    // -- Storage Getters --
+
+    /**
+     * @notice Get the dispute period.
+     * @return Dispute period in seconds
+     */
+    function disputePeriod() external view returns (uint64);
+
+    /**
+     * @notice Get the fisherman reward cut.
+     * @return Fisherman reward cut in percentage (ppm)
+     */
+    function fishermanRewardCut() external view returns (uint32);
+
+    /**
+     * @notice Get the maximum percentage that can be used for slashing indexers.
+     * @return Max percentage slashing for disputes
+     */
+    function maxSlashingCut() external view returns (uint32);
+
+    /**
+     * @notice Get the dispute deposit.
+     * @return Dispute deposit
+     */
+    function disputeDeposit() external view returns (uint256);
+
+    /**
+     * @notice Get the subgraph service address.
+     * @return Subgraph service address
+     */
+    function subgraphService() external view returns (ISubgraphService);
+
+    /**
+     * @notice Get the arbitrator address.
+     * @return Arbitrator address
+     */
+    function arbitrator() external view returns (address);
+
+    /**
+     * @notice Get dispute details.
+     * @param disputeId The dispute ID
+     * @return indexer The indexer that is being disputed
+     * @return fisherman The fisherman that created the dispute
+     * @return deposit The amount of tokens deposited by the fisherman
+     * @return relatedDisputeId The link to a related dispute
+     * @return disputeType The type of dispute
+     * @return status The status of the dispute
+     * @return createdAt The timestamp when the dispute was created
+     * @return cancellableAt The timestamp when the dispute can be cancelled
+     * @return stakeSnapshot The stake snapshot of the indexer at the time of the dispute
+     */
+    function disputes(
+        bytes32 disputeId
+    )
+        external
+        view
+        returns (
+            address indexer,
+            address fisherman,
+            uint256 deposit,
+            bytes32 relatedDisputeId,
+            DisputeType disputeType,
+            DisputeStatus status,
+            uint256 createdAt,
+            uint256 cancellableAt,
+            uint256 stakeSnapshot
+        );
 }

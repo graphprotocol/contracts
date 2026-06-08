@@ -3,6 +3,7 @@ pragma solidity ^0.8.27;
 
 // TODO: Re-enable and fix issues when publishing a new version
 // solhint-disable function-max-lines, gas-strict-inequalities
+// forge-lint: disable-start(unwrapped-modifier-logic, asm-keccak256, named-struct-fields, mixed-case-variable)
 
 import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
 import { IHorizonStaking } from "@graphprotocol/interfaces/contracts/horizon/IHorizonStaking.sol";
@@ -10,10 +11,11 @@ import { IDisputeManager } from "@graphprotocol/interfaces/contracts/subgraph-se
 import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
 import { IAttestation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAttestation.sol";
 import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
+import { IIndexingAgreement } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IIndexingAgreement.sol";
 
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
-import { MathUtils } from "@graphprotocol/horizon/contracts/libraries/MathUtils.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { Attestation } from "./libraries/Attestation.sol";
 
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
@@ -46,12 +48,12 @@ import { AttestationManager } from "./utilities/AttestationManager.sol";
  * bugs. We may have an active bug bounty program.
  */
 contract DisputeManager is
+    IDisputeManager,
     Initializable,
     OwnableUpgradeable,
     GraphDirectory,
     AttestationManager,
-    DisputeManagerV1Storage,
-    IDisputeManager
+    DisputeManagerV1Storage
 {
     using TokenUtils for IGraphToken;
     using PPMMath for uint256;
@@ -138,6 +140,20 @@ contract DisputeManager is
     }
 
     /// @inheritdoc IDisputeManager
+    function createIndexingFeeDisputeV1(
+        bytes16 agreementId,
+        bytes32 poi,
+        uint256 entities,
+        uint256 blockNumber
+    ) external override returns (bytes32) {
+        // Get funds from fisherman
+        _graphToken().pullTokens(msg.sender, disputeDeposit);
+
+        // Create a dispute
+        return _createIndexingFeeDisputeV1(msg.sender, disputeDeposit, agreementId, poi, entities, blockNumber);
+    }
+
+    /// @inheritdoc IDisputeManager
     function createQueryDispute(bytes calldata attestationData) external override returns (bytes32) {
         // Get funds from fisherman
         _graphToken().pullTokens(msg.sender, disputeDeposit);
@@ -205,46 +221,6 @@ contract DisputeManager is
     }
 
     /// @inheritdoc IDisputeManager
-    function createAndAcceptLegacyDispute(
-        address allocationId,
-        address fisherman,
-        uint256 tokensSlash,
-        uint256 tokensRewards
-    ) external override onlyArbitrator returns (bytes32) {
-        // Create a disputeId
-        bytes32 disputeId = keccak256(abi.encodePacked(allocationId, "legacy"));
-
-        // Get the indexer for the legacy allocation
-        address indexer = _graphStaking().getAllocation(allocationId).indexer;
-        require(indexer != address(0), DisputeManagerIndexerNotFound(allocationId));
-
-        // Store dispute
-        disputes[disputeId] = Dispute(
-            indexer,
-            fisherman,
-            0,
-            0,
-            DisputeType.LegacyDispute,
-            IDisputeManager.DisputeStatus.Accepted,
-            block.timestamp,
-            block.timestamp + disputePeriod,
-            0
-        );
-
-        // Slash the indexer
-        ISubgraphService subgraphService_ = _getSubgraphService();
-        subgraphService_.slash(indexer, abi.encode(tokensSlash, tokensRewards));
-
-        // Reward the fisherman
-        _graphToken().pushTokens(fisherman, tokensRewards);
-
-        emit LegacyDisputeCreated(disputeId, indexer, fisherman, allocationId, tokensSlash, tokensRewards);
-        emit DisputeAccepted(disputeId, indexer, fisherman, tokensRewards);
-
-        return disputeId;
-    }
-
-    /// @inheritdoc IDisputeManager
     function acceptDispute(
         bytes32 disputeId,
         uint256 tokensSlash
@@ -303,18 +279,18 @@ contract DisputeManager is
     }
 
     /// @inheritdoc IDisputeManager
-    function setArbitrator(address arbitrator) external override onlyOwner {
-        _setArbitrator(arbitrator);
+    function setArbitrator(address newArbitrator) external override onlyOwner {
+        _setArbitrator(newArbitrator);
     }
 
     /// @inheritdoc IDisputeManager
-    function setDisputePeriod(uint64 disputePeriod) external override onlyOwner {
-        _setDisputePeriod(disputePeriod);
+    function setDisputePeriod(uint64 newDisputePeriod) external override onlyOwner {
+        _setDisputePeriod(newDisputePeriod);
     }
 
     /// @inheritdoc IDisputeManager
-    function setDisputeDeposit(uint256 disputeDeposit) external override onlyOwner {
-        _setDisputeDeposit(disputeDeposit);
+    function setDisputeDeposit(uint256 newDisputeDeposit) external override onlyOwner {
+        _setDisputeDeposit(newDisputeDeposit);
     }
 
     /// @inheritdoc IDisputeManager
@@ -328,8 +304,8 @@ contract DisputeManager is
     }
 
     /// @inheritdoc IDisputeManager
-    function setSubgraphService(address subgraphService_) external override onlyOwner {
-        _setSubgraphService(subgraphService_);
+    function setSubgraphService(address newSubgraphService) external override onlyOwner {
+        _setSubgraphService(newSubgraphService);
     }
 
     /// @inheritdoc IDisputeManager
@@ -507,6 +483,75 @@ contract DisputeManager is
     }
 
     /**
+     * @notice Create indexing fee (version 1) dispute internal function.
+     * @param _fisherman The fisherman creating the dispute
+     * @param _deposit Amount of tokens staked as deposit
+     * @param _agreementId The agreement id being disputed
+     * @param _poi The POI being disputed
+     * @param _entities The number of entities disputed
+     * @param _blockNumber The block number of the disputed POI
+     * @return The dispute id
+     */
+    function _createIndexingFeeDisputeV1(
+        address _fisherman,
+        uint256 _deposit,
+        bytes16 _agreementId,
+        bytes32 _poi,
+        uint256 _entities,
+        uint256 _blockNumber
+    ) private returns (bytes32) {
+        IIndexingAgreement.AgreementWrapper memory wrapper = _getSubgraphService().getIndexingAgreement(_agreementId);
+
+        // Agreement must have been collected on and be a version 1
+        require(
+            wrapper.collectorAgreement.lastCollectionAt > 0,
+            DisputeManagerIndexingAgreementNotDisputable(_agreementId)
+        );
+        require(
+            wrapper.agreement.version == IIndexingAgreement.IndexingAgreementVersion.V1,
+            DisputeManagerIndexingAgreementInvalidVersion(wrapper.agreement.version)
+        );
+
+        // Create a disputeId
+        bytes32 disputeId = keccak256(
+            abi.encodePacked("IndexingFeeDisputeWithAgreement", _agreementId, _poi, _entities, _blockNumber)
+        );
+
+        // Only one dispute at a time
+        require(!isDisputeCreated(disputeId), DisputeManagerDisputeAlreadyCreated(disputeId));
+
+        // The indexer must be disputable
+        uint256 stakeSnapshot = _getStakeSnapshot(wrapper.collectorAgreement.serviceProvider);
+        require(stakeSnapshot != 0, DisputeManagerZeroTokens());
+
+        disputes[disputeId] = Dispute(
+            wrapper.collectorAgreement.serviceProvider,
+            _fisherman,
+            _deposit,
+            0, // no related dispute,
+            DisputeType.IndexingFeeDispute,
+            IDisputeManager.DisputeStatus.Pending,
+            block.timestamp,
+            block.timestamp + disputePeriod,
+            stakeSnapshot
+        );
+
+        emit IndexingFeeDisputeCreated(
+            disputeId,
+            wrapper.collectorAgreement.serviceProvider,
+            _fisherman,
+            _deposit,
+            wrapper.collectorAgreement.payer,
+            _agreementId,
+            _poi,
+            _entities,
+            stakeSnapshot
+        );
+
+        return disputeId;
+    }
+
+    /**
      * @notice Accept a dispute
      * @param _disputeId The id of the dispute
      * @param _dispute The dispute
@@ -587,8 +632,8 @@ contract DisputeManager is
         // - The applied cut is the minimum between the provision's maxVerifierCut and the current fishermanRewardCut. This
         //   protects the indexer from sudden changes to the fishermanRewardCut while ensuring the slashing does not revert due
         //   to excessive rewards being requested.
-        uint256 maxRewardableTokens = MathUtils.min(_tokensSlash, provision.tokens);
-        uint256 effectiveCut = MathUtils.min(provision.maxVerifierCut, fishermanRewardCut);
+        uint256 maxRewardableTokens = Math.min(_tokensSlash, provision.tokens);
+        uint256 effectiveCut = Math.min(provision.maxVerifierCut, fishermanRewardCut);
         uint256 tokensRewards = effectiveCut.mulPPM(maxRewardableTokens);
 
         subgraphService_.slash(_indexer, abi.encode(_tokensSlash, tokensRewards));

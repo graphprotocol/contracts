@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.27;
 
-// TODO: Re-enable and fix issues when publishing a new version
 // solhint-disable gas-strict-inequalities
 
 import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
@@ -36,8 +35,10 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
 
     /// @notice Escrow account details for payer-collector-receiver tuples
     mapping(address payer => mapping(address collector => mapping(address receiver => IPaymentsEscrow.EscrowAccount escrowAccount)))
-        public escrowAccounts;
+        public
+        override escrowAccounts;
 
+    // forge-lint: disable-next-item(unwrapped-modifier-logic)
     /**
      * @notice Modifier to prevent function execution when contract is paused
      * @dev Reverts if the controller indicates the contract is paused
@@ -91,6 +92,42 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
     }
 
     /// @inheritdoc IPaymentsEscrow
+    function adjustThaw(
+        address collector,
+        address receiver,
+        uint256 tokensToThaw,
+        bool evenIfTimerReset
+    ) external override notPaused returns (uint256 tokensThawing) {
+        EscrowAccount storage account = escrowAccounts[msg.sender][collector][receiver];
+        uint256 currentThawing = account.tokensThawing;
+
+        tokensThawing = tokensToThaw < account.balance ? tokensToThaw : account.balance;
+
+        if (tokensThawing == currentThawing) return tokensThawing;
+
+        uint256 thawEndTimestamp;
+        uint256 previousThawEnd = account.thawEndTimestamp;
+        if (tokensThawing < currentThawing) {
+            // Decreasing (or canceling): preserve timer, clear if fully canceled
+            account.tokensThawing = tokensThawing;
+            if (tokensThawing == 0) account.thawEndTimestamp = 0;
+            else thawEndTimestamp = previousThawEnd;
+        } else {
+            thawEndTimestamp = block.timestamp + WITHDRAW_ESCROW_THAWING_PERIOD;
+            // Increasing: reset timer (skip if evenIfTimerReset=false and timer would change)
+            if (!evenIfTimerReset && previousThawEnd != 0 && previousThawEnd != thawEndTimestamp) return currentThawing;
+            account.tokensThawing = tokensThawing;
+            account.thawEndTimestamp = thawEndTimestamp;
+        }
+
+        if (tokensThawing == 0) {
+            emit CancelThaw(msg.sender, collector, receiver, currentThawing, previousThawEnd);
+        } else {
+            emit Thaw(msg.sender, collector, receiver, tokensThawing, thawEndTimestamp);
+        }
+    }
+
+    /// @inheritdoc IPaymentsEscrow
     function cancelThaw(address collector, address receiver) external override notPaused {
         EscrowAccount storage account = escrowAccounts[msg.sender][collector][receiver];
         require(account.tokensThawing != 0, PaymentsEscrowNotThawing());
@@ -138,6 +175,14 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
 
         // Reduce amount from account balance
         account.balance -= tokens;
+
+        // Cap tokensThawing to the new balance to keep state consistent
+        if (account.tokensThawing > account.balance) {
+            account.tokensThawing = account.balance;
+            if (account.tokensThawing == 0) {
+                account.thawEndTimestamp = 0;
+            }
+        }
 
         uint256 escrowBalanceBefore = _graphToken().balanceOf(address(this));
 
