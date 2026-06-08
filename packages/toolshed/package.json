@@ -1,12 +1,17 @@
 {
   "name": "@graphprotocol/toolshed",
-  "version": "1.0.2",
+  "version": "1.2.2",
   "publishConfig": {
     "access": "public"
   },
   "description": "A collection of tools and utilities for the Graph Protocol Typescript components",
   "author": "Tomás Migone <tomas@edgeandnode.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/graphprotocol/contracts",
+    "directory": "packages/toolshed"
+  },
   "main": "./dist/core/index.js",
   "types": "./dist/core/index.d.ts",
   "exports": {
@@ -55,6 +60,7 @@
   "dependencies": {
     "@graphprotocol/address-book": "workspace:^",
     "@graphprotocol/interfaces": "workspace:^",
+    "@graphprotocol/issuance": "workspace:^",
     "@nomicfoundation/hardhat-ethers": "catalog:",
     "debug": "^4.4.0",
     "ethers": "catalog:",

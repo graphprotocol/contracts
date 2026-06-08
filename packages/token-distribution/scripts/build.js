@@ -152,24 +152,26 @@ async function setupGraphClient() {
   const hasExtracted = hasExtractedArtifacts()
   const graphClientBuildNeeded = await needsGraphClientBuild()
 
-  if (!hasApiKeys && hasExtracted) {
-    console.log('📦 Using cached GraphClient artifacts (no API key)')
-    console.warn('⚠️  Schemas might be outdated - set STUDIO_API_KEY or GRAPH_API_KEY to refresh')
+  // If we have extracted artifacts, use them regardless of .graphclient state
+  // This prevents unnecessary rebuilds and enables builds without API credentials
+  // See README.md "Build Process" section for the full rationale
+  if (hasExtracted) {
+    console.log('📦 Using existing extracted GraphClient artifacts (run "pnpm clean:extracted" to force regeneration)')
     return
   }
 
-  if (graphClientBuildNeeded) {
-    if (hasApiKeys) {
-      console.log('📥 Downloading GraphClient schemas...')
-      execSync('pnpm graphclient build --fileType json', { stdio: 'inherit' })
-
-      console.log('📦 Extracting essential artifacts...')
-      execSync('node scripts/extract-graphclient.js', { stdio: 'inherit' })
-    } else {
-      console.error('❌ No API key or cached GraphClient artifacts available')
-      process.exit(1)
-    }
+  // Only build GraphClient if extracted files are missing
+  if (!hasApiKeys) {
+    console.error('❌ Missing extracted GraphClient artifacts and STUDIO_API_KEY not set')
+    console.error('💡 Set STUDIO_API_KEY and run build again')
+    process.exit(1)
   }
+
+  console.log('📥 Downloading GraphClient schemas...')
+  execSync('pnpm graphclient build --fileType json', { stdio: 'inherit' })
+
+  console.log('📦 Extracting essential artifacts...')
+  execSync('node scripts/extract-graphclient.js', { stdio: 'inherit' })
 }
 
 async function build() {

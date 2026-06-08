@@ -3,7 +3,7 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 import { ethers } from 'ethers'
 
 export default buildModule('Controller', (m) => {
-  const governor = m.getAccount(1)
+  const governor = m.getParameter('governor')
   const pauseGuardian = m.getParameter('pauseGuardian')
 
   const Controller = m.contract('Controller', ControllerArtifact)

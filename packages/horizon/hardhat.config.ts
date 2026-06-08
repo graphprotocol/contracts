@@ -17,27 +17,8 @@ if (isProjectBuilt(__dirname)) {
 const baseConfig = hardhatBaseConfig(require)
 const config: HardhatUserConfig = {
   ...baseConfig,
-  solidity: {
-    version: '0.8.27',
-    settings: {
-      optimizer: {
-        enabled: true,
-        runs: 20,
-      },
-    },
-  },
   etherscan: {
     ...baseConfig.etherscan,
-    customChains: [
-      {
-        network: 'arbitrumSepolia',
-        chainId: 421614,
-        urls: {
-          apiURL: 'https://api-sepolia.arbiscan.io/api',
-          browserURL: 'https://sepolia.arbiscan.io/',
-        },
-      },
-    ],
   },
 }
 

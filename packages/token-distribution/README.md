@@ -167,7 +167,31 @@ Run tests with coverage:
 yarn test:coverage
 ```
 
-### Coverage Limitations
+## Build Process
+
+### GraphClient Type Extraction
+
+This package uses The Graph's GraphClient to generate TypeScript types for querying token lock data.
+
+The package can be built without `STUDIO_API_KEY` using the extracted files in `.graphclient-extracted/`.
+
+The full GraphClient download is large; extracted types are minimal (~few KB vs hundreds of KB). The extraction script produces consistent output by:
+
+- Sorting type exports alphabetically
+- Running prettier on extracted files
+
+This ensures types appear in a stable order regardless of the source file's ordering.
+
+Even with deterministic extraction, the GraphQL query can return inconsistent results when re-downloaded, though these differences don't affect package functionality.
+
+### Build Behavior
+
+- Extracted artifacts are committed to `.graphclient-extracted/`
+- GraphClient only downloads fresh data if extracted files are missing (requires `STUDIO_API_KEY`)
+- `pnpm clean` preserves extracted files (no rebuild needed)
+- `pnpm clean:all` or `pnpm clean:extracted` removes them (forces regeneration with API key)
+
+## Test Coverage Limitations
 
 **Note**: The token-distribution package has architectural incompatibilities with Solidity Coverage due to:
 

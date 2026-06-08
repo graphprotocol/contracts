@@ -18,14 +18,8 @@ if (isProjectBuilt(__dirname)) {
 const baseConfig = hardhatBaseConfig(require)
 const config: HardhatUserConfig = {
   ...baseConfig,
-  solidity: {
-    version: '0.8.27',
-    settings: {
-      optimizer: {
-        enabled: true,
-        runs: 10,
-      },
-    },
+  sourcify: {
+    enabled: false,
   },
 }
 

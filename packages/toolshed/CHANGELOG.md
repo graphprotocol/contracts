@@ -1,5 +1,36 @@
 # @graphprotocol/toolshed
 
+## 1.1.2
+
+### Patch Changes
+
+- remove return types from IGraphTokenLockWalletToolshed
+- Updated dependencies
+  - @graphprotocol/interfaces@0.6.5
+
+## 1.1.1
+
+### Patch Changes
+
+- Re-release toolshed with parseCustomError
+
+## 1.1.0
+
+### Minor Changes
+
+- Graph Horizon phase 3 mainnet deployment
+
+### Patch Changes
+
+- Updated dependencies
+  - @graphprotocol/address-book@1.1.0
+
+## 1.0.3
+
+### Patch Changes
+
+- Add fn to parse custom errors to toolshed package
+
 ## 1.0.2
 
 ### Patch Changes

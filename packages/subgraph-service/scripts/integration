@@ -124,13 +124,6 @@ npx hardhat deploy:migrate --network localhost --horizon-config integration --st
 cd ../subgraph-service
 npx hardhat test:seed --network localhost
 
-# Run integration tests - During transition period
-npx hardhat test:integration --phase during-transition-period --network localhost
-
-# Clear thawing period
-cd ../horizon
-npx hardhat transition:clear-thawing --network localhost --governor-index 1
-
 # Run integration tests - After transition period
 cd ../subgraph-service
 npx hardhat test:integration --phase after-transition-period --network localhost

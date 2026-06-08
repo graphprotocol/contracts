@@ -1,0 +1,36 @@
+[profile.default]
+src = 'contracts'
+out = 'forge-artifacts'
+libs = ["node_modules"]
+auto_detect_remappings = false
+test = 'test'
+remappings = [
+    "@openzeppelin/=node_modules/@openzeppelin/",
+    "@graphprotocol/=node_modules/@graphprotocol/",
+    "forge-std/=node_modules/forge-std/src/",
+]
+cache_path = 'cache_forge'
+fs_permissions = [{ access = "read", path = "./" }]
+solc_version = '0.8.35'
+evm_version = 'cancun'
+# Suppress solc warnings emitted from third-party code we don't control
+# (e.g. @openzeppelin/foundry-upgrades' state-mutability suggestions).
+ignored_warnings_from = ["node_modules"]
+
+# Exclude test files from coverage reports
+no_match_coverage = "(^test/|^contracts/test/|/mocks/)"
+
+# Opt-in profile for production-matching bytecode (viaIR + optimizer).
+# Use FOUNDRY_PROFILE=prod for CI / pre-merge runs that should mirror what hardhat
+# compiles for deploy. Default profile stays optimizer-off / viaIR-off for fast iteration.
+[profile.prod]
+optimizer = true
+optimizer_runs = 100
+via_ir = true
+
+[lint]
+# Disable lint-on-build: `pnpm lint:forge` (scoped to contracts/) is the canonical lint path
+# for production code; auto-lint during build adds noise from test files without value.
+lint_on_build = false
+exclude_lints = ["mixed-case-function", "mixed-case-variable", "block-timestamp"]
+ignore = ["node_modules/**", "test/node_modules/**"]

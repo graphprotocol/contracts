@@ -6,7 +6,6 @@ env:
 
 on:
   pull_request:
-    branches: '*'
   workflow_dispatch:
 
 jobs:
@@ -15,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -34,14 +33,14 @@ jobs:
       - name: Find coverage files
         id: coverage_files
         run: |
-          # Find all coverage-final.json files
-          COVERAGE_FILES=$(find ./packages -name "coverage-final.json" -path "*/coverage/*" | tr '\n' ',' | sed 's/,$//')
+          # Find coverage files: Istanbul JSON (Hardhat) and lcov (Forge)
+          COVERAGE_FILES=$(find ./packages \( -name "coverage-final.json" -o -name "lcov.info" \) -path "*/coverage/*" | tr '\n' ',' | sed 's/,$//')
           echo "files=$COVERAGE_FILES" >> $GITHUB_OUTPUT
           echo "Found coverage files: $COVERAGE_FILES"
 
       - name: Upload coverage reports
         if: steps.coverage_files.outputs.files != ''
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage_files.outputs.files }}

@@ -17,20 +17,21 @@ shift
 FILES=("$@")
 
 # Define ignore patterns for generated files that should never be linted despite being in git
-IGNORE_PATTERNS=(
-    "*/.graphclient-extracted/*"
+# Note: These are substrings to check for in the file path, not glob patterns
+IGNORE_SUBSTRINGS=(
+    "/.graphclient-extracted/"
 )
 
 # Function to check if a file should be ignored
 should_ignore_file() {
     local file="$1"
-    
-    for pattern in "${IGNORE_PATTERNS[@]}"; do
-        if [[ "$file" == $pattern ]]; then
+
+    for substring in "${IGNORE_SUBSTRINGS[@]}"; do
+        if [[ "$file" == *"$substring"* ]]; then
             return 0  # Should ignore
         fi
     done
-    
+
     return 1  # Should not ignore
 }
 

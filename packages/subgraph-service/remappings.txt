@@ -1,7 +1,3 @@
-@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/
-@openzeppelin/contracts-upgradeable/=node_modules/@openzeppelin/contracts-upgradeable/
-@openzeppelin/foundry-upgrades/=node_modules/@openzeppelin/foundry-upgrades/src/
-@graphprotocol/contracts/=node_modules/@graphprotocol/contracts/
-@graphprotocol/horizon/=node_modules/@graphprotocol/horizon/
-@graphprotocol/interfaces/=node_modules/@graphprotocol/interfaces/
+@openzeppelin/=node_modules/@openzeppelin/
+@graphprotocol/=node_modules/@graphprotocol/
 forge-std/=node_modules/forge-std/src/

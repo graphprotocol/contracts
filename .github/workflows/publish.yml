@@ -1,3 +1,24 @@
+# Publishes a single workspace package to npm via OIDC trusted publishing.
+# No NPM_TOKEN is used; the job exchanges its GitHub OIDC token for a short-lived
+# npm credential and attaches SLSA provenance via `--provenance`.
+#
+# Prerequisite: each package in the `package` choice list must have a Trusted
+# Publisher entry configured on npmjs.com under Settings → Publishing access.
+# Use owner=`graphprotocol`, repo=`contracts`, workflow=`publish.yml`,
+# environment=blank. Adding a package to the choice list without that npm-side
+# entry will 403 at the publish step.
+#
+# Conventions:
+# - `tag=latest` is reserved for the changeset-driven release flow (see README).
+#   Use a custom dist-tag (`dips`, `sepolia`, `next`, …) for ad-hoc or
+#   pre-release publishes so the stable channel is never overwritten.
+# - `dry_run=true` validates the workflow end-to-end without consuming a
+#   version or pushing a git tag — useful when adding a new package or
+#   verifying a fresh Trusted Publisher entry.
+#
+# Fallback: maintainers with publish rights on `@graphprotocol/*` can still run
+# `pnpm publish` locally if OIDC is unavailable.
+
 name: Publish package to NPM
 
 on:
@@ -8,29 +29,49 @@ on:
         required: true
         type: choice
         options:
+          - address-book
           - contracts
-          - sdk
+          - interfaces
+          - toolshed
       tag:
         description: 'Tag to publish'
         required: true
         type: string
         default: latest
+      dry_run:
+        description: 'Dry-run (validate only, no publish or git tag)'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   publish:
     name: Publish package
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Set up environment
         uses: ./.github/actions/setup
-      - name: Set npm token for publishing
-        run: pnpm config set //registry.npmjs.org/:_authToken ${{ secrets.GRAPHPROTOCOL_NPM_TOKEN }}
+      - name: Read package info
+        id: pkg
+        shell: bash
+        run: |
+          PKG_NAME=$(node -p "require('./packages/${{ inputs.package }}/package.json').name")
+          PKG_VERSION=$(node -p "require('./packages/${{ inputs.package }}/package.json').version")
+          echo "tag=${PKG_NAME}@${PKG_VERSION}" >> $GITHUB_OUTPUT
       - name: Publish 🚀
         shell: bash
         run: |
           pushd packages/${{ inputs.package }}
-          pnpm publish --tag ${{ inputs.tag }} --access public --no-git-checks
+          pnpm publish --provenance --tag ${{ inputs.tag }} --access public --no-git-checks ${{ inputs.dry_run && '--dry-run' || '' }}
+      - name: Tag release
+        if: ${{ !inputs.dry_run }}
+        run: |
+          git tag ${{ steps.pkg.outputs.tag }}
+          git push origin ${{ steps.pkg.outputs.tag }}

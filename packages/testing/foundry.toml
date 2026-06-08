@@ -1,0 +1,41 @@
+[profile.default]
+src = 'test'
+out = 'forge-artifacts'
+test = 'test'
+libs = ["node_modules"]
+cache_path = 'cache_forge'
+remappings = [
+    "@openzeppelin/=node_modules/@openzeppelin/",
+    "@graphprotocol/=node_modules/@graphprotocol/",
+    "forge-std/=node_modules/forge-std/src/",
+    # Real contract sources via workspace symlinks
+    "horizon/=node_modules/@graphprotocol/horizon/contracts/",
+    "horizon-mocks/=node_modules/@graphprotocol/horizon/contracts/mocks/",
+    "horizon-test/=node_modules/@graphprotocol/horizon/test/",
+    "issuance/=node_modules/@graphprotocol/issuance/contracts/",
+    "subgraph-service/=node_modules/@graphprotocol/subgraph-service/contracts/",
+    "subgraph-service-test/=node_modules/@graphprotocol/subgraph-service/test/",
+]
+solc_version = '0.8.35'
+evm_version = 'cancun'
+# Allow reading the hardhat-compiled artifact for the real (Solidity 0.7.6) RewardsManager,
+# which forge cannot compile in this 0.8.x project and must load as precompiled bytecode.
+# See test/harness/RealRewardsHarness.t.sol and test/integration/IndexingRewardsCollection.t.sol.
+fs_permissions = [{ access = "read", path = "node_modules/@graphprotocol/contracts/artifacts" }]
+
+# Opt-in profile for production-matching bytecode (viaIR + optimizer).
+# Use FOUNDRY_PROFILE=prod for CI / pre-merge runs that should mirror what hardhat
+# compiles for deploy. Default profile stays optimizer-off / viaIR-off for fast iteration.
+[profile.prod]
+optimizer = true
+optimizer_runs = 100
+via_ir = true
+
+[lint]
+# Disable lint-on-build: forge's lint walker follows symlinks without cycle detection and
+# infinite-loops on this package's pnpm-hoisted node_modules
+# (e.g., @graphprotocol/contracts/task/node_modules/@graphprotocol/contracts/task/...).
+# `forge lint contracts/` (scoped) still works as a separate command.
+lint_on_build = false
+exclude_lints = ["mixed-case-function", "mixed-case-variable", "block-timestamp"]
+ignore = ["node_modules/**", "**/node_modules/**"]

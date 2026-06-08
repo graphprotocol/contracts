@@ -1,5 +1,7 @@
-export { AddressBook, AddressBookEntry } from './address-book'
+export type { AddressBookEntry, DeploymentMetadata, PendingImplementation } from './address-book'
+export { AddressBook } from './address-book'
 export * from './horizon'
+export * from './issuance'
 export * from './subgraph-service'
 export type { GraphDeploymentName, GraphDeployments } from './types'
 export { GraphDeploymentsList } from './types'

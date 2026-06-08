@@ -1,15 +1,19 @@
 {
   "name": "@graphprotocol/address-book",
-  "version": "1.0.1",
+  "version": "1.2.1",
   "publishConfig": {
     "access": "public"
   },
   "description": "Contract addresses for The Graph Protocol",
   "author": "Edge & Node",
   "license": "GPL-2.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/graphprotocol/contracts",
+    "directory": "packages/address-book"
+  },
   "exports": {
-    "./horizon/addresses.json": "./src/horizon/addresses.json",
-    "./subgraph-service/addresses.json": "./src/subgraph-service/addresses.json"
+    "./*/addresses.json": "./src/*/addresses.json"
   },
   "files": [
     "src/**/*.json",

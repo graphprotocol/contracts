@@ -1,5 +1,5 @@
 import { vars } from 'hardhat/config'
-import type { HardhatUserConfig, NetworksUserConfig, ProjectPathsUserConfig, SolidityUserConfig } from 'hardhat/types'
+import type { HardhatUserConfig, NetworksUserConfig, ProjectPathsUserConfig, SolcUserConfig } from 'hardhat/types'
 
 import { resolveAddressBook } from '../lib/resolve'
 
@@ -23,7 +23,7 @@ type GraphRuntimeEnvironmentOptions = {
 }
 
 interface EtherscanConfig {
-  apiKey: string
+  apiKey: string | Record<string, string>
   customChains: {
     network: string
     chainId: number
@@ -41,13 +41,15 @@ const ARBITRUM_SEPOLIA_RPC = vars.get('ARBITRUM_SEPOLIA_RPC', 'https://sepolia-r
 const LOCAL_NETWORK_RPC = vars.get('LOCAL_NETWORK_RPC', 'http://chain:8545')
 const LOCALHOST_RPC = vars.get('LOCALHOST_RPC', 'http://localhost:8545')
 
-export const solidityUserConfig: SolidityUserConfig = {
-  version: '0.8.27',
+export const solidityUserConfig: SolcUserConfig = {
+  version: '0.8.35',
   settings: {
     optimizer: {
       enabled: true,
       runs: 100,
     },
+    viaIR: true,
+    evmVersion: 'cancun',
   },
 }
 
@@ -56,8 +58,17 @@ export const projectPathsUserConfig: ProjectPathsUserConfig = {
   sources: './contracts',
 }
 
+// Etherscan v2 API uses a single API key for all networks
+// See: https://docs.etherscan.io/etherscan-v2/getting-started/creating-an-account
+// Check keystore first (vars), then environment variables
+// Support both ETHERSCAN_API_KEY and ARBISCAN_API_KEY for compatibility
+const getEtherscanApiKey = (): string => {
+  if (vars.has('ETHERSCAN_API_KEY')) return vars.get('ETHERSCAN_API_KEY')
+  if (vars.has('ARBISCAN_API_KEY')) return vars.get('ARBISCAN_API_KEY')
+  return process.env.ETHERSCAN_API_KEY ?? process.env.ARBISCAN_API_KEY ?? ''
+}
 export const etherscanUserConfig: Partial<EtherscanConfig> = {
-  apiKey: vars.has('ETHERSCAN_API_KEY') ? vars.get('ETHERSCAN_API_KEY') : '',
+  apiKey: getEtherscanApiKey(),
 }
 
 // In general:
@@ -79,6 +90,7 @@ export const networksUserConfig = function (callerRequire: typeof require): Base
   return {
     hardhat: {
       chainId: 31337,
+      hardfork: 'cancun',
       accounts: {
         mnemonic: 'myth like bonus scare over problem client lizard pioneer submit female collect',
       },

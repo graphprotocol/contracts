@@ -1,18 +1,19 @@
 import type {
   IControllerToolshed,
   IEpochManagerToolshed,
-  IL2GNSToolshed,
   IGraphPayments,
   IGraphProxyAdmin,
   IGraphTallyCollectorToolshed,
   IGraphToken,
   IHorizonStakingToolshed,
   IL2CurationToolshed,
+  IL2GNSToolshed,
+  ILegacyRewardsManager,
   IPaymentsEscrowToolshed,
+  IRecurringCollector,
   IRewardsManagerToolshed,
   IStaking,
   ISubgraphNFT,
-  ILegacyRewardsManager,
 } from '../../types'
 
 export {
@@ -25,9 +26,10 @@ export {
   IL2CurationToolshed as L2Curation,
   IL2GNSToolshed as L2GNS,
   IGraphToken as L2GraphToken,
+  ILegacyRewardsManager as LegacyRewardsManager,
   IStaking as LegacyStaking,
   IPaymentsEscrowToolshed as PaymentsEscrow,
+  IRecurringCollector as RecurringCollector,
   IRewardsManagerToolshed as RewardsManager,
   ISubgraphNFT as SubgraphNFT,
-  ILegacyRewardsManager as LegacyRewardsManager,
 }

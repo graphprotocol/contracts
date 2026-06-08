@@ -4,9 +4,11 @@ import type { Provider, Signer } from 'ethers'
 import { resolveAddressBook } from '../../lib/resolve'
 import { loadActions } from './actions'
 import { SubgraphServiceAddressBook } from './address-book'
+import type { SubgraphServiceContracts } from './contracts'
 
 export { SubgraphServiceAddressBook }
 export type { SubgraphServiceContractName, SubgraphServiceContracts } from './contracts'
+export { SubgraphServiceContractNameList } from './contracts'
 
 export function loadSubgraphService(addressBookPath: string, chainId: number, provider: HardhatEthersProvider) {
   const addressBook = new SubgraphServiceAddressBook(addressBookPath, chainId)
@@ -18,7 +20,11 @@ export function loadSubgraphService(addressBookPath: string, chainId: number, pr
   }
 }
 
-export function connectSubgraphService(chainId: number, signerOrProvider: Signer | Provider, addressBookPath?: string) {
+export function connectSubgraphService(
+  chainId: number,
+  signerOrProvider: Signer | Provider,
+  addressBookPath?: string,
+): SubgraphServiceContracts {
   addressBookPath =
     addressBookPath ?? resolveAddressBook(require, '@graphprotocol/address-book/subgraph-service/addresses.json')
   if (!addressBookPath) {
