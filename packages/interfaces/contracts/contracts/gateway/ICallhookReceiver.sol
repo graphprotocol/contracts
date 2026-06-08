@@ -7,7 +7,7 @@
  * be allowlisted by the governor, but also implement this interface that contains
  * the function that will actually be called by the L2GraphTokenGateway.
  */
-pragma solidity ^0.7.3 || 0.8.27;
+pragma solidity ^0.7.3 || ^0.8.0;
 
 /**
  * @title Callhook Receiver Interface
