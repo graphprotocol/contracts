@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
-
-import "forge-std/Test.sol";
+pragma solidity ^0.8.27;
 
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
 import { GraphEscrowTest } from "./GraphEscrow.t.sol";
 
 contract GraphEscrowWithdrawTest is GraphEscrowTest {
@@ -16,7 +15,7 @@ contract GraphEscrowWithdrawTest is GraphEscrowTest {
         uint256 thawAmount
     ) public useGateway depositAndThawTokens(amount, thawAmount) {
         // advance time
-        skip(withdrawEscrowThawingPeriod + 1);
+        skip(WITHDRAW_ESCROW_THAWING_PERIOD + 1);
 
         _withdrawEscrow(users.verifier, users.indexer);
         vm.stopPrank();
@@ -35,10 +34,37 @@ contract GraphEscrowWithdrawTest is GraphEscrowTest {
         bytes memory expectedError = abi.encodeWithSignature(
             "PaymentsEscrowStillThawing(uint256,uint256)",
             block.timestamp,
-            block.timestamp + withdrawEscrowThawingPeriod
+            block.timestamp + WITHDRAW_ESCROW_THAWING_PERIOD
         );
         vm.expectRevert(expectedError);
         escrow.withdraw(users.verifier, users.indexer);
+    }
+
+    function testWithdraw_RevertWhen_AtExactThawEndTimestamp(
+        uint256 amount,
+        uint256 thawAmount
+    ) public useGateway depositAndThawTokens(amount, thawAmount) {
+        // Advance time to exactly the thaw end timestamp (boundary: thawEndTimestamp < block.timestamp required)
+        skip(WITHDRAW_ESCROW_THAWING_PERIOD);
+
+        (, , uint256 thawEndTimestamp) = escrow.escrowAccounts(users.gateway, users.verifier, users.indexer);
+        bytes memory expectedError = abi.encodeWithSignature(
+            "PaymentsEscrowStillThawing(uint256,uint256)",
+            block.timestamp,
+            thawEndTimestamp
+        );
+        vm.expectRevert(expectedError);
+        escrow.withdraw(users.verifier, users.indexer);
+    }
+
+    function testWithdraw_SucceedsOneSecondAfterThawEnd(
+        uint256 amount,
+        uint256 thawAmount
+    ) public useGateway depositAndThawTokens(amount, thawAmount) {
+        // Advance time to exactly one second past thaw end
+        skip(WITHDRAW_ESCROW_THAWING_PERIOD + 1);
+
+        _withdrawEscrow(users.verifier, users.indexer);
     }
 
     function testWithdraw_BalanceAfterCollect(
@@ -66,10 +92,17 @@ contract GraphEscrowWithdrawTest is GraphEscrowTest {
         );
 
         // Advance time to simulate the thawing period
-        skip(withdrawEscrowThawingPeriod + 1);
+        skip(WITHDRAW_ESCROW_THAWING_PERIOD + 1);
 
-        // withdraw the remaining thawed balance
+        // After collect, tokensThawing is capped at remaining balance.
+        // Withdraw succeeds if tokens remain, otherwise reverts.
         resetPrank(users.gateway);
-        _withdrawEscrow(users.verifier, users.indexer);
+        (, uint256 tokensThawing, ) = escrow.escrowAccounts(users.gateway, users.verifier, users.indexer);
+        if (tokensThawing != 0) {
+            _withdrawEscrow(users.verifier, users.indexer);
+        } else {
+            vm.expectRevert(abi.encodeWithSelector(IPaymentsEscrow.PaymentsEscrowNotThawing.selector));
+            escrow.withdraw(users.verifier, users.indexer);
+        }
     }
 }

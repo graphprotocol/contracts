@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
-
-import "forge-std/Test.sol";
+pragma solidity ^0.8.27;
 
 import { Create2 } from "@openzeppelin/contracts/utils/Create2.sol";
 import { GraphProxyAdmin } from "@graphprotocol/contracts/contracts/upgrades/GraphProxyAdmin.sol";
@@ -14,7 +12,6 @@ import { GraphPayments } from "contracts/payments/GraphPayments.sol";
 import { GraphTallyCollector } from "contracts/payments/collectors/GraphTallyCollector.sol";
 import { IHorizonStaking } from "@graphprotocol/interfaces/contracts/horizon/IHorizonStaking.sol";
 import { HorizonStaking } from "contracts/staking/HorizonStaking.sol";
-import { HorizonStakingExtension } from "contracts/staking/HorizonStakingExtension.sol";
 import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
 import { MockGRTToken } from "../../contracts/mocks/MockGRTToken.sol";
 import { EpochManagerMock } from "contracts/mocks/EpochManagerMock.sol";
@@ -43,7 +40,6 @@ abstract contract GraphBaseTest is IHorizonStakingTypes, Utils, Constants {
     GraphTallyCollector graphTallyCollector;
 
     HorizonStaking private stakingBase;
-    HorizonStakingExtension private stakingExtension;
 
     address subgraphDataServiceLegacyAddress = makeAddr("subgraphDataServiceLegacyAddress");
     address subgraphDataServiceAddress = makeAddr("subgraphDataServiceAddress");
@@ -71,8 +67,7 @@ abstract contract GraphBaseTest is IHorizonStakingTypes, Utils, Constants {
             operator: createUser("operator"),
             gateway: createUser("gateway"),
             verifier: createUser("verifier"),
-            delegator: createUser("delegator"),
-            legacySlasher: createUser("legacySlasher")
+            delegator: createUser("delegator")
         });
 
         // Deploy protocol contracts
@@ -86,7 +81,6 @@ abstract contract GraphBaseTest is IHorizonStakingTypes, Utils, Constants {
         vm.label({ account: address(payments), newLabel: "GraphPayments" });
         vm.label({ account: address(escrow), newLabel: "PaymentsEscrow" });
         vm.label({ account: address(staking), newLabel: "HorizonStaking" });
-        vm.label({ account: address(stakingExtension), newLabel: "HorizonStakingExtension" });
         vm.label({ account: address(graphTallyCollector), newLabel: "GraphTallyCollector" });
 
         // Ensure caller is back to the original msg.sender
@@ -103,7 +97,7 @@ abstract contract GraphBaseTest is IHorizonStakingTypes, Utils, Constants {
         GraphProxy stakingProxy = new GraphProxy(address(0), address(proxyAdmin));
 
         // GraphPayments predict address
-        bytes memory paymentsImplementationParameters = abi.encode(address(controller), protocolPaymentCut);
+        bytes memory paymentsImplementationParameters = abi.encode(address(controller), PROTOCOL_PAYMENT_CUT);
         bytes memory paymentsImplementationBytecode = abi.encodePacked(
             type(GraphPayments).creationCode,
             paymentsImplementationParameters
@@ -130,7 +124,7 @@ abstract contract GraphBaseTest is IHorizonStakingTypes, Utils, Constants {
         );
 
         // PaymentsEscrow
-        bytes memory escrowImplementationParameters = abi.encode(address(controller), withdrawEscrowThawingPeriod);
+        bytes memory escrowImplementationParameters = abi.encode(address(controller), WITHDRAW_ESCROW_THAWING_PERIOD);
         bytes memory escrowImplementationBytecode = abi.encodePacked(
             type(PaymentsEscrow).creationCode,
             escrowImplementationParameters
@@ -194,18 +188,13 @@ abstract contract GraphBaseTest is IHorizonStakingTypes, Utils, Constants {
             escrow = PaymentsEscrow(escrowProxyAddress);
         }
 
-        stakingExtension = new HorizonStakingExtension(address(controller), subgraphDataServiceLegacyAddress);
-        stakingBase = new HorizonStaking(
-            address(controller),
-            address(stakingExtension),
-            subgraphDataServiceLegacyAddress
-        );
+        stakingBase = new HorizonStaking(address(controller), subgraphDataServiceLegacyAddress);
 
         graphTallyCollector = new GraphTallyCollector(
             "GraphTallyCollector",
             "1",
             address(controller),
-            revokeSignerThawingPeriod
+            REVOKE_SIGNER_THAWING_PERIOD
         );
 
         resetPrank(users.governor);

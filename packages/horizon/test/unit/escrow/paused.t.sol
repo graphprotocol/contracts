@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
-
-import "forge-std/Test.sol";
+pragma solidity ^0.8.27;
 
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
@@ -44,12 +42,25 @@ contract GraphEscrowPausedTest is GraphEscrowTest {
         escrow.thaw(users.verifier, users.indexer, tokens);
     }
 
+    function testPaused_RevertWhen_CancelThaw(
+        uint256 tokens,
+        uint256 thawAmount
+    ) public useGateway depositAndThawTokens(tokens, thawAmount) usePaused(true) {
+        vm.expectRevert(abi.encodeWithSelector(IPaymentsEscrow.PaymentsEscrowIsPaused.selector));
+        escrow.cancelThaw(users.verifier, users.indexer);
+    }
+
+    function testPaused_RevertWhen_AdjustThaw(uint256 tokens) public useGateway useDeposit(tokens) usePaused(true) {
+        vm.expectRevert(abi.encodeWithSelector(IPaymentsEscrow.PaymentsEscrowIsPaused.selector));
+        escrow.adjustThaw(users.verifier, users.indexer, tokens, false);
+    }
+
     function testPaused_RevertWhen_WithdrawTokens(
         uint256 tokens,
         uint256 thawAmount
     ) public useGateway depositAndThawTokens(tokens, thawAmount) usePaused(true) {
         // advance time
-        skip(withdrawEscrowThawingPeriod + 1);
+        skip(WITHDRAW_ESCROW_THAWING_PERIOD + 1);
 
         vm.expectRevert(abi.encodeWithSelector(IPaymentsEscrow.PaymentsEscrowIsPaused.selector));
         escrow.withdraw(users.verifier, users.indexer);

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.27;
+pragma solidity ^0.8.27;
 
 import { GraphBaseTest } from "../GraphBase.t.sol";
 import { DataServiceBaseUpgradeable } from "./implementations/DataServiceBaseUpgradeable.sol";
-import { UnsafeUpgrades } from "@openzeppelin/foundry-upgrades/Upgrades.sol";
+import { UnsafeUpgrades } from "@openzeppelin/foundry-upgrades/src/Upgrades.sol";
 
 import { PPMMath } from "./../../../contracts/libraries/PPMMath.sol";
 

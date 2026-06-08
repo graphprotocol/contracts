@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.27;
+pragma solidity ^0.8.27;
 
-import "forge-std/Test.sol";
-import { stdStorage, StdStorage } from "forge-std/Test.sol";
 import { GraphBaseTest } from "../GraphBase.t.sol";
 import { GraphDirectory } from "./../../../contracts/utilities/GraphDirectory.sol";
 import { GraphDirectoryImplementation } from "./GraphDirectoryImplementation.sol";
@@ -19,8 +17,7 @@ contract GraphDirectoryTest is GraphBaseTest {
             _getContractFromController("EpochManager"),
             _getContractFromController("RewardsManager"),
             _getContractFromController("GraphTokenGateway"),
-            _getContractFromController("GraphProxyAdmin"),
-            _getContractFromController("Curation")
+            _getContractFromController("GraphProxyAdmin")
         );
         _deployImplementation(address(controller));
     }
@@ -49,7 +46,6 @@ contract GraphDirectoryTest is GraphBaseTest {
         assertEq(_getContractFromController("RewardsManager"), address(directory.graphRewardsManager()));
         assertEq(_getContractFromController("GraphTokenGateway"), address(directory.graphTokenGateway()));
         assertEq(_getContractFromController("GraphProxyAdmin"), address(directory.graphProxyAdmin()));
-        assertEq(_getContractFromController("Curation"), address(directory.graphCuration()));
     }
 
     function test_RevertWhen_AnInvalidContractGetterIsCalled() external {

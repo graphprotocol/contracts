@@ -1,21 +1,19 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
-
-import "forge-std/Test.sol";
+pragma solidity ^0.8.27;
 
 import { Controller } from "@graphprotocol/contracts/contracts/governance/Controller.sol";
 import { GraphPayments } from "@graphprotocol/horizon/contracts/payments/GraphPayments.sol";
 import { GraphProxy } from "@graphprotocol/contracts/contracts/upgrades/GraphProxy.sol";
 import { GraphProxyAdmin } from "@graphprotocol/contracts/contracts/upgrades/GraphProxyAdmin.sol";
 import { HorizonStaking } from "@graphprotocol/horizon/contracts/staking/HorizonStaking.sol";
-import { HorizonStakingExtension } from "@graphprotocol/horizon/contracts/staking/HorizonStakingExtension.sol";
-import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { IHorizonStaking } from "@graphprotocol/interfaces/contracts/horizon/IHorizonStaking.sol";
 import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
-import { IGraphTallyCollector } from "@graphprotocol/interfaces/contracts/horizon/IGraphTallyCollector.sol";
 import { GraphTallyCollector } from "@graphprotocol/horizon/contracts/payments/collectors/GraphTallyCollector.sol";
+import { RecurringCollector } from "@graphprotocol/horizon/contracts/payments/collectors/RecurringCollector.sol";
 import { PaymentsEscrow } from "@graphprotocol/horizon/contracts/payments/PaymentsEscrow.sol";
-import { UnsafeUpgrades } from "@openzeppelin/foundry-upgrades/Upgrades.sol";
+import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import { ERC1967Utils } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils.sol";
+import { UnsafeUpgrades } from "@openzeppelin/foundry-upgrades/src/Upgrades.sol";
 
 import { Constants } from "./utils/Constants.sol";
 import { DisputeManager } from "../../contracts/DisputeManager.sol";
@@ -43,9 +41,10 @@ abstract contract SubgraphBaseTest is Utils, Constants {
     GraphPayments graphPayments;
     IPaymentsEscrow escrow;
     GraphTallyCollector graphTallyCollector;
+    RecurringCollector recurringCollector;
+    address recurringCollectorProxyAdmin;
 
     HorizonStaking private stakingBase;
-    HorizonStakingExtension private stakingExtension;
 
     MockCuration curation;
     MockGRTToken token;
@@ -91,7 +90,7 @@ abstract contract SubgraphBaseTest is Utils, Constants {
 
         resetPrank(users.deployer);
         GraphProxy stakingProxy = new GraphProxy(address(0), address(proxyAdmin));
-        rewardsManager = new MockRewardsManager(token, rewardsPerSignal, rewardsPerSubgraphAllocationUpdate);
+        rewardsManager = new MockRewardsManager(token, REWARDS_PER_SIGNAL, REWARDS_PER_SUBGRAPH_ALLOCATION_UPDATE);
         curation = new MockCuration();
         epochManager = new MockEpochManager();
 
@@ -100,7 +99,7 @@ abstract contract SubgraphBaseTest is Utils, Constants {
         bytes32 paymentsHash = keccak256(
             bytes.concat(
                 vm.getCode("GraphPayments.sol:GraphPayments"),
-                abi.encode(address(controller), protocolPaymentCut)
+                abi.encode(address(controller), PROTOCOL_PAYMENT_CUT)
             )
         );
         address predictedGraphPaymentsAddress = vm.computeCreate2Address(
@@ -114,7 +113,7 @@ abstract contract SubgraphBaseTest is Utils, Constants {
         bytes32 escrowHash = keccak256(
             bytes.concat(
                 vm.getCode("PaymentsEscrow.sol:PaymentsEscrow"),
-                abi.encode(address(controller), withdrawEscrowThawingPeriod)
+                abi.encode(address(controller), WITHDRAW_ESCROW_THAWING_PERIOD)
             )
         );
         address predictedEscrowAddress = vm.computeCreate2Address(saltEscrow, escrowHash, users.deployer);
@@ -140,10 +139,10 @@ abstract contract SubgraphBaseTest is Utils, Constants {
                 (
                     users.deployer,
                     users.arbitrator,
-                    disputePeriod,
-                    disputeDeposit,
-                    fishermanRewardPercentage,
-                    maxSlashingPercentage
+                    DISPUTE_PERIOD,
+                    DISPUTE_DEPOSIT,
+                    FISHERMAN_REWARD_PERCENTAGE,
+                    MAX_SLASHING_PERCENTAGE
                 )
             )
         );
@@ -154,14 +153,28 @@ abstract contract SubgraphBaseTest is Utils, Constants {
             "GraphTallyCollector",
             "1",
             address(controller),
-            revokeSignerThawingPeriod
+            REVOKE_SIGNER_THAWING_PERIOD
         );
+        {
+            RecurringCollector rcImpl = new RecurringCollector(address(controller), REVOKE_SIGNER_THAWING_PERIOD);
+            TransparentUpgradeableProxy rcProxy = new TransparentUpgradeableProxy(
+                address(rcImpl),
+                users.governor,
+                abi.encodeCall(RecurringCollector.initialize, ("RecurringCollector", "1"))
+            );
+            recurringCollector = RecurringCollector(address(rcProxy));
+            recurringCollectorProxyAdmin = address(
+                uint160(uint256(vm.load(address(rcProxy), ERC1967Utils.ADMIN_SLOT)))
+            );
+        }
+
         address subgraphServiceImplementation = address(
             new SubgraphService(
                 address(controller),
                 address(disputeManager),
                 address(graphTallyCollector),
-                address(curation)
+                address(curation),
+                address(recurringCollector)
             )
         );
         address subgraphServiceProxy = UnsafeUpgrades.deployTransparentProxy(
@@ -169,16 +182,15 @@ abstract contract SubgraphBaseTest is Utils, Constants {
             users.governor,
             abi.encodeCall(
                 SubgraphService.initialize,
-                (users.deployer, minimumProvisionTokens, delegationRatio, stakeToFeesRatio)
+                (users.deployer, MINIMUM_PROVISION_TOKENS, DELEGATION_RATIO, STAKE_TO_FEES_RATIO)
             )
         );
         subgraphService = SubgraphService(subgraphServiceProxy);
 
-        stakingExtension = new HorizonStakingExtension(address(controller), address(subgraphService));
-        stakingBase = new HorizonStaking(address(controller), address(stakingExtension), address(subgraphService));
+        stakingBase = new HorizonStaking(address(controller), address(subgraphService));
 
-        graphPayments = new GraphPayments{ salt: saltGraphPayments }(address(controller), protocolPaymentCut);
-        escrow = new PaymentsEscrow{ salt: saltEscrow }(address(controller), withdrawEscrowThawingPeriod);
+        graphPayments = new GraphPayments{ salt: saltGraphPayments }(address(controller), PROTOCOL_PAYMENT_CUT);
+        escrow = new PaymentsEscrow{ salt: saltEscrow }(address(controller), WITHDRAW_ESCROW_THAWING_PERIOD);
 
         resetPrank(users.governor);
         disputeManager.setSubgraphService(address(subgraphService));
@@ -193,8 +205,8 @@ abstract contract SubgraphBaseTest is Utils, Constants {
         resetPrank(users.governor);
         staking.setMaxThawingPeriod(MAX_WAIT_PERIOD);
         epochManager.setEpochLength(EPOCH_LENGTH);
-        subgraphService.setMaxPOIStaleness(maxPOIStaleness);
-        subgraphService.setCurationCut(curationCut);
+        subgraphService.setMaxPOIStaleness(MAX_POI_STALENESS);
+        subgraphService.setCurationCut(CURATION_CUT);
         subgraphService.setPauseGuardian(users.pauseGuardian, true);
     }
 

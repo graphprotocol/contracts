@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity 0.8.27;
+pragma solidity ^0.8.27;
 
 import { MockGRTToken } from "./MockGRTToken.sol";
 
@@ -29,26 +29,32 @@ contract RewardsManagerMock {
 
     /**
      * @notice Take rewards for an allocation
-     * @param allocationID The allocation ID (unused in mock)
+     * @param allocationId The allocation ID (unused in this mock)
      * @return The amount of rewards taken
      */
-    function takeRewards(address allocationID) external returns (uint256) {
-        // solhint-disable-previous-line no-unused-vars
+    function takeRewards(address allocationId) external returns (uint256) {
+        allocationId; // silence unused variable warning
         token.mint(msg.sender, _rewards);
         return _rewards;
     }
 
     /**
      * @notice Handle subgraph allocation update (mock implementation)
-     * @param subgraphDeploymentID The subgraph deployment ID
+     * @param subgraphDeploymentId The subgraph deployment ID (unused in this mock)
      * @return Always returns 0 in mock
      */
-    function onSubgraphAllocationUpdate(bytes32 subgraphDeploymentID) public returns (uint256) {}
+    function onSubgraphAllocationUpdate(bytes32 subgraphDeploymentId) public pure returns (uint256) {
+        subgraphDeploymentId; // silence unused variable warning
+        return 0;
+    }
 
     /**
      * @notice Handle subgraph signal update (mock implementation)
-     * @param subgraphDeploymentID The subgraph deployment ID
+     * @param subgraphDeploymentId The subgraph deployment ID (unused in this mock)
      * @return Always returns 0 in mock
      */
-    function onSubgraphSignalUpdate(bytes32 subgraphDeploymentID) external returns (uint256) {}
+    function onSubgraphSignalUpdate(bytes32 subgraphDeploymentId) external pure returns (uint256) {
+        subgraphDeploymentId; // silence unused variable warning
+        return 0;
+    }
 }
