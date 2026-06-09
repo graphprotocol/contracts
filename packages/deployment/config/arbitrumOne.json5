@@ -1,6 +1,9 @@
 {
   // Deployment configuration for Arbitrum One (mainnet)
-  // Values here are committed for reference and reproducibility.
+
+  RewardsManager: {
+    eligibilityOracle: 'RewardsEligibilityOracleA',
+  },
 
   IssuanceAllocator: {
     // RAM allocation: how much issuance flows to RecurringAgreementManager

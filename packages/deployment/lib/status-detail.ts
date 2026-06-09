@@ -28,7 +28,7 @@ import {
   formatAddress,
   supportsInterface,
 } from './contract-checks.js'
-import type { RegistryEntry } from './contract-registry.js'
+import { type EligibilityOracleContractName, type RegistryEntry } from './contract-registry.js'
 import { getResolvedSettings } from './deployment-config.js'
 import { countPendingGovernanceTxs } from './execute-governance.js'
 import { formatGRT } from './format.js'
@@ -123,6 +123,36 @@ export async function resolveOwnershipContext(
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
+/**
+ * Build the providerEligibilityOracle status check for a target (RM or RAM),
+ * comparing the on-chain oracle to what config names for that target. A target
+ * configured with no oracle (`oracleName === undefined`) is expected to read
+ * back unset; a configured one must match by contract name.
+ */
+function buildOracleCheck(
+  onChainOracle: string,
+  oracleName: EligibilityOracleContractName | undefined,
+  issuanceBook: AddressBookOps | undefined,
+): IntegrationCheck {
+  const isSet = onChainOracle !== ZERO_ADDRESS
+  if (!oracleName) {
+    return {
+      ok: !isSet,
+      label: isSet
+        ? `providerEligibilityOracle: ${onChainOracle} (config: none — expected unset)`
+        : 'providerEligibilityOracle: none (unset)',
+    }
+  }
+  const expected = issuanceBook?.entryExists(oracleName) ? issuanceBook.getEntry(oracleName)?.address : null
+  const matches = expected ? onChainOracle.toLowerCase() === expected.toLowerCase() : null
+  return {
+    ok: isSet ? matches : false,
+    label: isSet
+      ? `providerEligibilityOracle: ${onChainOracle}${matches === false ? ` (expected ${oracleName})` : matches ? ` (${oracleName})` : ''}`
+      : `providerEligibilityOracle: not set (expected ${oracleName})`,
+  }
+}
+
 export async function getRewardsManagerChecks(
   client: PublicClient,
   horizonBook: AddressBookOps,
@@ -199,20 +229,11 @@ export async function getRewardsManagerChecks(
     })
   }
 
-  // Provider eligibility oracle
+  // Provider eligibility oracle — compared against the oracle config names for
+  // RM (RewardsManager.eligibilityOracle), not a hard-coded contract.
   const reo = await rmRead<string>('getProviderEligibilityOracle', PROVIDER_ELIGIBILITY_MANAGEMENT_ABI)
   if (reo !== null) {
-    const reoA = issuanceBook?.entryExists('RewardsEligibilityOracleA')
-      ? issuanceBook.getEntry('RewardsEligibilityOracleA')?.address
-      : null
-    const isSet = reo !== ZERO_ADDRESS
-    const matchesA = reoA ? reo.toLowerCase() === reoA.toLowerCase() : null
-    checks.push({
-      ok: isSet ? matchesA : null,
-      label: isSet
-        ? `providerEligibilityOracle: ${reo}${matchesA === false ? ' (not REO-A)' : matchesA ? ' (REO-A)' : ''}`
-        : 'providerEligibilityOracle: not set',
-    })
+    checks.push(buildOracleCheck(reo, getResolvedSettings(chainId).rewardsManager.eligibilityOracle, issuanceBook))
   } else {
     checks.push({ ok: null, label: 'providerEligibilityOracle: not set' })
   }
@@ -528,6 +549,7 @@ export async function getRecurringAgreementManagerChecks(
   horizonBook: AddressBookOps,
   issuanceBook: AddressBookOps,
   ssBook: AddressBookOps,
+  chainId: number,
 ): Promise<IntegrationCheck[]> {
   const checks: IntegrationCheck[] = []
 
@@ -602,24 +624,18 @@ export async function getRecurringAgreementManagerChecks(
     // Function not available
   }
 
-  // Provider eligibility oracle
+  // Provider eligibility oracle — RAM has its own oracle (separate from RM's),
+  // compared against what config names for RAM
+  // (RecurringAgreementManager.eligibilityOracle).
   try {
     const reo = (await client.readContract({
       address: ramAddress as `0x${string}`,
       abi: PROVIDER_ELIGIBILITY_MANAGEMENT_ABI,
       functionName: 'getProviderEligibilityOracle',
     })) as string
-    const reoA = issuanceBook.entryExists('RewardsEligibilityOracleA')
-      ? issuanceBook.getEntry('RewardsEligibilityOracleA')?.address
-      : null
-    const isSet = reo !== ZERO_ADDRESS
-    const matchesA = reoA ? reo.toLowerCase() === reoA.toLowerCase() : null
-    checks.push({
-      ok: isSet ? matchesA : null,
-      label: isSet
-        ? `providerEligibilityOracle: ${reo}${matchesA === false ? ' (not REO-A)' : matchesA ? ' (REO-A)' : ''}`
-        : 'providerEligibilityOracle: not set',
-    })
+    checks.push(
+      buildOracleCheck(reo, getResolvedSettings(chainId).recurringAgreementManager.eligibilityOracle, issuanceBook),
+    )
   } catch {
     // Function not available
   }
@@ -1063,6 +1079,7 @@ export async function showDetailedComponentStatus(
       horizonBook,
       issuanceBook,
       graph.getSubgraphServiceAddressBook(chainId),
+      chainId,
     )
   } else if (contract.name === 'ReclaimedRewards') {
     checks = await getReclaimAddressChecks(client, horizonBook, issuanceBook)

@@ -9,7 +9,13 @@ import {
   checkIssuanceConnectComplete,
   isRewardsManagerUpgraded,
 } from '@graphprotocol/deployment/lib/contract-checks.js'
-import { Contracts, type RegistryEntry } from '@graphprotocol/deployment/lib/contract-registry.js'
+import {
+  Contracts,
+  eligibilityOracleContract,
+  type EligibilityOracleContractName,
+  type RegistryEntry,
+} from '@graphprotocol/deployment/lib/contract-registry.js'
+import { getResolvedSettings } from '@graphprotocol/deployment/lib/deployment-config.js'
 import { GoalTags } from '@graphprotocol/deployment/lib/deployment-tags.js'
 import { createStatusModule } from '@graphprotocol/deployment/lib/script-factories.js'
 import { showDetailedComponentStatus, showPendingGovernanceTxs } from '@graphprotocol/deployment/lib/status-detail.js'
@@ -24,6 +30,15 @@ import type { PublicClient } from 'viem'
  *   pnpm hardhat deploy --tags GIP-0088 --network <network>
  */
 export default createStatusModule(GoalTags.GIP_0088, async (env) => {
+  const targetChainId = await getTargetChainIdFromEnv(env)
+  const settings = getResolvedSettings(targetChainId)
+  const rmOracleName = settings.rewardsManager.eligibilityOracle
+  const ramOracleName = settings.recurringAgreementManager.eligibilityOracle
+  // Distinct REO entries named by config (RM and/or RAM), for sync + display.
+  const configuredReoEntries = [
+    ...new Set([rmOracleName, ramOracleName].filter(Boolean) as EligibilityOracleContractName[]),
+  ].map((n) => eligibilityOracleContract(n))
+
   // Sync the contracts this status touches via env.getOrNull so the read paths
   // work without depending on a separate global sync run.
   await syncComponentsFromRegistry(env, [
@@ -31,12 +46,47 @@ export default createStatusModule(GoalTags.GIP_0088, async (env) => {
     Contracts.horizon.L2GraphToken,
     Contracts['subgraph-service'].SubgraphService,
     Contracts.issuance.IssuanceAllocator,
-    Contracts.issuance.RewardsEligibilityOracleA,
     Contracts.issuance.RecurringAgreementManager,
+    ...configuredReoEntries,
   ])
 
   const client = graph.getPublicClient(env) as PublicClient
-  const targetChainId = await getTargetChainIdFromEnv(env)
+  const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
+
+  // Print one target's eligibility-integrate status: on-chain oracle vs config.
+  const oracleStatusLine = async (
+    label: string,
+    targetAddress: string,
+    oracleName: EligibilityOracleContractName | undefined,
+  ): Promise<void> => {
+    let current: string
+    try {
+      current = (await client.readContract({
+        address: targetAddress as `0x${string}`,
+        abi: PROVIDER_ELIGIBILITY_MANAGEMENT_ABI,
+        functionName: 'getProviderEligibilityOracle',
+      })) as string
+    } catch {
+      env.showMessage(`  ○ eligibility-integrate (${label}): not upgraded`)
+      return
+    }
+    if (oracleName) {
+      const reo = env.getOrNull(oracleName)
+      if (!reo) {
+        env.showMessage(`  ○ eligibility-integrate (${label}): configured ${oracleName} not deployed`)
+      } else {
+        const ok = addressEquals(current, reo.address)
+        env.showMessage(
+          `  ${ok ? '✓' : '✗'} eligibility-integrate (${label}): ${label}.providerEligibilityOracle == ${oracleName}`,
+        )
+      }
+    } else {
+      const unset = current === ZERO_ADDRESS
+      env.showMessage(
+        `  ${unset ? '✓' : '✗'} eligibility-integrate (${label}): no oracle configured${unset ? ' (unset)' : ` — but set to ${current}`}`,
+      )
+    }
+  }
 
   env.showMessage('\n========== GIP-0088: Full Deployment Status ==========')
 
@@ -70,7 +120,13 @@ export default createStatusModule(GoalTags.GIP_0088, async (env) => {
 
   // --- Eligibility phase ---
   env.showMessage('\nEligibility:')
-  await showDetailedComponentStatus(env, Contracts.issuance.RewardsEligibilityOracleA, { showHints: false })
+  if (configuredReoEntries.length === 0) {
+    env.showMessage('  ○ no eligibility oracle configured for RM or RAM')
+  } else {
+    for (const entry of configuredReoEntries) {
+      await showDetailedComponentStatus(env, entry, { showHints: false })
+    }
+  }
 
   // --- Issuance phase ---
   env.showMessage('\nIssuance:')
@@ -86,23 +142,12 @@ export default createStatusModule(GoalTags.GIP_0088, async (env) => {
   // --- Activation status ---
   env.showMessage('\n--- Activation ---')
 
-  // eligibility-integrate: RM.providerEligibilityOracle == REO_A
+  // eligibility-integrate: each target's providerEligibilityOracle == config
   if (rm) {
     const upgraded = await isRewardsManagerUpgraded(client, rm.address)
     if (upgraded) {
-      const reo = env.getOrNull(Contracts.issuance.RewardsEligibilityOracleA.name)
-      const currentOracle = (await client.readContract({
-        address: rm.address as `0x${string}`,
-        abi: PROVIDER_ELIGIBILITY_MANAGEMENT_ABI,
-        functionName: 'getProviderEligibilityOracle',
-      })) as string
-
-      if (reo) {
-        const integrated = addressEquals(currentOracle, reo.address)
-        env.showMessage(`  ${integrated ? '✓' : '✗'} eligibility-integrate: RM.providerEligibilityOracle == REO_A`)
-      } else {
-        env.showMessage(`  ○ eligibility-integrate: REO_A not deployed`)
-      }
+      await oracleStatusLine('RM', rm.address, rmOracleName)
+      if (ram) await oracleStatusLine('RAM', ram.address, ramOracleName)
 
       // issuance-connect: strict end-state — shared helper matches issuance_connect.ts's
       // idempotency gate so status / 09_end / build-batch all agree on "done".

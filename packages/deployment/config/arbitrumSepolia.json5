@@ -1,6 +1,9 @@
 {
   // Deployment configuration for Arbitrum Sepolia (testnet)
-  // Values here are committed for reference and reproducibility.
+
+  RewardsManager: {
+    eligibilityOracle: 'RewardsEligibilityOracleMock',
+  },
 
   IssuanceAllocator: {
     // RAM allocation: how much issuance flows to RecurringAgreementManager

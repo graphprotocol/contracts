@@ -405,6 +405,33 @@ export const Contracts = {
 } as const
 
 /**
+ * Issuance contract names that are valid eligibility-oracle targets *today*.
+ * `A`/`B` are the real oracle proxies (same artifact, independent deployments);
+ * `Mock` is the testnet oracle where indexers self-manage eligibility. Config
+ * selects one by its full contract name (or omits it for "no oracle"). Full
+ * names — rather than an `A`/`B`/`Mock` suffix enum — are deliberate: a future
+ * eligibility oracle may be a different contract entirely; add it here when it
+ * lands.
+ */
+export const ELIGIBILITY_ORACLE_CONTRACTS = [
+  'RewardsEligibilityOracleA',
+  'RewardsEligibilityOracleB',
+  'RewardsEligibilityOracleMock',
+] as const satisfies readonly IssuanceContractName[]
+
+/** Full contract name of an eligibility-oracle target (e.g. `RewardsEligibilityOracleA`). */
+export type EligibilityOracleContractName = (typeof ELIGIBILITY_ORACLE_CONTRACTS)[number]
+
+/**
+ * Resolve an eligibility-oracle contract name to its registry entry. Used by the
+ * GIP-0088 eligibility-integrate goal and its status/gate checks so "which REO
+ * is the target" is driven by config, not hard-coded.
+ */
+export function eligibilityOracleContract(name: EligibilityOracleContractName): RegistryEntry {
+  return Contracts.issuance[name]
+}
+
+/**
  * Get contract metadata by address book and name
  */
 export function getContractMetadata(addressBook: AddressBookType, name: string): ContractMetadata | undefined {

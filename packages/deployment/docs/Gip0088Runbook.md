@@ -328,15 +328,19 @@ Eligibility-integrate ([S6](#stage-s6)/[S7](#stage-s7)) is skipped if
 | Parallelizable | No                                                           |
 | Reference      | [Gip0088.md — Activation goals](Gip0088.md#activation-goals) |
 
-**What this does.** Generates the batch for `RM.setProviderEligibilityOracle(REO_A)`.
+**What this does.** Generates the batch wiring each target's eligibility oracle:
+`RM.setProviderEligibilityOracle(...)` and `RAM.setProviderEligibilityOracle(...)`,
+each taken from config (`RewardsManager.eligibilityOracle` /
+`RecurringAgreementManager.eligibilityOracle` in `config/<network>.json5` — a full
+oracle contract name; a target whose field is omitted is left unwired).
 
 **Steps.**
 
 1. `pnpm hardhat deploy --tags GIP-0088:eligibility-integrate --network <network>`
 
-**Environment notes.** Skips with no batch if an oracle is already set. If so,
-record [G7](#gate-g7)/[G8](#gate-g8) as done-with-reason and proceed to
-[S8](#stage-s8).
+**Environment notes.** Per target, skips (no batch entry) if that target's oracle
+is already set. If every configured target is already set, record
+[G7](#gate-g7)/[G8](#gate-g8) as done-with-reason and proceed to [S8](#stage-s8).
 <a id="stage-s7"></a>
 
 ### Stage S7 — Sign & execute the eligibility-integrate batch
@@ -438,11 +442,12 @@ selfRate)` with rates from `config/<network>.json5`. Skips if both rates are 0.
 | Precondition of  | [Stage S7](#stage-s7) |
 
 **Check.** Decode the `eligibility-integrate` batch in the Safe Transaction
-Builder: a single `RM.setProviderEligibilityOracle(REO_A)` with the correct REO A
-address.
+Builder: one `setProviderEligibilityOracle(...)` per configured target (RM
+and/or RAM), each call's argument matching the address of the oracle contract
+named in that target's config (`<target>.eligibilityOracle`).
 
-**Pass criterion.** Verified; sign-off recorded. **Or:** stage skipped because an
-oracle is already set — record done-with-reason.
+**Pass criterion.** Verified; sign-off recorded. **Or:** stage skipped because
+every configured target's oracle is already set — record done-with-reason.
 
 **If it fails.** Discard, correct, re-run [S6](#stage-s6).
 
@@ -456,10 +461,11 @@ oracle is already set — record done-with-reason.
 | Precondition of  | [Stage S8](#stage-s8) |
 
 **Check.** `pnpm hardhat deploy --tags GIP-0088 --network <network>` — the
-eligibility phase reads `RM.getProviderEligibilityOracle()` back as REO A.
+eligibility phase reads each target's `getProviderEligibilityOracle()` back as
+the oracle named in its config (or unset for a target whose config omits one).
 
-**Pass criterion.** Oracle set to REO A; batch executed. On an environment where
-the oracle was pre-set, mark N/A with reason.
+**Pass criterion.** Each target's oracle matches its config; batches executed. On
+an environment where an oracle was pre-set, mark N/A with reason.
 
 **If it fails.** Re-run [S7](#stage-s7).
 
@@ -531,7 +537,8 @@ when RM self-minting covers the slack).
 `09_end` assertion script; exits non-zero on any unmet goal.
 
 **Pass criterion.** Exit 0 — upgrade, issuance-connect and eligibility-integrate
-all verified, and `revertOnIneligible` matches config.
+all verified; the configured REO is the active oracle; and both
+`revertOnIneligible` and the RAM allocation rates match config.
 
 **If it fails.** Re-run the stage that owns the unmet goal as named in the
 output.
