@@ -6,21 +6,26 @@ import {
 import {
   addressEquals,
   checkIssuanceConnectComplete,
+  getRewardsManagerRawIssuanceRate,
   isRewardsManagerUpgraded,
 } from '@graphprotocol/deployment/lib/contract-checks.js'
 import {
+  allocationTargetContract,
   Contracts,
   eligibilityOracleContract,
   type EligibilityOracleContractName,
 } from '@graphprotocol/deployment/lib/contract-registry.js'
-import { getResolvedSettingsForEnv } from '@graphprotocol/deployment/lib/deployment-config.js'
+import {
+  getResolvedSettingsForEnv,
+  validateIssuanceAllocations,
+} from '@graphprotocol/deployment/lib/deployment-config.js'
 import { DeploymentActions, GoalTags, shouldSkipAction } from '@graphprotocol/deployment/lib/deployment-tags.js'
 import { formatGRT } from '@graphprotocol/deployment/lib/format.js'
 import { requireContracts } from '@graphprotocol/deployment/lib/issuance-deploy-utils.js'
 import { syncComponentsFromRegistry } from '@graphprotocol/deployment/lib/sync-utils.js'
 import { graph } from '@graphprotocol/deployment/rocketh/deploy.js'
 import type { DeployScriptModule } from '@rocketh/core/types'
-import { parseUnits, type PublicClient } from 'viem'
+import type { PublicClient } from 'viem'
 
 /**
  * GIP-0088,all — Full GIP-0088 deployment verification
@@ -126,28 +131,35 @@ const func: DeployScriptModule = async (env) => {
     failures.push(`RAM configured with oracle ${ramOracleName} but RecurringAgreementManager not deployed`)
   }
 
-  // Verify RAM allocation matches config (issuance-allocate goal). Skipped when
-  // both rates are 0 — allocation intentionally not configured for this network.
-  const ramAllocatorRate = parseUnits(settings.issuanceAllocator.ramAllocatorMintingGrtPerBlock, 18)
-  const ramSelfRate = parseUnits(settings.issuanceAllocator.ramSelfMintingGrtPerBlock, 18)
-  if (ramAllocatorRate > 0n || ramSelfRate > 0n) {
-    const ram = env.getOrNull(Contracts.issuance.RecurringAgreementManager.name)
-    if (!ram) {
-      failures.push('RAM allocation configured but RecurringAgreementManager not deployed')
-    } else {
-      const ramAlloc = (await client.readContract({
+  // Verify the issuance allocation table matches config (issuance-allocate goal).
+  // validateIssuanceAllocations also re-checks the config total vs RM and the sum;
+  // a config error surfaces as a single failure rather than aborting the gate.
+  try {
+    const rmIssuancePerBlock = await getRewardsManagerRawIssuanceRate(client, rewardsManager.address)
+    for (const alloc of validateIssuanceAllocations(settings, rmIssuancePerBlock)) {
+      const dep = env.getOrNull(allocationTargetContract(alloc.target).name)
+      if (!dep) {
+        failures.push(`Allocation configured for ${alloc.target} but it is not deployed`)
+        continue
+      }
+      const onChain = (await client.readContract({
         address: issuanceAllocator.address as `0x${string}`,
         abi: ISSUANCE_ALLOCATOR_ABI,
         functionName: 'getTargetAllocation',
-        args: [ram.address as `0x${string}`],
+        args: [dep.address as `0x${string}`],
       })) as { totalAllocationRate: bigint; allocatorMintingRate: bigint; selfMintingRate: bigint }
-      if (ramAlloc.allocatorMintingRate !== ramAllocatorRate || ramAlloc.selfMintingRate !== ramSelfRate) {
+      if (
+        onChain.allocatorMintingRate !== alloc.allocatorMintingRate ||
+        onChain.selfMintingRate !== alloc.selfMintingRate
+      ) {
         failures.push(
-          `RAM allocation mismatch: on-chain allocator=${formatGRT(ramAlloc.allocatorMintingRate)}/self=${formatGRT(ramAlloc.selfMintingRate)}, ` +
-            `config allocator=${formatGRT(ramAllocatorRate)}/self=${formatGRT(ramSelfRate)}`,
+          `${alloc.target} allocation mismatch: on-chain allocator=${formatGRT(onChain.allocatorMintingRate)}/self=${formatGRT(onChain.selfMintingRate)}, ` +
+            `config allocator=${formatGRT(alloc.allocatorMintingRate)}/self=${formatGRT(alloc.selfMintingRate)}`,
         )
       }
     }
+  } catch (err) {
+    failures.push(err instanceof Error ? err.message : String(err))
   }
 
   // Verify revertOnIneligible matches config

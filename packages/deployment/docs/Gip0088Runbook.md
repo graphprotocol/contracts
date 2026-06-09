@@ -409,8 +409,11 @@ load-bearing. The script **exits** if the IA rate ≠ RM rate invariant fails.
 | Parallelizable | No                                                           |
 | Reference      | [Gip0088.md — Activation goals](Gip0088.md#activation-goals) |
 
-**What this does.** Generates `IA.setTargetAllocation(RAM, allocatorRate,
-selfRate)` with rates from `config/<network>.json5`. Skips if both rates are 0.
+**What this does.** Generates `IA.setTargetAllocation(target, ...)` for each
+target in config `IssuanceAllocator.allocations`, set to exactly its configured
+rate (no rebalancing). **Exits** unless the config `issuancePerBlock` equals RM's
+on-chain rate and the per-target rates sum to it. Skips when no allocations are
+configured.
 
 **Steps.**
 
@@ -512,9 +515,10 @@ aligned, RM is a 100% self-minting target, total allocation equals issuance.
 | Postcondition of | [Stage S10](#stage-s10) |
 | Precondition of  | [Stage S11](#stage-s11) |
 
-**Check.** Decode the `issuance-allocate` batch. Confirm
-`IA.setTargetAllocation(RAM, ...)` and that the rates equal those in
-`config/<network>.json5`. After execution, inspect the live per-target
+**Check.** Decode the `issuance-allocate` batch. Confirm one
+`IA.setTargetAllocation(target, ...)` per configured target and that the rates
+equal those in `config/<network>.json5` (the batch generation already verified
+the table sums to RM's `issuancePerBlock`). After execution, inspect the live per-target
 allocation with `pnpm hardhat ia:status --network <network>` — it prints each
 target's allocator/self rates and an explicit RAM call-out (`deploy:status`
 only reports the aggregate "100% allocated", which hides a missing RAM line

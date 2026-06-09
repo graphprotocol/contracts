@@ -432,6 +432,33 @@ export function eligibilityOracleContract(name: EligibilityOracleContractName): 
 }
 
 /**
+ * Contract names the IssuanceAllocator can hold an explicit allocation for
+ * *today*. RewardsManager self-mints the bulk of issuance; RecurringAgreementManager
+ * is allocator-minted for agreement payments. Full names (not a suffix enum) are
+ * deliberate: a future issuance target may be a different contract — add it here
+ * when it lands. (DefaultAllocation is the allocator's residual sink, set via
+ * `setDefaultTarget`, not an explicit per-target allocation, so it is not listed.)
+ */
+export const ALLOCATION_TARGET_CONTRACTS = ['RewardsManager', 'RecurringAgreementManager'] as const
+
+/** Full contract name of an IssuanceAllocator target (e.g. `RewardsManager`). */
+export type AllocationTargetContractName = (typeof ALLOCATION_TARGET_CONTRACTS)[number]
+
+/**
+ * Resolve an allocation-target contract name to its registry entry. Targets span
+ * address books (RewardsManager is horizon, the rest issuance), so this is a
+ * switch rather than a single-book lookup.
+ */
+export function allocationTargetContract(name: AllocationTargetContractName): RegistryEntry {
+  switch (name) {
+    case 'RewardsManager':
+      return Contracts.horizon.RewardsManager
+    case 'RecurringAgreementManager':
+      return Contracts.issuance.RecurringAgreementManager
+  }
+}
+
+/**
  * Get contract metadata by address book and name
  */
 export function getContractMetadata(addressBook: AddressBookType, name: string): ContractMetadata | undefined {

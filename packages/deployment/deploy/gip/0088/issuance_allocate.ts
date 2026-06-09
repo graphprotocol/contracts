@@ -1,7 +1,12 @@
 import { ACCESS_CONTROL_ENUMERABLE_ABI, SET_TARGET_ALLOCATION_ABI } from '@graphprotocol/deployment/lib/abis.js'
-import { Contracts } from '@graphprotocol/deployment/lib/contract-registry.js'
+import { getRewardsManagerRawIssuanceRate } from '@graphprotocol/deployment/lib/contract-checks.js'
+import { allocationTargetContract, Contracts } from '@graphprotocol/deployment/lib/contract-registry.js'
 import { canSignAsGovernor } from '@graphprotocol/deployment/lib/controller-utils.js'
-import { getResolvedSettingsForEnv } from '@graphprotocol/deployment/lib/deployment-config.js'
+import {
+  getResolvedSettingsForEnv,
+  type ResolvedAllocation,
+  validateIssuanceAllocations,
+} from '@graphprotocol/deployment/lib/deployment-config.js'
 import { ComponentTags, GoalTags } from '@graphprotocol/deployment/lib/deployment-tags.js'
 import {
   createGovernanceTxBuilder,
@@ -14,18 +19,21 @@ import { createActionModule } from '@graphprotocol/deployment/lib/script-factori
 import { syncComponentsFromRegistry } from '@graphprotocol/deployment/lib/sync-utils.js'
 import { graph, read, tx } from '@graphprotocol/deployment/rocketh/deploy.js'
 import type { PublicClient } from 'viem'
-import { encodeFunctionData, keccak256, parseUnits, toHex } from 'viem'
+import { encodeFunctionData, keccak256, toHex } from 'viem'
 
 /**
- * GIP-0088:issuance-allocate — Allocate issuance to Recurring Agreement Manager
+ * GIP-0088:issuance-allocate — Apply the configured issuance allocation table
  *
- * Calls setTargetAllocation(RAM, allocatorMintingRate, selfMintingRate) so IA
- * distributes minted GRT to RAM for agreement-based payments.
+ * Sets `IA.setTargetAllocation(target, allocatorRate, selfRate)` for every target
+ * named in `config/<network>.json5` (IssuanceAllocator.allocations, keyed by full
+ * contract name) to exactly its configured rate — no rebalancing or residual
+ * computation. The config is the complete, explicit distribution.
  *
- * Rates are read from config/<network>.json5 (committed per-chain config).
- * Skips if rate is 0 (not yet decided).
+ * Errors early (before any TX) if the config total doesn't match RM's on-chain
+ * issuancePerBlock, or if the per-target rates don't sum to it
+ * (see validateIssuanceAllocations). The script never sets the issuance rate.
  *
- * Idempotent: checks on-chain state, skips if already configured.
+ * Idempotent: targets already at their configured allocation are skipped.
  *
  * Usage:
  *   pnpm hardhat deploy --tags GIP-0088:issuance-allocate --network <network>
@@ -33,95 +41,92 @@ import { encodeFunctionData, keccak256, parseUnits, toHex } from 'viem'
 export default createActionModule(
   GoalTags.GIP_0088_ISSUANCE_ALLOCATE,
   async (env) => {
+    const settings = await getResolvedSettingsForEnv(env)
+    if (settings.issuanceAllocator.allocations.length === 0) {
+      env.showMessage('\n  ○ No issuance allocations configured — skipping\n')
+      return
+    }
+
+    // Sync the IA, RM, and every configured target so reads resolve.
+    const targetEntries = settings.issuanceAllocator.allocations.map((a) => allocationTargetContract(a.target))
     await syncComponentsFromRegistry(env, [
       Contracts.issuance.IssuanceAllocator,
-      Contracts.issuance.RecurringAgreementManager,
       Contracts.horizon.RewardsManager,
+      ...targetEntries,
     ])
 
     const client = graph.getPublicClient(env) as PublicClient
     const readFn = read(env)
 
-    const iaDep = env.getOrNull(Contracts.issuance.IssuanceAllocator.name)
-    const ramDep = env.getOrNull(Contracts.issuance.RecurringAgreementManager.name)
-    if (!iaDep || !ramDep) {
-      const missing = [!iaDep && 'IssuanceAllocator', !ramDep && 'RecurringAgreementManager'].filter(Boolean)
-      env.showMessage(`\n  ○ Skipping RAM allocation — not deployed: ${missing.join(', ')}\n`)
-      return
-    }
-    const ia = iaDep
-    const ram = ramDep
+    const [issuanceAllocator, rewardsManager] = requireContracts(env, [
+      Contracts.issuance.IssuanceAllocator,
+      Contracts.horizon.RewardsManager,
+    ])
+    const ia = issuanceAllocator
 
     env.showMessage(`\n========== GIP-0088: Issuance Allocate ==========`)
-    env.showMessage(`IA:  ${ia.address}`)
-    env.showMessage(`RAM: ${ram.address}`)
+    env.showMessage(`IA: ${ia.address}`)
 
-    // Load resolved settings
-    const settings = await getResolvedSettingsForEnv(env)
-    const allocatorMintingRate = parseUnits(settings.issuanceAllocator.ramAllocatorMintingGrtPerBlock, 18)
-    const selfMintingRate = parseUnits(settings.issuanceAllocator.ramSelfMintingGrtPerBlock, 18)
+    // Validate the config table against RM's on-chain issuance rate (errors early).
+    const rmIssuancePerBlock = await getRewardsManagerRawIssuanceRate(client, rewardsManager.address)
+    const allocations = validateIssuanceAllocations(settings, rmIssuancePerBlock)
+    env.showMessage(`Issuance per block (RM): ${formatGRT(rmIssuancePerBlock)} — config table validated\n`)
 
-    if (allocatorMintingRate === 0n && selfMintingRate === 0n) {
-      env.showMessage('\n⚠️  RAM allocation rates not configured (both 0).')
-      env.showMessage('   Set ramAllocatorMintingGrtPerBlock in config/<network>.json5')
-      env.showMessage('   Skipping RAM allocation configuration.\n')
-      return
-    }
-
-    // Check current state
-    env.showMessage('\n📋 Checking current configuration...\n')
-    env.showMessage(
-      `  Config: allocatorMintingRate=${formatGRT(allocatorMintingRate)}, selfMintingRate=${formatGRT(selfMintingRate)}`,
-    )
-
-    let currentRamAlloc = 0n
-    let currentRamSelf = 0n
-    let ramAllocated = false
-    try {
-      const allocation = (await readFn(ia, {
+    // Resolve each target's address and read its current allocation, so we only
+    // emit setTargetAllocation for targets that aren't already at config.
+    type Pending = ResolvedAllocation & { address: `0x${string}`; label: string; delta: bigint }
+    const pending: Pending[] = []
+    for (const alloc of allocations) {
+      const entry = allocationTargetContract(alloc.target)
+      const dep = env.getOrNull(entry.name)
+      if (!dep) {
+        env.showMessage(`  ○ ${alloc.target} not deployed — skipping its allocation`)
+        continue
+      }
+      const address = dep.address as `0x${string}`
+      const current = (await readFn(ia, {
         functionName: 'getTargetAllocation',
-        args: [ram.address],
+        args: [address],
       })) as { totalAllocationRate: bigint; allocatorMintingRate: bigint; selfMintingRate: bigint }
-      currentRamAlloc = allocation.allocatorMintingRate
-      currentRamSelf = allocation.selfMintingRate
-      ramAllocated = currentRamAlloc === allocatorMintingRate && currentRamSelf === selfMintingRate
+
+      const newTotal = alloc.allocatorMintingRate + alloc.selfMintingRate
+      const matches =
+        current.allocatorMintingRate === alloc.allocatorMintingRate && current.selfMintingRate === alloc.selfMintingRate
+      const label = `setTargetAllocation(${alloc.target}, ${formatGRT(alloc.allocatorMintingRate)}, ${formatGRT(alloc.selfMintingRate)})`
       env.showMessage(
-        `  On-chain: allocator=${formatGRT(currentRamAlloc)}, self=${formatGRT(currentRamSelf)} ${ramAllocated ? '✓' : '✗'}`,
+        `  ${matches ? '✓' : '✗'} ${alloc.target}: on-chain allocator=${formatGRT(current.allocatorMintingRate)}, self=${formatGRT(current.selfMintingRate)}`,
       )
-    } catch {
-      env.showMessage(`  RAM allocation: ✗ (not configured)`)
+      if (!matches) {
+        pending.push({
+          ...alloc,
+          address,
+          label,
+          delta: newTotal - (current.allocatorMintingRate + current.selfMintingRate),
+        })
+      }
     }
 
-    if (ramAllocated) {
-      env.showMessage(`\n✅ RAM allocation already matches config\n`)
+    if (pending.length === 0) {
+      env.showMessage(`\n✅ All configured allocations already match — nothing to do\n`)
       return
     }
 
-    // The allocator enforces a 100% invariant (sum of all targets == issuancePerBlock).
-    // RewardsManager was given 100% as self-minting in issuance-connect, so we must
-    // atomically rebalance: take from RM's self-minting and give to RAM, in the same batch.
-    const [rewardsManager] = requireContracts(env, [Contracts.horizon.RewardsManager])
-    const rmAddress = rewardsManager.address as `0x${string}`
-    const rmAllocation = (await readFn(ia, {
-      functionName: 'getTargetAllocation',
-      args: [rmAddress],
-    })) as { totalAllocationRate: bigint; allocatorMintingRate: bigint; selfMintingRate: bigint }
-    env.showMessage(
-      `  RM on-chain: allocator=${formatGRT(rmAllocation.allocatorMintingRate)}, self=${formatGRT(rmAllocation.selfMintingRate)}`,
-    )
+    // The allocator enforces total == issuancePerBlock (the default target absorbs
+    // slack, but can't go negative). Apply decreases before increases so the
+    // explicit total never transiently exceeds issuance mid-batch.
+    pending.sort((a, b) => (a.delta === b.delta ? 0 : a.delta < b.delta ? -1 : 1))
 
-    const newRamTotal = allocatorMintingRate + selfMintingRate
-    const currentRamTotal = currentRamAlloc + currentRamSelf
-    const delta = newRamTotal - currentRamTotal // signed: >0 RAM grows, <0 RAM shrinks
-    if (delta > 0n && rmAllocation.selfMintingRate < delta) {
-      env.showMessage(
-        `\n❌ Insufficient RM self-minting (${formatGRT(rmAllocation.selfMintingRate)}) to fund RAM increase (${formatGRT(delta)})\n`,
-      )
-      process.exit(1)
-    }
-    const newRmSelf = rmAllocation.selfMintingRate - delta
+    const txs = pending.map((p) => ({
+      to: ia.address,
+      data: encodeFunctionData({
+        abi: SET_TARGET_ALLOCATION_ABI,
+        functionName: 'setTargetAllocation',
+        args: [p.address, p.allocatorMintingRate, p.selfMintingRate],
+      }),
+      label: p.label,
+    }))
 
-    // Determine executor
+    // Determine executor.
     const deployer = requireDeployer(env)
     const GOVERNOR_ROLE = keccak256(toHex('GOVERNOR_ROLE'))
     let deployerIsGovernor = false
@@ -136,57 +141,30 @@ export default createActionModule(
       // Storage not available (stale fork) — fall through to governor path
     }
 
-    const setRamData = encodeFunctionData({
-      abi: SET_TARGET_ALLOCATION_ABI,
-      functionName: 'setTargetAllocation',
-      args: [ram.address as `0x${string}`, allocatorMintingRate, selfMintingRate],
-    })
-    const setRmData = encodeFunctionData({
-      abi: SET_TARGET_ALLOCATION_ABI,
-      functionName: 'setTargetAllocation',
-      args: [rmAddress, rmAllocation.allocatorMintingRate, newRmSelf],
-    })
-    const ramLabel = `setTargetAllocation(RAM, ${formatGRT(allocatorMintingRate)}, ${formatGRT(selfMintingRate)})`
-    const rmLabel = `setTargetAllocation(RM, ${formatGRT(rmAllocation.allocatorMintingRate)}, ${formatGRT(newRmSelf)})`
-
-    // Order matters: free budget first, then consume.
-    // delta > 0 (RAM grows): reduce RM first so default target absorbs the slack.
-    // delta < 0 (RAM shrinks): reduce RAM first so default target absorbs the slack.
-    const txs =
-      delta > 0n
-        ? [
-            { data: setRmData, label: rmLabel },
-            { data: setRamData, label: ramLabel },
-          ]
-        : [
-            { data: setRamData, label: ramLabel },
-            { data: setRmData, label: rmLabel },
-          ]
-
     if (deployerIsGovernor) {
       env.showMessage('\n🔨 Executing as deployer...\n')
       const txFn = tx(env)
       for (const t of txs) {
-        await txFn({ account: deployer, to: ia.address, data: t.data })
+        await txFn({ account: deployer, to: t.to, data: t.data })
         env.showMessage(`  ✓ ${t.label}`)
       }
-      env.showMessage(`\n✅ GIP-0088: Issuance Allocate — RAM allocation configured!\n`)
+      env.showMessage(`\n✅ GIP-0088: Issuance Allocate — allocation table applied!\n`)
+      return
+    }
+
+    const { governor, canSign } = await canSignAsGovernor(env)
+    const builder = await createGovernanceTxBuilder(env, `gip-0088-issuance-allocate`)
+    for (const t of txs) {
+      builder.addTx({ to: t.to, value: '0', data: t.data })
+      env.showMessage(`  + ${t.label}`)
+    }
+
+    if (canSign) {
+      env.showMessage('\n🔨 Executing configuration TX batch...\n')
+      await executeTxBatchDirect(env, builder, governor)
+      env.showMessage(`\n✅ GIP-0088: Issuance Allocate — allocation table applied!\n`)
     } else {
-      const { governor, canSign } = await canSignAsGovernor(env)
-
-      const builder = await createGovernanceTxBuilder(env, `gip-0088-issuance-allocate`)
-      for (const t of txs) {
-        builder.addTx({ to: ia.address, value: '0', data: t.data })
-        env.showMessage(`  + ${t.label}`)
-      }
-
-      if (canSign) {
-        env.showMessage('\n🔨 Executing configuration TX batch...\n')
-        await executeTxBatchDirect(env, builder, governor)
-        env.showMessage(`\n✅ GIP-0088: Issuance Allocate — RAM allocation configured!\n`)
-      } else {
-        saveGovernanceTx(env, builder, `GIP-0088: issuance-allocate`)
-      }
+      saveGovernanceTx(env, builder, `GIP-0088: issuance-allocate`)
     }
   },
   { dependencies: [GoalTags.GIP_0088_ISSUANCE_CONNECT, ComponentTags.RECURRING_AGREEMENT_MANAGER] },
