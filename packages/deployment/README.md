@@ -64,6 +64,7 @@ npx hardhat deploy:status --network arbitrumOne        # Show deployment and int
 npx hardhat deploy:list-pending --network arbitrumOne  # List pending implementations
 npx hardhat deploy:reset-fork --network localhost      # Reset fork state (for testing)
 npx hardhat deploy --tags sync --network arbitrumOne   # Sync address books with on-chain state
+npx hardhat ia:status --network arbitrumOne            # Show IssuanceAllocator allocations per target (incl. RAM)
 ```
 
 ## Testing

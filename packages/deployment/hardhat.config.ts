@@ -15,6 +15,7 @@ import { ethBalanceTask, ethCheckKeyTask, ethFundTask } from './tasks/eth-tasks.
 import executeGovernanceTask from './tasks/execute-governance.js'
 import grantRoleTask from './tasks/grant-role.js'
 import { grtBalanceTask, grtMintTask, grtStatusTask, grtTransferTask } from './tasks/grt-tasks.js'
+import { iaStatusTask } from './tasks/ia-tasks.js'
 import listPendingTask from './tasks/list-pending-implementations.js'
 import listRolesTask from './tasks/list-roles.js'
 import {
@@ -180,6 +181,7 @@ const config: HardhatUserConfig = {
     grtMintTask,
     grtStatusTask,
     grtTransferTask,
+    iaStatusTask,
     listPendingTask,
     listRolesTask,
     reoDisableTask,

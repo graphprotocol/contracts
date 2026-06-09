@@ -508,7 +508,11 @@ aligned, RM is a 100% self-minting target, total allocation equals issuance.
 
 **Check.** Decode the `issuance-allocate` batch. Confirm
 `IA.setTargetAllocation(RAM, ...)` and that the rates equal those in
-`config/<network>.json5`.
+`config/<network>.json5`. After execution, inspect the live per-target
+allocation with `pnpm hardhat ia:status --network <network>` — it prints each
+target's allocator/self rates and an explicit RAM call-out (`deploy:status`
+only reports the aggregate "100% allocated", which hides a missing RAM line
+when RM self-minting covers the slack).
 
 **Pass criterion.** Rates verified; sign-off recorded.
 
