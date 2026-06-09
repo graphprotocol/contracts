@@ -11,7 +11,7 @@ Tests specific to the Rewards Eligibility Oracle upgrade. Run these **after** th
 | Contract                         | Arbitrum Sepolia                             | Arbitrum One |
 | -------------------------------- | -------------------------------------------- | ------------ |
 | RewardsEligibilityOracle (proxy) | `0x62c2305739cc75f19a3a6d52387ceb3690d99a99` | TBD          |
-| MockRewardsEligibilityOracle     | `0x5FB23365F8cf643D5f1459E9793EfF7254522400` | N/A          |
+| RewardsEligibilityOracleMock     | `0x5FB23365F8cf643D5f1459E9793EfF7254522400` | N/A          |
 | RewardsManager (proxy)           | `0x1f49cae7669086c8ba53cc35d1e9f80176d67e79` | TBD          |
 | GraphToken (L2)                  | `0xf8c05dcf59e8b28bfd5eed176c562bebcfc7ac04` | TBD          |
 
@@ -602,7 +602,7 @@ These tests verify the end-to-end interaction between the REO and the rewards sy
 
 ### Mock REO Quick-Test Path
 
-A `MockRewardsEligibilityOracle` is deployed at `0x5FB23365F8cf643D5f1459E9793EfF7254522400` on Arbitrum Sepolia. This provides direct, instant control over eligibility without oracle roles, renewal periods, or timeout logic. Use it for faster iteration on the Cycle 6 integration tests.
+A `RewardsEligibilityOracleMock` is deployed at `0x5FB23365F8cf643D5f1459E9793EfF7254522400` on Arbitrum Sepolia. This provides direct, instant control over eligibility without oracle roles, renewal periods, or timeout logic. Use it for faster iteration on the Cycle 6 integration tests.
 
 **How the mock works**: Everyone starts eligible. Indexers call `setEligible(false)` from their own address to become ineligible, and `setEligible(true)` to restore eligibility. No roles or expiry -- just a toggle.
 
@@ -786,7 +786,7 @@ cast call <REWARDS_MANAGER> "getRewards(bytes32)(uint256)" <ALLOCATION_ID> --rpc
 
 ### Mock-Based Integration Tests (6.1m - 6.5m)
 
-These tests use the `MockRewardsEligibilityOracle` at `0x5FB23365F8cf643D5f1459E9793EfF7254522400` for direct eligibility control. See [Mock REO Quick-Test Path](#mock-reo-quick-test-path) above for setup.
+These tests use the `RewardsEligibilityOracleMock` at `0x5FB23365F8cf643D5f1459E9793EfF7254522400` for direct eligibility control. See [Mock REO Quick-Test Path](#mock-reo-quick-test-path) above for setup.
 
 **Prerequisites**: RewardsManager pointed at the mock REO. Indexer has active allocations open for at least 1 epoch.
 

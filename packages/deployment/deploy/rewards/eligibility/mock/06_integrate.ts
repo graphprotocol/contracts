@@ -9,7 +9,7 @@ import { graph } from '@graphprotocol/deployment/rocketh/deploy.js'
 import type { PublicClient } from 'viem'
 
 /**
- * Integrate MockRewardsEligibilityOracle with RewardsManager (testnet only)
+ * Integrate RewardsEligibilityOracleMock with RewardsManager (testnet only)
  *
  * Points RewardsManager at the mock so indexers can control their own eligibility.
  */

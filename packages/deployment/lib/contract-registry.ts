@@ -306,7 +306,7 @@ const ISSUANCE_CONTRACTS = {
   RewardsEligibilityOracleMock: {
     artifact: {
       type: 'issuance',
-      path: 'contracts/eligibility/mocks/MockRewardsEligibilityOracle.sol/MockRewardsEligibilityOracle',
+      path: 'contracts/eligibility/mocks/RewardsEligibilityOracleMock.sol/RewardsEligibilityOracleMock',
     },
     proxyType: 'transparent',
     deployable: true,

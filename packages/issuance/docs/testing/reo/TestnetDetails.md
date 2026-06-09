@@ -31,7 +31,7 @@ curl "https://gateway.thegraph.com/api/$GRAPH_API_KEY/subgraphs/id/3xQHhMudr1oh6
 | Contract                     | Address                                      |
 | ---------------------------- | -------------------------------------------- |
 | RewardsEligibilityOracle     | `0x62c2305739cc75f19a3a6d52387ceb3690d99a99` |
-| MockRewardsEligibilityOracle | `0x5FB23365F8cf643D5f1459E9793EfF7254522400` |
+| RewardsEligibilityOracleMock | `0x5FB23365F8cf643D5f1459E9793EfF7254522400` |
 | RewardsManager               | `0x1f49cae7669086c8ba53cc35d1e9f80176d67e79` |
 | SubgraphService              | `0xc24a3dac5d06d771f657a48b20ce1a671b78f26b` |
 | GraphToken (L2)              | `0xf8c05dcf59e8b28bfd5eed176c562bebcfc7ac04` |
@@ -39,7 +39,7 @@ curl "https://gateway.thegraph.com/api/$GRAPH_API_KEY/subgraphs/id/3xQHhMudr1oh6
 
 ## Mock REO (Testnet)
 
-The testnet RewardsManager is configured to use the `MockRewardsEligibilityOracle` rather than the real REO, to allow indexers to control their own eligibility during testing.
+The testnet RewardsManager is configured to use the `RewardsEligibilityOracleMock` rather than the real REO, to allow indexers to control their own eligibility during testing.
 
 The mock uses `msg.sender` as the indexer address, so each indexer controls their own eligibility by sending transactions from their own key.
 

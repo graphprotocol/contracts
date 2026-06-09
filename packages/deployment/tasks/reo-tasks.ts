@@ -150,7 +150,7 @@ async function showInstanceStatus(
     console.log(`\n📊 RewardsEligibilityOracle Mock Status`)
     console.log(`   Address: ${reoAddress}`)
     console.log(`   Network: ${networkName} (chainId: ${targetChainId})`)
-    console.log(`   Type: MockRewardsEligibilityOracle (testnet, indexers self-manage eligibility)`)
+    console.log(`   Type: RewardsEligibilityOracleMock (testnet, indexers self-manage eligibility)`)
     console.log()
     return
   }

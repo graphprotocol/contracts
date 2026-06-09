@@ -40,7 +40,7 @@ export REWARDS_MANAGER=0x1f49cae7669086c8ba53cc35d1e9f80176d67e79
 
 ### Mock REO Option
 
-A `MockRewardsEligibilityOracle` is deployed at `0x5FB23365F8cf643D5f1459E9793EfF7254522400`. When RewardsManager is pointed at the mock (by the coordinator), you can directly toggle your eligibility without oracle roles, renewal periods, or timeout logic:
+A `RewardsEligibilityOracleMock` is deployed at `0x5FB23365F8cf643D5f1459E9793EfF7254522400`. When RewardsManager is pointed at the mock (by the coordinator), you can directly toggle your eligibility without oracle roles, renewal periods, or timeout logic:
 
 ```bash
 # Check your eligibility
@@ -384,7 +384,7 @@ cast call $REO "isEligible(address)(bool)" $INDEXER --rpc-url $RPC
 
 ## Mock REO Test Sets (2m - 4m)
 
-These sets use the `MockRewardsEligibilityOracle` for direct eligibility control. The coordinator must have pointed RewardsManager at the mock. These replace Sets 2-4 when the mock is active.
+These sets use the `RewardsEligibilityOracleMock` for direct eligibility control. The coordinator must have pointed RewardsManager at the mock. These replace Sets 2-4 when the mock is active.
 
 ### 2m.1 Close allocation while eligible (mock)
 
