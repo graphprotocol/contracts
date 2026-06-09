@@ -17,15 +17,15 @@ import { graph } from '@graphprotocol/deployment/rocketh/deploy.js'
 import type { Environment } from '@rocketh/core/types'
 import type { PublicClient } from 'viem'
 
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
-
 /**
  * Wire one eligibility-oracle target (RM or RAM) to its configured REO.
  *
  * `oracleName` is the configured REO contract name, or `undefined` when config
- * omits it — in which case this target gets no oracle and we no-op. Skips
- * (without overriding) if a different oracle is already live; that mismatch is
- * surfaced and fails the G12 gate (09_end), forcing a deliberate decision.
+ * omits it — in which case this target gets no oracle and we no-op. Config is
+ * the source of truth: when the target's current oracle differs from the
+ * configured REO it is re-pointed (overriding the prior value); when it already
+ * matches it is a no-op. Skips only when the target isn't upgraded yet (it has
+ * no oracle getter to read or setter to call).
  */
 async function integrateOracle(
   env: Environment,
@@ -43,25 +43,16 @@ async function integrateOracle(
   await syncComponentsFromRegistry(env, [reoEntry, targetEntry])
   const [reo, target] = requireContracts(env, [reoEntry, targetEntry])
 
-  // Check if oracle already set — skip if any oracle configured (don't override).
+  // Skip only if the target isn't upgraded yet (no oracle getter). Once it
+  // supports the getter, config is the source of truth: applyConfiguration is
+  // idempotent — it re-points the oracle to the configured REO when the current
+  // value differs (overriding any prior oracle) and no-ops when it matches.
   try {
-    const currentOracle = (await client.readContract({
+    await client.readContract({
       address: target.address as `0x${string}`,
       abi: PROVIDER_ELIGIBILITY_MANAGEMENT_ABI,
       functionName: 'getProviderEligibilityOracle',
-    })) as string
-
-    if (currentOracle !== ZERO_ADDRESS) {
-      const isTarget = currentOracle.toLowerCase() === reo.address.toLowerCase()
-      env.showMessage(
-        `\n  ${isTarget ? '✓' : '○'} ${targetLabel}.providerEligibilityOracle already set: ${currentOracle}`,
-      )
-      if (!isTarget) {
-        env.showMessage(`    (not the configured ${oracleName} — skipping to avoid override)`)
-      }
-      env.showMessage('')
-      return
-    }
+    })
   } catch {
     // Function not available — target not upgraded, skip
     env.showMessage(`\n  ○ ${targetLabel} does not support getProviderEligibilityOracle — skipping\n`)

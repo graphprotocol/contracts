@@ -312,8 +312,9 @@ the batch and `GovernanceWorkflow.md` before re-running any stage.
 
 Each activation goal is generate → review gate → execute → state gate. Gates
 here verify _wiring_; behavioral correctness comes from [G15](#gate-g15).
-Eligibility-integrate ([S6](#stage-s6)/[S7](#stage-s7)) is skipped if
-`RM.providerEligibilityOracle` is already set.
+Eligibility-integrate ([S6](#stage-s6)/[S7](#stage-s7)) is a no-op only when
+`RM.providerEligibilityOracle` already matches the configured oracle; if it
+differs, the stage re-points it (config is the source of truth).
 
 <a id="stage-s6"></a>
 
@@ -338,9 +339,11 @@ oracle contract name; a target whose field is omitted is left unwired).
 
 1. `pnpm hardhat deploy --tags GIP-0088:eligibility-integrate --network <network>`
 
-**Environment notes.** Per target, skips (no batch entry) if that target's oracle
-is already set. If every configured target is already set, record
-[G7](#gate-g7)/[G8](#gate-g8) as done-with-reason and proceed to [S8](#stage-s8).
+**Environment notes.** Per target, no batch entry when that target's oracle
+already matches config; a target whose oracle differs is re-pointed to the
+configured one (overriding the prior value). If every configured target already
+matches, record [G7](#gate-g7)/[G8](#gate-g8) as done-with-reason and proceed to
+[S8](#stage-s8).
 <a id="stage-s7"></a>
 
 ### Stage S7 — Sign & execute the eligibility-integrate batch
@@ -449,8 +452,8 @@ Builder: one `setProviderEligibilityOracle(...)` per configured target (RM
 and/or RAM), each call's argument matching the address of the oracle contract
 named in that target's config (`<target>.eligibilityOracle`).
 
-**Pass criterion.** Verified; sign-off recorded. **Or:** stage skipped because
-every configured target's oracle is already set — record done-with-reason.
+**Pass criterion.** Verified; sign-off recorded. **Or:** empty batch because
+every configured target's oracle already matches config — record done-with-reason.
 
 **If it fails.** Discard, correct, re-run [S6](#stage-s6).
 
