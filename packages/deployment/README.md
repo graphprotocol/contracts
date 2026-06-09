@@ -51,11 +51,28 @@ packages/deployment/
 │   ├── agreement/       # RecurringAgreementManager
 │   ├── rewards/         # RewardsEligibilityOracle, Reclaim
 │   └── gip/0088/        # GIP-0088 goal orchestration
+├── config/               # Per-network deployment configuration (see Configuration)
 ├── lib/                  # Shared utilities (preconditions, registry, tags, ABIs)
 ├── tasks/                # Hardhat tasks (deploy:*)
 ├── docs/                 # Documentation
 └── test/                 # Unit tests
 ```
+
+## Configuration
+
+Per-network settings live in `config/<network>.json5` (`arbitrumOne.json5`,
+`arbitrumSepolia.json5`, `localNetwork.json5`). Each file only contains the
+keys that need to differ from defaults; everything else is resolved at
+runtime from `DEFAULT_SETTINGS` in [lib/deployment-config.ts](lib/deployment-config.ts).
+
+For the full surface — every available key, its purpose, and its default —
+see [config/\_template.json5](config/_template.json5). That file is never
+loaded as a real config (no chain matches its basename); it's documentation
+and a copy-paste starting point.
+
+The TypeScript schema (`DeploymentConfigFile` and `ResolvedSettings` in
+`lib/deployment-config.ts`) is the source of truth — keep the template in
+sync when adding new keys.
 
 ## Available Tasks
 

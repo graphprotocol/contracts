@@ -1,0 +1,114 @@
+{
+  // Per-network deployment configuration template.
+  //
+  // Copy this to `<network>.json5` (file name = hardhat network name, see
+  // CHAIN_CONFIG_MAP in lib/deployment-config.ts) and override only the keys
+  // that need to differ from the defaults shown below. Anything you omit is
+  // resolved from `DEFAULT_SETTINGS` at runtime — this file just shows the
+  // full surface so you don't have to read the TypeScript schema.
+  //
+  // This file itself is NEVER loaded as a real config (no chain matches its
+  // basename); it lives here purely as documentation + a starting point.
+  //
+  // Source of truth for shape and defaults: lib/deployment-config.ts.
+
+  // ------------------------------------------------------------------------
+  // IssuanceAllocator — total issuance and per-target allocation table.
+  // ------------------------------------------------------------------------
+  IssuanceAllocator: {
+    // Expected total issuance per block, in GRT, as a string. Scripts
+    // cross-check this against RM's on-chain `issuancePerBlock()` and error
+    // on mismatch — config NEVER sets the rate. Omit if no allocations
+    // are declared. No default.
+    issuancePerBlock: '6.0365',
+
+    // Per-target allocation map, keyed by full contract name. Each rate is a
+    // string of GRT/block (parsed via parseUnits at 1e18). Unspecified rates
+    // default to '0'. The values MUST sum to `issuancePerBlock` exactly.
+    // Targets must be known allocation-target contracts (see
+    // ALLOCATION_TARGET_CONTRACTS in lib/contract-registry.ts):
+    //   RewardsManager, RecurringAgreementManager, DefaultAllocation,
+    //   ReclaimedRewards, …
+    // Default: {} (no allocations configured — issuance-allocate is a no-op).
+    allocations: {
+      RewardsManager: { selfGrtPerBlock: '5.5365' },
+      RecurringAgreementManager: { allocatorGrtPerBlock: '0.5' },
+      // DefaultAllocation: { allocatorGrtPerBlock: '0', selfGrtPerBlock: '0' },
+    },
+  },
+
+  // ------------------------------------------------------------------------
+  // RewardsManager — eligibility wiring + revert switch.
+  // ------------------------------------------------------------------------
+  RewardsManager: {
+    // Whether to revert reward claims by ineligible indexers. Applied in
+    // 04_upgrade's bundled governance batch.
+    // Default: true.
+    revertOnIneligible: true,
+
+    // Full name of the REO contract RM points at. Omit for no oracle.
+    // Valid values: 'RewardsEligibilityOracleA' | 'RewardsEligibilityOracleB'
+    //               | 'RewardsEligibilityOracleMock'
+    // (see ELIGIBILITY_ORACLE_CONTRACTS in lib/contract-registry.ts).
+    // Default: undefined (no oracle).
+    eligibilityOracle: 'RewardsEligibilityOracleA',
+  },
+
+  // ------------------------------------------------------------------------
+  // RecurringAgreementManager — eligibility wiring.
+  // ------------------------------------------------------------------------
+  RecurringAgreementManager: {
+    // Full name of the REO contract RAM points at. Omit for no oracle.
+    // Valid values: same as RewardsManager.eligibilityOracle above.
+    // Default: undefined (no oracle).
+    eligibilityOracle: 'RewardsEligibilityOracleA',
+  },
+
+  // ------------------------------------------------------------------------
+  // RecurringCollector — constructor + initializer args.
+  // ------------------------------------------------------------------------
+  // These are immutable after deployment (constructor / initializer args),
+  // so a change here only affects fresh deployments.
+  RecurringCollector: {
+    // Signer revocation thaw period in seconds, as a string.
+    // Default: '28800' (≈8 hours at 3s blocks).
+    revokeSignerThawingPeriod: '28800',
+
+    // EIP-712 domain name (initializer arg).
+    // Default: 'RecurringCollector'.
+    eip712Name: 'RecurringCollector',
+
+    // EIP-712 domain version (initializer arg).
+    // Default: '1'.
+    eip712Version: '1',
+  },
+
+  // ------------------------------------------------------------------------
+  // RewardsEligibilityOracle — duration parameters written at configure time.
+  // ------------------------------------------------------------------------
+  // Applied via `getREOConditions(env)` to each deployed REO instance during
+  // `GIP-0088:RewardsEligibilityOracleA:configure` (and …B). Re-configurable
+  // later by governance via setEligibilityPeriod / setOracleUpdateTimeout.
+  RewardsEligibilityOracle: {
+    // Eligibility period in seconds, as a string. Indexers fall out of
+    // eligibility this long after their last positive attestation.
+    // Default: '1209600' (14 days).
+    eligibilityPeriod: '1209600',
+
+    // Oracle update timeout in seconds, as a string. All indexers go
+    // ineligible after this long without any oracle update.
+    // Default: '604800' (7 days).
+    oracleUpdateTimeout: '604800',
+  },
+
+  // ------------------------------------------------------------------------
+  // SubgraphService — optional close-guard switch.
+  // ------------------------------------------------------------------------
+  SubgraphService: {
+    // When true, allocations with active indexing agreements cannot be
+    // closed. Applied by the `GIP-0088:issuance-close-guard` optional goal;
+    // not part of the mandatory rollout (`GIP-0088,all`).
+    // Default: true.
+    blockClosingAllocationWithActiveAgreement: true,
+  },
+}
