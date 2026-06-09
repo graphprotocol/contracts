@@ -152,6 +152,18 @@ abstract contract HorizonStakingBase is
     }
 
     /// @inheritdoc IHorizonStakingBase
+    function getDelegatedTokensWithdrawable(
+        address serviceProvider,
+        address verifier
+    ) external view override returns (uint256) {
+        DelegationPoolInternal storage poolInternal = _getDelegationPool(serviceProvider, verifier);
+        if (poolInternal.sharesThawing == 0) {
+            return 0;
+        }
+        return (poolInternal.sharesWithdrawable * poolInternal.tokensThawing) / poolInternal.sharesThawing;
+    }
+
+    /// @inheritdoc IHorizonStakingBase
     function getThawRequest(
         ThawRequestType requestType,
         bytes32 thawRequestId

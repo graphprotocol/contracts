@@ -212,6 +212,27 @@ interface IHorizonStakingMain {
     );
 
     /**
+     * @notice Emitted when completed (fully-thawed) delegation thaw requests are released for a delegator via
+     * {releaseThawedDelegation} (or lazily inside {withdrawDelegated}).
+     * @dev Releasing only marks the requests' thawing-pool shares as withdrawable for the delegator. No tokens are
+     * moved or transferred: the underlying tokens stay in the pool's `tokensThawing`/`sharesThawing` accounting
+     * and remain slashable until {withdrawDelegated} is called. `tokens` is an informational snapshot of the
+     * token-equivalent at the current pool ratio and may change if the pool is slashed before withdrawal.
+     * @param serviceProvider The address of the service provider
+     * @param verifier The address of the verifier
+     * @param delegator The address of the delegator whose thaw requests were released
+     * @param thawRequestsReleased The number of thaw requests released
+     * @param tokens Informational token-equivalent of the released shares at the current pool ratio
+     */
+    event DelegationThawReleased(
+        address indexed serviceProvider,
+        address indexed verifier,
+        address indexed delegator,
+        uint256 thawRequestsReleased,
+        uint256 tokens
+    );
+
+    /**
      * @notice Emitted when `delegator` withdrew delegated `tokens` from `indexer` using `withdrawDelegated`.
      * @dev This event is for the legacy `withdrawDelegated` function, only emitted for pre-horizon undelegations.
      * @param indexer The address of the indexer
@@ -756,22 +777,60 @@ interface IHorizonStakingMain {
 
     /**
      * @notice Withdraw undelegated tokens from a provision after thawing.
-     * @dev The parameter `nThawRequests` can be set to a non zero value to fulfill a specific number of thaw
-     * requests in the event that fulfilling all of them results in a gas limit error. Otherwise, the function
-     * will attempt to fulfill all thaw requests until the first one that is not yet expired is found.
-     * @dev If the delegation pool was completely slashed before withdrawing, calling this function will fulfill
-     * the thaw requests with an amount equal to zero.
+     * @dev The parameter `nThawRequests` can be set to a non zero value to release a specific number of thaw
+     * requests in the event that releasing all of them results in a gas limit error. Otherwise, the function
+     * will release all thaw requests until the first one that is not yet expired is found.
+     * @dev Internally this first performs the same release step as {releaseThawedDelegation} (so callers do not
+     * need to call it beforehand), then withdraws every share that has been released for the caller.
+     * @dev If no thaw request has matured yet this is a no-op and does not revert. If the delegation pool was
+     * completely slashed before withdrawing, the matured requests resolve to an amount equal to zero.
      *
      * Requirements:
      * - Must have previously initiated a thaw request using {undelegate}.
      *
-     * Emits {ThawRequestFulfilled}, {ThawRequestsFulfilled} and {DelegatedTokensWithdrawn} events.
+     * Emits {ThawRequestFulfilled} per released request, {DelegationThawReleased} when shares are released, and
+     * {DelegatedTokensWithdrawn} when tokens are transferred.
      *
      * @param serviceProvider The service provider address
      * @param verifier The verifier address
-     * @param nThawRequests The number of thaw requests to fulfill. Set to 0 to fulfill all thaw requests.
+     * @param nThawRequests The number of thaw requests to release. Set to 0 to release all matured thaw requests.
      */
     function withdrawDelegated(address serviceProvider, address verifier, uint256 nThawRequests) external;
+
+    /**
+     * @notice Release completed delegation thaw requests, marking them withdrawable, without transferring tokens.
+     * @dev This is a permissionless state-update function — anyone may call it for any delegator. It traverses
+     * `delegator`'s thaw request list for `(serviceProvider, verifier)`, finds every request whose `thawingUntil`
+     * has passed (up to `nThawRequests`, or all if 0), removes each from the linked list, and credits the request's
+     * thawing-pool shares to `pool.sharesWithdrawable` and `delegation.sharesWithdrawable`.
+     *
+     * It deliberately does NOT change `pool.tokensThawing` / `pool.sharesThawing`: the released tokens remain in the
+     * thawing pool and stay slashable until withdrawn. This avoids exempting matured-but-unwithdrawn delegation from
+     * slashing. The token-equivalent of the released shares is exposed via
+     * {IHorizonStakingBase-getDelegatedTokensWithdrawable}.
+     *
+     * Calling this before {withdrawDelegated} is optional — {withdrawDelegated} performs the same release step
+     * internally. Its primary use-case is to let bots or dashboards keep pool state current so that
+     * {IHorizonStakingBase-getDelegatedTokensWithdrawable} reflects completed-but-not-yet-withdrawn delegation and
+     * the remainder of `tokensThawing` reflects only in-period thaw requests.
+     *
+     * Unlike {withdrawDelegated}, this function does not revert when there is nothing to release; it simply
+     * returns zero, so it is safe for bots to call speculatively.
+     *
+     * Emits {ThawRequestFulfilled} per released request and {DelegationThawReleased} in aggregate.
+     *
+     * @param serviceProvider The service provider address
+     * @param verifier The verifier address
+     * @param delegator The delegator whose completed thaw requests to release
+     * @param nThawRequests Max thaw requests to release. Set to 0 to release all completed ones.
+     * @return Informational token-equivalent of the released shares at the current pool ratio
+     */
+    function releaseThawedDelegation(
+        address serviceProvider,
+        address verifier,
+        address delegator,
+        uint256 nThawRequests
+    ) external returns (uint256);
 
     /**
      * @notice Re-delegate undelegated tokens from a provision after thawing to a `newServiceProvider` and `newVerifier`.

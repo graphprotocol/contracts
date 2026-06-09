@@ -306,6 +306,16 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     }
 
     /// @inheritdoc IHorizonStakingMain
+    function releaseThawedDelegation(
+        address serviceProvider,
+        address verifier,
+        address delegator,
+        uint256 nThawRequests
+    ) external override notPaused returns (uint256) {
+        return _releaseThawedDelegation(serviceProvider, verifier, delegator, nThawRequests);
+    }
+
+    /// @inheritdoc IHorizonStakingMain
     function setDelegationFeeCut(
         address serviceProvider,
         address verifier,
@@ -419,11 +429,14 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
 
                 // If the slashing leaves the thawing shares with no thawing tokens, cancel pending thawings by:
                 // - deleting all thawing shares
+                // - clearing released-but-not-withdrawn shares (a subset of the thawing shares)
                 // - incrementing the nonce to invalidate pending thaw requests
                 // Note that thawing shares are completely lost, delegators won't get back the corresponding
-                // delegation pool shares.
+                // delegation pool shares. Released shares (sharesWithdrawable) are part of the thawing shares and
+                // are lost too; the nonce bump invalidates each delegator's stale withdrawableThawingNonce.
                 if (pool.sharesThawing != 0 && pool.tokensThawing == 0) {
                     pool.sharesThawing = 0;
+                    pool.sharesWithdrawable = 0;
                     pool.thawingNonce++;
                 }
 
@@ -862,6 +875,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint256 _nThawRequests
     ) private {
         DelegationPoolInternal storage pool = _getDelegationPool(_serviceProvider, _verifier);
+        DelegationInternal storage delegation = pool.delegators[msg.sender];
 
         // An invalid delegation pool has shares but no tokens
         require(
@@ -869,28 +883,43 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             HorizonStakingInvalidDelegationPoolState(_serviceProvider, _verifier)
         );
 
+        // Revert only when there is genuinely nothing to withdraw: no thaw requests to release and no
+        // previously-released shares on record. We intentionally check the raw `sharesWithdrawable` (not the
+        // nonce-validated amount) so that a delegator whose released shares were wiped out by a full slash gets
+        // the same no-op behaviour as the legacy fully-slashed path rather than a revert. This preserves the
+        // legacy revert-on-empty behaviour for delegators who never thawed.
+        require(
+            _getThawRequestList(ThawRequestType.Delegation, _serviceProvider, _verifier, msg.sender).count != 0 ||
+                delegation.sharesWithdrawable != 0,
+            HorizonStakingNothingThawing()
+        );
+
+        // Release any completed thaw requests into the withdrawable tally first. This covers the common case
+        // where the delegator calls withdrawDelegated directly without having called releaseThawedDelegation.
+        // It also re-syncs withdrawableThawingNonce, so re-read sharesWithdrawable afterwards.
+        _releaseThawedDelegation(_serviceProvider, _verifier, msg.sender, _nThawRequests);
+
+        // Redeem the caller's released shares against the (possibly slashed) thawing pool. Released shares are a
+        // subset of sharesThawing, so the conversion mirrors {_releaseThawRequest} and remains correct after any
+        // slash that occurred between release and withdrawal.
+        uint256 sharesWithdrawable = delegation.withdrawableThawingNonce == pool.thawingNonce
+            ? delegation.sharesWithdrawable
+            : 0;
+
         uint256 tokensThawed = 0;
-        uint256 sharesThawing = pool.sharesThawing;
-        uint256 tokensThawing = pool.tokensThawing;
+        if (sharesWithdrawable != 0) {
+            // sharesThawing >= sharesWithdrawable > 0 here, so the division is safe.
+            tokensThawed = (sharesWithdrawable * pool.tokensThawing) / pool.sharesThawing;
 
-        FulfillThawRequestsParams memory params = FulfillThawRequestsParams({
-            requestType: ThawRequestType.Delegation,
-            serviceProvider: _serviceProvider,
-            verifier: _verifier,
-            owner: msg.sender,
-            tokensThawing: tokensThawing,
-            sharesThawing: sharesThawing,
-            nThawRequests: _nThawRequests,
-            thawingNonce: pool.thawingNonce
-        });
-        (tokensThawed, tokensThawing, sharesThawing) = _fulfillThawRequests(params);
+            pool.tokensThawing = pool.tokensThawing - tokensThawed;
+            pool.sharesThawing = pool.sharesThawing - sharesWithdrawable;
+            pool.sharesWithdrawable = pool.sharesWithdrawable - sharesWithdrawable;
+            pool.tokens = pool.tokens - tokensThawed;
+            delegation.sharesWithdrawable = 0;
+        }
 
-        // The next subtraction should never revert becase: pool.tokens >= pool.tokensThawing and pool.tokensThawing >= tokensThawed
-        // In the event the pool gets completely slashed tokensThawed will fulfil to 0.
-        pool.tokens = pool.tokens - tokensThawed;
-        pool.sharesThawing = sharesThawing;
-        pool.tokensThawing = tokensThawing;
-
+        // tokensThawed can be zero when no requests have matured yet or the pool was fully slashed. In that case
+        // this is a no-op, matching the legacy behaviour where fully-slashed thaw requests fulfilled to zero.
         if (tokensThawed != 0) {
             if (_newServiceProvider != address(0) && _newVerifier != address(0)) {
                 _delegate(_newServiceProvider, _newVerifier, tokensThawed, _minSharesForNewProvider);
@@ -899,6 +928,132 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
                 emit DelegatedTokensWithdrawn(_serviceProvider, _verifier, msg.sender, tokensThawed);
             }
         }
+    }
+
+    /**
+     * @notice Mark `_delegator`'s completed delegation thaw requests as released (withdrawable) without
+     * transferring any tokens.
+     * @dev Traverses the thaw request linked list (via {LinkedList-traverse}) and processes every request whose
+     * `thawingUntil` has passed, up to `_nThawRequests` (or all if 0). For each valid-nonce request it records the
+     * request's thawing-pool shares against `pool.sharesWithdrawable` and `delegation.sharesWithdrawable`, then
+     * removes the request from the list. Crucially it does NOT decrement `pool.tokensThawing`/`pool.sharesThawing`:
+     * the released tokens stay in the thawing pool and remain slashable until {withdrawDelegated} is called. This
+     * is what keeps the bucket free of the slash-evasion and pool-brick problems — releasing changes only
+     * per-delegator bookkeeping, never the slashable principal.
+     *
+     * Stale released shares from a previous nonce epoch (invalidated by a full slash) are dropped before
+     * accumulating. Emits {ThawRequestFulfilled} per processed request and {DelegationThawReleased} in aggregate
+     * when anything was released. Never reverts when there is nothing to release — it is permissionless housekeeping.
+     *
+     * @param _serviceProvider The service provider address
+     * @param _verifier The verifier address
+     * @param _delegator The delegator whose thaw requests to release
+     * @param _nThawRequests Max requests to process. 0 = release all completed ones.
+     * @return tokensReleased Informational token-equivalent of the shares released (snapshot at current pool ratio)
+     */
+    function _releaseThawedDelegation(
+        address _serviceProvider,
+        address _verifier,
+        address _delegator,
+        uint256 _nThawRequests
+    ) private returns (uint256 tokensReleased) {
+        DelegationPoolInternal storage pool = _getDelegationPool(_serviceProvider, _verifier);
+        DelegationInternal storage delegation = pool.delegators[_delegator];
+        ILinkedList.List storage thawRequestList = _getThawRequestList(
+            ThawRequestType.Delegation,
+            _serviceProvider,
+            _verifier,
+            _delegator
+        );
+
+        if (thawRequestList.count == 0) {
+            return 0;
+        }
+
+        // Drop stale released shares from a prior nonce epoch (a full slash invalidated them) before accumulating.
+        if (delegation.withdrawableThawingNonce != pool.thawingNonce) {
+            delegation.sharesWithdrawable = 0;
+            delegation.withdrawableThawingNonce = pool.thawingNonce;
+        }
+
+        // Snapshot the thawing pool ratio for the traversal. tokensThawing/sharesThawing are read-only here -
+        // released tokens are intentionally left in the thawing pool so they stay slashable.
+        bytes memory acc = abi.encode(
+            uint256(0),
+            uint256(0),
+            pool.tokensThawing,
+            pool.sharesThawing,
+            pool.thawingNonce
+        );
+        (uint256 requestsReleased, bytes memory data) = thawRequestList.traverse(
+            _getNextThawRequest(ThawRequestType.Delegation),
+            _releaseThawRequest,
+            _getDeleteThawRequest(ThawRequestType.Delegation),
+            acc,
+            _nThawRequests
+        );
+
+        uint256 sharesReleased;
+        (sharesReleased, tokensReleased, , , ) = abi.decode(data, (uint256, uint256, uint256, uint256, uint256));
+
+        if (sharesReleased == 0) {
+            return 0;
+        }
+
+        pool.sharesWithdrawable += sharesReleased;
+        delegation.sharesWithdrawable += sharesReleased;
+
+        emit DelegationThawReleased(_serviceProvider, _verifier, _delegator, requestsReleased, tokensReleased);
+    }
+
+    /**
+     * @notice Traversal callback that releases a single expired delegation thaw request.
+     * @dev Used as the `processItem` callback in {_releaseThawedDelegation}. Unlike {_fulfillThawRequest} it does
+     * not mutate the thawing pool totals - it only accumulates the released shares (and an informational token
+     * snapshot) into the accumulator. The accumulator layout is
+     * `(sharesReleased, tokensReleased, tokensThawing, sharesThawing, thawingNonce)`.
+     * @param _thawRequestId The ID of the current thaw request
+     * @param _acc The accumulator data
+     * @return Whether to stop traversal (true once the first not-yet-expired request is reached)
+     * @return The updated accumulator data
+     */
+    function _releaseThawRequest(bytes32 _thawRequestId, bytes memory _acc) private returns (bool, bytes memory) {
+        (
+            uint256 sharesReleased,
+            uint256 tokensReleased,
+            uint256 tokensThawing,
+            uint256 sharesThawing,
+            uint256 thawingNonce
+        ) = abi.decode(_acc, (uint256, uint256, uint256, uint256, uint256));
+
+        ThawRequest storage thawRequest = _getThawRequest(ThawRequestType.Delegation, _thawRequestId);
+
+        // Thaw requests are ordered by creation time; stop at the first one that has not yet expired.
+        if (thawRequest.thawingUntil > block.timestamp) {
+            return (true, LinkedList.NULL_BYTES);
+        }
+
+        // Only requests on the current nonce carry value; stale ones are removed but contribute nothing.
+        uint256 tokens = 0;
+        bool validThawRequest = thawRequest.thawingNonce == thawingNonce;
+        if (validThawRequest) {
+            // sharesThawing cannot be zero while a valid thaw request exists, so the division is safe.
+            tokens = (thawRequest.shares * tokensThawing) / sharesThawing;
+            sharesReleased = sharesReleased + thawRequest.shares;
+            tokensReleased = tokensReleased + tokens;
+        }
+
+        emit ThawRequestFulfilled(
+            ThawRequestType.Delegation,
+            _thawRequestId,
+            tokens,
+            thawRequest.shares,
+            thawRequest.thawingUntil,
+            validThawRequest
+        );
+
+        _acc = abi.encode(sharesReleased, tokensReleased, tokensThawing, sharesThawing, thawingNonce);
+        return (false, _acc);
     }
 
     /**

@@ -1121,15 +1121,18 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
                 beforeValues.pool.thawingNonce == thawRequest.thawingNonce
             );
         }
-        vm.expectEmit(address(staking));
-        emit IHorizonStakingMain.ThawRequestsFulfilled(
-            params.thawRequestType,
-            params.serviceProvider,
-            params.verifier,
-            msgSender,
-            calcValues.thawRequestsFulfilledList.length,
-            calcValues.tokensThawed
-        );
+        // Releasing matured delegation thaw requests now emits DelegationThawReleased (in aggregate) rather than
+        // the legacy ThawRequestsFulfilled. It only fires when at least one valid-nonce request was released.
+        if (calcValues.sharesThawed != 0) {
+            vm.expectEmit(address(staking));
+            emit IHorizonStakingMain.DelegationThawReleased(
+                params.serviceProvider,
+                params.verifier,
+                msgSender,
+                calcValues.thawRequestsFulfilledList.length,
+                calcValues.tokensThawed
+            );
+        }
         if (calcValues.tokensThawed != 0) {
             vm.expectEmit();
             if (reDelegate) {
@@ -1594,6 +1597,8 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         uint256 sharesThawing;
         // Thawing nonce
         uint256 thawingNonce;
+        // Released-but-not-withdrawn thawing shares
+        uint256 sharesWithdrawable;
     }
 
     function _getStorageDelegationPoolInternal(
@@ -1622,7 +1627,8 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             _gap_delegators_mapping: uint256(vm.load(address(staking), bytes32(baseSlot + 4))),
             tokensThawing: uint256(vm.load(address(staking), bytes32(baseSlot + 5))),
             sharesThawing: uint256(vm.load(address(staking), bytes32(baseSlot + 6))),
-            thawingNonce: uint256(vm.load(address(staking), bytes32(baseSlot + 7)))
+            thawingNonce: uint256(vm.load(address(staking), bytes32(baseSlot + 7))),
+            sharesWithdrawable: uint256(vm.load(address(staking), bytes32(baseSlot + 8)))
         });
 
         return delegationPoolInternal;
@@ -1653,7 +1659,9 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         DelegationInternal memory delegation = DelegationInternal({
             shares: uint256(vm.load(address(staking), bytes32(baseSlot))),
             __DEPRECATED_tokensLocked: uint256(vm.load(address(staking), bytes32(baseSlot + 1))),
-            __DEPRECATED_tokensLockedUntil: uint256(vm.load(address(staking), bytes32(baseSlot + 2)))
+            __DEPRECATED_tokensLockedUntil: uint256(vm.load(address(staking), bytes32(baseSlot + 2))),
+            sharesWithdrawable: uint256(vm.load(address(staking), bytes32(baseSlot + 3))),
+            withdrawableThawingNonce: uint256(vm.load(address(staking), bytes32(baseSlot + 4)))
         });
 
         return delegation;

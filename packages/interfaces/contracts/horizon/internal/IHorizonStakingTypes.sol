@@ -100,6 +100,12 @@ interface IHorizonStakingTypes {
      * @param tokensThawing Tokens thawing in the pool
      * @param sharesThawing Shares representing the thawing tokens
      * @param thawingNonce Value of the current thawing nonce. Thaw requests with older nonces are invalid.
+     * @param sharesWithdrawable Thawing-pool shares whose thaw period has expired and that have been released
+     * (via {releaseThawedDelegation} or lazily during {withdrawDelegated}) but not yet withdrawn. These shares
+     * remain part of `sharesThawing`/`tokensThawing` and therefore remain slashable until withdrawn. The
+     * token-equivalent is `sharesWithdrawable * tokensThawing / sharesThawing` and is exposed via
+     * {IHorizonStakingBase-getDelegatedTokensWithdrawable}. Appended after `thawingNonce` to preserve the
+     * existing storage layout.
      */
     struct DelegationPoolInternal {
         uint32 __DEPRECATED_cooldownBlocks;
@@ -112,6 +118,7 @@ interface IHorizonStakingTypes {
         uint256 tokensThawing;
         uint256 sharesThawing;
         uint256 thawingNonce;
+        uint256 sharesWithdrawable;
     }
 
     /**
@@ -130,11 +137,20 @@ interface IHorizonStakingTypes {
      * @param shares Shares owned by the delegator in the pool
      * @param __DEPRECATED_tokensLocked Tokens locked for undelegation
      * @param __DEPRECATED_tokensLockedUntil Epoch when locked tokens can be withdrawn
+     * @param sharesWithdrawable Thawing-pool shares belonging to this delegator that have completed thawing and
+     * been released (via {releaseThawedDelegation} or lazily during {withdrawDelegated}) but not yet withdrawn.
+     * These shares remain in the pool's `sharesThawing`/`tokensThawing` accounting and stay slashable until
+     * withdrawn. Appended to preserve the existing storage layout.
+     * @param withdrawableThawingNonce The pool `thawingNonce` at which `sharesWithdrawable` were released. If it
+     * no longer matches the pool nonce, a full slash has since invalidated those shares and they are treated as
+     * zero.
      */
     struct DelegationInternal {
         uint256 shares;
         uint256 __DEPRECATED_tokensLocked;
         uint256 __DEPRECATED_tokensLockedUntil;
+        uint256 sharesWithdrawable;
+        uint256 withdrawableThawingNonce;
     }
 
     /**

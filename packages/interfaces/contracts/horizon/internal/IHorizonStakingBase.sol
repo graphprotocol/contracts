@@ -133,12 +133,28 @@ interface IHorizonStakingBase {
 
     /**
      * @notice Gets the delegator's tokens available in a provision.
-     * @dev Calculated as the tokens available minus the tokens thawing.
+     * @dev Calculated as the tokens available minus the tokens thawing. This already excludes both in-period and
+     * completed-but-not-yet-withdrawn delegation, since completed thaw requests remain in `tokensThawing` until
+     * withdrawn. It is therefore the correct actively-earning base for APR/APY denominators.
      * @param serviceProvider The address of the service provider.
      * @param verifier The address of the verifier.
      * @return The amount of tokens available.
      */
     function getDelegatedTokensAvailable(address serviceProvider, address verifier) external view returns (uint256);
+
+    /**
+     * @notice Gets the token-equivalent of delegation that has completed thawing and been released but not yet
+     * withdrawn by delegators.
+     * @dev This is a derived view, computed as `sharesWithdrawable * tokensThawing / sharesThawing`. These tokens
+     * are a subset of `tokensThawing` (they remain slashable until withdrawn) and do not earn rewards. The value
+     * only reflects thaw requests that have actually been released via {releaseThawedDelegation}; it returns zero
+     * when the pool has no thawing shares. Use it to split `tokensThawing` into its in-period and
+     * completed-but-unwithdrawn components for reporting.
+     * @param serviceProvider The address of the service provider.
+     * @param verifier The address of the verifier.
+     * @return The token-equivalent of released, not-yet-withdrawn delegation.
+     */
+    function getDelegatedTokensWithdrawable(address serviceProvider, address verifier) external view returns (uint256);
 
     /**
      * @notice Gets a thaw request.
