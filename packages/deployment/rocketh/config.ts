@@ -17,13 +17,25 @@ export const accounts = {
   deployer: {
     default: 0,
   },
-  // Governor — second mnemonic account on local/test networks.
-  // On mainnet, governance is a multisig (not available via mnemonic).
+  // Governor — the protocol governor / multisig.
   // The on-chain source of truth is Controller.getGovernor() — see lib/controller-utils.ts.
-  // This named account exists so rocketh registers a signer, allowing deploy
-  // scripts to send TXs as governor via tx().
+  // This named account lets deploy scripts reference governor and, where the
+  // signer is locally available, send TXs as governor via tx().
+  //
+  // Local/test networks use a mnemonic, so the governor is the second derived
+  // account (index 1) and can sign directly.
+  //
+  // Real networks provide only the single deployer key, so an account index
+  // would not resolve (and rocketh treats index 0 as falsy in its override
+  // lookup, falling back to default). Pin the governor to its actual on-chain
+  // address (Controller.getGovernor()); it resolves as an address-only account.
+  // Governance there is emitted as TXs (saveGovernanceTx) for the multisig to
+  // execute — the governor is not in eth_accounts, so canSignAsGovernor()
+  // reports canSign=false and never tries to sign with it.
   governor: {
     default: 1,
+    arbitrumSepolia: '0x72ee30d43Fb5A90B3FE983156C5d2fBE6F6d07B3',
+    arbitrumOne: '0x8C6de8F8D562f3382417340A6994601eE08D3809',
   },
 } as const satisfies UserConfig['accounts']
 
