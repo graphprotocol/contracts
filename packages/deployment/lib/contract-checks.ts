@@ -15,6 +15,7 @@ import {
 } from './abis.js'
 import { getTargetChainIdFromEnv } from './address-book-utils.js'
 import { getGovernor, getPauseGuardian } from './controller-utils.js'
+import { getResolvedSettingsForEnv } from './deployment-config.js'
 
 /**
  * Check if a contract supports a specific interface via ERC165
@@ -688,6 +689,7 @@ export async function getREOConditions(env: Environment): Promise<ConfigConditio
   const governor = await getGovernor(env)
   const pauseGuardian = await getPauseGuardian(env)
   const ab = graph.getIssuanceAddressBook(await getTargetChainIdFromEnv(env))
+  const settings = await getResolvedSettingsForEnv(env)
 
   const networkOperator = ab.entryExists('NetworkOperator') ? ab.getEntry('NetworkOperator')?.address : null
   if (!networkOperator) {
@@ -696,7 +698,13 @@ export async function getREOConditions(env: Environment): Promise<ConfigConditio
     process.exit(1)
   }
 
-  return createAllREOConditions({}, { governor, pauseGuardian, networkOperator })
+  return createAllREOConditions(
+    {
+      eligibilityPeriod: settings.rewardsEligibilityOracle.eligibilityPeriod,
+      oracleUpdateTimeout: settings.rewardsEligibilityOracle.oracleUpdateTimeout,
+    },
+    { governor, pauseGuardian, networkOperator },
+  )
 }
 
 /**

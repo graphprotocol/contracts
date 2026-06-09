@@ -50,6 +50,19 @@ interface DeploymentConfigFile {
     eip712Name?: string
     eip712Version?: string
   }
+  RewardsEligibilityOracle?: {
+    /** Eligibility period in seconds — indexers fall out of eligibility this long after their last positive attestation. */
+    eligibilityPeriod?: string
+    /** Oracle update timeout in seconds — all indexers go ineligible after this long without an oracle update. */
+    oracleUpdateTimeout?: string
+  }
+  SubgraphService?: {
+    /**
+     * When true, allocations with active indexing agreements cannot be closed.
+     * Set by the `GIP-0088:issuance-close-guard` optional goal.
+     */
+    blockClosingAllocationWithActiveAgreement?: boolean
+  }
 }
 
 /**
@@ -97,6 +110,16 @@ export interface ResolvedSettings {
     /** EIP-712 domain version (init arg). */
     eip712Version: string
   }
+  rewardsEligibilityOracle: {
+    /** Eligibility period in seconds (REO `setEligibilityPeriod` arg). */
+    eligibilityPeriod: bigint
+    /** Oracle update timeout in seconds (REO `setOracleUpdateTimeout` arg). */
+    oracleUpdateTimeout: bigint
+  }
+  subgraphService: {
+    /** Desired value for `SS.setBlockClosingAllocationWithActiveAgreement`. */
+    blockClosingAllocationWithActiveAgreement: boolean
+  }
 }
 
 const DEFAULT_SETTINGS: ResolvedSettings = {
@@ -113,6 +136,13 @@ const DEFAULT_SETTINGS: ResolvedSettings = {
     revokeSignerThawingPeriod: '28800', // ~1 day at 3s blocks
     eip712Name: 'RecurringCollector',
     eip712Version: '1',
+  },
+  rewardsEligibilityOracle: {
+    eligibilityPeriod: 14n * 24n * 60n * 60n, // 14 days
+    oracleUpdateTimeout: 7n * 24n * 60n * 60n, // 7 days
+  },
+  subgraphService: {
+    blockClosingAllocationWithActiveAgreement: true,
   },
 }
 
@@ -208,6 +238,21 @@ export function getResolvedSettings(chainId: number): ResolvedSettings {
         DEFAULT_SETTINGS.recurringCollector.revokeSignerThawingPeriod,
       eip712Name: file.RecurringCollector?.eip712Name ?? DEFAULT_SETTINGS.recurringCollector.eip712Name,
       eip712Version: file.RecurringCollector?.eip712Version ?? DEFAULT_SETTINGS.recurringCollector.eip712Version,
+    },
+    rewardsEligibilityOracle: {
+      eligibilityPeriod:
+        file.RewardsEligibilityOracle?.eligibilityPeriod !== undefined
+          ? BigInt(file.RewardsEligibilityOracle.eligibilityPeriod)
+          : DEFAULT_SETTINGS.rewardsEligibilityOracle.eligibilityPeriod,
+      oracleUpdateTimeout:
+        file.RewardsEligibilityOracle?.oracleUpdateTimeout !== undefined
+          ? BigInt(file.RewardsEligibilityOracle.oracleUpdateTimeout)
+          : DEFAULT_SETTINGS.rewardsEligibilityOracle.oracleUpdateTimeout,
+    },
+    subgraphService: {
+      blockClosingAllocationWithActiveAgreement:
+        file.SubgraphService?.blockClosingAllocationWithActiveAgreement ??
+        DEFAULT_SETTINGS.subgraphService.blockClosingAllocationWithActiveAgreement,
     },
   }
 }
