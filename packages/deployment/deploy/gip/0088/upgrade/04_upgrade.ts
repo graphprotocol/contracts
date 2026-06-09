@@ -6,7 +6,7 @@ import {
   REWARDS_MANAGER_ABI,
   REWARDS_MANAGER_DEPRECATED_ABI,
 } from '@graphprotocol/deployment/lib/abis.js'
-import { getAddressBookForType, getTargetChainIdFromEnv } from '@graphprotocol/deployment/lib/address-book-utils.js'
+import { getTargetChainIdFromEnv } from '@graphprotocol/deployment/lib/address-book-utils.js'
 import { checkConfigurationStatus } from '@graphprotocol/deployment/lib/apply-configuration.js'
 import { getREOConditions } from '@graphprotocol/deployment/lib/contract-checks.js'
 import { allUpgradeableEntries, Contracts } from '@graphprotocol/deployment/lib/contract-registry.js'
@@ -16,9 +16,11 @@ import { DeploymentActions, GoalTags, shouldSkipAction } from '@graphprotocol/de
 import {
   createGovernanceTxBuilder,
   executeTxBatchDirect,
+  getGovernanceTxDir,
   saveGovernanceTx,
 } from '@graphprotocol/deployment/lib/execute-governance.js'
 import { formatGRT } from '@graphprotocol/deployment/lib/format.js'
+import { gatherBundles, markIncorporated } from '@graphprotocol/deployment/lib/gather-bundles.js'
 import {
   checkDefaultAllocationConfigured,
   checkIAConfigured,
@@ -29,11 +31,12 @@ import {
 } from '@graphprotocol/deployment/lib/preconditions.js'
 import { runFullSync } from '@graphprotocol/deployment/lib/sync-utils.js'
 import type { TxBuilder } from '@graphprotocol/deployment/lib/tx-builder.js'
-import { buildUpgradeTxs } from '@graphprotocol/deployment/lib/upgrade-implementation.js'
 import { graph } from '@graphprotocol/deployment/rocketh/deploy.js'
 import type { DeployScriptModule, Environment } from '@rocketh/core/types'
 import type { PublicClient } from 'viem'
 import { encodeFunctionData } from 'viem'
+
+const GIP_0088_UPGRADES_BATCH = 'gip-0088-upgrades'
 
 /**
  * GIP-0088:upgrade — Build the governance batch
@@ -70,12 +73,13 @@ const func: DeployScriptModule = async (env) => {
 
   env.showMessage('\n========== GIP-0088 Upgrade: Proxy Upgrades ==========\n')
 
-  const builder = await createGovernanceTxBuilder(env, 'gip-0088-upgrades', {
+  const txDir = getGovernanceTxDir(env.name)
+  const builder = await createGovernanceTxBuilder(env, GIP_0088_UPGRADES_BATCH, {
     name: 'GIP-0088 Proxy Upgrades',
     description: 'Upgrade all proxy contracts with pending implementations',
   })
 
-  const proxyCount = await collectProxyUpgrades(env, builder, targetChainId)
+  const gathered = gatherProxyUpgrades(txDir, builder)
 
   const settings = await getResolvedSettingsForEnv(env)
 
@@ -83,11 +87,15 @@ const func: DeployScriptModule = async (env) => {
   const existingCount = await collectExistingContractConfig(env, builder, client, pauseGuardian, settings)
   const newCount = await collectDeferredNewContractConfig(env, builder, client, targetChainId, governor, pauseGuardian)
 
-  const total = proxyCount + existingCount + newCount
+  const total = gathered.txCount + existingCount + newCount
   if (total === 0) {
     env.showMessage('  No pending upgrades found\n')
     return
   }
+
+  // Record gather provenance on the builder so the on-disk bundle carries an
+  // audit trail of which source files contributed. Set before save.
+  builder.markGatheredFrom(gathered.sourceNames)
 
   if (canSign) {
     env.showMessage('\n🔨 Executing upgrade TX batch...\n')
@@ -96,6 +104,12 @@ const func: DeployScriptModule = async (env) => {
   } else {
     saveGovernanceTx(env, builder, 'GIP-0088 Proxy Upgrades')
   }
+
+  // Move the per-component source bundles into incorporated/ in both branches:
+  // canSign replayed them via the consolidated batch, !canSign queued them as
+  // the consolidated batch. Either way, leaving them at top level would let a
+  // subsequent execute-governance run replay the same TXs again.
+  markIncorporated(txDir, gathered.sourceFiles, GIP_0088_UPGRADES_BATCH)
 }
 
 func.tags = [GoalTags.GIP_0088_UPGRADE]
@@ -108,24 +122,24 @@ export default func
 // ============================================================================
 
 /**
- * Iterate every deployable proxy in the registry. For each one with a
- * pendingImplementation in its address book (or a shared implementation that
- * has changed on-chain), add the proxy upgrade TX to the shared builder.
+ * Gather per-component proxy upgrade bundles into the shared consolidated
+ * builder.
  *
- * Both the iteration source ({@link allUpgradeableEntries}) and the config
- * construction (inside {@link buildUpgradeTxs} via `createUpgradeConfigFromRegistry`)
- * are shared with the per-component `02_upgrade.ts` path. This script is just
- * the loop that wires every entry into one builder.
+ * The TX-construction work is owned by each component's `02_upgrade.ts`,
+ * which has already run before this orchestrator (file-system numeric order
+ * `02_*` before `04_*`) and either written `txs/upgrade-<Name>.json` or not,
+ * depending on whether its proxy needs an upgrade right now. This function
+ * just reads whichever files are present in registry order and appends their
+ * TXs (with metadata) into the consolidated builder.
+ *
+ * The per-component scripts and this orchestrator both flow through the same
+ * `upgradeImplementation` → `buildUpgradeTxs` primitive — there is no
+ * duplication of TX-construction logic. The orchestrator's role is purely to
+ * consolidate.
  */
-async function collectProxyUpgrades(env: Environment, builder: TxBuilder, targetChainId: number): Promise<number> {
-  let added = 0
-  for (const entry of allUpgradeableEntries()) {
-    const ab = getAddressBookForType(entry.addressBook, targetChainId)
-    if (!ab.entryExists(entry.name)) continue
-    const result = await buildUpgradeTxs(env, entry, builder)
-    if (result.upgraded) added++
-  }
-  return added
+function gatherProxyUpgrades(txDir: string, builder: TxBuilder) {
+  const names = Array.from(allUpgradeableEntries(), (e) => e.name)
+  return gatherBundles(txDir, builder, names, 'upgrade')
 }
 
 // ============================================================================

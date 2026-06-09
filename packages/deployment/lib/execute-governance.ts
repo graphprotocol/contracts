@@ -106,11 +106,42 @@ export async function createGovernanceTxBuilder(
   const targetChainId = await getTargetChainIdFromEnv(env)
   const outputDir = getGovernanceTxDir(env.name)
 
+  // Claim ownership of this batch's filesystem slot. Removes any prior
+  // `txs/{name}.json` and (if present) the gather-incorporated subdirectory
+  // `txs/incorporated/{name}/` before the new builder takes over. This keeps
+  // the invariant that `txs/{name}.json` exists iff a TX named {name} is
+  // currently pending and reflects current state — a script that constructs
+  // a builder and then early-returns without saving leaves no stale file.
+  claimBundleSlot(outputDir, name)
+
   return new TxBuilder(targetChainId, {
     outputDir,
     name,
     meta,
   })
+}
+
+/**
+ * Claim exclusive ownership of a governance TX batch's filesystem slot.
+ *
+ * Removes the prior `{outputDir}/{name}.json` (if any) and recursively removes
+ * the prior `{outputDir}/incorporated/{name}/` (if any). Safe to call when
+ * neither exists.
+ *
+ * Used by {@link createGovernanceTxBuilder} on construction so each run starts
+ * from a clean slate for its named slot. Exported for direct use by callers
+ * that want the same semantic without immediately constructing a builder
+ * (e.g. cleanup tooling, tests).
+ */
+export function claimBundleSlot(outputDir: string, name: string): void {
+  const txFile = path.join(outputDir, `${name}.json`)
+  if (fs.existsSync(txFile)) {
+    fs.unlinkSync(txFile)
+  }
+  const incorporatedDir = path.join(outputDir, 'incorporated', name)
+  if (fs.existsSync(incorporatedDir)) {
+    fs.rmSync(incorporatedDir, { recursive: true, force: true })
+  }
 }
 
 /**
@@ -198,34 +229,108 @@ export async function executeTxBatchDirect(env: Environment, builder: TxBuilder,
     env.showMessage(`      ✓ TX hash: ${hash}`)
   }
 
-  // Save to executed/ folder for audit trail
+  // Save to executed/ folder for audit trail. Use builder.saveToFile so the
+  // full enhanced bundle (rich metadata, _gatheredFrom provenance, etc.) is
+  // preserved — mirrors the EOA/impersonation paths that rename the bundle
+  // file in place and keep all of its content.
   const txDir = getGovernanceTxDir(env.name)
   const executedDir = path.join(txDir, 'executed')
   if (!fs.existsSync(executedDir)) {
     fs.mkdirSync(executedDir, { recursive: true })
   }
-
-  // Save with original filename in executed/
-  const originalFile = builder.outputFile
-  const filename = path.basename(originalFile)
-  const executedFile = path.join(executedDir, filename)
-  fs.writeFileSync(executedFile, JSON.stringify({ transactions }, null, 2) + '\n')
+  const executedFile = path.join(executedDir, path.basename(builder.outputFile))
+  builder.saveToFile(executedFile)
   env.showMessage(`      ✓ Saved to ${executedFile}`)
 
   return transactions.length
 }
 
 export interface ExecuteGovernanceOptions {
-  /** Optional TX batch name filter */
+  /** Optional TX batch name filter (basename without .json) */
   name?: string
+  /**
+   * Acknowledge multiple pending bundles. Without this flag, the executor
+   * refuses to run when 2+ files are present and `name` is not specified.
+   * Aligns the default with the orchestrator/gather model where each goal
+   * produces exactly one consolidated bundle per deploy.
+   */
+  all?: boolean
+  /**
+   * Treat a missing `name` target as a silent no-op instead of an error.
+   * Useful for CI scripts that conditionally execute a known bundle.
+   */
+  allowMissing?: boolean
   /** Governor private key (from keystore or env var) */
   governorPrivateKey?: string
   /** Lazy resolver for governor key - defers keystore access until actually needed */
   resolveGovernorKey?: () => Promise<string | undefined>
 }
 
+/**
+ * Result of selecting bundles from the on-disk list. Pure data — the caller
+ * is responsible for fetching previews / formatting the error messages.
+ */
+export type BundleSelection =
+  | { kind: 'execute'; files: string[] }
+  | { kind: 'no-op' }
+  | { kind: 'error'; code: 'name-and-all' }
+  | { kind: 'error'; code: 'name-missing'; targetFile: string }
+  | { kind: 'error'; code: 'multi-no-flag'; files: string[] }
+
+/**
+ * Decide which bundle files to execute given the available list and caller
+ * options. Pure (no fs / no network); kept separate from `executeGovernanceTxs`
+ * so the gate logic is straightforwardly unit-testable.
+ *
+ * Default expectation under the orchestrator/gather model: exactly one
+ * pending bundle. Operators acknowledge multiplicity explicitly with `--all`
+ * or pick a specific bundle with `--name`.
+ */
+export function selectBundles(
+  availableFiles: string[],
+  options: { name?: string; all?: boolean; allowMissing?: boolean } = {},
+): BundleSelection {
+  const { name, all, allowMissing } = options
+
+  if (name && all) {
+    return { kind: 'error', code: 'name-and-all' }
+  }
+
+  if (name) {
+    const targetFile = `${name}.json`
+    if (availableFiles.includes(targetFile)) {
+      return { kind: 'execute', files: [targetFile] }
+    }
+    return allowMissing ? { kind: 'no-op' } : { kind: 'error', code: 'name-missing', targetFile }
+  }
+
+  if (availableFiles.length === 0) {
+    return { kind: 'no-op' }
+  }
+  if (availableFiles.length === 1 || all) {
+    return { kind: 'execute', files: [...availableFiles] }
+  }
+  return { kind: 'error', code: 'multi-no-flag', files: [...availableFiles] }
+}
+
+/** Read a saved bundle and return a one-line preview for human-readable output. */
+function previewBundle(filePath: string): string {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8')) as {
+      transactions?: unknown[]
+      _gatheredFrom?: string[]
+    }
+    const txCount = parsed.transactions?.length ?? 0
+    const sourceCount = parsed._gatheredFrom?.length ?? 0
+    const sourceNote = sourceCount > 0 ? `, gathered from ${sourceCount} source bundle(s)` : ''
+    return `${txCount} TX${txCount === 1 ? '' : 's'}${sourceNote}`
+  } catch {
+    return 'unreadable'
+  }
+}
+
 export async function executeGovernanceTxs(env: Environment, options?: ExecuteGovernanceOptions): Promise<number> {
-  const { name, governorPrivateKey, resolveGovernorKey } = options ?? {}
+  const { name, all, allowMissing, governorPrivateKey, resolveGovernorKey } = options ?? {}
   // Determine TX directory - in fork mode, also check source network's TX directory
   const forkNetwork = getForkNetwork(env.name)
   let txDir = getGovernanceTxDir(env.name)
@@ -257,21 +362,44 @@ export async function executeGovernanceTxs(env: Environment, options?: ExecuteGo
     return 0
   }
 
-  // Find pending TX batch files (optionally filtered by name)
-  let files: string[]
-  if (name) {
-    const specificFile = `${name}.json`
-    files = fs.existsSync(path.join(txDir, specificFile)) ? [specificFile] : []
-  } else {
-    files = fs.readdirSync(txDir).filter((f) => f.endsWith('.json') && !f.startsWith('.'))
-  }
-  if (files.length === 0) {
+  // List top-level pending bundles. `incorporated/` and `executed/` are
+  // subdirs and invisible to this scan by construction.
+  const availableFiles = fs.readdirSync(txDir).filter((f) => f.endsWith('.json') && !f.startsWith('.'))
+
+  const selection = selectBundles(availableFiles, { name, all, allowMissing })
+
+  if (selection.kind === 'no-op') {
     env.showMessage(`\n✓ No pending governance TXs`)
     if (forkNetwork && !sourceNetworkFallback) {
       env.showMessage(`   (Also checked: txs/${forkNetwork}/)`)
     }
     return 0
   }
+
+  if (selection.kind === 'error') {
+    switch (selection.code) {
+      case 'name-and-all':
+        env.showMessage(`\n❌ --name and --all are mutually exclusive. Pick one.\n`)
+        break
+      case 'name-missing':
+        env.showMessage(`\n❌ Specified bundle not found: ${path.join(txDir, selection.targetFile)}`)
+        env.showMessage(`   Pass --allow-missing to treat this as a silent no-op.\n`)
+        break
+      case 'multi-no-flag':
+        env.showMessage(`\nMultiple pending governance TX batches found in ${txDir}:\n`)
+        for (const file of selection.files) {
+          env.showMessage(`  - ${file}  (${previewBundle(path.join(txDir, file))})`)
+        }
+        env.showMessage(`\nUnder the orchestrator/gather model each deploy produces one consolidated bundle.`)
+        env.showMessage(`Choose one of:`)
+        env.showMessage(`  --name <basename>   Execute a specific bundle`)
+        env.showMessage(`  --all               Execute every pending bundle (acknowledges multiple)\n`)
+        break
+    }
+    throw new Error(`deploy:execute-governance: ${selection.code}`)
+  }
+
+  const files = selection.files
 
   // Get governor address from Controller
   const governor = (await getGovernor(env)) as `0x${string}`
