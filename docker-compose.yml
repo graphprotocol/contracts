@@ -1,0 +1,13 @@
+# Local build of the workspace image. Pair with local-network's
+# CONTRACTS_VERSION=local to consume this build from there.
+#
+# `docker compose build` (or `just build-image`) produces
+# `ghcr.io/graphprotocol/contracts:${CONTRACTS_TAG:-local}`. Override
+# CONTRACTS_TAG to distinguish multiple in-flight checkouts.
+
+services:
+  contracts:
+    image: ghcr.io/graphprotocol/contracts:${CONTRACTS_TAG:-local}
+    build:
+      context: .
+      dockerfile: Dockerfile
