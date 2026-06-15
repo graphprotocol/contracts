@@ -54,7 +54,7 @@
     "eslint": "catalog:",
     "ethereum-waffle": "^4.0.10",
     "ethers": "^5.7.0",
-    "form-data": "^4.0.0",
+    "form-data": "^4.0.6",
     "glob": "catalog:",
     "graphql": "^16.11.0",
     "graphql-tag": "^2.12.4",
