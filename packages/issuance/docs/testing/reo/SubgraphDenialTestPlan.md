@@ -98,7 +98,7 @@ cast call <REWARDS_MANAGER> "subgraphAvailabilityOracle()(address)" --rpc-url <R
 | 1     | Reclaim Setup for Denial        | 1.1 - 1.2 | Governor access needed; skip if already configured |
 | 2     | Denial State Management         | 2.1 - 2.4 | SAO access needed                                  |
 | 3     | Accumulator Freeze Verification | 3.1 - 3.4 | Read-only after denial; wait for epochs            |
-| 4     | Allocation-Level Deferral       | 4.1 - 4.3 | Requires active allocations on denied subgraph     |
+| 4     | Allocation-Level Deferral       | 4.1 - 4.4 | Requires active allocations on denied subgraph     |
 | 5     | Undeny and Reward Recovery      | 5.1 - 5.4 | Full deny→undeny→claim lifecycle                   |
 | 6     | Edge Cases                      | 6.1 - 6.4 | Advanced scenarios                                 |
 
@@ -385,6 +385,8 @@ cast logs --from-block <TX_BLOCK> --to-block <TX_BLOCK> --address <SUBGRAPH_SERV
 - **Critical**: Allocation snapshot NOT advanced (pre-denial rewards preserved)
 - Allocation remains open if this was a POI presentation (not a force-close)
 
+> **Condition precedence (important)**: `SUBGRAPH_DENIED` is only reached for an otherwise-valid POI. `AllocationHandler.presentPOI` evaluates conditions in strict order — `STALE_POI` → `ZERO_POI` → `ALLOCATION_TOO_YOUNG` → `SUBGRAPH_DENIED`. So denial does **not** protect a POI that is itself stale, zero, or too-young: those reclaim/advance first. The "pre-denial rewards preserved" guarantee therefore holds only while you keep presenting **valid, fresh** POIs (test 4.4 verifies the negative case).
+
 ---
 
 ### 4.2 Multiple POI presentations while denied do not lose rewards
@@ -431,6 +433,34 @@ cast call <REWARDS_MANAGER> "getRewards(address,address)(uint256)" <SUBGRAPH_SER
 - POI presentation succeeds (transaction does not revert)
 - Allocation does not become stale during denial period
 - When subgraph is later undenied, the allocation is still healthy (not stale)
+
+---
+
+### 4.4 Stale or zero POI on a denied subgraph reclaims (denial does NOT take precedence)
+
+**Objective**: Verify the precedence ordering: a POI that is stale or zero is handled as `STALE_POI`/`ZERO_POI` (reclaim path) even when the subgraph is denied — denial only defers an otherwise-valid POI. This is the negative case that bounds the "pre-denial rewards preserved" guarantee from 4.1/4.2.
+
+**Prerequisites**: A denied subgraph with an active, mature allocation. Know `maxPOIStaleness` (`cast call <SUBGRAPH_SERVICE> "maxPOIStaleness()(uint256)"`).
+
+**Steps**:
+
+```bash
+# (a) ZERO_POI while denied: present a zero POI for the allocation
+#     (via indexer agent or a close with a zero POI)
+
+# (b) STALE_POI while denied: let the allocation pass maxPOIStaleness, then
+#     present a POI / let it be force-closed
+
+# Inspect the POIPresented condition + any reclaim:
+POI_EVENT_SIG=$(cast sig-event "POIPresented(address,address,bytes32,bytes32,bytes,bytes32)")
+cast logs --from-block <TX_BLOCK> --to-block <TX_BLOCK> --address <SUBGRAPH_SERVICE> --topic0 $POI_EVENT_SIG --rpc-url <RPC>
+```
+
+**Pass Criteria**:
+
+- The `POIPresented` `condition` is `ZERO_POI` (case a) or `STALE_POI` (case b) — **not** `SUBGRAPH_DENIED`
+- A `RewardsReclaimed` event fires for the allocation (reclaim path, snapshot advances) — contrast with 4.1 where denial deferred and the snapshot was preserved
+- Confirms denial does not shield a stale/zero POI; indexers must keep presenting valid, fresh POIs even on denied subgraphs
 
 ---
 

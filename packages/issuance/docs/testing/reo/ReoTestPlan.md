@@ -116,17 +116,17 @@ cast send <REO_PROXY> "unpause()" --rpc-url <RPC> --private-key <PAUSE_KEY>
 
 ## Test Sequence Overview
 
-| Cycle | Area                                             | Tests       | Notes                                        |
-| ----- | ------------------------------------------------ | ----------- | -------------------------------------------- |
-| 1     | Deployment Verification                          | 1.1 - 1.5   | Read-only, no role access needed             |
-| 2     | Eligibility: Default State (Validation Disabled) | 2.1 - 2.3   | Open allocations here for Cycle 6            |
-| 3     | Oracle Operations                                | 3.1 - 3.5   | Requires OPERATOR_ROLE + ORACLE_ROLE         |
-| 4     | Eligibility: Validation Enabled                  | 4.1 - 4.4   | Requires OPERATOR_ROLE; 4.4 changes params   |
-| 5     | Eligibility: Timeout Fail-Open                   | 5.1 - 5.2   | Requires OPERATOR_ROLE; 5.1 changes params   |
-| 6     | Integration with Rewards                         | 6.1 - 6.6   | Requires mature allocations from Cycle 2     |
-| 6m    | Integration with Rewards (Mock REO)              | 6.1m - 6.5m | Uses mock REO for direct eligibility control |
-| 7     | Emergency Operations                             | 7.1 - 7.3   | Requires PAUSE_ROLE; changes live state      |
-| 8     | UI and Subgraph Verification                     | 8.1 - 8.3   | Coordinate with Explorer and subgraph teams  |
+| Cycle | Area                                             | Tests       | Notes                                                                |
+| ----- | ------------------------------------------------ | ----------- | -------------------------------------------------------------------- |
+| 1     | Deployment Verification                          | 1.1 - 1.5   | Read-only, no role access needed                                     |
+| 2     | Eligibility: Default State (Validation Disabled) | 2.1 - 2.3   | Open allocations here for Cycle 6                                    |
+| 3     | Oracle Operations                                | 3.1 - 3.8   | Requires OPERATOR_ROLE + ORACLE_ROLE; 3.6-3.8 cover indexer tracking |
+| 4     | Eligibility: Validation Enabled                  | 4.1 - 4.4   | Requires OPERATOR_ROLE; 4.4 changes params                           |
+| 5     | Eligibility: Timeout Fail-Open                   | 5.1 - 5.2   | Requires OPERATOR_ROLE; 5.1 changes params                           |
+| 6     | Integration with Rewards                         | 6.1 - 6.6   | Requires mature allocations from Cycle 2                             |
+| 6m    | Integration with Rewards (Mock REO)              | 6.1m - 6.5m | Uses mock REO for direct eligibility control                         |
+| 7     | Emergency Operations                             | 7.1 - 7.5   | PAUSE_ROLE / GOVERNOR_ROLE; changes live state                       |
+| 8     | UI and Subgraph Verification                     | 8.1 - 8.3   | Coordinate with Explorer and subgraph teams                          |
 
 ---
 
@@ -219,11 +219,15 @@ cast call <REO_PROXY> "getLastOracleUpdateTime()(uint256)" --rpc-url <RPC>
 
 ```bash
 cast call <REWARDS_MANAGER> "getProviderEligibilityOracle()(address)" --rpc-url <RPC>
+
+# Confirm the denial mode the Cycle 6 tests assume
+cast call <REWARDS_MANAGER> "getRevertOnIneligible()(bool)" --rpc-url <RPC>
 ```
 
 **Pass Criteria**:
 
 - Returns the configured eligibility oracle. On Arbitrum Sepolia the RewardsManager points at the mock (`0x69b0f3c6a19beaf1ba59405f7179e188c64b4e06`) by default; with the production REO wired in it returns the REO proxy (`0x6ba849fbd33257162552578b2a432d30784f2f80`).
+- `getRevertOnIneligible()` = `true` (deployed default): an ineligible close reverts (Cycle 6.2/6.2m). If `false`, the eligibility-reclaim path applies instead (6.3/6.3m) — adjust which tests are in scope accordingly.
 
 ---
 
@@ -427,6 +431,91 @@ cast send <REO_PROXY> "renewIndexerEligibility(address[],bytes)" "[<INDEXER_ADDR
 
 ---
 
+> **Indexer tracking (3.6-3.8)**: The REO maintains an on-chain set of every indexer it has renewed, so operators can enumerate and prune them. These tests exercise the production REO and apply on the production-REO path only (the mock has no tracking). Run them against a production REO instance (testnet `RewardsEligibilityOracle (A/B)` or the Arbitrum One instance). Hardhat helpers: `reo:indexers`, `reo:retention`, `reo:remove-expired`.
+
+### 3.6 Renewal adds the indexer to tracking
+
+**Objective**: Confirm `renewIndexerEligibility` adds previously-untracked indexers to the tracked set and emits `IndexerTrackingUpdated`.
+
+**Prerequisites**: An indexer address that has never been renewed on this REO.
+
+**Steps**:
+
+```bash
+cast call <REO_PROXY> "getIndexerCount()(uint256)" --rpc-url <RPC>          # note baseline
+cast send <REO_PROXY> "renewIndexerEligibility(address[],bytes)" "[<NEW_INDEXER>]" "0x" --rpc-url <RPC> --private-key <ORACLE_KEY>
+cast call <REO_PROXY> "getIndexerCount()(uint256)" --rpc-url <RPC>
+cast call <REO_PROXY> "getIndexers()(address[])" --rpc-url <RPC>
+# Or page: getIndexers(uint256,uint256) with (offset, count)
+```
+
+**Verification**: Check for `IndexerTrackingUpdated(<NEW_INDEXER>, true)` in the renewal tx logs.
+
+**Pass Criteria**:
+
+- `getIndexerCount` increases by 1
+- `<NEW_INDEXER>` appears in `getIndexers()`
+- `IndexerTrackingUpdated(indexer, true)` emitted on first renewal (re-renewing an already-tracked indexer emits no further tracking event)
+
+---
+
+### 3.7 Set the indexer retention period
+
+**Objective**: Confirm an operator can change `indexerRetentionPeriod` (needed to test removal without waiting 365 days).
+
+**Prerequisites**: OPERATOR_ROLE.
+
+**Steps**:
+
+```bash
+cast call <REO_PROXY> "getIndexerRetentionPeriod()(uint256)" --rpc-url <RPC>
+# Default: 31536000 (365 days)
+
+# Lower it for testing (alternative: npx hardhat reo:retention --instance a --seconds 300)
+cast send <REO_PROXY> "setIndexerRetentionPeriod(uint256)" 300 --rpc-url <RPC> --private-key <OPERATOR_KEY>
+cast call <REO_PROXY> "getIndexerRetentionPeriod()(uint256)" --rpc-url <RPC>
+```
+
+**Verification**: `IndexerRetentionPeriodSet(oldPeriod, newPeriod)` emitted (no event if the value is unchanged).
+
+**Pass Criteria**:
+
+- `getIndexerRetentionPeriod` returns the new value
+- `IndexerRetentionPeriodSet` emitted
+- A non-operator call reverts with an AccessControl error
+
+> **Restore** the retention period to `31536000` after the removal test.
+
+### 3.8 Remove an expired indexer (permissionless)
+
+**Objective**: Confirm `removeExpiredIndexer` removes a tracked indexer once `lastRenewal + indexerRetentionPeriod` has elapsed, and that it is permissionless.
+
+**Prerequisites**: An indexer tracked from 3.6; retention period lowered in 3.7; wait until `renewalTime + retentionPeriod` has passed.
+
+**Steps**:
+
+```bash
+# Before expiry — should be a no-op returning false
+cast call <REO_PROXY> "removeExpiredIndexer(address)(bool)" <TRACKED_INDEXER> --rpc-url <RPC>
+# Expected: false (not yet expired)
+
+# After waiting past renewalTime + retentionPeriod, from ANY account (no role):
+cast send <REO_PROXY> "removeExpiredIndexer(address)" <TRACKED_INDEXER> --rpc-url <RPC> --private-key <ANY_KEY>
+
+cast call <REO_PROXY> "getIndexerCount()(uint256)" --rpc-url <RPC>
+```
+
+**Verification**: `IndexerTrackingUpdated(<TRACKED_INDEXER>, false)` emitted on successful removal.
+
+**Pass Criteria**:
+
+- Returns `false` and changes nothing while still within the retention window
+- After expiry: indexer removed (`getIndexerCount` decreases, absent from `getIndexers()`), `IndexerTrackingUpdated(indexer, false)` emitted
+- Works from any account (no role required); an already-untracked address returns `true` harmlessly
+- Removing tracking does not change current eligibility computation (a re-renewal re-adds the indexer)
+
+---
+
 ## Cycle 4: Eligibility -- Validation Enabled
 
 ### 4.1 Enable eligibility validation
@@ -606,7 +695,7 @@ A `RewardsEligibilityOracleMock` is deployed at `0x69b0f3c6a19beaf1ba59405f7179e
 
 **How the mock works**: Everyone starts eligible. Indexers call `setEligible(false)` from their own address to become ineligible, and `setEligible(true)` to restore eligibility. No roles or expiry -- just a toggle.
 
-**Setup**: Point RewardsManager at the mock (requires Governor):
+**Setup**: On Arbitrum Sepolia the mock is already the configured default, so no setup is normally needed. Only run the following (requires Governor) if RewardsManager was previously switched to a production REO:
 
 ```bash
 MOCK_REO=0x69b0f3c6a19beaf1ba59405f7179e188c64b4e06
@@ -633,14 +722,16 @@ cast send $MOCK_REO "setEligible(bool)" false --rpc-url $RPC --private-key $INDE
 cast send $MOCK_REO "setEligible(bool)" true --rpc-url $RPC --private-key $INDEXER_KEY
 ```
 
-**After testing**: Restore the production REO on RewardsManager:
+**After testing**: The mock is the intended testnet resting state, so no restore is needed if RewardsManager still points at it. If you temporarily switched RewardsManager to a production REO for the Cycle 6 tests below, restore the mock:
 
 ```bash
-cast send $REWARDS_MANAGER "setProviderEligibilityOracle(address)" 0x6ba849fbd33257162552578b2a432d30784f2f80 \
+cast send $REWARDS_MANAGER "setProviderEligibilityOracle(address)" 0x69b0f3c6a19beaf1ba59405f7179e188c64b4e06 \
   --rpc-url $RPC --private-key $GOVERNOR_KEY
 ```
 
-> The mock-based tests below (6.1m-6.5m) are equivalents of tests 6.1-6.5 using the mock for eligibility control. They can be run instead of or in addition to the production REO tests. The mock path eliminates time-dependent waits and simplifies the setup, making it the recommended approach for initial integration validation.
+> **Production-REO validation is performed separately**, not on this testnet's RewardsManager. A live production REO (`RewardsEligibilityOracleA`) is already deployed on Arbitrum One, so its renew/expiry/fail-open behaviour is exercised there. The Cycle 6 "production REO" steps (6.1-6.6) below remain available if you choose to wire a production REO into the testnet RewardsManager, but the default and recommended testnet path is the mock (6.1m-6.5m).
+
+The mock-based tests below (6.1m-6.5m) are equivalents of tests 6.1-6.5 using the mock for eligibility control. They can be run instead of or in addition to the production REO tests. The mock path eliminates time-dependent waits and simplifies the setup, making it the recommended approach for initial integration validation.
 
 ### 6.1 Eligible indexer receives indexing rewards
 
@@ -989,6 +1080,59 @@ cast send <REO_PROXY> "pause()" --rpc-url <RPC> --private-key <RANDOM_KEY>
 
 ---
 
+### 7.4 Disable eligibility by unsetting the oracle
+
+**Objective**: Verify the Governor can disable eligibility enforcement entirely by pointing RewardsManager at the zero address — a lever distinct from `setEligibilityValidation(false)` on the REO. With no oracle, RewardsManager skips the eligibility check, so every close succeeds regardless of REO/mock state.
+
+**Prerequisites**: GOVERNOR_ROLE on RewardsManager. An indexer currently ineligible (so the contrast is observable).
+
+**Steps**:
+
+```bash
+# Record current oracle to restore later
+cast call $REWARDS_MANAGER "getProviderEligibilityOracle()(address)" --rpc-url $RPC
+
+# Unset the oracle (disables eligibility checks)
+cast send $REWARDS_MANAGER "setProviderEligibilityOracle(address)" 0x0000000000000000000000000000000000000000 \
+  --rpc-url $RPC --private-key $GOVERNOR_KEY
+
+# An ineligible indexer can now close successfully (no revert, full rewards)
+graph indexer actions queue close <ALLOCATION_ID>
+graph indexer actions approve
+```
+
+**Verification**: `ProviderEligibilityOracleSet(oldOracle, address(0))` emitted; the close that reverted in 6.2/6.2m now succeeds with non-zero `indexingRewards`.
+
+**Pass Criteria**:
+
+- `getProviderEligibilityOracle()` returns the zero address
+- An otherwise-ineligible indexer closes successfully with full rewards (eligibility no longer enforced)
+
+> **Restore** the intended oracle afterward (testnet default is the mock `0x69b0f3c6a19beaf1ba59405f7179e188c64b4e06`).
+
+### 7.5 Oracle must support the IProviderEligibility interface
+
+**Objective**: Verify `setProviderEligibilityOracle` rejects a non-conforming contract (ERC-165 guard), preventing a misconfiguration that would brick eligibility.
+
+**Prerequisites**: GOVERNOR_ROLE.
+
+**Steps**:
+
+```bash
+# Attempt to point the oracle at a contract that does NOT implement IProviderEligibility
+# (e.g. the GraphToken address) — should revert.
+cast send $REWARDS_MANAGER "setProviderEligibilityOracle(address)" <NON_REO_CONTRACT> \
+  --rpc-url $RPC --private-key $GOVERNOR_KEY
+```
+
+**Pass Criteria**:
+
+- Transaction reverts with `Contract does not support IProviderEligibility interface`
+- The configured oracle is unchanged
+- Note: `address(0)` is exempt from this check (it is the explicit "disable" sentinel — see 7.4)
+
+---
+
 ## Cycle 8: UI and Subgraph Verification
 
 These tests verify that the Graph Explorer and network subgraph correctly reflect eligibility states and denial scenarios. Run these in coordination with the Explorer and subgraph teams.
@@ -1073,7 +1217,7 @@ Run `npx hardhat reo:status --network arbitrumSepolia` to verify. Ensure the REO
 - [ ] Contract is NOT paused
 - [ ] Oracle roles assigned to intended oracle addresses only
 - [ ] No test accounts retain elevated roles
-- [ ] If mock REO was used: RewardsManager points back to the production REO (`0x6ba849fbd33257162552578b2a432d30784f2f80`)
+- [ ] RewardsManager points at the testnet default mock REO (`0x69b0f3c6a19beaf1ba59405f7179e188c64b4e06`); if a production REO was wired in for Cycle 6, switch it back
 - [ ] `revertOnIneligible` left as `true` (the deployed default) — only `false` if intentionally testing the reclaim path (6.3)
 
 ---

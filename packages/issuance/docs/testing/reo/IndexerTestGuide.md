@@ -67,6 +67,12 @@ Confirm what RewardsManager points at before starting:
 cast call $REWARDS_MANAGER "getProviderEligibilityOracle()(address)" --rpc-url $RPC
 # Default (mock):       0x69b0f3c6a19beaf1ba59405f7179e188c64b4e06  -> run Sets 2m-4m
 # Production (Oracle A): 0x6ba849fbd33257162552578b2a432d30784f2f80  -> run Sets 2-4
+
+# Confirm the revert behaviour these tests assume:
+cast call $REWARDS_MANAGER "getRevertOnIneligible()(bool)" --rpc-url $RPC
+# Expected: true  -> an ineligible close reverts (Set 3 / 3m).
+# If false, the close instead succeeds with 0 rewards (reclaim path) and Set 3's
+# pass criteria do not apply — coordinate before proceeding.
 ```
 
 ### Verify Environment (production REO path only)
@@ -95,7 +101,7 @@ cast call $REO "getEligibilityPeriod()(uint256)" --rpc-url $RPC
 | --- | ------------------------------ | --------- |
 | 1   | Prepare Allocations            | 1.1       |
 | 2   | Eligible — Receive Rewards     | 2.1 - 2.2 |
-| 3   | Ineligible — Close Reverts     | 3.1 - 3.2 |
+| 3   | Ineligible — Close Reverts     | 3.1 - 3.3 |
 | 4   | Optimistic Recovery            | 4.1 - 4.2 |
 | 5   | Validation Disabled            | 5.1       |
 | 2m  | Eligible — Mock REO            | 2m.1      |
@@ -308,6 +314,32 @@ The indexer-agent close action fails when the transaction reverts. To observe th
 
 ---
 
+### 3.3 Prolonged ineligibility → STALE_POI reclaim (the limit of "no rewards lost")
+
+**Objective**: Verify the one case where the optimistic guarantee breaks: because you cannot present a POI while ineligible (3.2 reverts), the staleness clock keeps running. If an allocation goes past `maxPOIStaleness`, its accrued rewards become reclaimable as STALE_POI — so eligibility must be renewed before that window elapses.
+
+**Prerequisites**: `isEligible` returns `false`. An active allocation whose last POI was presented long enough ago that it can cross `maxPOIStaleness` while you stay ineligible. Note `maxPOIStaleness` first:
+
+```bash
+cast call <SUBGRAPH_SERVICE> "maxPOIStaleness()(uint256)" --rpc-url $RPC
+```
+
+**Steps**:
+
+1. Confirm ineligible (`isEligible` = `false`); note the allocation's last POI time
+2. Stay ineligible until `lastPOIPresentedAt + maxPOIStaleness` has elapsed (POI presentation reverts in the meantime, so the clock cannot be reset)
+3. Observe the outcome: once stale, the allocation's rewards are reclaimed as STALE_POI — either when a third party force-closes the stale allocation, or on the next POI/close after renewal
+
+**Verification**: Look for a `RewardsReclaimed` event with reason `STALE_POI` on the RewardsManager for the allocation, and confirm the indexer's `indexingRewards` for it is `0`.
+
+**Pass Criteria**:
+
+- While ineligible and before `maxPOIStaleness`: rewards still preserved (3.2 behaviour)
+- After crossing `maxPOIStaleness`: accrued rewards are reclaimed as STALE_POI, **not** paid to the indexer even after re-renewal
+- Confirms the operational rule: renew (or restore eligibility) before `maxPOIStaleness` elapses
+
+---
+
 ## Set 4: Optimistic Recovery
 
 Eligibility denial is **optimistic**: rewards accrue to allocations during ineligible periods, and because closing while ineligible reverts (Set 3.2), no rewards are ever lost. Once the indexer renews eligibility, the close succeeds and pays out in full for the entire duration — including the epochs spent ineligible. This is the key behavioral difference from subgraph denial, where denial-period rewards are permanently reclaimed.
@@ -499,7 +531,7 @@ After a coordinator undenies a subgraph:
 
 - Accumulators resume growing
 - Close allocation normally — rewards include pre-denial + post-undeny amounts
-- Denial-period rewards were reclaimed to the protocol (not included in your claim)
+- Denial-period rewards were reclaimed to the configured reclaim address (or, if none is configured, simply not minted) — either way not included in your claim
 
 **Verification after undeny:**
 
