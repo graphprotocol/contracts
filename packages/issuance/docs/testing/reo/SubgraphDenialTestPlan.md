@@ -54,22 +54,25 @@ Tests for the subgraph denial behavior changes introduced in the issuance upgrad
 - [Baseline tests](BaselineTestPlan.md) Cycles 1-7 pass
 - [Reclaim system configured](RewardsConditionsTestPlan.md#cycle-1-reclaim-system-configuration) (Cycle 1 of RewardsConditionsTestPlan) — or configure inline during Cycle 1 below
 - At least two indexers with active allocations on rewarded subgraph deployments
-- Access to the Governor or SubgraphAvailabilityOracle (SAO) account that can call `setDenied()`
+- Access to the SubgraphAvailabilityOracle (SAO) account that can call `setDenied()`
 - Allocations must be mature (open for 2+ epochs) before denial tests
 
 ### Roles Needed
 
-| Role            | Needed For                                    | Holder                           |
-| --------------- | --------------------------------------------- | -------------------------------- |
-| Governor or SAO | `setDenied()` calls                           | Check Controller configuration   |
-| Governor        | `setReclaimAddress()` (if not yet configured) | Council/NetworkOperator multisig |
+| Role     | Needed For                                    | Holder                                         |
+| -------- | --------------------------------------------- | ---------------------------------------------- |
+| SAO      | `setDenied()` calls                           | `subgraphAvailabilityOracle` on RewardsManager |
+| Governor | `setReclaimAddress()` (if not yet configured) | Council/NetworkOperator multisig               |
 
 ### Identifying the SAO
 
 ```bash
-# The SAO is stored in the Controller as the subgraphAvailabilityOracle
-# Alternatively, check who can call setDenied on RewardsManager
-cast call <CONTROLLER> "getContractProxy(bytes32)(address)" $(cast keccak "SubgraphAvailabilityOracle") --rpc-url <RPC>
+# The SAO is a storage variable on RewardsManager (NOT a Controller-registered proxy).
+# Note: on a full deployment this is typically the SubgraphAvailabilityManager voting
+# contract, where oracles call vote()/voteMany() to reach the denial threshold rather
+# than calling setDenied() directly. The cast send steps below assume the SAO is an EOA
+# you control — confirm the returned address is an EOA before following them.
+cast call <REWARDS_MANAGER> "subgraphAvailabilityOracle()(address)" --rpc-url <RPC>
 ```
 
 ---
@@ -93,7 +96,7 @@ cast call <CONTROLLER> "getContractProxy(bytes32)(address)" $(cast keccak "Subgr
 | Cycle | Area                            | Tests     | Notes                                              |
 | ----- | ------------------------------- | --------- | -------------------------------------------------- |
 | 1     | Reclaim Setup for Denial        | 1.1 - 1.2 | Governor access needed; skip if already configured |
-| 2     | Denial State Management         | 2.1 - 2.4 | SAO or Governor access needed                      |
+| 2     | Denial State Management         | 2.1 - 2.4 | SAO access needed                                  |
 | 3     | Accumulator Freeze Verification | 3.1 - 3.4 | Read-only after denial; wait for epochs            |
 | 4     | Allocation-Level Deferral       | 4.1 - 4.3 | Requires active allocations on denied subgraph     |
 | 5     | Undeny and Reward Recovery      | 5.1 - 5.4 | Full deny→undeny→claim lifecycle                   |
@@ -180,7 +183,7 @@ cast call <REWARDS_MANAGER> "getAccRewardsPerAllocatedToken(bytes32)(uint256,uin
 **Steps**:
 
 ```bash
-# Deny the subgraph (as SAO or Governor)
+# Deny the subgraph (as SAO)
 cast send <REWARDS_MANAGER> "setDenied(bytes32,bool)" <SUBGRAPH_DEPLOYMENT_ID> true --rpc-url <RPC> --private-key <SAO_KEY>
 
 # Verify denial
@@ -226,7 +229,7 @@ cast call <REWARDS_MANAGER> "isDenied(bytes32)(bool)" <SUBGRAPH_DEPLOYMENT_ID> -
 
 ### 2.4 Unauthorized deny reverts
 
-**Objective**: Only the SAO or Governor can deny subgraphs.
+**Objective**: Only the SAO can deny subgraphs (a Governor-keyed call also reverts).
 
 **Steps**:
 
@@ -677,4 +680,4 @@ cast call <REWARDS_MANAGER> "isDenied(bytes32)(bool)" <SUBGRAPH_DEPLOYMENT_ID> -
 
 ---
 
-_Derived from issuance upgrade behavior changes. Source: [RewardsBehaviourChanges.md](/docs/RewardsBehaviourChanges.md), [RewardConditions.md](/docs/RewardConditions.md). Contract: `packages/contracts/contracts/rewards/RewardsManager.sol`, `packages/subgraph-service/contracts/utilities/AllocationManager.sol`._
+_Derived from issuance upgrade behavior changes. Contracts: `packages/contracts/contracts/rewards/RewardsManager.sol`, `packages/subgraph-service/contracts/libraries/AllocationHandler.sol` (POI deferral)._

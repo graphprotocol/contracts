@@ -401,7 +401,7 @@ cast call $REO "isEligible(address)(bool)" $INDEXER --rpc-url $RPC
 
 ## Mock REO Test Sets (2m - 4m)
 
-These sets use the `RewardsEligibilityOracleMock` for direct eligibility control. The coordinator must have pointed RewardsManager at the mock. These replace Sets 2-4 when the mock is active.
+These sets use the `RewardsEligibilityOracleMock` for direct eligibility control. On Arbitrum Sepolia the RewardsManager the mock. These replace Sets 2-4 when the mock is active.
 
 ### 2m.1 Close allocation while eligible (mock)
 

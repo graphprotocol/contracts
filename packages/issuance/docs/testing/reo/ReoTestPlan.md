@@ -153,7 +153,7 @@ cast keccak $(cast code <IMPLEMENTATION_ADDRESS> --rpc-url <RPC>)
 
 **Pass Criteria**:
 
-- Implementation address matches address book (`0x4eb1de98440a39339817bdeeb3b3fff410b0b924` on Sepolia)
+- Implementation address matches address book (`0xd6f2acf352f655b72cc32a056edf7ca97ec3e9e4` on Sepolia)
 - Bytecode hash matches expected artifact hash
 
 ---
@@ -166,7 +166,7 @@ cast keccak $(cast code <IMPLEMENTATION_ADDRESS> --rpc-url <RPC>)
 
 ```bash
 # Role constants
-GOVERNOR_ROLE=0x0000...  # DEFAULT_ADMIN_ROLE = 0x00
+GOVERNOR_ROLE=$(cast keccak "GOVERNOR_ROLE")  # self-administered, not OZ DEFAULT_ADMIN (0x00)
 OPERATOR_ROLE=$(cast keccak "OPERATOR_ROLE")
 ORACLE_ROLE=$(cast keccak "ORACLE_ROLE")
 PAUSE_ROLE=$(cast keccak "PAUSE_ROLE")
@@ -223,7 +223,7 @@ cast call <REWARDS_MANAGER> "getProviderEligibilityOracle()(address)" --rpc-url 
 
 **Pass Criteria**:
 
-- Returns the REO proxy address
+- Returns the configured eligibility oracle. On Arbitrum Sepolia the RewardsManager points at the mock (`0x69b0f3c6a19beaf1ba59405f7179e188c64b4e06`) by default; with the production REO wired in it returns the REO proxy (`0x6ba849fbd33257162552578b2a432d30784f2f80`).
 
 ---
 
@@ -366,7 +366,7 @@ cast call <REO_PROXY> "getLastOracleUpdateTime()(uint256)" --rpc-url <RPC>
 
 **Pass Criteria**:
 
-- Transaction succeeds, returns count `1`
+- Transaction succeeds and updates 1 indexer (the `uint256` return value; observe it as one `IndexerEligibilityRenewed` event — `cast send` does not surface return values)
 - `getEligibilityRenewalTime` is approximately `block.timestamp` of the renewal tx
 - `lastOracleUpdateTime` updated to the same timestamp
 - Events emitted correctly
@@ -387,7 +387,7 @@ cast send <REO_PROXY> "renewIndexerEligibility(address[],bytes)" "[<INDEXER_1>,<
 
 **Pass Criteria**:
 
-- Transaction succeeds, returns count `3`
+- Transaction succeeds and updates 3 indexers (the `uint256` return; observe three `IndexerEligibilityRenewed` events)
 - All three indexers have updated renewal timestamps
 - One `IndexerEligibilityRenewed` event per indexer
 
@@ -405,7 +405,7 @@ cast send <REO_PROXY> "renewIndexerEligibility(address[],bytes)" "[0x00000000000
 
 **Pass Criteria**:
 
-- Transaction succeeds, returns count `1` (not 2)
+- Transaction succeeds and updates 1 indexer, not 2 (the zero address is skipped)
 - Only the non-zero indexer has a `IndexerEligibilityRenewed` event
 
 ---
@@ -940,7 +940,7 @@ cast send <REO_PROXY> "unpause()" --rpc-url <RPC> --private-key <PAUSE_KEY>
 
 - Pause succeeds, `paused()` = `true`
 - View functions (`isEligible`) still return results
-- Oracle write operations (`renewIndexerEligibility`) revert while paused
+- `paused()` is a status flag only — the REO has no pause-gated functions, so `renewIndexerEligibility` and other writes still succeed while paused (verify the flag flips, not that writes revert)
 - Unpause succeeds, `paused()` = `false`
 
 ---

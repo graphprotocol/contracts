@@ -15,7 +15,7 @@
 
 ## Network Subgraph
 
-**Query via Graph Explorer**: [Graph Network Arbitrum Sepolia](https://thegraph.com/explorer/subgraphs/3xQHhMudr1oh69ut36G2mbzpYmYxwqCeU6wwqyCDCnqV?view=Query&chain=arbitrum-one)
+**Query via Graph Explorer**: [Graph Network Arbitrum Sepolia](https://thegraph.com/explorer/subgraphs/3xQHhMudr1oh69ut36G2mbzpYmYxwqCeU6wwqyCDCnqV?view=Query)
 
 Or query directly:
 
