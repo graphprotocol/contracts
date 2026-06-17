@@ -95,14 +95,14 @@ cast call $REO "getEligibilityPeriod()(uint256)" --rpc-url $RPC
 | --- | ------------------------------ | --------- |
 | 1   | Prepare Allocations            | 1.1       |
 | 2   | Eligible — Receive Rewards     | 2.1 - 2.2 |
-| 3   | Ineligible — Verify Denial     | 3.1 - 3.2 |
+| 3   | Ineligible — Close Reverts     | 3.1 - 3.2 |
 | 4   | Optimistic Recovery            | 4.1 - 4.2 |
 | 5   | Validation Disabled            | 5.1       |
 | 2m  | Eligible — Mock REO            | 2m.1      |
 | 3m  | Ineligible — Mock REO          | 3m.1      |
 | 4m  | Optimistic Recovery — Mock REO | 4m.1      |
 
-**Timing**: Set 1 opens allocations that need epoch maturity. **On the default mock wiring, run Set 1 then Sets 2m-4m** — instant eligibility control, no waiting for expiry. Sets 2-4 apply only when a coordinator has activated the production REO (sequential: renew → eligible close → wait for expiry → ineligible close → re-renew → recovery close); Set 5 then requires the coordinator to toggle validation.
+**Timing**: Set 1 opens allocations that need epoch maturity. **On the default mock wiring, run Set 1 then Sets 2m-4m** — instant eligibility control, no waiting for expiry. Sets 2-4 apply only when a coordinator has activated the production REO (sequential: renew → eligible close → wait for expiry → ineligible close reverts → re-renew → recovery close); Set 5 then requires the coordinator to toggle validation.
 
 ---
 
@@ -224,7 +224,9 @@ graph indexer actions approve
 
 ---
 
-## Set 3: Ineligible — Verify Denial
+## Set 3: Ineligible — Close Reverts
+
+> RewardsManager runs with `revertOnIneligible = true`. An ineligible indexer **cannot** close/present a POI: the transaction reverts with `Indexer not eligible for rewards`, the allocation stays `Active`, and the accrued rewards are preserved (not zeroed, not reclaimed) until the indexer becomes eligible again. This blocks reward collection rather than denying it — the optimistic model.
 
 ### 3.1 Wait for eligibility expiry
 
@@ -258,17 +260,17 @@ cast block latest --field timestamp --rpc-url $RPC
 
 ---
 
-### 3.2 Close allocation while ineligible
+### 3.2 Attempt to close while ineligible (reverts)
 
-**Objective**: Verify that an ineligible indexer receives zero indexing rewards when closing an allocation. Denied rewards are routed to the reclaim contract.
+**Objective**: Verify that an ineligible indexer cannot close an allocation with a POI — the on-chain `closeAllocation`/`takeRewards` call reverts and the allocation remains open.
 
 **Prerequisites**: `isEligible` returns `false`. Allocation from Set 1 is at least 1 epoch old.
 
 **Steps**:
 
 1. Confirm ineligibility
-2. Close an allocation
-3. Verify zero rewards
+2. Attempt to close an allocation
+3. Confirm the close reverts and the allocation stays `Active`
 
 **Command**:
 
@@ -277,10 +279,12 @@ cast block latest --field timestamp --rpc-url $RPC
 cast call $REO "isEligible(address)(bool)" $INDEXER --rpc-url $RPC
 # Expected: false
 
-# Close allocation
+# Attempt to close — this should fail on-chain
 graph indexer actions queue close <ALLOCATION_ID>
 graph indexer actions approve
 ```
+
+The indexer-agent close action fails when the transaction reverts. To observe the revert directly, dry-run the close against the SubgraphService with `cast call` (it returns the revert reason `Indexer not eligible for rewards`).
 
 **Verification Query**:
 
@@ -297,15 +301,16 @@ graph indexer actions approve
 
 **Pass Criteria**:
 
-- Status changes to `Closed`
-- `indexingRewards` is `0`
-- Contrast with Set 2.2 where `indexingRewards` was non-zero
+- Close transaction reverts with `Indexer not eligible for rewards`
+- Allocation remains `Active` (no `closedAtEpoch`)
+- Accrued rewards are preserved — not zeroed, not reclaimed
+- Contrast with Set 2.2 where the eligible close succeeded with non-zero `indexingRewards`
 
 ---
 
 ## Set 4: Optimistic Recovery
 
-Eligibility denial is **optimistic**: rewards accrue to allocations during ineligible periods and are paid in full when the indexer closes while eligible. This is the key behavioral difference from subgraph denial.
+Eligibility denial is **optimistic**: rewards accrue to allocations during ineligible periods, and because closing while ineligible reverts (Set 3.2), no rewards are ever lost. Once the indexer renews eligibility, the close succeeds and pays out in full for the entire duration — including the epochs spent ineligible. This is the key behavioral difference from subgraph denial, where denial-period rewards are permanently reclaimed.
 
 ### 4.1 Re-renew eligibility
 
@@ -418,9 +423,9 @@ graph indexer actions approve
 
 ---
 
-### 3m.1 Toggle ineligible and close allocation (mock)
+### 3m.1 Toggle ineligible and attempt close (mock)
 
-**Objective**: Verify reward denial after toggling ineligible.
+**Objective**: Verify the close reverts after toggling ineligible.
 
 ```bash
 # Toggle ineligible
@@ -430,12 +435,12 @@ cast send $MOCK_REO "setEligible(bool)" false --rpc-url $RPC --private-key $INDE
 cast call $MOCK_REO "isEligible(address)(bool)" $INDEXER --rpc-url $RPC
 # Expected: false
 
-# Close allocation
+# Attempt to close — this should fail on-chain
 graph indexer actions queue close <ALLOCATION_ID>
 graph indexer actions approve
 ```
 
-**Pass Criteria**: `indexingRewards` = `0`. Allocation still transitions to `Closed`.
+**Pass Criteria**: Close reverts with `Indexer not eligible for rewards`. Allocation stays `Active`; accrued rewards preserved for later collection.
 
 ---
 
@@ -506,6 +511,10 @@ cast call $REWARDS_MANAGER "getRewards(address,address)(uint256)" <SUBGRAPH_SERV
 # Should be growing again (pre-denial + post-undeny rewards)
 ```
 
+### While you are ineligible
+
+With `revertOnIneligible = true`, presenting a POI / closing an allocation reverts (`Indexer not eligible for rewards`) for as long as you are ineligible. Rewards keep accruing and are not lost — but be aware of the interaction with POI staleness below: you cannot present POIs while ineligible, so a prolonged ineligible period can push an allocation past `maxPOIStaleness`, after which rewards are reclaimed as STALE_POI. Renew eligibility before that window elapses.
+
 ### POI staleness
 
 If an allocation goes without POI presentation for longer than `maxPOIStaleness`, rewards are reclaimed as STALE_POI instead of being paid to the indexer.
@@ -542,6 +551,11 @@ cast call $REWARDS_MANAGER "minimumSubgraphSignal()(uint256)" --rpc-url $RPC
 
 - Confirm you have ORACLE_ROLE: `hasRole(ORACLE_ROLE, address)`
 - Confirm the REO is not paused: `paused()`
+
+**Close/POI reverts with `Indexer not eligible for rewards`:**
+
+- You are ineligible and `revertOnIneligible = true` — this is expected. Renew eligibility (Set 2.1) or toggle the mock eligible (Set 2m), then retry the close.
+- Confirm: `isEligible(address)` returns `false`.
 
 **Zero rewards on close despite being eligible:**
 

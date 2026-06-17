@@ -304,7 +304,7 @@ cast call <REO_PROXY> "isEligible(address)(bool)" <NEVER_RENEWED_INDEXER> --rpc-
 > **Advance setup for Cycle 6**: Before moving to Cycle 3, open allocations for the indexers you plan to use in Cycle 6. You need at least:
 >
 > - One allocation for a **renewed** indexer (test 6.1 -- will receive rewards)
-> - One allocation for a **non-renewed** indexer (test 6.2 -- will be denied rewards)
+> - One allocation for a **non-renewed** indexer (test 6.2 -- close will revert while ineligible)
 >
 > These allocations must mature for 2-3 epochs before Cycle 6. Since validation is still disabled, both will accrue potential rewards. Use [Baseline 4.2](./BaselineTestPlan.md#42-create-allocation-manually) to create them.
 
@@ -674,52 +674,57 @@ cast send $REWARDS_MANAGER "setProviderEligibilityOracle(address)" 0x6ba849fbd33
 
 ---
 
-### 6.2 Ineligible indexer denied rewards
+### 6.2 Ineligible indexer cannot close (reverts)
 
-**Objective**: Confirm that a non-renewed (ineligible) indexer receives zero rewards when closing an allocation.
+> RewardsManager runs with `revertOnIneligible = true`. An ineligible indexer's close/POI presentation reverts with `Indexer not eligible for rewards`; the allocation stays open and rewards are preserved (not zeroed, not reclaimed). This blocks collection rather than denying it.
+
+**Objective**: Confirm that a non-renewed (ineligible) indexer cannot close an allocation — the close reverts.
 
 **Prerequisites**: Validation enabled (Cycle 4). Indexer has NOT been renewed by the oracle. Indexer has an active allocation on a rewarded deployment that was opened during Cycle 2 (before validation was enabled).
 
 **Steps**:
 
 1. Confirm ineligibility: `isEligible(indexer)` = `false`
-2. Close allocation
-3. Check rewards
+2. Attempt to close the allocation
+3. Confirm the transaction reverts and the allocation stays `Active`
 
 **Pass Criteria**:
 
-- `indexingRewards` = `0`
-- Allocation still transitions to `Closed` status (closure succeeds, just no rewards)
+- Close reverts with `Indexer not eligible for rewards`
+- Allocation remains `Active` (no `closedAtEpoch`); accrued rewards preserved for later collection
 
 ---
 
-### 6.3 Reclaimed rewards flow to reclaim contract
+### 6.3 Eligibility reclaim path (N/A while `revertOnIneligible = true`)
 
-**Objective**: When an ineligible indexer is denied rewards, verify the denied rewards are routed to the `ReclaimedRewards` contract (default reclaim address).
+**Objective**: Document that no reclaim occurs for eligibility denial under the current configuration.
 
-**Prerequisites**: Same as 6.2.
+With `revertOnIneligible = true`, an ineligible close reverts (6.2), so reward collection is blocked and **nothing is routed to `ReclaimedRewards`** for eligibility reasons. The eligibility reclaim path (denied rewards → `ReclaimedRewards`, with a `RewardsDeniedDueToEligibility` event) only executes when `revertOnIneligible = false`.
 
-**Steps**:
-
-1. Close allocation for ineligible indexer
-2. Check the reclaim contract balance or events
+**To exercise the reclaim path** (optional, coordinator only):
 
 ```bash
-# Check for RewardsDeniedDueToEligibility event on RewardsManager
-# (implementation detail -- exact event name may vary)
-cast logs --from-block <CLOSE_TX_BLOCK> --to-block <CLOSE_TX_BLOCK> --address <REWARDS_MANAGER> --rpc-url <RPC>
+# Switch to non-reverting mode, then repeat 6.2's close
+cast send $REWARDS_MANAGER "setRevertOnIneligible(bool)" false --rpc-url $RPC --private-key $GOVERNOR_KEY
+
+# After closing an ineligible allocation, look for the denial event
+cast logs --from-block <CLOSE_TX_BLOCK> --to-block <CLOSE_TX_BLOCK> --address $REWARDS_MANAGER --rpc-url $RPC
+# Restore afterwards:
+cast send $REWARDS_MANAGER "setRevertOnIneligible(bool)" true --rpc-url $RPC --private-key $GOVERNOR_KEY
 ```
 
-**Pass Criteria**:
+**Pass Criteria** (only when toggled to `false`):
 
-- Denied rewards event emitted
-- Reclaim contract receives the tokens that would have been the indexer's rewards
+- Close succeeds with `indexingRewards` = `0`
+- `RewardsDeniedDueToEligibility` event emitted; `ReclaimedRewards` receives the denied tokens
+
+> Note: `RewardsManager` reverts to `revertOnIneligible = true` is the deployed default — leave it there unless deliberately testing the reclaim path.
 
 ---
 
 ### 6.4 Re-renewal restores reward eligibility
 
-**Objective**: After an indexer's eligibility expires and they are denied rewards, verify that a new oracle renewal restores their ability to earn rewards.
+**Objective**: After an indexer's eligibility expires and their close reverts (6.2), verify that a new oracle renewal restores their ability to close and collect rewards.
 
 > **Timing**: This test requires opening a new allocation and waiting 2-3 epochs (~3.5-5.5 hours). It can be run as the final validation step, or skipped on testnet if time is constrained and covered by the combination of 6.2 + Cycle 3 (which together demonstrate the renewal mechanism works).
 
@@ -737,9 +742,9 @@ cast logs --from-block <CLOSE_TX_BLOCK> --to-block <CLOSE_TX_BLOCK> --address <R
 
 ---
 
-### 6.5 View functions reflect zero for ineligible indexer
+### 6.5 View function reflects accruing (recoverable) rewards while ineligible
 
-**Objective**: Verify that RewardsManager view functions do not over-report claimable rewards for an ineligible indexer. Previously, view functions could show unclaimable balances, misleading indexers into thinking they had earned rewards.
+**Objective**: Verify that `getRewards` keeps reporting the accruing reward amount for an ineligible indexer. Under the optimistic model these rewards are not lost — they remain claimable once the indexer renews eligibility — so the view legitimately shows them rather than zero.
 
 **Prerequisites**: Validation enabled. Indexer is ineligible. Indexer has an active allocation that has been open several epochs.
 
@@ -749,20 +754,21 @@ cast logs --from-block <CLOSE_TX_BLOCK> --to-block <CLOSE_TX_BLOCK> --address <R
 2. Query the view function for pending rewards on the allocation
 
 ```bash
-# Check pending rewards for an active allocation
-cast call <REWARDS_MANAGER> "getRewards(bytes32)(uint256)" <ALLOCATION_ID> --rpc-url <RPC>
+# Check pending rewards for an active allocation.
+# Signature is getRewards(address rewardsIssuer, address allocationID) -- pass SubgraphService as the issuer.
+cast call $REWARDS_MANAGER "getRewards(address,address)(uint256)" <SUBGRAPH_SERVICE> <ALLOCATION_ID> --rpc-url $RPC
 ```
 
 **Pass Criteria**:
 
-- Returns `0` (or near-zero), not the full accumulated amount
-- This prevents the UI from displaying rewards the indexer cannot actually claim
+- Returns the accruing amount (non-zero, still growing) — the rewards the indexer will receive after re-renewal
+- `getRewards` does not gate on eligibility; the eligibility check happens at collection time (`takeRewards`), where an ineligible close reverts (6.2)
 
 ---
 
 ### 6.6 Eligibility denial is optimistic -- full rewards after re-renewal
 
-**Objective**: Verify that rewards continue accumulating during an ineligible period (optimistic model). After re-renewal, closing the allocation yields the full accumulated amount including epochs where the indexer was ineligible. This differs from subgraph denial, which permanently stops accumulation.
+**Objective**: Verify that rewards continue accumulating during an ineligible period (optimistic model). With `revertOnIneligible = true`, any close attempted while ineligible reverts (6.2), so the allocation stays open and nothing is lost; after re-renewal the close succeeds and yields the full accumulated amount including epochs where the indexer was ineligible. This differs from subgraph denial, which permanently stops accumulation.
 
 **Prerequisites**: Indexer has an active allocation open for several epochs. Indexer was eligible when allocation was opened.
 
@@ -814,9 +820,9 @@ graph indexer actions approve
 
 ---
 
-#### 6.2m Ineligible indexer denied rewards (mock)
+#### 6.2m Ineligible indexer cannot close (mock)
 
-**Objective**: Confirm that toggling eligibility off causes reward denial.
+**Objective**: Confirm that toggling eligibility off causes the close to revert (`revertOnIneligible = true`).
 
 **Steps**:
 
@@ -828,41 +834,29 @@ cast send $MOCK_REO "setEligible(bool)" false --rpc-url $RPC --private-key $INDE
 cast call $MOCK_REO "isEligible(address)(bool)" $INDEXER --rpc-url $RPC
 # Expected: false
 
-# Close allocation
+# Attempt to close — should fail on-chain
 graph indexer actions queue close <ALLOCATION_ID>
 graph indexer actions approve
 ```
 
 **Pass Criteria**:
 
-- `indexingRewards` = `0`
-- Allocation still transitions to `Closed` status
+- Close reverts with `Indexer not eligible for rewards`
+- Allocation remains `Active`; accrued rewards preserved for later collection
 
 ---
 
-#### 6.3m Reclaimed rewards flow to reclaim contract (mock)
+#### 6.3m Eligibility reclaim path (N/A while `revertOnIneligible = true`)
 
-**Objective**: When the mock makes an indexer ineligible, denied rewards are routed to the reclaim contract.
+**Objective**: Document that no reclaim occurs for eligibility denial under the current configuration (mock equivalent of 6.3).
 
-**Prerequisites**: Indexer set to ineligible via mock (6.2m).
-
-**Steps**:
-
-```bash
-# Check for denial event on the close transaction from 6.2m
-cast logs --from-block <CLOSE_TX_BLOCK> --to-block <CLOSE_TX_BLOCK> --address $REWARDS_MANAGER --rpc-url $RPC
-```
-
-**Pass Criteria**:
-
-- Denied rewards event emitted
-- Reclaim contract receives the denied tokens
+Because 6.2m's close reverts, nothing is routed to `ReclaimedRewards` for eligibility reasons. To exercise the reclaim path, a coordinator must set `revertOnIneligible = false` (see 6.3), then repeat 6.2m's close — the close will succeed with `indexingRewards` = `0` and emit `RewardsDeniedDueToEligibility`. Restore `revertOnIneligible = true` afterwards.
 
 ---
 
-#### 6.4m View functions reflect zero for ineligible indexer (mock)
+#### 6.4m View function reflects accruing (recoverable) rewards while ineligible (mock)
 
-**Objective**: Verify pending rewards show zero while ineligible.
+**Objective**: Verify pending rewards keep accruing while ineligible (mock equivalent of 6.5).
 
 **Prerequisites**: Indexer ineligible via mock. Active allocation open for several epochs.
 
@@ -873,13 +867,13 @@ cast logs --from-block <CLOSE_TX_BLOCK> --to-block <CLOSE_TX_BLOCK> --address $R
 cast call $MOCK_REO "isEligible(address)(bool)" $INDEXER --rpc-url $RPC
 # Expected: false
 
-# Check pending rewards
-cast call $REWARDS_MANAGER "getRewards(bytes32)(uint256)" <ALLOCATION_ID> --rpc-url $RPC
+# Check pending rewards (issuer = SubgraphService)
+cast call $REWARDS_MANAGER "getRewards(address,address)(uint256)" <SUBGRAPH_SERVICE> <ALLOCATION_ID> --rpc-url $RPC
 ```
 
 **Pass Criteria**:
 
-- Returns `0` (or near-zero), not the full accumulated amount
+- Returns the accruing amount (non-zero, still growing) — recoverable after re-enabling eligibility
 
 ---
 
@@ -898,6 +892,7 @@ cast call $MOCK_REO "isEligible(address)(bool)" $INDEXER --rpc-url $RPC
 # Expected: false
 
 # 2. Wait 1-2 epochs while ineligible (~110-220 min on Sepolia)
+#    (Any close attempted now would revert with "Indexer not eligible for rewards".)
 
 # 3. Toggle eligible again
 cast send $MOCK_REO "setEligible(bool)" true --rpc-url $RPC --private-key $INDEXER_KEY
@@ -998,9 +993,9 @@ cast send <REO_PROXY> "pause()" --rpc-url <RPC> --private-key <RANDOM_KEY>
 
 These tests verify that the Graph Explorer and network subgraph correctly reflect eligibility states and denial scenarios. Run these in coordination with the Explorer and subgraph teams.
 
-### 8.1 Explorer displays correct rewards during denial
+### 8.1 Explorer displays correct rewards while ineligible
 
-**Objective**: Verify that the Graph Explorer does not show incorrect indexing reward amounts when an indexer is ineligible and claims are denied.
+**Objective**: Verify that the Graph Explorer accurately reflects on-chain state when an indexer is ineligible: pending rewards keep accruing (recoverable once eligible), and an attempted close reverts rather than closing with zero.
 
 **Prerequisites**: At least one indexer is ineligible with an active allocation. Explorer team monitoring.
 
@@ -1008,13 +1003,13 @@ These tests verify that the Graph Explorer and network subgraph correctly reflec
 
 1. Open Explorer to the ineligible indexer's profile
 2. Check displayed pending rewards for active allocations
-3. Close allocation (will be denied rewards)
-4. Verify Explorer updates to reflect the actual outcome (zero rewards)
+3. Attempt to close the allocation (will revert with `Indexer not eligible for rewards`)
+4. Verify Explorer continues to show the allocation as active with its accruing rewards
 
 **Pass Criteria**:
 
-- Explorer does not display inflated or false pending rewards for ineligible indexers
-- After allocation closure with denial, Explorer shows `0` indexing rewards for that allocation
+- Explorer's pending rewards match `getRewards` on-chain (the accruing, recoverable amount) — not inflated, not falsely zeroed
+- The ineligible close attempt reverts; the allocation stays `Active` in Explorer
 - No discrepancy between on-chain state and Explorer display
 
 ---
@@ -1050,20 +1045,20 @@ These tests verify that the Graph Explorer and network subgraph correctly reflec
 
 ---
 
-### 8.3 Denied transaction appears correct in Explorer history
+### 8.3 Reverted close appears correct in Explorer history
 
-**Objective**: When an ineligible indexer closes an allocation and rewards are denied, the transaction should not appear "successful" in a way that misleads the indexer.
+**Objective**: When an ineligible indexer attempts to close an allocation, the reverted transaction should be shown as failed — not misleadingly presented as a successful close or reward claim.
 
 **Steps**:
 
-1. Close allocation for an ineligible indexer
+1. Attempt to close an allocation for an ineligible indexer (the on-chain call reverts)
 2. Check the transaction in Explorer's history view
-3. Verify the displayed outcome matches reality (0 rewards)
+3. Verify the displayed outcome matches reality (failed/reverted; allocation still active)
 
 **Pass Criteria**:
 
-- Transaction status is clear (not misleadingly shown as a successful reward claim)
-- Reward amount displayed is `0` or clearly indicates denial
+- Transaction is shown as failed/reverted (not as a successful close or reward claim)
+- The allocation remains active in Explorer; no `0`-reward closure is implied
 - Explorer team confirms no confusing UX for the indexer
 
 ---
@@ -1079,6 +1074,7 @@ Run `npx hardhat reo:status --network arbitrumSepolia` to verify. Ensure the REO
 - [ ] Oracle roles assigned to intended oracle addresses only
 - [ ] No test accounts retain elevated roles
 - [ ] If mock REO was used: RewardsManager points back to the production REO (`0x6ba849fbd33257162552578b2a432d30784f2f80`)
+- [ ] `revertOnIneligible` left as `true` (the deployed default) — only `false` if intentionally testing the reclaim path (6.3)
 
 ---
 
