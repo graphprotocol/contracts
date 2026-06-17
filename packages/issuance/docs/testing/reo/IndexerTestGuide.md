@@ -4,7 +4,7 @@
 
 Tests for indexers to verify correct eligibility handling on Arbitrum Sepolia. This is a focused subset of [ReoTestPlan.md](ReoTestPlan.md), covering per-indexer eligibility flows (renew, expire, recover). The full ReoTestPlan covers additional areas: deployment verification, oracle operations, timeout fail-open, emergency operations, and UI verification.
 
-Each indexer controls their own eligibility via the ORACLE_ROLE granted to their address.
+> **Default testnet wiring**: RewardsManager on Arbitrum Sepolia is configured to use the `RewardsEligibilityOracleMock`, so indexers control their own eligibility directly via the mock's `setEligible`. **Sets 2m–4m are the expected path.** Sets 2–4 (production REO with renewals, expiry, and ORACLE_ROLE) only apply if a coordinator repoints RewardsManager at the real oracle. Confirm the active oracle before starting — see [Which oracle is active?](#which-oracle-is-active) below.
 
 Each test includes CLI commands, verification queries against the network subgraph, and pass/fail criteria.
 
@@ -18,7 +18,11 @@ Each test includes CLI commands, verification queries against the network subgra
 - `cast` (Foundry) installed for contract interaction
 - Indexer private key available for signing transactions
 
-### Environment Configuration (set by coordinator)
+### Environment Configuration
+
+By default the testnet RewardsManager points at the mock — no coordinator setup is required, and you run Sets 2m–4m.
+
+The settings below apply **only to the production REO path (Sets 2–4)** and are set by the coordinator when the real oracle is active:
 
 - **Eligibility validation**: enabled
 - **Eligibility period**: short (e.g. 10-15 minutes)
@@ -33,14 +37,14 @@ export INDEXER=<YOUR_INDEXER_ADDRESS>           # lowercase
 export INDEXER_KEY=<YOUR_PRIVATE_KEY>
 
 # Contract addresses (Arbitrum Sepolia)
-export REO=0x62c2305739cc75f19a3a6d52387ceb3690d99a99
-export MOCK_REO=0x5FB23365F8cf643D5f1459E9793EfF7254522400
+export REO=0x6ba849fbd33257162552578b2a432d30784f2f80
+export MOCK_REO=0x69b0f3c6a19beaf1ba59405f7179e188c64b4e06
 export REWARDS_MANAGER=0x1f49cae7669086c8ba53cc35d1e9f80176d67e79
 ```
 
-### Mock REO Option
+### Mock REO (default path)
 
-A `RewardsEligibilityOracleMock` is deployed at `0x5FB23365F8cf643D5f1459E9793EfF7254522400`. When RewardsManager is pointed at the mock (by the coordinator), you can directly toggle your eligibility without oracle roles, renewal periods, or timeout logic:
+The `RewardsEligibilityOracleMock` is deployed at `0x69b0f3c6a19beaf1ba59405f7179e188c64b4e06` and is the oracle RewardsManager uses by default on testnet. You toggle your own eligibility directly — no ORACLE_ROLE, renewal periods, or timeout logic:
 
 ```bash
 # Check your eligibility
@@ -53,13 +57,21 @@ cast send $MOCK_REO "setEligible(bool)" false --rpc-url $RPC --private-key $INDE
 cast send $MOCK_REO "setEligible(bool)" true --rpc-url $RPC --private-key $INDEXER_KEY
 ```
 
-If the coordinator has pointed RewardsManager at the mock, you can use Sets 2m-4m below instead of Sets 2-4 for faster testing. Ask the coordinator which REO is active:
+Run Sets 2m-4m for fast eligibility control with no waiting for expiry.
+
+#### Which oracle is active?
+
+Confirm what RewardsManager points at before starting:
 
 ```bash
-cast call $REWARDS_MANAGER "getRewardsEligibilityOracle()(address)" --rpc-url $RPC
+cast call $REWARDS_MANAGER "getProviderEligibilityOracle()(address)" --rpc-url $RPC
+# Default (mock):       0x69b0f3c6a19beaf1ba59405f7179e188c64b4e06  -> run Sets 2m-4m
+# Production (Oracle A): 0x6ba849fbd33257162552578b2a432d30784f2f80  -> run Sets 2-4
 ```
 
-### Verify Environment
+### Verify Environment (production REO path only)
+
+Skip this if you are on the default mock path. These checks apply to Sets 2–4:
 
 ```bash
 # Validation must be enabled
@@ -90,7 +102,7 @@ cast call $REO "getEligibilityPeriod()(uint256)" --rpc-url $RPC
 | 3m  | Ineligible — Mock REO          | 3m.1      |
 | 4m  | Optimistic Recovery — Mock REO | 4m.1      |
 
-**Timing**: Set 1 opens allocations that need epoch maturity. Sets 2-4 use the production REO (sequential: renew → eligible close → wait for expiry → ineligible close → re-renew → recovery close). Sets 2m-4m use the mock REO for instant eligibility control -- no waiting for expiry. Set 5 requires coordinator to toggle validation.
+**Timing**: Set 1 opens allocations that need epoch maturity. **On the default mock wiring, run Set 1 then Sets 2m-4m** — instant eligibility control, no waiting for expiry. Sets 2-4 apply only when a coordinator has activated the production REO (sequential: renew → eligible close → wait for expiry → ineligible close → re-renew → recovery close); Set 5 then requires the coordinator to toggle validation.
 
 ---
 
@@ -535,7 +547,7 @@ cast call $REWARDS_MANAGER "minimumSubgraphSignal()(uint256)" --rpc-url $RPC
 
 - Check allocation maturity: must have been open for at least 1 full epoch
 - Check if subgraph deployment has signal (no signal = no rewards)
-- Verify RewardsManager points to the REO: `getRewardsEligibilityOracle()`
+- Verify RewardsManager points to the REO: `getProviderEligibilityOracle()`
 
 ---
 

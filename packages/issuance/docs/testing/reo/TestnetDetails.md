@@ -30,8 +30,8 @@ curl "https://gateway.thegraph.com/api/$GRAPH_API_KEY/subgraphs/id/3xQHhMudr1oh6
 
 | Contract                     | Address                                      |
 | ---------------------------- | -------------------------------------------- |
-| RewardsEligibilityOracle     | `0x62c2305739cc75f19a3a6d52387ceb3690d99a99` |
-| RewardsEligibilityOracleMock | `0x5FB23365F8cf643D5f1459E9793EfF7254522400` |
+| RewardsEligibilityOracle     | `0x6ba849fbd33257162552578b2a432d30784f2f80` |
+| RewardsEligibilityOracleMock | `0x69b0f3c6a19beaf1ba59405f7179e188c64b4e06` |
 | RewardsManager               | `0x1f49cae7669086c8ba53cc35d1e9f80176d67e79` |
 | SubgraphService              | `0xc24a3dac5d06d771f657a48b20ce1a671b78f26b` |
 | GraphToken (L2)              | `0xf8c05dcf59e8b28bfd5eed176c562bebcfc7ac04` |
@@ -47,7 +47,7 @@ Check what the mock reports to RewardsManager for an address:
 
 ```bash
 cast call --rpc-url https://sepolia-rollup.arbitrum.io/rpc \
-  0x5FB23365F8cf643D5f1459E9793EfF7254522400 \
+  0x69b0f3c6a19beaf1ba59405f7179e188c64b4e06 \
   "isEligible(address)(bool)" <address>
 ```
 
@@ -56,7 +56,7 @@ Set your own eligibility (send from the indexer key):
 ```bash
 cast send --rpc-url https://sepolia-rollup.arbitrum.io/rpc \
   --private-key $PRIVATE_KEY \
-  0x5FB23365F8cf643D5f1459E9793EfF7254522400 \
+  0x69b0f3c6a19beaf1ba59405f7179e188c64b4e06 \
   "setEligible(bool)" <true|false>
 ```
 

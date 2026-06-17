@@ -10,7 +10,7 @@ Comprehensive test plans for validating The Graph Network after an upgrade. Thre
 4. **Subgraph denial tests** → [SubgraphDenialTestPlan.md](SubgraphDenialTestPlan.md)
 5. **Reward conditions tests** → [RewardsConditionsTestPlan.md](RewardsConditionsTestPlan.md)
 
-**Mock REO available**: A `RewardsEligibilityOracleMock` at `0x5FB23365F8cf643D5f1459E9793EfF7254522400` (Arbitrum Sepolia) provides instant eligibility control for integration testing. See the mock-based test paths in [ReoTestPlan](ReoTestPlan.md#mock-reo-quick-test-path) and [IndexerTestGuide](IndexerTestGuide.md#mock-reo-option).
+**Mock REO available**: A `RewardsEligibilityOracleMock` at `0x69b0f3c6a19beaf1ba59405f7179e188c64b4e06` (Arbitrum Sepolia) provides instant eligibility control for integration testing. See the mock-based test paths in [ReoTestPlan](ReoTestPlan.md#mock-reo-quick-test-path) and [IndexerTestGuide](IndexerTestGuide.md#mock-reo-option).
 
 ## Reading Order
 
