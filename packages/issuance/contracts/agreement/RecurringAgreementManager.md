@@ -7,7 +7,7 @@ RAM is collector-agnostic: it supports any collector implementing `IAgreementCol
 One escrow account per (RAM, collector, provider) tuple covers **all** managed agreements for that (collector, provider) pair, so multiple agreements share a single balance. Fully funded (the Full basis target) means:
 
 ```
-sum(maxNextClaim for all active agreements for that pair) <= PaymentsEscrow.escrowAccounts[RAM][collector][provider]
+sum(maxNextClaim for all tracked agreements for that pair) <= PaymentsEscrow.escrowAccounts[RAM][collector][provider]
 ```
 
 Lower bases (and automatic degradation) hold less than this; the `beforeCollection` JIT top-up covers any gap at collection time. See [Escrow Behavior](#escrow-behavior).
@@ -53,7 +53,7 @@ Collection flows `SubgraphService → RecurringCollector → PaymentsEscrow`. Th
 
 If RAM is paused, these callbacks revert (low-level calls, so the collection itself still succeeds) and escrow accounting drifts until RAM is unpaused and reconciled. To fully halt collections, pause `RecurringCollector` too.
 
-Reconciliation can also be triggered manually at any time (permissionless):
+Reconciliation can also be triggered manually (permissionless, when RAM is not paused):
 
 - **`reconcileAgreement(collector, agreementId)`** — re-reads one agreement's `maxNextClaim` from the collector and rebalances its pair's escrow (gas-predictable).
 - **`reconcileProvider(collector, provider)`** — rebalances one pair's escrow and runs cleanup (O(1)).
@@ -61,7 +61,7 @@ Reconciliation can also be triggered manually at any time (permissionless):
 
 ### Cancel / Remove
 
-- **`cancelAgreement(collector, agreementId, versionHash, options)`** — routes cancellation through the collector, then reconciles. Depending on `versionHash`, cancels an un-accepted offer, an accepted agreement, or a pending update. Requires `AGREEMENT_MANAGER_ROLE`.
+- **`cancelAgreement(collector, agreementId, versionHash, options)`** — routes cancellation through the collector, then reconciles. The `options` bitmask selects the scope (signed offer, pending offer, or active agreement); `versionHash` identifies the targeted terms. Requires `AGREEMENT_MANAGER_ROLE`.
 - **`forceRemoveAgreement(collector, agreementId)`** — operator escape hatch for agreements whose collector is unresponsive (broken upgrade, permanent pause). Drops the agreement and rebalances the pair. Requires `OPERATOR_ROLE`.
 
 ### Cleanup
@@ -111,21 +111,21 @@ The two thresholds are operator-tunable (`minOnDemandBasisThreshold`, default 50
 
 ## Max Next Claim
 
-`maxNextClaim` is the worst-case amount collectable in the next window. For accepted agreements it comes from `RecurringCollector.getMaxNextClaim(agreementId)` (single source of truth); for a pre-accepted offer it is a conservative estimate:
+`maxNextClaim` is the worst-case amount collectable in the next window. RAM always reads it from the collector's `getMaxNextClaim(agreementId)` — the single source of truth, returning the max across active and pending terms — and caches the result at each reconcile. For a not-yet-accepted offer the collector returns a conservative max from the stored offer terms, which shrinks over time as the window to `endsAt` narrows:
 
 ```
 maxNextClaim = maxOngoingTokensPerSecond * maxSecondsPerCollection + maxInitialTokens
 ```
 
-| Agreement State             | maxNextClaim                                                         |
-| --------------------------- | -------------------------------------------------------------------- |
-| NotAccepted (pre-offered)   | Stored estimate from `offerAgreement`                                |
-| NotAccepted (past deadline) | 0 (expired offer, removable)                                         |
-| Accepted, never collected   | Calculated by RecurringCollector (initial + ongoing)                 |
-| Accepted, after collect     | Calculated by RecurringCollector (ongoing only)                      |
-| CanceledByPayer             | Calculated by RecurringCollector (window capped at collectableUntil) |
-| CanceledByServiceProvider   | 0                                                                    |
-| Fully expired               | 0                                                                    |
+| Agreement State             | maxNextClaim                                                          |
+| --------------------------- | --------------------------------------------------------------------- |
+| NotAccepted (pre-offered)   | Collector's conservative max from stored offer terms (time-dependent) |
+| NotAccepted (past deadline) | 0 (expired offer, removable)                                          |
+| Accepted, never collected   | Calculated by RecurringCollector (initial + ongoing)                  |
+| Accepted, after collect     | Calculated by RecurringCollector (ongoing only)                       |
+| CanceledByPayer             | Calculated by RecurringCollector (window capped at collectableUntil)  |
+| CanceledByServiceProvider   | 0                                                                     |
+| Fully expired               | 0                                                                     |
 
 ## Monitoring
 
