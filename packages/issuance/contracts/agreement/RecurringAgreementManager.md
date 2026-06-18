@@ -12,7 +12,7 @@ sum(maxNextClaim for all tracked agreements for that pair) <= PaymentsEscrow.esc
 
 Lower bases (and automatic degradation) hold less than this; the `beforeCollection` JIT top-up covers any gap at collection time. See [Escrow Behavior](#escrow-behavior).
 
-**Funding is not guaranteed by the contract.** RAM can only pay from the GRT it holds, so coverage is bounded by issuance inflow. If issuance doesn't keep pace with committed `maxNextClaim`, escrow degrades and the JIT top-up can run dry — a collection may then under-pay or revert. The contract enforces no cap on commitments: keeping them within fundable limits is the responsibility of the `AGREEMENT_MANAGER_ROLE` (which creates obligations via `offerAgreement`) together with the operator's basis and issuance configuration.
+**Funding is not guaranteed by the contract.** RAM can only pay from the GRT it holds, so coverage is bounded by issuance inflow. If issuance doesn't keep pace with committed `maxNextClaim`, escrow degrades and the JIT top-up can run dry. A collection that exceeds available escrow then reverts — escrow is never partially drawn. And because each collection is capped at `maxSecondsPerCollection` and advances the collection cursor to the current block, a shortfall lasting longer than one window permanently forfeits the uncollected time, under-paying the provider. The contract enforces no cap on commitments: keeping them within fundable limits is the responsibility of the `AGREEMENT_MANAGER_ROLE` (which creates obligations via `offerAgreement`) together with the operator's basis and issuance configuration.
 
 It implements eight interfaces:
 
@@ -51,7 +51,7 @@ Collection flows `SubgraphService → RecurringCollector → PaymentsEscrow`. Th
 - **`beforeCollection`** — just-in-time top-up. If escrow can't cover the pending collection, RAM deposits the shortfall (funds permitting). This safety net is always active regardless of escrow basis.
 - **`afterCollection`** — reconciles the agreement and rebalances its pair's escrow in the same transaction.
 
-If RAM is paused, these callbacks revert (low-level calls, so the collection itself still succeeds) and escrow accounting drifts until RAM is unpaused and reconciled. To fully halt collections, pause `RecurringCollector` too.
+If RAM is paused, these callbacks revert but the collector swallows them (low-level calls): a collection still goes through as long as escrow already covers it, and the skipped `afterCollection` leaves escrow accounting to drift until RAM is unpaused and reconciled. The JIT top-up is unavailable while paused, so a collection exceeding current escrow reverts. To fully halt collections, pause `RecurringCollector` too.
 
 Reconciliation can also be triggered manually (permissionless, when RAM is not paused):
 
