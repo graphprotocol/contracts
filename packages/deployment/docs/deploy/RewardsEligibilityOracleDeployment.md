@@ -31,7 +31,7 @@ Integration with `RewardsManager` is **not** a per-component lifecycle action. O
 pnpm hardhat deploy --tags GIP-0088:eligibility-integrate --network <network>
 ```
 
-The testnet-only `MockRewardsEligibilityOracle` is a separate, opt-in path with its own per-component [`06_integrate.ts`](../../deploy/rewards/eligibility/mock/06_integrate.ts). It is **not** part of any GIP-0088 phase tag, so `--tags all` will not pull it in — it runs only when `RewardsEligibilityOracleMock` is named explicitly:
+The testnet-only `RewardsEligibilityOracleMock` is a separate, opt-in path with its own per-component [`06_integrate.ts`](../../deploy/rewards/eligibility/mock/06_integrate.ts). It is **not** part of any GIP-0088 phase tag, so `--tags all` will not pull it in — it runs only when `RewardsEligibilityOracleMock` is named explicitly:
 
 ```bash
 pnpm hardhat deploy --tags RewardsEligibilityOracleMock,integrate --network <network>

@@ -1,5 +1,6 @@
 import fs from 'fs'
 import { task } from 'hardhat/config'
+import { ArgumentType } from 'hardhat/types/arguments'
 import type { NewTaskActionFunction } from 'hardhat/types/tasks'
 import path from 'path'
 
@@ -25,11 +26,20 @@ async function resolveGovernorKey(hre: unknown, networkName: string): Promise<st
 }
 
 interface TaskArgs {
-  // No arguments for this task
+  name: string
+  all: boolean
+  allowMissing: boolean
 }
 
 /**
  * Execute pending governance TX batches.
+ *
+ * Under the orchestrator/gather model each deploy produces one consolidated
+ * bundle. The task defaults reflect that:
+ *   - Single pending bundle: executes it.
+ *   - Multiple pending bundles: errors with a file list, asking for
+ *     `--name <basename>` or `--all` to acknowledge.
+ *   - `--name X` with X missing errors unless `--allow-missing` is passed.
  *
  * Execution modes:
  * - Fork mode: Automatic via governor impersonation
@@ -43,7 +53,7 @@ interface TaskArgs {
  * For fork testing (auto-detects fork network from anvil):
  *   npx hardhat deploy:execute-governance --network fork
  */
-const action: NewTaskActionFunction<TaskArgs> = async (_taskArgs, hre) => {
+const action: NewTaskActionFunction<TaskArgs> = async (taskArgs, hre) => {
   // Auto-detect fork network from anvil before checking
   await autoDetectForkNetwork()
 
@@ -77,13 +87,38 @@ const action: NewTaskActionFunction<TaskArgs> = async (_taskArgs, hre) => {
   const resolveKey = () => resolveGovernorKey(hre, conn.networkName)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await executeGovernanceTxs(env as any, { resolveGovernorKey: resolveKey })
+  await executeGovernanceTxs(env as any, {
+    name: taskArgs.name || undefined,
+    all: taskArgs.all,
+    allowMissing: taskArgs.allowMissing,
+    resolveGovernorKey: resolveKey,
+  })
 }
 
 const executeGovernanceTask = task(
   'deploy:execute-governance',
   'Execute pending governance transactions via governor impersonation',
 )
+  .addOption({
+    name: 'name',
+    description: 'Execute only the bundle with this basename (no .json extension). Mutually exclusive with --all.',
+    type: ArgumentType.STRING,
+    defaultValue: '',
+  })
+  .addOption({
+    name: 'all',
+    description:
+      'Acknowledge multiple pending bundles and execute every one. Required when 2+ bundles are pending and --name is not given.',
+    type: ArgumentType.FLAG,
+    defaultValue: false,
+  })
+  .addOption({
+    name: 'allowMissing',
+    description:
+      'Treat a missing --name target as a silent no-op instead of an error. Useful for CI scripts that conditionally execute a known bundle.',
+    type: ArgumentType.FLAG,
+    defaultValue: false,
+  })
   .setAction(async () => ({ default: action }))
   .build()
 

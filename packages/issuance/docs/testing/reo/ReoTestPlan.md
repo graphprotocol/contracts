@@ -10,8 +10,8 @@ Tests specific to the Rewards Eligibility Oracle upgrade. Run these **after** th
 
 | Contract                         | Arbitrum Sepolia                             | Arbitrum One |
 | -------------------------------- | -------------------------------------------- | ------------ |
-| RewardsEligibilityOracle (proxy) | `0x62c2305739cc75f19a3a6d52387ceb3690d99a99` | TBD          |
-| MockRewardsEligibilityOracle     | `0x5FB23365F8cf643D5f1459E9793EfF7254522400` | N/A          |
+| RewardsEligibilityOracle (proxy) | `0x6ba849fbd33257162552578b2a432d30784f2f80` | TBD          |
+| RewardsEligibilityOracleMock     | `0x69b0f3c6a19beaf1ba59405f7179e188c64b4e06` | N/A          |
 | RewardsManager (proxy)           | `0x1f49cae7669086c8ba53cc35d1e9f80176d67e79` | TBD          |
 | GraphToken (L2)                  | `0xf8c05dcf59e8b28bfd5eed176c562bebcfc7ac04` | TBD          |
 
@@ -116,17 +116,17 @@ cast send <REO_PROXY> "unpause()" --rpc-url <RPC> --private-key <PAUSE_KEY>
 
 ## Test Sequence Overview
 
-| Cycle | Area                                             | Tests       | Notes                                        |
-| ----- | ------------------------------------------------ | ----------- | -------------------------------------------- |
-| 1     | Deployment Verification                          | 1.1 - 1.5   | Read-only, no role access needed             |
-| 2     | Eligibility: Default State (Validation Disabled) | 2.1 - 2.3   | Open allocations here for Cycle 6            |
-| 3     | Oracle Operations                                | 3.1 - 3.5   | Requires OPERATOR_ROLE + ORACLE_ROLE         |
-| 4     | Eligibility: Validation Enabled                  | 4.1 - 4.4   | Requires OPERATOR_ROLE; 4.4 changes params   |
-| 5     | Eligibility: Timeout Fail-Open                   | 5.1 - 5.2   | Requires OPERATOR_ROLE; 5.1 changes params   |
-| 6     | Integration with Rewards                         | 6.1 - 6.6   | Requires mature allocations from Cycle 2     |
-| 6m    | Integration with Rewards (Mock REO)              | 6.1m - 6.5m | Uses mock REO for direct eligibility control |
-| 7     | Emergency Operations                             | 7.1 - 7.3   | Requires PAUSE_ROLE; changes live state      |
-| 8     | UI and Subgraph Verification                     | 8.1 - 8.3   | Coordinate with Explorer and subgraph teams  |
+| Cycle | Area                                             | Tests       | Notes                                                                |
+| ----- | ------------------------------------------------ | ----------- | -------------------------------------------------------------------- |
+| 1     | Deployment Verification                          | 1.1 - 1.5   | Read-only, no role access needed                                     |
+| 2     | Eligibility: Default State (Validation Disabled) | 2.1 - 2.3   | Open allocations here for Cycle 6                                    |
+| 3     | Oracle Operations                                | 3.1 - 3.8   | Requires OPERATOR_ROLE + ORACLE_ROLE; 3.6-3.8 cover indexer tracking |
+| 4     | Eligibility: Validation Enabled                  | 4.1 - 4.4   | Requires OPERATOR_ROLE; 4.4 changes params                           |
+| 5     | Eligibility: Timeout Fail-Open                   | 5.1 - 5.2   | Requires OPERATOR_ROLE; 5.1 changes params                           |
+| 6     | Integration with Rewards                         | 6.1 - 6.6   | Requires mature allocations from Cycle 2                             |
+| 6m    | Integration with Rewards (Mock REO)              | 6.1m - 6.5m | Uses mock REO for direct eligibility control                         |
+| 7     | Emergency Operations                             | 7.1 - 7.5   | PAUSE_ROLE / GOVERNOR_ROLE; changes live state                       |
+| 8     | UI and Subgraph Verification                     | 8.1 - 8.3   | Coordinate with Explorer and subgraph teams                          |
 
 ---
 
@@ -153,7 +153,7 @@ cast keccak $(cast code <IMPLEMENTATION_ADDRESS> --rpc-url <RPC>)
 
 **Pass Criteria**:
 
-- Implementation address matches address book (`0x4eb1de98440a39339817bdeeb3b3fff410b0b924` on Sepolia)
+- Implementation address matches address book (`0xd6f2acf352f655b72cc32a056edf7ca97ec3e9e4` on Sepolia)
 - Bytecode hash matches expected artifact hash
 
 ---
@@ -166,7 +166,7 @@ cast keccak $(cast code <IMPLEMENTATION_ADDRESS> --rpc-url <RPC>)
 
 ```bash
 # Role constants
-GOVERNOR_ROLE=0x0000...  # DEFAULT_ADMIN_ROLE = 0x00
+GOVERNOR_ROLE=$(cast keccak "GOVERNOR_ROLE")  # self-administered, not OZ DEFAULT_ADMIN (0x00)
 OPERATOR_ROLE=$(cast keccak "OPERATOR_ROLE")
 ORACLE_ROLE=$(cast keccak "ORACLE_ROLE")
 PAUSE_ROLE=$(cast keccak "PAUSE_ROLE")
@@ -218,12 +218,16 @@ cast call <REO_PROXY> "getLastOracleUpdateTime()(uint256)" --rpc-url <RPC>
 **Steps**:
 
 ```bash
-cast call <REWARDS_MANAGER> "getRewardsEligibilityOracle()(address)" --rpc-url <RPC>
+cast call <REWARDS_MANAGER> "getProviderEligibilityOracle()(address)" --rpc-url <RPC>
+
+# Confirm the denial mode the Cycle 6 tests assume
+cast call <REWARDS_MANAGER> "getRevertOnIneligible()(bool)" --rpc-url <RPC>
 ```
 
 **Pass Criteria**:
 
-- Returns the REO proxy address
+- Returns the configured eligibility oracle. On Arbitrum Sepolia the RewardsManager points at the mock (`0x69b0f3c6a19beaf1ba59405f7179e188c64b4e06`) by default; with the production REO wired in it returns the REO proxy (`0x6ba849fbd33257162552578b2a432d30784f2f80`).
+- `getRevertOnIneligible()` = `true` (deployed default): an ineligible close reverts (Cycle 6.2/6.2m). If `false`, the eligibility-reclaim path applies instead (6.3/6.3m) — adjust which tests are in scope accordingly.
 
 ---
 
@@ -304,7 +308,7 @@ cast call <REO_PROXY> "isEligible(address)(bool)" <NEVER_RENEWED_INDEXER> --rpc-
 > **Advance setup for Cycle 6**: Before moving to Cycle 3, open allocations for the indexers you plan to use in Cycle 6. You need at least:
 >
 > - One allocation for a **renewed** indexer (test 6.1 -- will receive rewards)
-> - One allocation for a **non-renewed** indexer (test 6.2 -- will be denied rewards)
+> - One allocation for a **non-renewed** indexer (test 6.2 -- close will revert while ineligible)
 >
 > These allocations must mature for 2-3 epochs before Cycle 6. Since validation is still disabled, both will accrue potential rewards. Use [Baseline 4.2](./BaselineTestPlan.md#42-create-allocation-manually) to create them.
 
@@ -366,7 +370,7 @@ cast call <REO_PROXY> "getLastOracleUpdateTime()(uint256)" --rpc-url <RPC>
 
 **Pass Criteria**:
 
-- Transaction succeeds, returns count `1`
+- Transaction succeeds and updates 1 indexer (the `uint256` return value; observe it as one `IndexerEligibilityRenewed` event — `cast send` does not surface return values)
 - `getEligibilityRenewalTime` is approximately `block.timestamp` of the renewal tx
 - `lastOracleUpdateTime` updated to the same timestamp
 - Events emitted correctly
@@ -387,7 +391,7 @@ cast send <REO_PROXY> "renewIndexerEligibility(address[],bytes)" "[<INDEXER_1>,<
 
 **Pass Criteria**:
 
-- Transaction succeeds, returns count `3`
+- Transaction succeeds and updates 3 indexers (the `uint256` return; observe three `IndexerEligibilityRenewed` events)
 - All three indexers have updated renewal timestamps
 - One `IndexerEligibilityRenewed` event per indexer
 
@@ -405,7 +409,7 @@ cast send <REO_PROXY> "renewIndexerEligibility(address[],bytes)" "[0x00000000000
 
 **Pass Criteria**:
 
-- Transaction succeeds, returns count `1` (not 2)
+- Transaction succeeds and updates 1 indexer, not 2 (the zero address is skipped)
 - Only the non-zero indexer has a `IndexerEligibilityRenewed` event
 
 ---
@@ -424,6 +428,91 @@ cast send <REO_PROXY> "renewIndexerEligibility(address[],bytes)" "[<INDEXER_ADDR
 **Pass Criteria**:
 
 - Transaction reverts with AccessControl error
+
+---
+
+> **Indexer tracking (3.6-3.8)**: The REO maintains an on-chain set of every indexer it has renewed, so operators can enumerate and prune them. These tests exercise the production REO and apply on the production-REO path only (the mock has no tracking). Run them against a production REO instance (testnet `RewardsEligibilityOracle (A/B)` or the Arbitrum One instance). Hardhat helpers: `reo:indexers`, `reo:retention`, `reo:remove-expired`.
+
+### 3.6 Renewal adds the indexer to tracking
+
+**Objective**: Confirm `renewIndexerEligibility` adds previously-untracked indexers to the tracked set and emits `IndexerTrackingUpdated`.
+
+**Prerequisites**: An indexer address that has never been renewed on this REO.
+
+**Steps**:
+
+```bash
+cast call <REO_PROXY> "getIndexerCount()(uint256)" --rpc-url <RPC>          # note baseline
+cast send <REO_PROXY> "renewIndexerEligibility(address[],bytes)" "[<NEW_INDEXER>]" "0x" --rpc-url <RPC> --private-key <ORACLE_KEY>
+cast call <REO_PROXY> "getIndexerCount()(uint256)" --rpc-url <RPC>
+cast call <REO_PROXY> "getIndexers()(address[])" --rpc-url <RPC>
+# Or page: getIndexers(uint256,uint256) with (offset, count)
+```
+
+**Verification**: Check for `IndexerTrackingUpdated(<NEW_INDEXER>, true)` in the renewal tx logs.
+
+**Pass Criteria**:
+
+- `getIndexerCount` increases by 1
+- `<NEW_INDEXER>` appears in `getIndexers()`
+- `IndexerTrackingUpdated(indexer, true)` emitted on first renewal (re-renewing an already-tracked indexer emits no further tracking event)
+
+---
+
+### 3.7 Set the indexer retention period
+
+**Objective**: Confirm an operator can change `indexerRetentionPeriod` (needed to test removal without waiting 365 days).
+
+**Prerequisites**: OPERATOR_ROLE.
+
+**Steps**:
+
+```bash
+cast call <REO_PROXY> "getIndexerRetentionPeriod()(uint256)" --rpc-url <RPC>
+# Default: 31536000 (365 days)
+
+# Lower it for testing (alternative: npx hardhat reo:retention --instance a --seconds 300)
+cast send <REO_PROXY> "setIndexerRetentionPeriod(uint256)" 300 --rpc-url <RPC> --private-key <OPERATOR_KEY>
+cast call <REO_PROXY> "getIndexerRetentionPeriod()(uint256)" --rpc-url <RPC>
+```
+
+**Verification**: `IndexerRetentionPeriodSet(oldPeriod, newPeriod)` emitted (no event if the value is unchanged).
+
+**Pass Criteria**:
+
+- `getIndexerRetentionPeriod` returns the new value
+- `IndexerRetentionPeriodSet` emitted
+- A non-operator call reverts with an AccessControl error
+
+> **Restore** the retention period to `31536000` after the removal test.
+
+### 3.8 Remove an expired indexer (permissionless)
+
+**Objective**: Confirm `removeExpiredIndexer` removes a tracked indexer once `lastRenewal + indexerRetentionPeriod` has elapsed, and that it is permissionless.
+
+**Prerequisites**: An indexer tracked from 3.6; retention period lowered in 3.7; wait until `renewalTime + retentionPeriod` has passed.
+
+**Steps**:
+
+```bash
+# Before expiry — should be a no-op returning false
+cast call <REO_PROXY> "removeExpiredIndexer(address)(bool)" <TRACKED_INDEXER> --rpc-url <RPC>
+# Expected: false (not yet expired)
+
+# After waiting past renewalTime + retentionPeriod, from ANY account (no role):
+cast send <REO_PROXY> "removeExpiredIndexer(address)" <TRACKED_INDEXER> --rpc-url <RPC> --private-key <ANY_KEY>
+
+cast call <REO_PROXY> "getIndexerCount()(uint256)" --rpc-url <RPC>
+```
+
+**Verification**: `IndexerTrackingUpdated(<TRACKED_INDEXER>, false)` emitted on successful removal.
+
+**Pass Criteria**:
+
+- Returns `false` and changes nothing while still within the retention window
+- After expiry: indexer removed (`getIndexerCount` decreases, absent from `getIndexers()`), `IndexerTrackingUpdated(indexer, false)` emitted
+- Works from any account (no role required); an already-untracked address returns `true` harmlessly
+- Removing tracking does not change current eligibility computation (a re-renewal re-adds the indexer)
 
 ---
 
@@ -602,22 +691,22 @@ These tests verify the end-to-end interaction between the REO and the rewards sy
 
 ### Mock REO Quick-Test Path
 
-A `MockRewardsEligibilityOracle` is deployed at `0x5FB23365F8cf643D5f1459E9793EfF7254522400` on Arbitrum Sepolia. This provides direct, instant control over eligibility without oracle roles, renewal periods, or timeout logic. Use it for faster iteration on the Cycle 6 integration tests.
+A `RewardsEligibilityOracleMock` is deployed at `0x69b0f3c6a19beaf1ba59405f7179e188c64b4e06` on Arbitrum Sepolia. This provides direct, instant control over eligibility without oracle roles, renewal periods, or timeout logic. Use it for faster iteration on the Cycle 6 integration tests.
 
 **How the mock works**: Everyone starts eligible. Indexers call `setEligible(false)` from their own address to become ineligible, and `setEligible(true)` to restore eligibility. No roles or expiry -- just a toggle.
 
-**Setup**: Point RewardsManager at the mock (requires Governor):
+**Setup**: On Arbitrum Sepolia the mock is already the configured default, so no setup is normally needed. Only run the following (requires Governor) if RewardsManager was previously switched to a production REO:
 
 ```bash
-MOCK_REO=0x5FB23365F8cf643D5f1459E9793EfF7254522400
+MOCK_REO=0x69b0f3c6a19beaf1ba59405f7179e188c64b4e06
 
 # Point RewardsManager to mock REO
-cast send $REWARDS_MANAGER "setRewardsEligibilityOracle(address)" $MOCK_REO \
+cast send $REWARDS_MANAGER "setProviderEligibilityOracle(address)" $MOCK_REO \
   --rpc-url $RPC --private-key $GOVERNOR_KEY
 
 # Verify
-cast call $REWARDS_MANAGER "getRewardsEligibilityOracle()(address)" --rpc-url $RPC
-# Expected: 0x5FB23365F8cf643D5f1459E9793EfF7254522400
+cast call $REWARDS_MANAGER "getProviderEligibilityOracle()(address)" --rpc-url $RPC
+# Expected: 0x69b0f3c6a19beaf1ba59405f7179e188c64b4e06
 ```
 
 **Control eligibility**:
@@ -633,14 +722,16 @@ cast send $MOCK_REO "setEligible(bool)" false --rpc-url $RPC --private-key $INDE
 cast send $MOCK_REO "setEligible(bool)" true --rpc-url $RPC --private-key $INDEXER_KEY
 ```
 
-**After testing**: Restore the production REO on RewardsManager:
+**After testing**: The mock is the intended testnet resting state, so no restore is needed if RewardsManager still points at it. If you temporarily switched RewardsManager to a production REO for the Cycle 6 tests below, restore the mock:
 
 ```bash
-cast send $REWARDS_MANAGER "setRewardsEligibilityOracle(address)" 0x62c2305739cc75f19a3a6d52387ceb3690d99a99 \
+cast send $REWARDS_MANAGER "setProviderEligibilityOracle(address)" 0x69b0f3c6a19beaf1ba59405f7179e188c64b4e06 \
   --rpc-url $RPC --private-key $GOVERNOR_KEY
 ```
 
-> The mock-based tests below (6.1m-6.5m) are equivalents of tests 6.1-6.5 using the mock for eligibility control. They can be run instead of or in addition to the production REO tests. The mock path eliminates time-dependent waits and simplifies the setup, making it the recommended approach for initial integration validation.
+> **Production-REO validation is performed separately**, not on this testnet's RewardsManager. A live production REO (`RewardsEligibilityOracleA`) is already deployed on Arbitrum One, so its renew/expiry/fail-open behaviour is exercised there. The Cycle 6 "production REO" steps (6.1-6.6) below remain available if you choose to wire a production REO into the testnet RewardsManager, but the default and recommended testnet path is the mock (6.1m-6.5m).
+
+The mock-based tests below (6.1m-6.5m) are equivalents of tests 6.1-6.5 using the mock for eligibility control. They can be run instead of or in addition to the production REO tests. The mock path eliminates time-dependent waits and simplifies the setup, making it the recommended approach for initial integration validation.
 
 ### 6.1 Eligible indexer receives indexing rewards
 
@@ -674,52 +765,57 @@ cast send $REWARDS_MANAGER "setRewardsEligibilityOracle(address)" 0x62c2305739cc
 
 ---
 
-### 6.2 Ineligible indexer denied rewards
+### 6.2 Ineligible indexer cannot close (reverts)
 
-**Objective**: Confirm that a non-renewed (ineligible) indexer receives zero rewards when closing an allocation.
+> RewardsManager runs with `revertOnIneligible = true`. An ineligible indexer's close/POI presentation reverts with `Indexer not eligible for rewards`; the allocation stays open and rewards are preserved (not zeroed, not reclaimed). This blocks collection rather than denying it.
+
+**Objective**: Confirm that a non-renewed (ineligible) indexer cannot close an allocation — the close reverts.
 
 **Prerequisites**: Validation enabled (Cycle 4). Indexer has NOT been renewed by the oracle. Indexer has an active allocation on a rewarded deployment that was opened during Cycle 2 (before validation was enabled).
 
 **Steps**:
 
 1. Confirm ineligibility: `isEligible(indexer)` = `false`
-2. Close allocation
-3. Check rewards
+2. Attempt to close the allocation
+3. Confirm the transaction reverts and the allocation stays `Active`
 
 **Pass Criteria**:
 
-- `indexingRewards` = `0`
-- Allocation still transitions to `Closed` status (closure succeeds, just no rewards)
+- Close reverts with `Indexer not eligible for rewards`
+- Allocation remains `Active` (no `closedAtEpoch`); accrued rewards preserved for later collection
 
 ---
 
-### 6.3 Reclaimed rewards flow to reclaim contract
+### 6.3 Eligibility reclaim path (N/A while `revertOnIneligible = true`)
 
-**Objective**: When an ineligible indexer is denied rewards, verify the denied rewards are routed to the `ReclaimedRewards` contract (default reclaim address).
+**Objective**: Document that no reclaim occurs for eligibility denial under the current configuration.
 
-**Prerequisites**: Same as 6.2.
+With `revertOnIneligible = true`, an ineligible close reverts (6.2), so reward collection is blocked and **nothing is routed to `ReclaimedRewards`** for eligibility reasons. The eligibility reclaim path (denied rewards → `ReclaimedRewards`, with a `RewardsDeniedDueToEligibility` event) only executes when `revertOnIneligible = false`.
 
-**Steps**:
-
-1. Close allocation for ineligible indexer
-2. Check the reclaim contract balance or events
+**To exercise the reclaim path** (optional, coordinator only):
 
 ```bash
-# Check for RewardsDeniedDueToEligibility event on RewardsManager
-# (implementation detail -- exact event name may vary)
-cast logs --from-block <CLOSE_TX_BLOCK> --to-block <CLOSE_TX_BLOCK> --address <REWARDS_MANAGER> --rpc-url <RPC>
+# Switch to non-reverting mode, then repeat 6.2's close
+cast send $REWARDS_MANAGER "setRevertOnIneligible(bool)" false --rpc-url $RPC --private-key $GOVERNOR_KEY
+
+# After closing an ineligible allocation, look for the denial event
+cast logs --from-block <CLOSE_TX_BLOCK> --to-block <CLOSE_TX_BLOCK> --address $REWARDS_MANAGER --rpc-url $RPC
+# Restore afterwards:
+cast send $REWARDS_MANAGER "setRevertOnIneligible(bool)" true --rpc-url $RPC --private-key $GOVERNOR_KEY
 ```
 
-**Pass Criteria**:
+**Pass Criteria** (only when toggled to `false`):
 
-- Denied rewards event emitted
-- Reclaim contract receives the tokens that would have been the indexer's rewards
+- Close succeeds with `indexingRewards` = `0`
+- `RewardsDeniedDueToEligibility` event emitted; `ReclaimedRewards` receives the denied tokens
+
+> Note: `RewardsManager` reverts to `revertOnIneligible = true` is the deployed default — leave it there unless deliberately testing the reclaim path.
 
 ---
 
 ### 6.4 Re-renewal restores reward eligibility
 
-**Objective**: After an indexer's eligibility expires and they are denied rewards, verify that a new oracle renewal restores their ability to earn rewards.
+**Objective**: After an indexer's eligibility expires and their close reverts (6.2), verify that a new oracle renewal restores their ability to close and collect rewards.
 
 > **Timing**: This test requires opening a new allocation and waiting 2-3 epochs (~3.5-5.5 hours). It can be run as the final validation step, or skipped on testnet if time is constrained and covered by the combination of 6.2 + Cycle 3 (which together demonstrate the renewal mechanism works).
 
@@ -737,9 +833,9 @@ cast logs --from-block <CLOSE_TX_BLOCK> --to-block <CLOSE_TX_BLOCK> --address <R
 
 ---
 
-### 6.5 View functions reflect zero for ineligible indexer
+### 6.5 View function reflects accruing (recoverable) rewards while ineligible
 
-**Objective**: Verify that RewardsManager view functions do not over-report claimable rewards for an ineligible indexer. Previously, view functions could show unclaimable balances, misleading indexers into thinking they had earned rewards.
+**Objective**: Verify that `getRewards` keeps reporting the accruing reward amount for an ineligible indexer. Under the optimistic model these rewards are not lost — they remain claimable once the indexer renews eligibility — so the view legitimately shows them rather than zero.
 
 **Prerequisites**: Validation enabled. Indexer is ineligible. Indexer has an active allocation that has been open several epochs.
 
@@ -749,20 +845,21 @@ cast logs --from-block <CLOSE_TX_BLOCK> --to-block <CLOSE_TX_BLOCK> --address <R
 2. Query the view function for pending rewards on the allocation
 
 ```bash
-# Check pending rewards for an active allocation
-cast call <REWARDS_MANAGER> "getRewards(bytes32)(uint256)" <ALLOCATION_ID> --rpc-url <RPC>
+# Check pending rewards for an active allocation.
+# Signature is getRewards(address rewardsIssuer, address allocationID) -- pass SubgraphService as the issuer.
+cast call $REWARDS_MANAGER "getRewards(address,address)(uint256)" <SUBGRAPH_SERVICE> <ALLOCATION_ID> --rpc-url $RPC
 ```
 
 **Pass Criteria**:
 
-- Returns `0` (or near-zero), not the full accumulated amount
-- This prevents the UI from displaying rewards the indexer cannot actually claim
+- Returns the accruing amount (non-zero, still growing) — the rewards the indexer will receive after re-renewal
+- `getRewards` does not gate on eligibility; the eligibility check happens at collection time (`takeRewards`), where an ineligible close reverts (6.2)
 
 ---
 
 ### 6.6 Eligibility denial is optimistic -- full rewards after re-renewal
 
-**Objective**: Verify that rewards continue accumulating during an ineligible period (optimistic model). After re-renewal, closing the allocation yields the full accumulated amount including epochs where the indexer was ineligible. This differs from subgraph denial, which permanently stops accumulation.
+**Objective**: Verify that rewards continue accumulating during an ineligible period (optimistic model). With `revertOnIneligible = true`, any close attempted while ineligible reverts (6.2), so the allocation stays open and nothing is lost; after re-renewal the close succeeds and yields the full accumulated amount including epochs where the indexer was ineligible. This differs from subgraph denial, which permanently stops accumulation.
 
 **Prerequisites**: Indexer has an active allocation open for several epochs. Indexer was eligible when allocation was opened.
 
@@ -786,7 +883,7 @@ cast call <REWARDS_MANAGER> "getRewards(bytes32)(uint256)" <ALLOCATION_ID> --rpc
 
 ### Mock-Based Integration Tests (6.1m - 6.5m)
 
-These tests use the `MockRewardsEligibilityOracle` at `0x5FB23365F8cf643D5f1459E9793EfF7254522400` for direct eligibility control. See [Mock REO Quick-Test Path](#mock-reo-quick-test-path) above for setup.
+These tests use the `RewardsEligibilityOracleMock` at `0x69b0f3c6a19beaf1ba59405f7179e188c64b4e06` for direct eligibility control. See [Mock REO Quick-Test Path](#mock-reo-quick-test-path) above for setup.
 
 **Prerequisites**: RewardsManager pointed at the mock REO. Indexer has active allocations open for at least 1 epoch.
 
@@ -797,7 +894,7 @@ These tests use the `MockRewardsEligibilityOracle` at `0x5FB23365F8cf643D5f1459E
 **Steps**:
 
 ```bash
-MOCK_REO=0x5FB23365F8cf643D5f1459E9793EfF7254522400
+MOCK_REO=0x69b0f3c6a19beaf1ba59405f7179e188c64b4e06
 
 # Confirm eligible (default state)
 cast call $MOCK_REO "isEligible(address)(bool)" $INDEXER --rpc-url $RPC
@@ -814,9 +911,9 @@ graph indexer actions approve
 
 ---
 
-#### 6.2m Ineligible indexer denied rewards (mock)
+#### 6.2m Ineligible indexer cannot close (mock)
 
-**Objective**: Confirm that toggling eligibility off causes reward denial.
+**Objective**: Confirm that toggling eligibility off causes the close to revert (`revertOnIneligible = true`).
 
 **Steps**:
 
@@ -828,41 +925,29 @@ cast send $MOCK_REO "setEligible(bool)" false --rpc-url $RPC --private-key $INDE
 cast call $MOCK_REO "isEligible(address)(bool)" $INDEXER --rpc-url $RPC
 # Expected: false
 
-# Close allocation
+# Attempt to close — should fail on-chain
 graph indexer actions queue close <ALLOCATION_ID>
 graph indexer actions approve
 ```
 
 **Pass Criteria**:
 
-- `indexingRewards` = `0`
-- Allocation still transitions to `Closed` status
+- Close reverts with `Indexer not eligible for rewards`
+- Allocation remains `Active`; accrued rewards preserved for later collection
 
 ---
 
-#### 6.3m Reclaimed rewards flow to reclaim contract (mock)
+#### 6.3m Eligibility reclaim path (N/A while `revertOnIneligible = true`)
 
-**Objective**: When the mock makes an indexer ineligible, denied rewards are routed to the reclaim contract.
+**Objective**: Document that no reclaim occurs for eligibility denial under the current configuration (mock equivalent of 6.3).
 
-**Prerequisites**: Indexer set to ineligible via mock (6.2m).
-
-**Steps**:
-
-```bash
-# Check for denial event on the close transaction from 6.2m
-cast logs --from-block <CLOSE_TX_BLOCK> --to-block <CLOSE_TX_BLOCK> --address $REWARDS_MANAGER --rpc-url $RPC
-```
-
-**Pass Criteria**:
-
-- Denied rewards event emitted
-- Reclaim contract receives the denied tokens
+Because 6.2m's close reverts, nothing is routed to `ReclaimedRewards` for eligibility reasons. To exercise the reclaim path, a coordinator must set `revertOnIneligible = false` (see 6.3), then repeat 6.2m's close — the close will succeed with `indexingRewards` = `0` and emit `RewardsDeniedDueToEligibility`. Restore `revertOnIneligible = true` afterwards.
 
 ---
 
-#### 6.4m View functions reflect zero for ineligible indexer (mock)
+#### 6.4m View function reflects accruing (recoverable) rewards while ineligible (mock)
 
-**Objective**: Verify pending rewards show zero while ineligible.
+**Objective**: Verify pending rewards keep accruing while ineligible (mock equivalent of 6.5).
 
 **Prerequisites**: Indexer ineligible via mock. Active allocation open for several epochs.
 
@@ -873,13 +958,13 @@ cast logs --from-block <CLOSE_TX_BLOCK> --to-block <CLOSE_TX_BLOCK> --address $R
 cast call $MOCK_REO "isEligible(address)(bool)" $INDEXER --rpc-url $RPC
 # Expected: false
 
-# Check pending rewards
-cast call $REWARDS_MANAGER "getRewards(bytes32)(uint256)" <ALLOCATION_ID> --rpc-url $RPC
+# Check pending rewards (issuer = SubgraphService)
+cast call $REWARDS_MANAGER "getRewards(address,address)(uint256)" <SUBGRAPH_SERVICE> <ALLOCATION_ID> --rpc-url $RPC
 ```
 
 **Pass Criteria**:
 
-- Returns `0` (or near-zero), not the full accumulated amount
+- Returns the accruing amount (non-zero, still growing) — recoverable after re-enabling eligibility
 
 ---
 
@@ -898,6 +983,7 @@ cast call $MOCK_REO "isEligible(address)(bool)" $INDEXER --rpc-url $RPC
 # Expected: false
 
 # 2. Wait 1-2 epochs while ineligible (~110-220 min on Sepolia)
+#    (Any close attempted now would revert with "Indexer not eligible for rewards".)
 
 # 3. Toggle eligible again
 cast send $MOCK_REO "setEligible(bool)" true --rpc-url $RPC --private-key $INDEXER_KEY
@@ -945,7 +1031,7 @@ cast send <REO_PROXY> "unpause()" --rpc-url <RPC> --private-key <PAUSE_KEY>
 
 - Pause succeeds, `paused()` = `true`
 - View functions (`isEligible`) still return results
-- Oracle write operations (`renewIndexerEligibility`) revert while paused
+- `paused()` is a status flag only — the REO has no pause-gated functions, so `renewIndexerEligibility` and other writes still succeed while paused (verify the flag flips, not that writes revert)
 - Unpause succeeds, `paused()` = `false`
 
 ---
@@ -994,13 +1080,66 @@ cast send <REO_PROXY> "pause()" --rpc-url <RPC> --private-key <RANDOM_KEY>
 
 ---
 
+### 7.4 Disable eligibility by unsetting the oracle
+
+**Objective**: Verify the Governor can disable eligibility enforcement entirely by pointing RewardsManager at the zero address — a lever distinct from `setEligibilityValidation(false)` on the REO. With no oracle, RewardsManager skips the eligibility check, so every close succeeds regardless of REO/mock state.
+
+**Prerequisites**: GOVERNOR_ROLE on RewardsManager. An indexer currently ineligible (so the contrast is observable).
+
+**Steps**:
+
+```bash
+# Record current oracle to restore later
+cast call $REWARDS_MANAGER "getProviderEligibilityOracle()(address)" --rpc-url $RPC
+
+# Unset the oracle (disables eligibility checks)
+cast send $REWARDS_MANAGER "setProviderEligibilityOracle(address)" 0x0000000000000000000000000000000000000000 \
+  --rpc-url $RPC --private-key $GOVERNOR_KEY
+
+# An ineligible indexer can now close successfully (no revert, full rewards)
+graph indexer actions queue close <ALLOCATION_ID>
+graph indexer actions approve
+```
+
+**Verification**: `ProviderEligibilityOracleSet(oldOracle, address(0))` emitted; the close that reverted in 6.2/6.2m now succeeds with non-zero `indexingRewards`.
+
+**Pass Criteria**:
+
+- `getProviderEligibilityOracle()` returns the zero address
+- An otherwise-ineligible indexer closes successfully with full rewards (eligibility no longer enforced)
+
+> **Restore** the intended oracle afterward (testnet default is the mock `0x69b0f3c6a19beaf1ba59405f7179e188c64b4e06`).
+
+### 7.5 Oracle must support the IProviderEligibility interface
+
+**Objective**: Verify `setProviderEligibilityOracle` rejects a non-conforming contract (ERC-165 guard), preventing a misconfiguration that would brick eligibility.
+
+**Prerequisites**: GOVERNOR_ROLE.
+
+**Steps**:
+
+```bash
+# Attempt to point the oracle at a contract that does NOT implement IProviderEligibility
+# (e.g. the GraphToken address) — should revert.
+cast send $REWARDS_MANAGER "setProviderEligibilityOracle(address)" <NON_REO_CONTRACT> \
+  --rpc-url $RPC --private-key $GOVERNOR_KEY
+```
+
+**Pass Criteria**:
+
+- Transaction reverts with `Contract does not support IProviderEligibility interface`
+- The configured oracle is unchanged
+- Note: `address(0)` is exempt from this check (it is the explicit "disable" sentinel — see 7.4)
+
+---
+
 ## Cycle 8: UI and Subgraph Verification
 
 These tests verify that the Graph Explorer and network subgraph correctly reflect eligibility states and denial scenarios. Run these in coordination with the Explorer and subgraph teams.
 
-### 8.1 Explorer displays correct rewards during denial
+### 8.1 Explorer displays correct rewards while ineligible
 
-**Objective**: Verify that the Graph Explorer does not show incorrect indexing reward amounts when an indexer is ineligible and claims are denied.
+**Objective**: Verify that the Graph Explorer accurately reflects on-chain state when an indexer is ineligible: pending rewards keep accruing (recoverable once eligible), and an attempted close reverts rather than closing with zero.
 
 **Prerequisites**: At least one indexer is ineligible with an active allocation. Explorer team monitoring.
 
@@ -1008,13 +1147,13 @@ These tests verify that the Graph Explorer and network subgraph correctly reflec
 
 1. Open Explorer to the ineligible indexer's profile
 2. Check displayed pending rewards for active allocations
-3. Close allocation (will be denied rewards)
-4. Verify Explorer updates to reflect the actual outcome (zero rewards)
+3. Attempt to close the allocation (will revert with `Indexer not eligible for rewards`)
+4. Verify Explorer continues to show the allocation as active with its accruing rewards
 
 **Pass Criteria**:
 
-- Explorer does not display inflated or false pending rewards for ineligible indexers
-- After allocation closure with denial, Explorer shows `0` indexing rewards for that allocation
+- Explorer's pending rewards match `getRewards` on-chain (the accruing, recoverable amount) — not inflated, not falsely zeroed
+- The ineligible close attempt reverts; the allocation stays `Active` in Explorer
 - No discrepancy between on-chain state and Explorer display
 
 ---
@@ -1050,20 +1189,20 @@ These tests verify that the Graph Explorer and network subgraph correctly reflec
 
 ---
 
-### 8.3 Denied transaction appears correct in Explorer history
+### 8.3 Reverted close appears correct in Explorer history
 
-**Objective**: When an ineligible indexer closes an allocation and rewards are denied, the transaction should not appear "successful" in a way that misleads the indexer.
+**Objective**: When an ineligible indexer attempts to close an allocation, the reverted transaction should be shown as failed — not misleadingly presented as a successful close or reward claim.
 
 **Steps**:
 
-1. Close allocation for an ineligible indexer
+1. Attempt to close an allocation for an ineligible indexer (the on-chain call reverts)
 2. Check the transaction in Explorer's history view
-3. Verify the displayed outcome matches reality (0 rewards)
+3. Verify the displayed outcome matches reality (failed/reverted; allocation still active)
 
 **Pass Criteria**:
 
-- Transaction status is clear (not misleadingly shown as a successful reward claim)
-- Reward amount displayed is `0` or clearly indicates denial
+- Transaction is shown as failed/reverted (not as a successful close or reward claim)
+- The allocation remains active in Explorer; no `0`-reward closure is implied
 - Explorer team confirms no confusing UX for the indexer
 
 ---
@@ -1078,7 +1217,8 @@ Run `npx hardhat reo:status --network arbitrumSepolia` to verify. Ensure the REO
 - [ ] Contract is NOT paused
 - [ ] Oracle roles assigned to intended oracle addresses only
 - [ ] No test accounts retain elevated roles
-- [ ] If mock REO was used: RewardsManager points back to the production REO (`0x62c2305739cc75f19a3a6d52387ceb3690d99a99`)
+- [ ] RewardsManager points at the testnet default mock REO (`0x69b0f3c6a19beaf1ba59405f7179e188c64b4e06`); if a production REO was wired in for Cycle 6, switch it back
+- [ ] `revertOnIneligible` left as `true` (the deployed default) — only `false` if intentionally testing the reclaim path (6.3)
 
 ---
 

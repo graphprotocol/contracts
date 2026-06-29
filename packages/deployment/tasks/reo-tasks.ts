@@ -1,19 +1,11 @@
 import { task } from 'hardhat/config'
 import type { NewTaskActionFunction } from 'hardhat/types/tasks'
-import {
-  createPublicClient,
-  createWalletClient,
-  custom,
-  encodeFunctionData,
-  type PublicClient,
-  type WalletClient,
-} from 'viem'
-import { privateKeyToAccount } from 'viem/accounts'
+import { createPublicClient, custom, type PublicClient } from 'viem'
 
 import { PROVIDER_ELIGIBILITY_MANAGEMENT_ABI, REWARDS_ELIGIBILITY_ORACLE_ABI } from '../lib/abis.js'
 import { accountHasRole, enumerateContractRoles, getRoleHash } from '../lib/contract-checks.js'
-import { createGovernanceTxBuilder } from '../lib/execute-governance.js'
-import { formatDuration, formatTimestamp, getDeployerKeyName, resolveConfigVar } from '../lib/task-utils.js'
+import { executeOrSaveGovernance, resolveDeployer } from '../lib/operator-write.js'
+import { formatDuration, formatTimestamp, getDeployerKeyName } from '../lib/task-utils.js'
 import { graph } from '../rocketh/deploy.js'
 
 // -- Types --
@@ -24,6 +16,14 @@ const VALID_INSTANCES: REOInstance[] = ['A', 'B', 'Mock']
 
 interface TaskArgs {
   instance: string
+}
+
+interface RetentionTaskArgs extends TaskArgs {
+  seconds: string
+}
+
+interface RemoveExpiredTaskArgs extends TaskArgs {
+  indexer: string
 }
 
 /**
@@ -115,84 +115,25 @@ async function setEligibilityValidation({ enabled, instance, hre }: SetValidatio
   console.log(`   Current: ${currentState ? 'enabled' : 'disabled'}`)
   console.log(`   Target: ${enabled ? 'enabled' : 'disabled'}`)
 
-  // Get deployer account (from keystore or env var)
-  const keyName = getDeployerKeyName(networkName)
-  const deployerKey = await resolveConfigVar(hre, keyName)
-
-  let deployer: string | undefined
-  let walletClient: WalletClient | undefined
-
-  if (deployerKey) {
-    const account = privateKeyToAccount(deployerKey as `0x${string}`)
-    deployer = account.address
-    walletClient = createWalletClient({
-      account,
-      transport: custom(conn.provider),
-    })
-  }
-
-  // Check if deployer has OPERATOR_ROLE
+  const { deployer, walletClient } = await resolveDeployer(hre, { networkName, provider: conn.provider })
   const canExecuteDirectly = deployer ? await accountHasRole(client, reoAddress, operatorRoleHash, deployer) : false
 
-  if (canExecuteDirectly && walletClient && deployer) {
-    console.log(`\n   Deployer has OPERATOR_ROLE, executing directly...`)
-
-    // Execute directly
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const hash = await (walletClient as any).writeContract({
-      address: reoAddress as `0x${string}`,
-      abi: REWARDS_ELIGIBILITY_ORACLE_ABI,
-      functionName: 'setEligibilityValidation',
-      args: [enabled],
-    })
-
-    console.log(`   TX: ${hash}`)
-
-    // Wait for confirmation
-    const receipt = await client.waitForTransactionReceipt({ hash })
-    if (receipt.status === 'success') {
-      console.log(`\n✓ [${instance}] Eligibility validation ${actionLower}d successfully\n`)
-    } else {
-      console.error(`\n✗ Transaction failed\n`)
-    }
-  } else {
-    // Generate governance TX
-    console.log(`\n   Requires OPERATOR_ROLE to ${actionLower}`)
-    console.log('   Generating governance TX...')
-
-    // Create a minimal environment for the TxBuilder
-    const env = {
-      name: networkName,
-      network: { provider: conn.provider },
-      showMessage: console.log,
-    }
-
-    const txName = `reo-${instance.toLowerCase()}-${actionLower}-validation`
-    const builder = await createGovernanceTxBuilder(env as Parameters<typeof createGovernanceTxBuilder>[0], txName, {
-      name: `${action} REO ${instance} Validation`,
-      description: `${action} eligibility validation on ${reoEntryName(instance)}`,
-    })
-
-    // Encode the setEligibilityValidation call
-    const data = encodeFunctionData({
-      abi: REWARDS_ELIGIBILITY_ORACLE_ABI,
-      functionName: 'setEligibilityValidation',
-      args: [enabled],
-    })
-
-    builder.addTx({
-      to: reoAddress,
-      data,
-      value: '0',
-    })
-
-    const txFile = builder.saveToFile()
-    console.log(`\n✓ Governance TX saved: ${txFile}`)
-    console.log('\nNext steps:')
-    console.log('   • Fork testing: npx hardhat deploy:execute-governance --network fork')
-    console.log('   • Safe multisig: Upload JSON to Transaction Builder')
-    console.log('')
-  }
+  await executeOrSaveGovernance({
+    conn: { networkName, provider: conn.provider },
+    publicClient: client,
+    walletClient,
+    canExecuteDirectly,
+    to: reoAddress,
+    abi: REWARDS_ELIGIBILITY_ORACLE_ABI,
+    functionName: 'setEligibilityValidation',
+    args: [enabled],
+    roleDescription: 'OPERATOR_ROLE',
+    requirementMessage: `OPERATOR_ROLE to ${actionLower}`,
+    successMessage: `✓ [${instance}] Eligibility validation ${actionLower}d successfully`,
+    txName: `reo-${instance.toLowerCase()}-${actionLower}-validation`,
+    governanceName: `${action} REO ${instance} Validation`,
+    governanceDescription: `${action} eligibility validation on ${reoEntryName(instance)}`,
+  })
 }
 
 // -- Status for a single instance --
@@ -209,7 +150,7 @@ async function showInstanceStatus(
     console.log(`\n📊 RewardsEligibilityOracle Mock Status`)
     console.log(`   Address: ${reoAddress}`)
     console.log(`   Network: ${networkName} (chainId: ${targetChainId})`)
-    console.log(`   Type: MockRewardsEligibilityOracle (testnet, indexers self-manage eligibility)`)
+    console.log(`   Type: RewardsEligibilityOracleMock (testnet, indexers self-manage eligibility)`)
     console.log()
     return
   }
@@ -415,6 +356,202 @@ async function showInstanceIndexers(
   console.log(`\n   Summary: ${eligibleCount}/${details.length} eligible\n`)
 }
 
+// -- Retention Period Shared Logic --
+
+const retentionAction: NewTaskActionFunction<RetentionTaskArgs> = async (taskArgs, hre) => {
+  const instance = parseInstance(taskArgs.instance)
+  if (!instance) {
+    console.error(`\nError: --instance is required (a, b, or mock)`)
+    return
+  }
+  if (instance === 'Mock') {
+    console.error(`\nError: Mock REO has no retention period`)
+    return
+  }
+
+  const raw = (taskArgs.seconds ?? '').trim()
+  const isSet = raw !== ''
+  if (isSet && !/^\d+$/.test(raw)) {
+    console.error(`\nError: --seconds must be a non-negative integer (got "${taskArgs.seconds}")`)
+    return
+  }
+  const newPeriod = isSet ? BigInt(raw) : null
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const conn = await (hre as any).network.connect()
+  const networkName = conn.networkName
+
+  const client = createPublicClient({
+    transport: custom(conn.provider),
+  }) as PublicClient
+
+  const actualChainId = await client.getChainId()
+  await graph.autoDetect()
+  const forkChainId = graph.getForkTargetChainId()
+  const targetChainId = forkChainId ?? actualChainId
+
+  const reoAddress = getREOAddress(targetChainId, instance)
+  if (!reoAddress) {
+    console.error(`\nError: ${reoEntryName(instance)} not found in address book for chain ${targetChainId}`)
+    return
+  }
+
+  const currentPeriod = (await client.readContract({
+    address: reoAddress as `0x${string}`,
+    abi: REWARDS_ELIGIBILITY_ORACLE_ABI,
+    functionName: 'getIndexerRetentionPeriod',
+  })) as bigint
+
+  if (newPeriod === null) {
+    console.log(`\n📐 Indexer Retention Period [Instance ${instance}]`)
+    console.log(`   Contract: ${reoAddress}`)
+    console.log(`   Network: ${networkName} (chainId: ${targetChainId})`)
+    console.log(`   Current: ${formatDuration(currentPeriod)} (${currentPeriod}s)\n`)
+    return
+  }
+
+  if (currentPeriod === newPeriod) {
+    console.log(`\n✓ [${instance}] Retention period already ${formatDuration(newPeriod)} (${newPeriod}s)`)
+    console.log('  No action needed.\n')
+    return
+  }
+
+  const operatorRoleHash = await getRoleHash(client, reoAddress, 'OPERATOR_ROLE')
+  if (!operatorRoleHash) {
+    console.error('\nError: Could not read OPERATOR_ROLE from contract')
+    return
+  }
+
+  console.log(`\n🔧 Set Indexer Retention Period [Instance ${instance}]`)
+  console.log(`   Contract: ${reoAddress}`)
+  console.log(`   Network: ${networkName} (chainId: ${targetChainId})`)
+  console.log(`   Current: ${formatDuration(currentPeriod)} (${currentPeriod}s)`)
+  console.log(`   Target:  ${formatDuration(newPeriod)} (${newPeriod}s)`)
+
+  const { deployer, walletClient } = await resolveDeployer(hre, { networkName, provider: conn.provider })
+  const canExecuteDirectly = deployer ? await accountHasRole(client, reoAddress, operatorRoleHash, deployer) : false
+
+  await executeOrSaveGovernance({
+    conn: { networkName, provider: conn.provider },
+    publicClient: client,
+    walletClient,
+    canExecuteDirectly,
+    to: reoAddress,
+    abi: REWARDS_ELIGIBILITY_ORACLE_ABI,
+    functionName: 'setIndexerRetentionPeriod',
+    args: [newPeriod],
+    roleDescription: 'OPERATOR_ROLE',
+    requirementMessage: 'OPERATOR_ROLE',
+    successMessage: `✓ [${instance}] Retention period set to ${formatDuration(newPeriod)}`,
+    txName: `reo-${instance.toLowerCase()}-retention`,
+    governanceName: `Set REO ${instance} Retention Period`,
+    governanceDescription: `Set indexerRetentionPeriod to ${newPeriod}s on ${reoEntryName(instance)}`,
+  })
+}
+
+// -- Remove Expired Indexer Shared Logic --
+
+const removeExpiredAction: NewTaskActionFunction<RemoveExpiredTaskArgs> = async (taskArgs, hre) => {
+  const instance = parseInstance(taskArgs.instance)
+  if (!instance) {
+    console.error(`\nError: --instance is required (a, b, or mock)`)
+    return
+  }
+  if (instance === 'Mock') {
+    console.error(`\nError: Mock REO has no expired-indexer tracking`)
+    return
+  }
+
+  const indexer = (taskArgs.indexer ?? '').trim()
+  if (!/^0x[0-9a-fA-F]{40}$/.test(indexer)) {
+    console.error(`\nError: --indexer must be a 20-byte hex address (got "${taskArgs.indexer}")`)
+    return
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const conn = await (hre as any).network.connect()
+  const networkName = conn.networkName
+
+  const client = createPublicClient({
+    transport: custom(conn.provider),
+  }) as PublicClient
+
+  const actualChainId = await client.getChainId()
+  await graph.autoDetect()
+  const forkChainId = graph.getForkTargetChainId()
+  const targetChainId = forkChainId ?? actualChainId
+
+  const reoAddress = getREOAddress(targetChainId, instance)
+  if (!reoAddress) {
+    console.error(`\nError: ${reoEntryName(instance)} not found in address book for chain ${targetChainId}`)
+    return
+  }
+
+  // Pre-flight reads so we fail with a readable message rather than a silent contract revert.
+  const [retentionPeriod, renewalTime] = await Promise.all([
+    client.readContract({
+      address: reoAddress as `0x${string}`,
+      abi: REWARDS_ELIGIBILITY_ORACLE_ABI,
+      functionName: 'getIndexerRetentionPeriod',
+    }) as Promise<bigint>,
+    client.readContract({
+      address: reoAddress as `0x${string}`,
+      abi: REWARDS_ELIGIBILITY_ORACLE_ABI,
+      functionName: 'getEligibilityRenewalTime',
+      args: [indexer as `0x${string}`],
+    }) as Promise<bigint>,
+  ])
+
+  console.log(`\n🧹 Remove Expired Indexer [Instance ${instance}]`)
+  console.log(`   Contract: ${reoAddress}`)
+  console.log(`   Network: ${networkName} (chainId: ${targetChainId})`)
+  console.log(`   Indexer: ${indexer}`)
+  console.log(`   Renewal time: ${formatTimestamp(renewalTime)} (${renewalTime})`)
+  console.log(`   Retention period: ${formatDuration(retentionPeriod)} (${retentionPeriod}s)`)
+
+  if (renewalTime === 0n) {
+    // Either never tracked, or already removed (storage cleared on remove).
+    console.log(`\n   Indexer is not currently tracked. Nothing to remove.\n`)
+    return
+  }
+
+  const expiresAt = renewalTime + retentionPeriod
+  const now = BigInt(Math.floor(Date.now() / 1000))
+  if (now < expiresAt) {
+    const wait = expiresAt - now
+    console.error(`\n✗ Not yet removable: needs ${formatDuration(wait)} (${wait}s) more.`)
+    console.error(`  Expires at ${formatTimestamp(expiresAt)}.`)
+    console.error(`  Lower the retention period (reo:retention --seconds <R>) or wait.\n`)
+    return
+  }
+
+  const { deployer, walletClient } = await resolveDeployer(hre, { networkName, provider: conn.provider })
+  if (!deployer || !walletClient) {
+    const keyName = getDeployerKeyName(networkName)
+    console.error(`\nError: ${keyName} not configured.`)
+    console.error(`  Set it with: npx hardhat keystore set ${keyName}\n`)
+    return
+  }
+
+  console.log(`\n   Sender: ${deployer} (permissionless call, paying gas)`)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const hash = await (walletClient as any).writeContract({
+    address: reoAddress as `0x${string}`,
+    abi: REWARDS_ELIGIBILITY_ORACLE_ABI,
+    functionName: 'removeExpiredIndexer',
+    args: [indexer as `0x${string}`],
+  })
+  console.log(`   TX: ${hash}`)
+
+  const receipt = await client.waitForTransactionReceipt({ hash })
+  if (receipt.status === 'success') {
+    console.log(`\n✓ [${instance}] Indexer ${indexer} removed (or already absent)\n`)
+  } else {
+    console.error(`\n✗ Transaction failed\n`)
+  }
+}
+
 // -- Task Actions --
 
 const enableAction: NewTaskActionFunction<TaskArgs> = async (taskArgs, hre) => {
@@ -594,4 +731,61 @@ export const reoIndexersTask = task('reo:indexers', 'List tracked indexers with 
   .setAction(async () => ({ default: indexersAction }))
   .build()
 
-export default [reoEnableTask, reoDisableTask, reoStatusTask, reoIndexersTask]
+/**
+ * Get or set indexerRetentionPeriod on a REO instance
+ *
+ * Without `--seconds`: reads and prints the current period (no transaction).
+ * With `--seconds <R>`: calls `setIndexerRetentionPeriod(R)`. Requires
+ * OPERATOR_ROLE; if the deployer has it, executes directly, otherwise
+ * generates a governance TX for multisig execution.
+ *
+ * Shrinking this period lets `removeExpiredIndexer` permissionlessly clean up
+ * stale entries; restore to the canonical value (typically 31_536_000 = 365d)
+ * immediately after.
+ *
+ * Examples:
+ *   npx hardhat reo:retention --instance a --network arbitrumOne                       # read
+ *   npx hardhat reo:retention --instance a --seconds 31536000 --network arbitrumOne   # set
+ */
+export const reoRetentionTask = task('reo:retention', 'Get or set indexerRetentionPeriod on a REO instance')
+  .addOption({
+    name: 'instance',
+    description: 'REO instance (a, b, or mock)',
+    defaultValue: '',
+  })
+  .addOption({
+    name: 'seconds',
+    description: 'New retention period in seconds; omit to read (e.g., 31536000 = 365d)',
+    defaultValue: '',
+  })
+  .setAction(async () => ({ default: retentionAction }))
+  .build()
+
+/**
+ * Permissionlessly remove a tracked indexer once `renewalTime + retentionPeriod`
+ * has passed. Deployer key is used only for gas — no role required by the contract.
+ *
+ * Pre-flight checks the renewal time and retention period; bails with a readable
+ * message if the indexer isn't tracked or isn't yet expired.
+ *
+ * Examples:
+ *   npx hardhat reo:remove-expired --instance a --indexer 0x86868BB556DeDcd0768854A5aF9e62f2e9129D46 --network arbitrumOne
+ */
+export const reoRemoveExpiredTask = task(
+  'reo:remove-expired',
+  'Permissionlessly remove a tracked indexer past retention',
+)
+  .addOption({
+    name: 'instance',
+    description: 'REO instance (a, b, or mock)',
+    defaultValue: '',
+  })
+  .addOption({
+    name: 'indexer',
+    description: 'Indexer address to remove',
+    defaultValue: '',
+  })
+  .setAction(async () => ({ default: removeExpiredAction }))
+  .build()
+
+export default [reoEnableTask, reoDisableTask, reoStatusTask, reoIndexersTask, reoRetentionTask, reoRemoveExpiredTask]

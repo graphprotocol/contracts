@@ -10,7 +10,7 @@ Comprehensive test plans for validating The Graph Network after an upgrade. Thre
 4. **Subgraph denial tests** → [SubgraphDenialTestPlan.md](SubgraphDenialTestPlan.md)
 5. **Reward conditions tests** → [RewardsConditionsTestPlan.md](RewardsConditionsTestPlan.md)
 
-**Mock REO available**: A `MockRewardsEligibilityOracle` at `0x5FB23365F8cf643D5f1459E9793EfF7254522400` (Arbitrum Sepolia) provides instant eligibility control for integration testing. See the mock-based test paths in [ReoTestPlan](ReoTestPlan.md#mock-reo-quick-test-path) and [IndexerTestGuide](IndexerTestGuide.md#mock-reo-option).
+**Mock REO available**: A `RewardsEligibilityOracleMock` at `0x69b0f3c6a19beaf1ba59405f7179e188c64b4e06` (Arbitrum Sepolia) provides instant eligibility control for integration testing. See the mock-based test paths in [ReoTestPlan](ReoTestPlan.md#mock-reo-quick-test-path) and [IndexerTestGuide](IndexerTestGuide.md#mock-reo-default-path).
 
 ## Reading Order
 
@@ -24,24 +24,24 @@ Comprehensive test plans for validating The Graph Network after an upgrade. Thre
 BaselineTestPlan (7 cycles, 22 tests)
   │  Covers: setup, staking, provisions, allocations, queries, health
   │
-  ├──▶ ReoTestPlan (8 cycles + mock path, 36 tests)
+  ├──▶ ReoTestPlan (8 cycles + mock path, 41 tests)
   │      Covers: deployment, eligibility, oracle, rewards, emergency, UI
   │      Depends on: Baseline Cycles 1-7 pass first
   │      Cycle 2.3 opens allocations reused in Cycle 6
   │      Cycle 6m: mock REO path for fast integration testing
   │
-  ├──▶ RewardsConditionsTestPlan (7 cycles, 26 tests)
+  ├──▶ RewardsConditionsTestPlan (7 cycles, 25 tests)
   │      Covers: reclaim config, below-minimum signal, zero allocated tokens,
   │              POI paths (stale/zero/too-young), allocation resize/close, observability
   │      Depends on: Baseline Cycles 1-7 pass first
   │      Cycle 1 configures reclaim addresses used by all reclaim tests
   │
-  ├──▶ SubgraphDenialTestPlan (6 cycles, 18 tests)
+  ├──▶ SubgraphDenialTestPlan (6 cycles, 22 tests)
   │      Covers: deny/undeny state, accumulator freeze, allocation deferral,
   │              pre-denial reward recovery, edge cases
   │      Depends on: Baseline + RewardsConditionsTestPlan Cycle 1 (reclaim setup)
   │
-  └──▶ IndexerTestGuide (5 sets + 3 mock sets, 11 tests)
+  └──▶ IndexerTestGuide (5 sets + 3 mock sets, 12 tests)
          Covers: eligible/ineligible/recovery flows
          Depends on: Baseline Cycles 1-4 (staked, provisioned, can allocate)
          Subset of ReoTestPlan focused on per-indexer eligibility
@@ -55,10 +55,10 @@ BaselineTestPlan (7 cycles, 22 tests)
 | Document                                                     | Purpose                                                                                 |
 | ------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
 | [BaselineTestPlan.md](BaselineTestPlan.md)                   | Detailed baseline indexer operational tests (7 cycles, 22 tests)                        |
-| [ReoTestPlan.md](ReoTestPlan.md)                             | REO eligibility, oracle, and rewards integration (8 cycles + mock path, 36 tests)       |
-| [RewardsConditionsTestPlan.md](RewardsConditionsTestPlan.md) | Reclaim system, signal conditions, POI paths, allocation lifecycle (7 cycles, 26 tests) |
-| [SubgraphDenialTestPlan.md](SubgraphDenialTestPlan.md)       | Subgraph denial: accumulator freeze, deferral, recovery (6 cycles, 18 tests)            |
-| [IndexerTestGuide.md](IndexerTestGuide.md)                   | Condensed indexer eligibility tests (5 sets + 3 mock sets, 11 tests)                    |
+| [ReoTestPlan.md](ReoTestPlan.md)                             | REO eligibility, oracle, and rewards integration (8 cycles + mock path, 41 tests)       |
+| [RewardsConditionsTestPlan.md](RewardsConditionsTestPlan.md) | Reclaim system, signal conditions, POI paths, allocation lifecycle (7 cycles, 25 tests) |
+| [SubgraphDenialTestPlan.md](SubgraphDenialTestPlan.md)       | Subgraph denial: accumulator freeze, deferral, recovery (6 cycles, 22 tests)            |
+| [IndexerTestGuide.md](IndexerTestGuide.md)                   | Condensed indexer eligibility tests (5 sets + 3 mock sets, 12 tests)                    |
 
 ## Test Coverage
 
@@ -139,7 +139,7 @@ BaselineTestPlan (7 cycles, 22 tests)
 5. **Edge Cases**
    - New allocation while denied, all-close-while-denied, rapid deny/undeny, denial vs eligibility precedence
 
-See also: [IssuanceAllocatorTestPlan](support/IssuanceAllocatorTestPlan.md) (independent of REO, pending deployment)
+See also: [IssuanceAllocatorTestPlan](support/IssuanceAllocatorTestPlan.md) (independent of REO)
 
 ## Network Configuration
 

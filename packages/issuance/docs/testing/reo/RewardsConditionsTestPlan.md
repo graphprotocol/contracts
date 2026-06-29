@@ -778,4 +778,4 @@ cast logs --from-block <TX_BLOCK> --to-block <TX_BLOCK> --address <REWARDS_MANAG
 
 ---
 
-_Derived from issuance upgrade behavior changes. Source: [RewardsBehaviourChanges.md](/docs/RewardsBehaviourChanges.md), [RewardConditions.md](/docs/RewardConditions.md). Contracts: `packages/contracts/contracts/rewards/RewardsManager.sol`, `packages/subgraph-service/contracts/utilities/AllocationManager.sol`._
+_Derived from issuance upgrade behavior changes. Contracts: `packages/contracts/contracts/rewards/RewardsManager.sol`, `packages/subgraph-service/contracts/libraries/AllocationHandler.sol` (POI presentation / condition handling)._

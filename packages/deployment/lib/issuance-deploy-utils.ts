@@ -3,12 +3,13 @@ import type { Environment } from '@rocketh/core/types'
 import type { PublicClient } from 'viem'
 import { encodeFunctionData } from 'viem'
 
+import { deploy, execute, graph } from '../rocketh/deploy.js'
+import { INITIALIZE_GOVERNOR_ABI, OZ_PROXY_ADMIN_ABI } from './abis.js'
+import { getAddressBookForType, getTargetChainIdFromEnv } from './address-book-utils.js'
+import { loadTransparentProxyArtifact } from './artifact-loaders.js'
+import { computeBytecodeHash } from './bytecode-utils.js'
 import { Contracts, type RegistryEntry } from './contract-registry.js'
 import { getGovernor } from './controller-utils.js'
-import { loadTransparentProxyArtifact } from './artifact-loaders.js'
-import { INITIALIZE_GOVERNOR_ABI, OZ_PROXY_ADMIN_ABI } from './abis.js'
-import { computeBytecodeHash } from './bytecode-utils.js'
-import { getAddressBookForType, getTargetChainIdFromEnv } from './address-book-utils.js'
 import {
   computeArtifactBytecodeHash,
   deployImplementation,
@@ -17,7 +18,6 @@ import {
   loadArtifactFromSource,
 } from './deploy-implementation.js'
 import { buildDeploymentMetadata } from './deployment-metadata.js'
-import { deploy, execute, graph } from '../rocketh/deploy.js'
 
 /** ERC1967 admin slot: keccak256("eip1967.proxy.admin") - 1 */
 const ERC1967_ADMIN_SLOT = '0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103'

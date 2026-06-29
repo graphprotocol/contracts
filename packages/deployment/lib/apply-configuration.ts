@@ -11,11 +11,11 @@ import type { PublicClient } from 'viem'
 import { encodeFunctionData } from 'viem'
 
 import {
+  checkConditions,
   type ConfigCondition,
   type ConfigurationStatus,
   type ParamCondition,
   type RoleCondition,
-  checkConditions,
 } from './contract-checks.js'
 import { createGovernanceTxBuilder, executeTxBatchDirect, saveGovernanceTx } from './execute-governance.js'
 

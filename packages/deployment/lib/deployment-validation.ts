@@ -8,8 +8,6 @@
 import type { DeploymentMetadata } from '@graphprotocol/toolshed/deployments'
 
 import type { AnyAddressBookOps } from './address-book-ops.js'
-import type { ArtifactSource } from './contract-registry.js'
-import { computeBytecodeHash } from './bytecode-utils.js'
 import {
   getLibraryResolver,
   loadContractsArtifact,
@@ -17,6 +15,8 @@ import {
   loadOpenZeppelinArtifact,
   loadSubgraphServiceArtifact,
 } from './artifact-loaders.js'
+import { computeBytecodeHash } from './bytecode-utils.js'
+import type { ArtifactSource } from './contract-registry.js'
 
 /**
  * Result of validating a single contract

@@ -2,11 +2,13 @@ import {
   GRAPH_TOKEN_ABI,
   ISSUANCE_ALLOCATOR_ABI,
   ISSUANCE_TARGET_ABI,
-  REWARDS_MANAGER_DEPRECATED_ABI,
   SET_TARGET_ALLOCATION_ABI,
 } from '@graphprotocol/deployment/lib/abis.js'
 import { getTargetChainIdFromEnv } from '@graphprotocol/deployment/lib/address-book-utils.js'
-import { requireRewardsManagerUpgraded } from '@graphprotocol/deployment/lib/contract-checks.js'
+import {
+  checkIssuanceConnectComplete,
+  requireRewardsManagerUpgraded,
+} from '@graphprotocol/deployment/lib/contract-checks.js'
 import { Contracts } from '@graphprotocol/deployment/lib/contract-registry.js'
 import { canSignAsGovernor } from '@graphprotocol/deployment/lib/controller-utils.js'
 import { ComponentTags, GoalTags } from '@graphprotocol/deployment/lib/deployment-tags.js'
@@ -80,84 +82,38 @@ export default createActionModule(
     env.showMessage(`${Contracts.horizon.RewardsManager.name}: ${rmAddress}`)
     env.showMessage(`${Contracts.horizon.L2GraphToken.name}: ${gtAddress}\n`)
 
-    // Check current state
+    // Check current state via the shared issuance-connect end-state helper.
+    // Sub-flags drive both the per-line status display and which TXs the build-batch needs.
     env.showMessage('📋 Checking current activation state...\n')
 
-    const checks = {
-      iaIntegrated: false,
-      iaMinter: false,
-    }
+    const connect = await checkIssuanceConnectComplete(client, iaAddress, rmAddress, gtAddress)
 
-    // Check RM.getIssuanceAllocator() == IA
-    const currentIA = (await client.readContract({
-      address: rmAddress as `0x${string}`,
-      abi: ISSUANCE_TARGET_ABI,
-      functionName: 'getIssuanceAllocator',
-    })) as string
-    checks.iaIntegrated = currentIA.toLowerCase() === iaAddress.toLowerCase()
-    env.showMessage(`  IA integrated: ${checks.iaIntegrated ? '✓' : '✗'} (current: ${currentIA})`)
+    env.showMessage(
+      `  IA integrated: ${connect.iaIntegrated ? '✓' : '✗'} (current: ${connect.currentIssuanceAllocator})`,
+    )
+    env.showMessage(`  IA minter: ${connect.iaMinter ? '✓' : '✗'}`)
+    env.showMessage(
+      `  RM allocation: ${connect.rmAllocationShape && connect.fullyAllocated ? '✓' : '✗'} (self: ${formatGRT(connect.rmAllocation.selfMintingRate)}, allocator: ${formatGRT(connect.rmAllocation.allocatorMintingRate)})`,
+    )
 
-    // Check GraphToken.isMinter(IA)
-    checks.iaMinter = (await client.readContract({
-      address: gtAddress as `0x${string}`,
-      abi: GRAPH_TOKEN_ABI,
-      functionName: 'isMinter',
-      args: [iaAddress as `0x${string}`],
-    })) as boolean
-    env.showMessage(`  IA minter: ${checks.iaMinter ? '✓' : '✗'}`)
-
-    // Check RM allocation on IA
-    let rmAllocationOk = false
-    try {
-      const rmAllocation = (await client.readContract({
-        address: iaAddress as `0x${string}`,
-        abi: ISSUANCE_ALLOCATOR_ABI,
-        functionName: 'getTargetAllocation',
-        args: [rmAddress as `0x${string}`],
-      })) as { totalAllocationRate: bigint; allocatorMintingRate: bigint; selfMintingRate: bigint }
-      const iaRate = (await client.readContract({
-        address: iaAddress as `0x${string}`,
-        abi: ISSUANCE_ALLOCATOR_ABI,
-        functionName: 'getIssuancePerBlock',
-      })) as bigint
-      rmAllocationOk =
-        rmAllocation.allocatorMintingRate === 0n && rmAllocation.selfMintingRate === iaRate && iaRate > 0n
-      env.showMessage(
-        `  RM allocation: ${rmAllocationOk ? '✓' : '✗'} (self: ${formatGRT(rmAllocation.selfMintingRate)}, allocator: ${formatGRT(rmAllocation.allocatorMintingRate)})`,
-      )
-    } catch {
-      env.showMessage(`  RM allocation: ✗ (not set)`)
-    }
-
-    // All checks passed?
-    if (checks.iaIntegrated && checks.iaMinter && rmAllocationOk) {
+    if (connect.complete) {
       env.showMessage(`\n✅ RM already connected to IssuanceAllocator\n`)
       return
     }
 
-    // Migration invariant: IA rate must match RM rate before connection
-    if (!checks.iaIntegrated) {
-      const rmRate = (await client.readContract({
-        address: rmAddress as `0x${string}`,
-        abi: REWARDS_MANAGER_DEPRECATED_ABI,
-        functionName: 'issuancePerBlock',
-      })) as bigint
-
-      const iaRate = (await client.readContract({
-        address: iaAddress as `0x${string}`,
-        abi: ISSUANCE_ALLOCATOR_ABI,
-        functionName: 'getIssuancePerBlock',
-      })) as bigint
-
-      if (iaRate !== rmRate) {
-        env.showMessage(
-          `\n❌ Migration invariant failed: IA.issuancePerBlock (${formatGRT(iaRate)}) != RM.issuancePerBlock (${formatGRT(rmRate)})`,
-        )
-        env.showMessage(`   IA must have the same overall rate as RM before connection.\n`)
-        process.exit(1)
-      }
-
-      env.showMessage(`  Migration invariant: ✓ IA rate == RM rate (${formatGRT(iaRate)})`)
+    // Migration invariant: before wiring RM → IA, the rates must align. Once IA is
+    // already integrated, downstream goals (issuance-allocate) may have intentionally
+    // rebalanced part of IA's rate to other targets, so we only enforce this on the
+    // initial wire-up.
+    if (!connect.iaIntegrated && !connect.ratesAligned) {
+      env.showMessage(
+        `\n❌ Migration invariant failed: IA.issuancePerBlock (${formatGRT(connect.iaRate)}) != RM.issuancePerBlock (${formatGRT(connect.rmRate)})`,
+      )
+      env.showMessage(`   IA must have the same overall rate as RM before connection.\n`)
+      process.exit(1)
+    }
+    if (!connect.iaIntegrated) {
+      env.showMessage(`  Migration invariant: ✓ IA rate == RM rate (${formatGRT(connect.iaRate)})`)
     }
 
     // Build TX batch — order:
@@ -173,23 +129,18 @@ export default createActionModule(
     const builder = await createGovernanceTxBuilder(env, `gip-0088-issuance-connect`)
 
     // 1. IA.setTargetAllocation(RM, 0, rate) — RM as 100% self-minting target
-    if (!rmAllocationOk) {
-      const iaRate = (await client.readContract({
-        address: iaAddress as `0x${string}`,
-        abi: ISSUANCE_ALLOCATOR_ABI,
-        functionName: 'getIssuancePerBlock',
-      })) as bigint
+    if (!connect.rmAllocationShape || !connect.fullyAllocated) {
       const data = encodeFunctionData({
         abi: SET_TARGET_ALLOCATION_ABI,
         functionName: 'setTargetAllocation',
-        args: [rmAddress as `0x${string}`, 0n, iaRate],
+        args: [rmAddress as `0x${string}`, 0n, connect.iaRate],
       })
       builder.addTx({ to: iaAddress, value: '0', data })
-      env.showMessage(`  + IA.setTargetAllocation(RM, 0, ${formatGRT(iaRate)})`)
+      env.showMessage(`  + IA.setTargetAllocation(RM, 0, ${formatGRT(connect.iaRate)})`)
     }
 
     // 2. RM.setIssuanceAllocator(IA) — RM accepts IA as its allocator
-    if (!checks.iaIntegrated) {
+    if (!connect.iaIntegrated) {
       const data = encodeFunctionData({
         abi: ISSUANCE_TARGET_ABI,
         functionName: 'setIssuanceAllocator',
@@ -200,7 +151,7 @@ export default createActionModule(
     }
 
     // 3. GraphToken.addMinter(IA) — IA needs minter role for allocator-minting
-    if (!checks.iaMinter) {
+    if (!connect.iaMinter) {
       const data = encodeFunctionData({
         abi: GRAPH_TOKEN_ABI,
         functionName: 'addMinter',

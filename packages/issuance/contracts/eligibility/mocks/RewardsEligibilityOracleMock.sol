@@ -4,12 +4,14 @@ pragma solidity ^0.8.27;
 import { BaseUpgradeable } from "../../common/BaseUpgradeable.sol";
 import { IGraphToken } from "../../common/IGraphToken.sol";
 
-/// @title MockRewardsEligibilityOracle
+/// @title RewardsEligibilityOracleMock
 /// @author The Graph Contributors
 /// @notice Testnet REO replacement. Indexers control their own eligibility.
 /// @dev Everyone starts eligible. Call setEligible(false) to become ineligible.
 /// Upgradeable via OZ TransparentUpgradeableProxy for deployment consistency.
-contract MockRewardsEligibilityOracle is BaseUpgradeable {
+/// Named with the `Mock` suffix (not the `Mock*` unit-test prefix) because it is
+/// a deployed, address-book-tracked stand-in REO, not a test fixture.
+contract RewardsEligibilityOracleMock is BaseUpgradeable {
     mapping(address indexer => bool isIneligible) private ineligible;
 
     /// @notice Emitted when an indexer changes their eligibility.

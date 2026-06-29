@@ -1,5 +1,3 @@
-import { configVariable } from 'hardhat/config'
-
 /**
  * Convert network name to env var prefix: arbitrumSepolia → ARBITRUM_SEPOLIA
  */

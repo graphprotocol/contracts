@@ -1,9 +1,9 @@
 import type { Environment } from '@rocketh/core/types'
 
+import { deploy, graph } from '../rocketh/deploy.js'
 import type { RegistryEntry } from './contract-registry.js'
 import { loadArtifactFromSource } from './deploy-implementation.js'
 import { requireDeployer } from './issuance-deploy-utils.js'
-import { deploy, graph } from '../rocketh/deploy.js'
 
 /**
  * Configuration for deploying a standalone (non-proxy) contract

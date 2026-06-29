@@ -306,7 +306,7 @@ const ISSUANCE_CONTRACTS = {
   RewardsEligibilityOracleMock: {
     artifact: {
       type: 'issuance',
-      path: 'contracts/eligibility/mocks/MockRewardsEligibilityOracle.sol/MockRewardsEligibilityOracle',
+      path: 'contracts/eligibility/mocks/RewardsEligibilityOracleMock.sol/RewardsEligibilityOracleMock',
     },
     proxyType: 'transparent',
     deployable: true,
@@ -405,6 +405,60 @@ export const Contracts = {
 } as const
 
 /**
+ * Issuance contract names that are valid eligibility-oracle targets *today*.
+ * `A`/`B` are the real oracle proxies (same artifact, independent deployments);
+ * `Mock` is the testnet oracle where indexers self-manage eligibility. Config
+ * selects one by its full contract name (or omits it for "no oracle"). Full
+ * names — rather than an `A`/`B`/`Mock` suffix enum — are deliberate: a future
+ * eligibility oracle may be a different contract entirely; add it here when it
+ * lands.
+ */
+export const ELIGIBILITY_ORACLE_CONTRACTS = [
+  'RewardsEligibilityOracleA',
+  'RewardsEligibilityOracleB',
+  'RewardsEligibilityOracleMock',
+] as const satisfies readonly IssuanceContractName[]
+
+/** Full contract name of an eligibility-oracle target (e.g. `RewardsEligibilityOracleA`). */
+export type EligibilityOracleContractName = (typeof ELIGIBILITY_ORACLE_CONTRACTS)[number]
+
+/**
+ * Resolve an eligibility-oracle contract name to its registry entry. Used by the
+ * GIP-0088 eligibility-integrate goal and its status/gate checks so "which REO
+ * is the target" is driven by config, not hard-coded.
+ */
+export function eligibilityOracleContract(name: EligibilityOracleContractName): RegistryEntry {
+  return Contracts.issuance[name]
+}
+
+/**
+ * Contract names the IssuanceAllocator can hold an explicit allocation for
+ * *today*. RewardsManager self-mints the bulk of issuance; RecurringAgreementManager
+ * is allocator-minted for agreement payments. Full names (not a suffix enum) are
+ * deliberate: a future issuance target may be a different contract — add it here
+ * when it lands. (DefaultAllocation is the allocator's residual sink, set via
+ * `setDefaultTarget`, not an explicit per-target allocation, so it is not listed.)
+ */
+export const ALLOCATION_TARGET_CONTRACTS = ['RewardsManager', 'RecurringAgreementManager'] as const
+
+/** Full contract name of an IssuanceAllocator target (e.g. `RewardsManager`). */
+export type AllocationTargetContractName = (typeof ALLOCATION_TARGET_CONTRACTS)[number]
+
+/**
+ * Resolve an allocation-target contract name to its registry entry. Targets span
+ * address books (RewardsManager is horizon, the rest issuance), so this is a
+ * switch rather than a single-book lookup.
+ */
+export function allocationTargetContract(name: AllocationTargetContractName): RegistryEntry {
+  switch (name) {
+    case 'RewardsManager':
+      return Contracts.horizon.RewardsManager
+    case 'RecurringAgreementManager':
+      return Contracts.issuance.RecurringAgreementManager
+  }
+}
+
+/**
  * Get contract metadata by address book and name
  */
 export function getContractMetadata(addressBook: AddressBookType, name: string): ContractMetadata | undefined {
@@ -435,3 +489,25 @@ export function getContractsByAddressBook(addressBook: AddressBookType): Array<[
 export const PROXIED_ISSUANCE_CONTRACTS = Object.entries(ISSUANCE_CONTRACTS)
   .filter(([_, meta]) => 'proxyType' in meta && meta.proxyType === 'transparent')
   .map(([name]) => name)
+
+/**
+ * Iterate every registry entry that is a deployable proxy across all address books.
+ *
+ * Yields fully-resolved {@link RegistryEntry} objects (name + addressBook embedded),
+ * filtered to those that have both `deployable: true` and a `proxyType`. Used by
+ * goal-orchestrator upgrade scripts that need to enumerate every proxy the registry
+ * knows about and feed each through the shared upgrade-TX builder.
+ *
+ * Per-component upgrade scripts (`02_upgrade.ts`) operate on a single entry and
+ * don't need this — they pass `Contracts.<book>.<name>` directly through the
+ * `createUpgradeModule` factory.
+ */
+export function* allUpgradeableEntries(): Generator<RegistryEntry> {
+  const books: AddressBookType[] = ['horizon', 'subgraph-service', 'issuance']
+  for (const ab of books) {
+    for (const entry of Object.values(Contracts[ab]) as RegistryEntry[]) {
+      if (!entry.deployable || !entry.proxyType) continue
+      yield entry
+    }
+  }
+}

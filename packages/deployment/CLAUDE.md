@@ -19,6 +19,8 @@ Before modifying any deployment scripts in `deploy/`, read:
 
 ## Additional Documentation
 
+- [Gip0088.md](docs/Gip0088.md) - GIP-0088 reference guide: scripts, tags, preconditions
+- [Gip0088Runbook.md](docs/Gip0088Runbook.md) - GIP-0088 operational runbook: staged, gated execution plan
 - [GovernanceWorkflow.md](docs/GovernanceWorkflow.md) - Governance TX generation and execution
 - [LocalForkTesting.md](docs/LocalForkTesting.md) - Fork mode testing workflow
 - [Architecture.md](docs/Architecture.md) - Package architecture

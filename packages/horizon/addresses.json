@@ -71,14 +71,14 @@
       "address": "0x4b5D3Da463F7E076bb7CDF5030960bf123245681",
       "proxy": "transparent",
       "proxyAdmin": "0x36dFE73C38e0340C8925BA6a68aE706b74340156",
-      "implementation": "0x25cf4a6ccd1f829d346cfda69112cd66639aaaa8",
+      "implementation": "0x827cfa1ecb452931aaa50dc66beb4d763649f206",
       "implementationDeployment": {
-        "txHash": "0x38c2d58d65e7ba66779cc2c45a9348d6ecb8ecedf80703be5769a3259311db02",
+        "txHash": "0x7c7026c75372dd421daf3360fde968eeb0f105a5d9e51e7a7ea0e0c7b892b60b",
         "argsData": "0x0000000000000000000000009db3ee191681f092607035d9bda6e59fbeaca6950000000000000000000000000000000000000000000000000000000000002a30",
-        "bytecodeHash": "0xc422e0b089ad8479e55a9a768d5bbea929745c83067496ff60a8f47dc2a08d90",
-        "blockNumber": 258351112,
-        "timestamp": "2026-04-10T15:30:13.000Z",
-        "verified": "https://sepolia.arbiscan.io/address/0x25cf4a6ccd1f829d346cfda69112cd66639aaaa8#code"
+        "bytecodeHash": "0x00c6fe965489c9fe484cc508e52c1a674170b16d2fd321fcda3f9c702553ead0",
+        "blockNumber": 275435416,
+        "timestamp": "2026-06-09T13:58:07.000Z",
+        "verified": "https://sepolia.arbiscan.io/address/0x827cfa1ecb452931aaa50dc66beb4d763649f206#code"
       },
       "proxyDeployment": {
         "verified": "https://sepolia.arbiscan.io/address/0x4b5D3Da463F7E076bb7CDF5030960bf123245681#code"
@@ -130,14 +130,14 @@
     "HorizonStaking": {
       "address": "0x865365C425f3A593Ffe698D9c4E6707D14d51e08",
       "proxy": "graph",
-      "implementation": "0x2333c59d080c5641c804579165641d0162a7249b",
+      "implementation": "0xf53b3910ecaeed1aac4bb5ba9840d25e36e52b7c",
       "implementationDeployment": {
-        "txHash": "0x0cb033e6595517c53daf5e0c736c9a8b49e92e830a894ac05f9fdd81acd6fcfb",
+        "txHash": "0x4759fd4b4e139d9747de279a2a384180ed66343c26af17e0c0b17801fc2716a4",
         "argsData": "0x0000000000000000000000009db3ee191681f092607035d9bda6e59fbeaca695000000000000000000000000c24a3dac5d06d771f657a48b20ce1a671b78f26b",
-        "bytecodeHash": "0x4fcc568f70748b19c8a90480ea1521870bac358681074768388098ef263ed559",
-        "blockNumber": 258348283,
-        "timestamp": "2026-04-10T15:16:25.000Z",
-        "verified": "https://sepolia.arbiscan.io/address/0x2333c59d080c5641c804579165641d0162a7249b#code"
+        "bytecodeHash": "0xed53dca54465c51e6778244bf3453b16ba5d1a79e494bb522c9dc8d1504d8ba8",
+        "blockNumber": 275435294,
+        "timestamp": "2026-06-09T13:57:36.000Z",
+        "verified": "https://sepolia.arbiscan.io/address/0xf53b3910ecaeed1aac4bb5ba9840d25e36e52b7c#code"
       },
       "proxyDeployment": {
         "verified": "https://sepolia.arbiscan.io/address/0x865365C425f3A593Ffe698D9c4E6707D14d51e08#code"
@@ -168,14 +168,14 @@
       "address": "0x0b18befc60455121ad66ae6e4a647955fcde3900",
       "proxy": "transparent",
       "proxyAdmin": "0x59d83d4bd5f880c5e635273e4fb12e0a8e827f1d",
-      "implementation": "0xf4f75d6e1021db1b83b8bccfefa1a0ea06989fa1",
+      "implementation": "0xa1af9300209cc60de6ce39752d57f04ab7e29432",
       "implementationDeployment": {
-        "txHash": "0x579640729801f30ddec1e85b7ae6b7b9c51cc2502c1d96a0b698dbb553a1dafa",
+        "txHash": "0x43ce5f6b46d45a5263af924cb9c5d32c506c6214d2678dfafd95881efc161148",
         "argsData": "0x0000000000000000000000009db3ee191681f092607035d9bda6e59fbeaca6950000000000000000000000000000000000000000000000000000000000007080",
-        "bytecodeHash": "0xe475513d113bac487d6c2a5504f73e8c1a7962dd611aa981e09cf04ebb0c5486",
-        "blockNumber": 258348301,
-        "timestamp": "2026-04-10T15:16:30.000Z",
-        "verified": "https://sepolia.arbiscan.io/address/0xf4f75d6e1021db1b83b8bccfefa1a0ea06989fa1#code"
+        "bytecodeHash": "0x47f042a65486346b451264af80bb4207b06252c1c5fda8689822662285f16437",
+        "blockNumber": 275435313,
+        "timestamp": "2026-06-09T13:57:41.000Z",
+        "verified": "https://sepolia.arbiscan.io/address/0xa1af9300209cc60de6ce39752d57f04ab7e29432#code"
       },
       "proxyDeployment": {
         "txHash": "0x6fb822cdafa22542bed36045d77705c1354770feed50d67ef69ecde1bf668e28",

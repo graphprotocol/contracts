@@ -2,15 +2,13 @@
 
 > **Navigation**: [← Back to REO Testing](../README.md)
 
-Separated from the REO test plan — IssuanceAllocator is independent of the Rewards Eligibility Oracle. Test when deployed.
-
 ## Contract Addresses
 
-| Contract                  | Arbitrum Sepolia                             | Arbitrum One |
-| ------------------------- | -------------------------------------------- | ------------ |
-| IssuanceAllocator (proxy) | Not yet deployed                             | TBD          |
-| RewardsManager (proxy)    | `0x1f49cae7669086c8ba53cc35d1e9f80176d67e79` | TBD          |
-| GraphToken (L2)           | `0xf8c05dcf59e8b28bfd5eed176c562bebcfc7ac04` | TBD          |
+| Contract                  | Arbitrum Sepolia                             | Arbitrum One                                 |
+| ------------------------- | -------------------------------------------- | -------------------------------------------- |
+| IssuanceAllocator (proxy) | `0x76a0d75651d4db83f74ac502b86a0ae4e19ac38b` | Not yet deployed                             |
+| RewardsManager (proxy)    | `0x1f49cae7669086c8ba53cc35d1e9f80176d67e79` | `0x971b9d3d0ae3eca029cab5ea1fb0f72c85e6a525` |
+| GraphToken (L2)           | `0xf8c05dcf59e8b28bfd5eed176c562bebcfc7ac04` | `0x9623063377ad1b27544c965ccd7342f7ea7e88c7` |
 
 ---
 
@@ -27,7 +25,9 @@ Separated from the REO test plan — IssuanceAllocator is independent of the Rew
 cast call <ISSUANCE_ALLOCATOR> "getIssuancePerBlock()(uint256)" --rpc-url <RPC>
 
 # Check RewardsManager target allocation
-cast call <ISSUANCE_ALLOCATOR> "getTargetIssuancePerBlock(address)(uint256,uint256)" <REWARDS_MANAGER> --rpc-url <RPC>
+# Returns a TargetIssuancePerBlock struct:
+# (allocatorIssuanceRate, allocatorIssuanceBlockAppliedTo, selfIssuanceRate, selfIssuanceBlockAppliedTo)
+cast call <ISSUANCE_ALLOCATOR> "getTargetIssuancePerBlock(address)((uint256,uint256,uint256,uint256))" <REWARDS_MANAGER> --rpc-url <RPC>
 
 # Check if IssuanceAllocator is minter
 cast call <GRAPH_TOKEN> "isMinter(address)(bool)" <ISSUANCE_ALLOCATOR> --rpc-url <RPC>

@@ -1,12 +1,21 @@
 {
   // Deployment configuration for Arbitrum One (mainnet)
-  // Values here are committed for reference and reproducibility.
+
+  RewardsManager: {
+    eligibilityOracle: 'RewardsEligibilityOracleA',
+  },
 
   IssuanceAllocator: {
-    // RAM allocation: how much issuance flows to RecurringAgreementManager
-    // ramAllocatorMintingGrtPerBlock: GRT per block minted by IA and sent to RAM
-    // ramSelfMintingGrtPerBlock: 0 (RAM does not self-mint)
-    ramAllocatorMintingGrtPerBlock: '6',
-    ramSelfMintingGrtPerBlock: '0',
+    // Explicit issuance allocation table, by target contract name. The rates must
+    // sum to issuancePerBlock, which must equal RM's on-chain issuance rate — the
+    // scripts error on mismatch and never set the rate from config.
+    //
+    // issuancePerBlock is RM's live on-chain rate (120.73 GRT/block). RAM keeps
+    // its intended 6; RM self-mints the remainder (120.73 - 6 = 114.73).
+    issuancePerBlock: '120.73',
+    allocations: {
+      RewardsManager: { selfGrtPerBlock: '114.73' },
+      RecurringAgreementManager: { allocatorGrtPerBlock: '6' },
+    },
   },
 }

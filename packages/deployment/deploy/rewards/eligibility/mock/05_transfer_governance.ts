@@ -12,7 +12,7 @@ import { graph } from '@graphprotocol/deployment/rocketh/deploy.js'
 import type { PublicClient } from 'viem'
 
 /**
- * Transfer governance of MockRewardsEligibilityOracle
+ * Transfer governance of RewardsEligibilityOracleMock
  *
  * Revokes deployer's GOVERNOR_ROLE and transfers ProxyAdmin ownership
  * to the protocol governor.

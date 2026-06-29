@@ -25,13 +25,13 @@ curl "https://gateway.thegraph.com/api/$GRAPH_API_KEY/subgraphs/id/DZz4kDTdmzWLW
 
 ## Contract Addresses
 
-| Contract                 | Address                                      |
-| ------------------------ | -------------------------------------------- |
-| RewardsEligibilityOracle | TBD                                          |
-| RewardsManager           | `0x971b9d3d0ae3eca029cab5ea1fb0f72c85e6a525` |
-| SubgraphService          | `0xb2bb92d0de618878e438b55d5846cfecd9301105` |
-| GraphToken (L2)          | `0x9623063377ad1b27544c965ccd7342f7ea7e88c7` |
-| Controller               | `0x0a8491544221dd212964fbb96487467291b2c97e` |
+| Contract                  | Address                                      |
+| ------------------------- | -------------------------------------------- |
+| RewardsEligibilityOracleA | `0x8ec2767a9d9ba02b4e09e8ff4fac2e14a340f304` |
+| RewardsManager            | `0x971b9d3d0ae3eca029cab5ea1fb0f72c85e6a525` |
+| SubgraphService           | `0xb2bb92d0de618878e438b55d5846cfecd9301105` |
+| GraphToken (L2)           | `0x9623063377ad1b27544c965ccd7342f7ea7e88c7` |
+| Controller                | `0x0a8491544221dd212964fbb96487467291b2c97e` |
 
 ---
 
