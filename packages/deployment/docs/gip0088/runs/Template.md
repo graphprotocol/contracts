@@ -50,6 +50,9 @@ the reason in the Waivers section.
 
 ### Phase C — Activation
 
+- [ ] **S5a** Pause RecurringCollector (DIPs dormant) — guardian / date / by:
+      tx hash:
+- [ ] **G6a** dips-dormant (`RC.paused() == true`) — PASS date / by:
 - [ ] **S6** Generate the eligibility-integrate batch — date / by:
       batch file:
 - [ ] **G7** eligibility-batch-reviewed — PASS date / reviewer:
