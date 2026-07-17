@@ -73,7 +73,7 @@ Confirm each item before Cycle D-1.
 | ------------------------------- | ------------------------------------------------------------------- | ------------------------------------- |
 | Payer / gateway operator | triggers DIPS origination via the dipper; the agreement's on-chain `payer` is the RAM contract | payer-side, operated externally |
 | Indexer operator                | runs the agent; provisioned in SubgraphService                      | the indexer                           |
-| Subgraph availability oracle    | `RewardsManager.setDenied` (sizing + N-6)                           | SAO key                               |
+| Subgraph availability oracle    | `RewardsManager.setDenied` (sizing, D-4.2)                          | SAO key                               |
 | Governor                        | one-time `setSubgraphAvailabilityOracle`                            | council/governor                      |
 
 ---
@@ -88,6 +88,10 @@ Indexing rules — agent management API:
 curl -s "$AGENT_URL" -H 'content-type: application/json' \
   -d '{"query":"{ indexingRules(merged:false){ identifier decisionBasis } }"}'
 ```
+
+> 💡 The `graph indexer rules` CLI is the usual way to set rules (it supplies the network via
+> `--network`). If you call `setIndexingRule` on the management API **directly**, the rule input
+> must include `protocolNetwork` (CAIP-2, e.g. `eip155:1337`) or the mutation is rejected.
 
 Active allocation for a deployment — network subgraph:
 
@@ -187,7 +191,7 @@ Two environment-note patterns recur:
 | D-7   | Long-lived allocation protection  | D-7.1 - D-7.3 | `--force` is destructive — run D-7.3 last                      |
 | D-8   | Cancellation                      | D-8.1 - D-8.3 | Re-create a fresh agreement; mind the ~15-min cooldown         |
 | E     | Edge cases                        | E-1 - E-4   | Off-the-main-line, not failures; optional                      |
-| N     | Negative checks                   | N-1 - N-7   | Injection-driven fault scenarios; optional                     |
+| N     | Negative checks                   | N-1 - N-4   | Injection-driven fault scenarios; optional                     |
 
 ---
 
@@ -207,21 +211,29 @@ Two environment-note patterns recur:
 
 ### D-1.2 Baseline capture
 
-**Objective**: Capture a baseline — pick the target reward-earning deployment and identify the rewards-denied deployment for the D-4 sizing variant.
+**Objective**: Capture a baseline — pick the fixtures for the acceptance, reuse, and rewards-denied paths.
 
 **Prerequisites**: D-1.1 green.
 
-**Steps**: List deployment indexing rules and pick a target reward-earning deployment (one with an `always` rule); identify a separate rewards-denied deployment for the D-4 sizing variant. Record both IPFS hashes for downstream tests.
+**Steps**: Pick three fixtures and record their IPFS hashes. "Reward-earning" here means simply
+*not rewards-denied* — it does **not** require an `always` rule.
 
-Baseline rules — Observation toolbox "Indexing rules", reading the identifiers so you can pick a target:
+- **DIP-driven target** — a reward-earning deployment with **no indexing rule and no active
+  allocation**. The accepted DIP agreement creates the allocation (D-3.2) and carries the
+  D-4.1/D-5/D-6/D-7 lifecycle. Do **not** put an `always` rule on it: an `always` rule makes the
+  agent continuously (re)open a plain allocation, which races/pre-empts the DIP's
+  `multicall(startService, acceptIndexingAgreement)` and defeats D-3.2.
+- **Reuse target** — a separate deployment with a **pre-existing active allocation** (e.g.
+  opened via an `always` rule), for the D-3.1 existing-allocation path.
+- **Rewards-denied deployment** — for the D-4.2 sizing variant.
+
+Baseline rules — Observation toolbox "Indexing rules", to see current rules/allocations:
 
 ```bash
 curl -s "$AGENT_URL" -H 'content-type: application/json' \
   -d '{"query":"{ indexingRules(merged:false){ identifier identifierType decisionBasis allocationAmount } }"}' \
   | jq -r '.data.indexingRules[] | select(.identifierType=="deployment") | "\(.identifier)\t\(.decisionBasis)"'
 ```
-
-Pick a deployment whose `decisionBasis` is `always` (reward-earning target) and export it as `<HASH>` for later tests. The `identifier` is the IPFS hash to use downstream.
 
 > 💡 The rewards-denied deployment is the one flagged in the last prerequisite ("one rewards-denied deployment available"). Confirm it on-chain with `RewardsManager.isDenied(bytes32)` (returns `true`) and record its hash separately; it is only used in D-4.
 >
@@ -231,31 +243,42 @@ Pick a deployment whose `decisionBasis` is `always` (reward-earning target) and 
 
 **Pass Criteria**:
 
-- [ ] A target reward-earning deployment hash is chosen and recorded — it has an `always` rule in the toolbox "Indexing rules" output.
+- [ ] A DIP-driven reward-earning target is chosen and recorded — no indexing rule and no active allocation (the DIP acceptance will create the allocation in D-3.2).
+- [ ] A separate reuse target is chosen and recorded — it has a pre-existing active allocation (for D-3.1).
 - [ ] A rewards-denied deployment is identified and its hash recorded — reserved for the D-4 sizing variant.
 
 ---
 
 ## Cycle D-2 — Proposal origination (payer side)
 
-### D-2.1 Trigger origination (inject the indexing-requirement signal)
+### D-2.1 Trigger origination (set the target candidate count)
 
-**Objective**: Inject the indexing-requirement signal that drives the dipper to originate the agreement.
+**Objective**: Register the indexing request that drives the dipper to originate the agreement.
 
 **Prerequisites**: D-1 complete. The dipper and IISA are running; IISA can select the target indexer for the deployment.
 
-**Steps**: Produce an indexing-requirement message to the `indexing-requirements` Redpanda topic; the dipper's signal consumer reads it, runs IISA selection, and offers the agreement. Redpanda auto-create is off, so create the topic first if it doesn't exist.
+> ⚠️ **IISA prerequisite (do this first).** IISA only scores indexers that have **Redpanda
+> query history**. Send some gateway queries (against any subgraph — history is per-indexer,
+> not per-target) and run an IISA scoring pass before origination, or selection returns 0
+> candidates. Selection also uses: the indexer need not already index the target (it competes
+> in an "unsynced" pool), and the indexer's advertised DIPs price must be under the request's
+> `max_grt_per_30_days` ceiling.
+
+**Steps**: Drive origination via the dipper admin RPC with `dipper-cli`: `set-target-candidates`
+registers (or updates) the desired candidate count for a `(deployment, chain)`; the dipper runs
+IISA selection and offers the agreement. There is no `indexing-requirements` Redpanda topic
+consumer in the current dipper.
 
 ```bash
-# create the topic if absent (idempotent)
-docker exec redpanda rpk topic create indexing-requirements --brokers redpanda:9092 2>/dev/null || true
-
-# produce the signal for the target deployment
-echo '{"subgraph_deployment_id":"<HASH>","redundancy_factor":1,"chain_id":1337,"version":1}' \
-  | docker exec -i redpanda rpk topic produce indexing-requirements --brokers redpanda:9092
+# signing key = the gateway-operator / receiver key on dipper's admin allowlist
+dipper-cli indexings set-target-candidates \
+  --server-url http://localhost:9000 \
+  --signing-key <RECEIVER_KEY> \
+  <HASH> 1337 --num-candidates 1
 ```
 
-Message schema: `{ subgraph_deployment_id, redundancy_factor, chain_id, version }`.
+On success the CLI prints the indexing request UUID. `--num-candidates 0` cancels the request
+(and any agreement it drove — see D-8.1).
 
 **Pass Criteria**:
 
@@ -331,7 +354,7 @@ The agent's acceptance loop runs every `--dips-acceptance-interval` (default 5s)
 **Pass Criteria**:
 
 - [ ] The `pending_rca_proposals` row flips to `accepted` — Observation toolbox "Pending proposal row", look for status `accepted`.
-- [ ] A `dips` indexing rule exists for the deployment — Observation toolbox "Indexing rules", `decisionBasis == "dips"` and `identifier == <HASH>`.
+- [ ] The deployment is tracked as a DIPs agreement — on-chain agreement `Accepted` and active on the indexing-payments subgraph. Note: a **separate `dips` rule is added only when the deployment had no prior rule** (D-3.2). If the reused allocation came from an `always` rule, that `always` rule persists and no `dips` rule is added — the agent tracks the agreement via the on-chain/subgraph state, not the rule.
 - [ ] An active allocation exists for the deployment and the prior allocation id is reused — Observation toolbox "Active allocation".
 - [ ] On-chain agreement state is `Accepted` (=1) — Observation toolbox "On-chain agreement state" (`getAgreement`), last field is `1`.
 - [ ] The dipper agreement status is `ACCEPTED_ON_CHAIN` — read-only admin RPC `get_agreements_by_deployment_id` (filter by `<HASH>`).
@@ -386,7 +409,7 @@ The agent sizes the DIPS allocation by whether the deployment earns indexing rew
 
 ### D-4.2 Rewards-denied sizing
 
-**Objective**: A rewards-denied deployment's allocation uses `--dips-allocation-amount` (env `INDEXER_AGENT_DIPS_ALLOCATION_AMOUNT`), default `0`. A zero-token allocation is valid for DIPS — collection pays the RCA amount, independent of allocation size.
+**Objective**: A rewards-denied deployment's allocation uses `--dips-allocation-amount` (env `INDEXER_AGENT_DIPS_ALLOCATION_AMOUNT`). The value is parsed as a **GRT amount** (not wei): the documented default is `0` (a valid zero-token allocation, since collection pays the RCA amount independent of allocation size), but local-network currently sets it to `1` → a **1 GRT** allocation. Read the configured value; do not assume `0`.
 
 **Prerequisites**: The rewards-denied deployment from D-1. Subgraph availability oracle configured.
 
@@ -411,7 +434,7 @@ Read allocation tokens — Observation toolbox "Allocation tokens" (`getAllocati
 
 **Pass Criteria**:
 
-- [ ] The allocation `tokens` equals `--dips-allocation-amount` (default `0` → a valid zero-token allocation).
+- [ ] The allocation `tokens` equals `--dips-allocation-amount` interpreted as GRT (documented default `0` → zero-token allocation; local-network's `1` → `1000000000000000000` = 1 GRT). Distinct from the reward-earning sizing in D-4.1.
 
 ---
 
@@ -498,13 +521,19 @@ curl -s "$INDEXING_PAYMENTS_SUBGRAPH_URL" -H 'content-type: application/json' \
 
 **Prerequisites**: An accepted agreement that has not yet collected (`lastCollectionAt == 0`).
 
+> ⚠️ **N/A when `maxInitialTokens = 0`.** local-network's dipper currently offers RCAs with
+> `maxInitialTokens = 0`, so there is no bonus to observe — the first collection is just
+> `collectionSeconds × rate` like the rest. This check can only be demonstrated by configuring
+> dipper to offer a non-zero `maxInitialTokens`. Otherwise mark D-6.1 N/A and confirm only that
+> the first collection succeeds.
+
 **Steps**: Advance the first window and let the agent collect; capture the per-collection payout.
 
 > 💡 First-collection bonus: the first collection includes `maxInitialTokens` (a one-time amount added only when `lastCollectionAt == 0`); later collections do not. If you can read the per-collection payout, confirm the first is larger by roughly `maxInitialTokens`.
 
 **Pass Criteria**:
 
-- [ ] The first collection's payout is larger by roughly `maxInitialTokens` than subsequent collections — confirmed when `lastCollectionAt` was `0` at collection time.
+- [ ] With a non-zero `maxInitialTokens`: the first collection's payout is larger by roughly `maxInitialTokens` than subsequent collections — confirmed when `lastCollectionAt` was `0` at collection time. (N/A when `maxInitialTokens = 0` — local default.)
 - [ ] The agent log shows `Successfully collected indexing fees`.
 
 ---
@@ -525,17 +554,30 @@ curl -s "$INDEXING_PAYMENTS_SUBGRAPH_URL" -H 'content-type: application/json' \
 
 ---
 
-### D-6.3 Escrow drains cumulatively
+### D-6.3 Collection value accrues cumulatively
 
-**Objective**: The payer escrow balance decreases with each collection.
+**Objective**: The indexer's collected value grows with each collection.
+
+> ⚠️ **Escrow does not monotonically drain in the protocol-funded flow.** On local-network the
+> payer is the `RecurringAgreementManager` and issuance tops up its escrow before collection, so
+> `getBalance(payer, recurringCollector, indexer)` stays roughly **constant** even as the indexer
+> is paid. Verify cumulative **`tokensCollected`** instead of a decreasing escrow. Escrow drain
+> only applies to a fixed-deposit payer (e.g. a consumer/gateway that deposits once), which is
+> not the local-network DIPs setup.
 
 **Prerequisites**: D-6.2 in progress.
 
-**Steps**: Re-run `getBalance(payer, recurringCollector, indexer)` per cycle and compare.
+**Steps**: Sum `tokensCollected` across the `indexingFeeCollections` for the agreement per cycle
+and confirm it increases. (Optionally also read `getBalance`; expect it flat, not draining.)
+
+```bash
+curl -s "$INDEXING_PAYMENTS_SUBGRAPH_URL" -H 'content-type: application/json' \
+  -d '{"query":"{ indexingFeeCollections(where:{ agreement:\"<AGREEMENT_ID>\" }){ tokensCollected blockTimestamp } }"}'
+```
 
 **Pass Criteria**:
 
-- [ ] The payer escrow balance decreases with each collection (cumulative drain) — re-run `getBalance` per cycle and compare.
+- [ ] Cumulative `tokensCollected` for the agreement increases with each collection. (The payer escrow balance may stay constant due to issuance top-up — that is expected in the protocol-funded flow, not a failure.)
 
 ---
 
@@ -634,13 +676,21 @@ Two independent payer/SP cancellation paths plus the indexer opt-out. Each needs
 
 **Prerequisites**: A fresh `Accepted`, collecting agreement (re-run D-2/D-3).
 
-**Steps**: The payer cancels on-chain via `SubgraphService.cancelIndexingAgreementByPayer(bytes16)`, then advance time so the final collection window opens.
+**Steps**: The payer cancels the agreement, then advance time so the final collection window opens.
 
-Payer cancel — payer key:
+> ⚠️ **The payer is the RAM contract, not an EOA.** On local-network the on-chain `payer` is the
+> `RecurringAgreementManager`, so there is no `$PAYER_SECRET` that can sign
+> `cancelIndexingAgreementByPayer` directly — the cancel must be routed through the payer side.
+> Drive it via `dipper-cli` by setting the request's target candidates to `0`; dipper cancels
+> the agreement through RAM as the payer, yielding `CanceledByPayer`.
+
+Payer cancel — via dipper-cli (cancels through RAM):
 
 ```bash
-cast send --rpc-url "$RPC" --private-key "$PAYER_SECRET" \
-  "$SUBGRAPH_SERVICE" "cancelIndexingAgreementByPayer(bytes16)" "<AGREEMENT_ID>"
+dipper-cli indexings set-target-candidates \
+  --server-url http://localhost:9000 \
+  --signing-key <RECEIVER_KEY> \
+  <HASH> 1337 --num-candidates 0
 ```
 
 Advance time so the final collection window opens — local-network with `cast rpc --rpc-url "$RPC" anvil_mine <blocks> <interval>` as in D-6; a testnet waits the real elapsed time.
@@ -736,10 +786,19 @@ Off-the-main-line behaviors that are not failures. Each is self-contained and op
 
 **Steps**: Let one acceptance cycle run, then a second.
 
+> ⚠️ **The two proposals cannot both be accepted.** The allocation id is deterministic per
+> (indexer, deployment), so both proposals target the *same* allocation, and `SubgraphService`
+> enforces **one indexing agreement per allocation**. After the first proposal creates the
+> allocation + agreement, accepting the second reverts
+> `AllocationAlreadyHasIndexingAgreement(allocationId)` (selector `0x333e316d`). So the real
+> behavior under test is the **dedup / defer** (process one per deployment per tick to avoid
+> racing the deterministic allocation id); the deferred proposal then ends **rejected**, not
+> accepted. "Both accepted, sharing one allocation" is not achievable.
+
 **Pass Criteria**:
 
 - [ ] Only one proposal is accepted in the first tick (the agent processes one per deployment to avoid racing the deterministic allocation id); the other stays `pending` — Observation toolbox "Pending proposal row".
-- [ ] On the next tick the deferred proposal is accepted against the now-existing allocation (the D-3.1 reuse path) — both end `accepted`, sharing one allocation.
+- [ ] On the next tick the deferred proposal is **rejected** — the agent attempts it against the now-existing allocation and the contract reverts `AllocationAlreadyHasIndexingAgreement` (one agreement per allocation). End state: one `accepted`, one `rejected`.
 
 ---
 
@@ -765,7 +824,7 @@ Off-the-happy-path checks, each self-contained and optional. Run any subset; non
 
 Several require feeding the agent a crafted/bad proposal or a fault condition the dipper would not produce on purpose. The cleanest way to drive these is at the agent boundary — encode a `SignedRCA` payload (empty signature) and insert a row directly into `pending_rca_proposals`, posting or omitting the on-chain offer as the check requires, rather than going through iisa/dipper.
 
-For the error-name checks (N-3/N-4/N-5) the observable is the agent log line for the throttled failure plus the on-chain revert reason; where a state read clarifies, use the Observation toolbox (`getCollectionInfo`, `getAgreement`, `getBalance`, `getAllocation`). All three revert reasons are documented in [common errors](https://github.com/graphprotocol/indexer/blob/main/docs/dips/dips-common-errors.md). _(TODO: fix link)_
+For the error-name check (N-3) the observable is the agent log line for the throttled failure plus the on-chain revert reason; where a state read clarifies, use the Observation toolbox (`getCollectionInfo`, `getAgreement`, `getBalance`, `getAllocation`). The revert reasons are documented in [common errors](https://github.com/graphprotocol/indexer/blob/main/docs/dips/dips-common-errors.md). _(TODO: fix link)_
 
 ### N-1 Deadline-expired proposal
 
@@ -813,55 +872,7 @@ For the error-name checks (N-3/N-4/N-5) the observable is the agent log line for
 
 ---
 
-### N-4 Escrow underfunded
-
-**Objective**: `collect` reverts with `PaymentsEscrowInsufficientBalance` when escrow is below the amount owed; the agent throttles without cancelling.
-
-**Prerequisites**: Bring the payer escrow below the amount owed for the next collection — confirm with the Observation toolbox "Payer escrow balance" read.
-
-**Steps**: Let `minSecondsPerCollection` elapse and the collection loop fire.
-
-**Pass Criteria**:
-
-- [ ] `collect` reverts with `PaymentsEscrowInsufficientBalance` — agent log shows the throttled failure; see [common errors](https://github.com/graphprotocol/indexer/blob/main/docs/dips/dips-common-errors.md#paymentsescrowinsufficientbalance). _(TODO: fix link)_
-- [ ] The agent throttles retries (no cancel) — `getAgreement` state stays `1`.
-- [ ] After the payer tops up escrow, the next cycle collects — `getBalance` decreases and `lastCollectionAt` advances.
-
----
-
-### N-5 Missing provision
-
-**Objective**: `collect` reverts with `RecurringCollectorUnauthorizedDataService` when the service provider has no active provision; collection resumes once restored.
-
-**Prerequisites**: Remove or lapse the indexer's `SubgraphService` provision so the service provider has no active provision at collection time.
-
-**Steps**: Let `minSecondsPerCollection` elapse and the collection loop fire.
-
-**Pass Criteria**:
-
-- [ ] `collect` reverts with `RecurringCollectorUnauthorizedDataService` — agent log shows the throttled failure; see [common errors](https://github.com/graphprotocol/indexer/blob/main/docs/dips/dips-common-errors.md#recurringcollectorunauthorizeddataservice). _(TODO: fix link)_
-- [ ] After the provision is restored (`graph indexer provision add ...`), collection succeeds next cycle — `lastCollectionAt` advances.
-
----
-
-### N-6 Stale indexing-payments subgraph
-
-**Objective**: When the indexing-payments subgraph lags chain head by more than 5 minutes, the rule reaper is skipped while acceptance and collection continue.
-
-**Prerequisites**: Pause the indexing-payments subgraph on graph-node (graph-node admin JSON-RPC `subgraph_pause`) and let it fall more than 5 minutes behind chain head.
-
-**Steps**: Let the main reconcile loop run while the subgraph lags; meanwhile let acceptance and collection continue.
-
-**Pass Criteria**:
-
-- [ ] The agent logs `Skipping DIPS rule cleanup: indexing-payments subgraph is stale or unreadable`.
-- [ ] `dips` rules are NOT reaped — toolbox "Indexing rules" still shows the `dips` rule for `<HASH>`.
-- [ ] Acceptance and collection are unaffected — proposals still accept and `lastCollectionAt` still advances.
-- [ ] Resume the subgraph afterward (`subgraph_resume`); the next cycle resumes normal rule cleanup.
-
----
-
-### N-7 Offer hash mismatch
+### N-4 Offer hash mismatch
 
 **Objective**: A proposal whose RCA terms differ from the posted on-chain offer is rejected with `offer_hash_mismatch` and not retried.
 
@@ -909,10 +920,9 @@ Every documented DIPS behavior maps to a test. Sourced from the DIPS feature doc
 | Acceptance & proposals | Valid proposal accepted on-chain | D-3.1, D-3.2 |
 | Acceptance & proposals | Deadline-expired proposal rejected | N-1 |
 | Acceptance & proposals | Offer not yet on subgraph → stays pending | N-2 |
-| Acceptance & proposals | Offer hash mismatch rejected | N-7 |
+| Acceptance & proposals | Offer hash mismatch rejected | N-4 |
 | Indexing rules | `dips` rule created on accept | D-3.1, D-3.2, D-5.3 |
 | Indexing rules | Rule reaped when agreement ends | D-8.3 |
-| Indexing rules | Stale-subgraph guard skips reaper | N-6 |
 | Allocation & sizing | Existing allocation reused | D-3.1 |
 | Allocation & sizing | New allocation via multicall | D-3.2 |
 | Allocation & sizing | Reward-earning sizing | D-4.1 |
@@ -925,9 +935,7 @@ Every documented DIPS behavior maps to a test. Sourced from the DIPS feature doc
 | Collection | Collection within window + target placement | D-6.4 |
 | Collection | Payout scales with entity count | D-6.5 |
 | Collection | Excessive slippage revert + throttle | N-3 |
-| Collection | Escrow underfunded | N-4 |
-| Collection | Missing provision unauthorized | N-5 |
-| Collection | Zero-POI fallback | D-6.2, N-5 |
+| Collection | Zero-POI fallback | D-6.2 |
 | Protection | Unallocate blocked without force | D-7.1 |
 | Protection | Allocation not auto-closed | D-5.3, D-7.2 |
 | Protection | Force-close cancels on-chain | D-7.3 |

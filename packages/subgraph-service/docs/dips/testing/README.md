@@ -23,7 +23,7 @@ Test docs for Direct Indexer Payments (DIPS). Two plans, by audience:
 | Document | Audience | Purpose |
 | --- | --- | --- |
 | [TestnetIndexerGuide.md](./TestnetIndexerGuide.md) | Indexers | Testnet runbook — receive/accept, sizing, recurring collection, protection, cancellation (T-1 – T-5) |
-| [LocalNetworkTestPlan.md](./LocalNetworkTestPlan.md) | Developers | Full-pipeline plan — cycles, edge cases, negative checks (34 tests) |
+| [LocalNetworkTestPlan.md](./LocalNetworkTestPlan.md) | Developers | Full-pipeline plan — cycles, edge cases, negative checks (31 tests) |
 | [TestnetDetails.md](./TestnetDetails.md) | both | Arbitrum Sepolia — addresses, params, RPC |
 | [MainnetDetails.md](./MainnetDetails.md) | both | Arbitrum One — addresses (DIPS mainnet-pending) |
 | [LocalNetworkDetails.md](./LocalNetworkDetails.md) | Developers | local-network — services, dynamic addresses, full pipeline |
@@ -46,7 +46,7 @@ Feature reference (in the [indexer repo](https://github.com/graphprotocol/indexe
 **LocalNetworkTestPlan — full pipeline**
 
 - Lifecycle cycles D-1 – D-8 (23 tests): readiness, proposal origination, acceptance, sizing, indexing/reconcile, recurring collection, protection, cancellation.
-- Edge cases E-1 – E-4; negative checks N-1 – N-7. See the plan's [Coverage map](./LocalNetworkTestPlan.md#coverage-map).
+- Edge cases E-1 – E-4; negative checks N-1 – N-4. See the plan's [Coverage map](./LocalNetworkTestPlan.md#coverage-map).
 
 ## Network configuration
 

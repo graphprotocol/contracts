@@ -1,10 +1,11 @@
 # Local Network — Details
 
-local-network runs the **full DIPS payer pipeline** (`iisa` + `dipper` + `indexer-service` + `indexer-agent`) locally — useful for development and before the payer services are live on your target network. Bring it up with the `indexing-payments` recipe.
+local-network runs the **full DIPS payer pipeline** (`iisa` + `dipper` + `indexer-service` + `indexer-agent`) locally — useful for development and before the payer services are live on your target network. Enable the `indexing-payments` profile in `.env` (or `.env.local`), then bring the stack up:
 
 ```bash
-# in the local-network checkout
-just up indexing-payments
+# in the local-network checkout — enable the profile in .env, then:
+COMPOSE_PROFILES=block-oracle,explorer,indexing-payments
+just up
 ```
 
 ## Contract Addresses — dynamic
@@ -33,7 +34,7 @@ Chain ID is `1337`.
 | indexer-service | validates pushed proposals, queues `pending_rca_proposals` rows |
 | dipper | payer side — triggers DIPS origination; the on-chain offer is posted via RAM (`RecurringAgreementManager.offerAgreement`) |
 | iisa / iisa-scoring | indexer selection (the dipper calls it to choose indexers) |
-| escrow funding service (TBD) | funds the payer's escrow via `RecurringAgreementManager` / issuance, as part of the flow |
+| issuance → RAM (on-chain; no separate service) | funds the DIPS payer escrow: issuance routes GRT/block to `RecurringAgreementManager`, whose `beforeCollection()` tops up `PaymentsEscrow` before each collect. Configured by graph-contracts at deploy time. (Distinct from `graph-tally-escrow-manager`, which handles TAP query-fee escrow + signer authorization, not DIPS.) |
 | indexing-payments subgraph | indexes `Offer` + `indexingAgreements`; the agent's source of truth |
 | graph-node, postgres, ipfs | indexing, agent DB, deployment storage |
 
