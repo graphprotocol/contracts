@@ -19,6 +19,8 @@
     issuancePerBlock: '6.0365',
     allocations: {
       RewardsManager: { selfGrtPerBlock: '6.0365' },
+      RecurringAgreementManager: { allocatorGrtPerBlock: '0' },
+    },
     },
   },
 }
