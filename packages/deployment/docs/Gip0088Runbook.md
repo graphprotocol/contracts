@@ -18,13 +18,13 @@ naming is the source of truth for ordering.
 
 ## Stage & Gate index
 
-| Phase                                              | Stages                                                                                              | Gates                                                                                           |
-| -------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| Entry — Readiness                                  | —                                                                                                   | [G1](#gate-g1)                                                                                  |
-| A — Contract deployment                            | [S1](#stage-s1) [S2](#stage-s2) [S3](#stage-s3)                                                     | [G2](#gate-g2) [G3](#gate-g3) [G4](#gate-g4)                                                    |
-| B — Proxy upgrade                                  | [S4](#stage-s4) [S5](#stage-s5)                                                                     | [G5](#gate-g5) [G6](#gate-g6)                                                                   |
-| C — Activation                                     | [S6](#stage-s6) [S7](#stage-s7) [S8](#stage-s8) [S9](#stage-s9) [S10](#stage-s10) [S11](#stage-s11) | [G7](#gate-g7) [G8](#gate-g8) [G9](#gate-g9) [G10](#gate-g10) [G11](#gate-g11) [G12](#gate-g12) |
-| D — Off-chain & close-out (testnet / mainnet only) | [S12](#stage-s12) [S13](#stage-s13) [S14](#stage-s14) [S15](#stage-s15)                             | [G13](#gate-g13) [G14](#gate-g14) [G15](#gate-g15) [G16](#gate-g16)                             |
+| Phase                                              | Stages                                                                                                                | Gates                                                                                                            |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Entry — Readiness                                  | —                                                                                                                     | [G1](#gate-g1)                                                                                                   |
+| A — Contract deployment                            | [S1](#stage-s1) [S2](#stage-s2) [S3](#stage-s3)                                                                       | [G2](#gate-g2) [G3](#gate-g3) [G4](#gate-g4)                                                                     |
+| B — Proxy upgrade                                  | [S4](#stage-s4) [S5](#stage-s5)                                                                                       | [G5](#gate-g5) [G6](#gate-g6)                                                                                    |
+| C — Activation                                     | [S5a](#stage-s5a) [S6](#stage-s6) [S7](#stage-s7) [S8](#stage-s8) [S9](#stage-s9) [S10](#stage-s10) [S11](#stage-s11) | [G6a](#gate-g6a) [G7](#gate-g7) [G8](#gate-g8) [G9](#gate-g9) [G10](#gate-g10) [G11](#gate-g11) [G12](#gate-g12) |
+| D — Off-chain & close-out (testnet / mainnet only) | [S12](#stage-s12) [S13](#stage-s13) [S14](#stage-s14) [S15](#stage-s15)                                               | [G13](#gate-g13) [G14](#gate-g14) [G15](#gate-g15) [G16](#gate-g16)                                              |
 
 ## Environments
 
@@ -283,10 +283,10 @@ run record.
 
 ### Gate G6 — upgrade-complete
 
-| Field            | Value                 |
-| ---------------- | --------------------- |
-| Postcondition of | [Stage S5](#stage-s5) |
-| Precondition of  | [Stage S6](#stage-s6) |
+| Field            | Value                   |
+| ---------------- | ----------------------- |
+| Postcondition of | [Stage S5](#stage-s5)   |
+| Precondition of  | [Stage S5a](#stage-s5a) |
 
 **Check.**
 
@@ -316,6 +316,58 @@ Eligibility-integrate ([S6](#stage-s6)/[S7](#stage-s7)) is a no-op only when
 `RM.providerEligibilityOracle` already matches the configured oracle; if it
 differs, the stage re-points it (config is the source of truth).
 
+**DIPs-dormant rollout.** This environment ships with on-chain indexing
+agreements (DIPs) **off**, via two independent levers — neither turned on by the
+activation goals:
+
+- **Protocol-funded path** — `IssuanceAllocator.allocations` in
+  `config/<network>.json5` omits `RecurringAgreementManager`, so RAM receives 0
+  issuance. `issuance-connect` puts RM at 100%, so `issuance-allocate`
+  ([S10](#stage-s10)/[S11](#stage-s11)) is a no-op — run it only to confirm.
+- **Payer-funded path** — `RecurringCollector` is paused ([S5a](#stage-s5a)).
+  This is a **pause-guardian** action managed out-of-band, not by the deploy
+  package; `09_end` does **not** verify it, so [G6a](#gate-g6a) is the gate that
+  does.
+
+Turning DIPs on later is the inverse of both levers — see
+[Activating DIPs later](#activating-dips-later).
+
+<a id="stage-s5a"></a>
+
+### Stage S5a — Pause RecurringCollector (DIPs dormant)
+
+| Field          | Value                                            |
+| -------------- | ------------------------------------------------ |
+| Phase          | C — Activation                                   |
+| Actor          | Pause guardian (out-of-band; see below)          |
+| Entry gate     | [G6 upgrade-complete](#gate-g6)                  |
+| Exit gate      | [G6a dips-dormant](#gate-g6a)                    |
+| Parallelizable | No                                               |
+| Reference      | `RecurringCollector.pause()` — onlyPauseGuardian |
+
+**What this does.** Pauses `RecurringCollector` so no indexing agreement can be
+accepted, collected, updated, or cancelled (`accept`/`collect`/`update`/`cancel`
+are all `whenNotPaused`). This closes the payer-funded DIP path; the
+protocol-funded path is already off via config (RAM unallocated).
+
+**Why out-of-band.** `RC.pause()` is `onlyPauseGuardian`, and the pause guardian
+(`Controller.pauseGuardian()`) is a distinct actor from the protocol governor by
+design — a separate Safe on mainnet (`0xB0aD…3aAE`), a separate EOA on testnet
+(`0xa044…20D7`). The deploy package only emits governor batches, so it neither
+sets nor clears pause state; the guardian performs this directly.
+
+**When.** As soon as [G6](#gate-g6) lands — the guardian role is granted in the
+[S4](#stage-s4) upgrade batch, so the guardian can act the moment the upgrade
+executes. RC is unpaused by default (its initializer leaves it live), so pause
+promptly to minimise the window.
+
+**Steps.**
+
+1. Guardian executes `RecurringCollector.pause()`:
+   - Mainnet: propose & execute on the pause-guardian Safe (`0xB0aD…3aAE`).
+   - Testnet: `cast send <RC> "pause()" --from <guardian>` with the guardian EOA
+     key (`0xa044…20D7`); the governor key cannot do this.
+
 <a id="stage-s6"></a>
 
 ### Stage S6 — Generate the eligibility-integrate batch
@@ -324,7 +376,7 @@ differs, the stage re-points it (config is the source of truth).
 | -------------- | ------------------------------------------------------------ |
 | Phase          | C — Activation                                               |
 | Actor          | Deployer (EOA)                                               |
-| Entry gate     | [G6 upgrade-complete](#gate-g6)                              |
+| Entry gate     | [G6a dips-dormant](#gate-g6a)                                |
 | Exit gate      | [G7 eligibility-batch-reviewed](#gate-g7)                    |
 | Parallelizable | No                                                           |
 | Reference      | [Gip0088.md — Activation goals](Gip0088.md#activation-goals) |
@@ -418,6 +470,11 @@ rate (no rebalancing). **Exits** unless the config `issuancePerBlock` equals RM'
 on-chain rate and the per-target rates sum to it. Skips when no allocations are
 configured.
 
+In the **DIPs-dormant** config the only target is RM, already at 100% from
+[S8](#stage-s8) `issuance-connect`, so this stage emits **no transactions** —
+run it to confirm the table matches on-chain. (When DIPs are later activated, the
+RAM allocation is added back to config and this stage does the real work.)
+
 **Steps.**
 
 1. `pnpm hardhat deploy --tags GIP-0088:issuance-allocate --network <network>`
@@ -438,7 +495,29 @@ configured.
 
 1. `pnpm hardhat deploy:execute-governance --network <network>` (fork/testnet) or
    council Safe execution (mainnet).
-   <a id="gate-g7"></a>
+   <a id="gate-g6a"></a>
+
+### Gate G6a — dips-dormant
+
+| Field            | Value                   |
+| ---------------- | ----------------------- |
+| Postcondition of | [Stage S5a](#stage-s5a) |
+| Precondition of  | [Stage S6](#stage-s6)   |
+
+**Check.** `cast call <RecurringCollector> "paused()(bool)" --rpc-url <rpc>` (or
+the equivalent read). Confirm `true`.
+
+**Pass criterion.** `RC.paused() == true`. With RAM unallocated (config) and RC
+paused, neither DIP funding path can create or collect an agreement.
+
+**Note.** `09_end` (the [G12](#gate-g12) assertion) does **not** check pause
+state — it would report GIP-0088 "complete" with RC still live. This gate is the
+only check that the payer-funded path is closed; do not skip it.
+
+**If it fails.** RC is still live — re-run [S5a](#stage-s5a) (have the guardian
+execute `pause()`). Until this gate passes the rollout is not dormant.
+
+<a id="gate-g7"></a>
 
 ### Gate G7 — eligibility-batch-reviewed
 
@@ -545,7 +624,10 @@ when RM self-minting covers the slack).
 
 **Pass criterion.** Exit 0 — upgrade, issuance-connect and eligibility-integrate
 all verified; the configured REO is the active oracle; and both
-`revertOnIneligible` and the RAM allocation rates match config.
+`revertOnIneligible` and the allocation rates match config (RAM unallocated in
+the dormant config). Note: `09_end` does **not** check `RC.paused()` — dormancy
+of the payer-funded path is attested by [G6a](#gate-g6a), not here, so both gates
+must pass for the rollout to be dormant.
 
 **If it fails.** Re-run the stage that owns the unmet goal as named in the
 output.
@@ -733,6 +815,25 @@ Deploy scripts are idempotent; most gate failures recover by re-running the
 prior stage. Abort is clean before [G4](#gate-g4); after, recovery needs a
 follow-up governance batch — see
 [GovernanceWorkflow.md](GovernanceWorkflow.md).
+
+## Activating DIPs later
+
+DIPs ship dormant (see [Phase C](#phase-c--activation)). Turning them on is the
+inverse of the two dormancy levers, and is a **separate, later** change — not
+part of this rollout:
+
+1. **Restore the issuance split** — in `config/<network>.json5`, add the
+   `RecurringAgreementManager` allocation back to `IssuanceAllocator.allocations`
+   (e.g. mainnet `RewardsManager: 114.73` + `RecurringAgreementManager: 6`), then
+   run `GIP-0088:issuance-allocate` and execute the governor batch. `ia:status`
+   should then show RAM funded. The decrease-first ordering means RM drops and RAM
+   rises within one batch.
+2. **Unpause the collector** — the pause guardian executes
+   `RecurringCollector.unpause()` (mainnet: guardian Safe `0xB0aD…3aAE`; testnet:
+   guardian EOA `0xa044…20D7`). The governor cannot do this.
+
+Each lever is independently reversible: re-apply the RM-only config + re-run
+`issuance-allocate` to de-fund RAM, and have the guardian `RC.pause()` again.
 
 ## See also
 
