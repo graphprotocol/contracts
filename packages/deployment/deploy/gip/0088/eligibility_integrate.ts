@@ -9,7 +9,7 @@ import {
 } from '@graphprotocol/deployment/lib/contract-registry.js'
 import { canSignAsGovernor } from '@graphprotocol/deployment/lib/controller-utils.js'
 import { getResolvedSettingsForEnv } from '@graphprotocol/deployment/lib/deployment-config.js'
-import { ComponentTags, GoalTags } from '@graphprotocol/deployment/lib/deployment-tags.js'
+import { assumeUpgraded, ComponentTags, GoalTags } from '@graphprotocol/deployment/lib/deployment-tags.js'
 import { requireContracts } from '@graphprotocol/deployment/lib/issuance-deploy-utils.js'
 import { createActionModule } from '@graphprotocol/deployment/lib/script-factories.js'
 import { syncComponentsFromRegistry } from '@graphprotocol/deployment/lib/sync-utils.js'
@@ -43,6 +43,23 @@ async function integrateOracle(
   await syncComponentsFromRegistry(env, [reoEntry, targetEntry])
   const [reo, target] = requireContracts(env, [reoEntry, targetEntry])
 
+  const { governor, canSign } = await canSignAsGovernor(env)
+
+  // Sequenced-bundle generation: the target proxy isn't upgraded yet, so the
+  // oracle getter would revert. Skip the probe/idempotency read and emit the
+  // set-oracle TX unconditionally. The resulting bundle is sequenced-only —
+  // execute it after the upgrade bundle (nonce order enforces this).
+  if (assumeUpgraded()) {
+    await applyConfiguration(env, client, [createRMIntegrationCondition(reo.address)], {
+      contractName: `${target.name}-REO`,
+      contractAddress: target.address,
+      canExecuteDirectly: canSign,
+      executor: governor,
+      assumeUndone: true,
+    })
+    return
+  }
+
   // Skip only if the target isn't upgraded yet (no oracle getter). Once it
   // supports the getter, config is the source of truth: applyConfiguration is
   // idempotent — it re-points the oracle to the configured REO when the current
@@ -58,8 +75,6 @@ async function integrateOracle(
     env.showMessage(`\n  ○ ${targetLabel} does not support getProviderEligibilityOracle — skipping\n`)
     return
   }
-
-  const { governor, canSign } = await canSignAsGovernor(env)
 
   await applyConfiguration(env, client, [createRMIntegrationCondition(reo.address)], {
     contractName: `${target.name}-REO`,

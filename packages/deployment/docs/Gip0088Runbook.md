@@ -816,6 +816,57 @@ prior stage. Abort is clean before [G4](#gate-g4); after, recovery needs a
 follow-up governance batch — see
 [GovernanceWorkflow.md](GovernanceWorkflow.md).
 
+## Sequenced bundle generation (single council signing session)
+
+The default flow generates each governance bundle only _after_ the previous one
+executes on-chain — every activation goal reads live state and gates on the RM
+upgrade ([S6](#stage-s6)/[S8](#stage-s8) skip or exit until RM is upgraded). On
+mainnet, where the council signs M-of-N over days, that forces one signing round
+per stage. To hand the council **every** GIP-0088 bundle at once, set
+`GIP_0088_ASSUME_UPGRADED=1` when generating the activation bundles:
+
+```bash
+# Upgrade bundle — generated normally (already carries the RM-gated config:
+# setDefaultReclaimAddress + setRevertOnIneligible, ordered after the RM upgrade)
+pnpm hardhat deploy --tags GIP-0088:upgrade,upgrade --network arbitrumOne
+
+# Activation bundles — generated ahead of the upgrade executing
+GIP_0088_ASSUME_UPGRADED=1 pnpm hardhat deploy --tags GIP-0088:eligibility-integrate --network arbitrumOne
+GIP_0088_ASSUME_UPGRADED=1 pnpm hardhat deploy --tags GIP-0088:issuance-connect     --network arbitrumOne
+```
+
+With the flag, `eligibility-integrate` and `issuance-connect` skip the
+"is RM upgraded on-chain" guard and the post-upgrade idempotency reads (which
+would revert against the old implementation) and emit their full tx set.
+
+**Execution — nonce order is load-bearing.** These activation bundles are
+**sequenced-only**: valid only when executed _after_ the upgrade bundle. Queue
+them on the council Safe in order:
+
+| Safe nonce | Bundle                                          |
+| ---------- | ----------------------------------------------- |
+| N          | `gip-0088-upgrades.json` (upgrades + RM config) |
+| N+1        | `eligibility-integrate` bundle                  |
+| N+2        | `gip-0088-issuance-connect.json`                |
+
+The Safe executes in strict nonce order, so RM is upgraded by the time N+1/N+2
+run, and the council reviews + signs all three in one session. If bundle N fails,
+N+1/N+2 are blocked rather than executing against an un-upgraded RM.
+
+- **Kept:** the `issuance-connect` rate invariant
+  (`IA.issuancePerBlock == RM.issuancePerBlock`) is still enforced — it reads
+  `RM.issuancePerBlock`, which exists on the un-upgraded RM.
+- **Dropped:** idempotency. The flag blind-emits the full set, so use it only for
+  the initial sequenced generation — **not** for re-runs or recovery, where the
+  default (guarded) mode reads live state and emits only the remaining work.
+- **`issuance-allocate`** stays a no-op in the DIPs-dormant config (RM already
+  100% from `issuance-connect`), so it needs no bundle. On a DIPs-active config,
+  generate it too, with the flag, as an `N+3` sequenced bundle.
+
+This mode trades the staged per-goal review gates ([G7](#gate-g7)/[G9](#gate-g9))
+for a single up-front review of all bundles — a deliberate choice for the
+one-session council workflow, not the default.
+
 ## Activating DIPs later
 
 DIPs ship dormant (see [Phase C](#phase-c--activation)). Turning them on is the
