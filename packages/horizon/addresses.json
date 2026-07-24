@@ -23,6 +23,12 @@
           "blockNumber": 486895397,
           "timestamp": "2026-07-23T13:59:04.000Z"
         }
+      },
+      "proxyDeployment": {
+        "verified": "https://arbiscan.io/address/0xf6Fcc27aAf1fcD8B254498c9794451d82afC673E#code"
+      },
+      "implementationDeployment": {
+        "verified": "https://arbiscan.io/address/0xc493e8EBedE3d1cC61632736108d943693DA11F7#code"
       }
     },
     "L2Curation": {
@@ -38,6 +44,12 @@
           "blockNumber": 486895413,
           "timestamp": "2026-07-23T13:59:08.000Z"
         }
+      },
+      "proxyDeployment": {
+        "verified": "https://arbiscan.io/address/0x22d78fb4bc72e191C765807f8891B5e1785C8014#code"
+      },
+      "implementationDeployment": {
+        "verified": "https://arbiscan.io/address/0xc4Ce508c8fda35C597CC78e3604261110fc4c957#code"
       }
     },
     "L2GNS": {
@@ -61,6 +73,12 @@
           "blockNumber": 486895215,
           "timestamp": "2026-07-23T13:58:19.000Z"
         }
+      },
+      "proxyDeployment": {
+        "verified": "https://arbiscan.io/address/0x971B9d3d0Ae3ECa029CAB5eA1fB0F72c85e6a525#code"
+      },
+      "implementationDeployment": {
+        "verified": "https://arbiscan.io/address/0xBcD7a231eAB1f4667AAbFdb482026f244bfBf101#code"
       }
     },
     "HorizonStaking": {
@@ -76,6 +94,9 @@
           "blockNumber": 486895253,
           "timestamp": "2026-07-23T13:58:28.000Z"
         }
+      },
+      "implementationDeployment": {
+        "verified": "https://arbiscan.io/address/0xaA3359434B534dE9964d4e72bE2782b076a1Eb5A#code"
       }
     },
     "GraphTallyCollector": {
@@ -108,13 +129,15 @@
         "txHash": "0xe750de639d4c90579e593f18ec16764bd43dc27d101c8fdd559c2407cdc35851",
         "argsData": "0x00000000000000000000000069315eb3e779dad209fbd0c70fa838c96fae488e0000000000000000000000004528fd7868c91ef64b9907450ee8d82dc639612c000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000c44cd88b76000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000012526563757272696e67436f6c6c6563746f7200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001310000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
         "bytecodeHash": "0x6b4ba3015667741610274b7c196ec5d7767235d85865912f7ac680eac3011c54",
-        "blockNumber": 486895281
+        "blockNumber": 486895281,
+        "verified": "https://arbiscan.io/address/0xff0dc7310fbfbcc2524dae230cd4f34727eb84ee#code"
       },
       "implementationDeployment": {
         "txHash": "0x4b70220b37e3dbe029e3a9161e9dd00a7afb271d8643080179fbb1a7fa49b20b",
         "argsData": "0x0000000000000000000000000a8491544221dd212964fbb96487467291b2c97e0000000000000000000000000000000000000000000000000000000000007080",
         "bytecodeHash": "0x47f042a65486346b451264af80bb4207b06252c1c5fda8689822662285f16437",
-        "blockNumber": 486895274
+        "blockNumber": 486895274,
+        "verified": "https://arbiscan.io/address/0x69315eb3e779dad209fbd0c70fa838c96fae488e#code"
       }
     }
   },

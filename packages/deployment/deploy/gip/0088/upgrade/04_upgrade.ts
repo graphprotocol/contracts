@@ -83,8 +83,22 @@ const func: DeployScriptModule = async (env) => {
 
   const settings = await getResolvedSettingsForEnv(env)
 
+  // RM-dependent config (setDefaultReclaimAddress / setRevertOnIneligible) can only
+  // run once RM is on its new implementation. If the RM upgrade is part of THIS batch,
+  // it executes (ordered before these config TXs) within the same atomic governance
+  // execution, so include them in the same bundle rather than deferring to a second
+  // governance round.
+  const rmUpgradeInBatch = gathered.sourceNames.some((n) => n.includes(Contracts.horizon.RewardsManager.name))
+
   env.showMessage('\nOutstanding configuration:')
-  const existingCount = await collectExistingContractConfig(env, builder, client, pauseGuardian, settings)
+  const existingCount = await collectExistingContractConfig(
+    env,
+    builder,
+    client,
+    pauseGuardian,
+    settings,
+    rmUpgradeInBatch,
+  )
   const newCount = await collectDeferredNewContractConfig(env, builder, client, targetChainId, governor, pauseGuardian)
 
   const total = gathered.txCount + existingCount + newCount
@@ -153,8 +167,8 @@ function gatherProxyUpgrades(txDir: string, builder: TxBuilder) {
  * horizon-Ignition infrastructure; the dynamic role check is the source of truth):
  *
  *   - RC.setPauseGuardian
- *   - RM.setDefaultReclaimAddress (only when RM has been upgraded)
- *   - RM.setRevertOnIneligible (driven by config; only when RM has been upgraded)
+ *   - RM.setDefaultReclaimAddress (when RM is upgraded, or its upgrade is in this batch)
+ *   - RM.setRevertOnIneligible (driven by config; same RM-upgrade gating)
  */
 async function collectExistingContractConfig(
   env: Environment,
@@ -162,6 +176,7 @@ async function collectExistingContractConfig(
   client: PublicClient,
   pauseGuardian: string,
   settings: ResolvedSettings,
+  rmUpgradeInBatch: boolean,
 ): Promise<number> {
   let added = 0
 
@@ -194,7 +209,7 @@ async function collectExistingContractConfig(
   const rm = env.getOrNull(Contracts.horizon.RewardsManager.name)
   if (reclaim && rm) {
     const reclaimRMCheck = await checkReclaimRMIntegration(client, rm.address, reclaim.address)
-    if (!reclaimRMCheck.done && reclaimRMCheck.reason !== 'RM not upgraded') {
+    if (!reclaimRMCheck.done && (reclaimRMCheck.reason !== 'RM not upgraded' || rmUpgradeInBatch)) {
       builder.addTx({
         to: rm.address,
         value: '0',
@@ -213,7 +228,7 @@ async function collectExistingContractConfig(
   if (rm) {
     const desiredRevert = settings.rewardsManager.revertOnIneligible
     const revertCheck = await checkRMRevertOnIneligible(client, rm.address, desiredRevert)
-    if (!revertCheck.done && revertCheck.reason !== 'RM not upgraded') {
+    if (!revertCheck.done && (revertCheck.reason !== 'RM not upgraded' || rmUpgradeInBatch)) {
       builder.addTx({
         to: rm.address,
         value: '0',

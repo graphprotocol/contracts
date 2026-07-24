@@ -14,6 +14,12 @@
           "blockNumber": 486895347,
           "timestamp": "2026-07-23T13:58:52.000Z"
         }
+      },
+      "proxyDeployment": {
+        "verified": "https://arbiscan.io/address/0xb2Bb92d0DE618878E438b55D5846cfecD9301105#code"
+      },
+      "implementationDeployment": {
+        "verified": "https://arbiscan.io/address/0x80D1a23472a4EcFa484c95779D5CE855C24747cD#code"
       }
     },
     "DisputeManager": {
@@ -30,6 +36,9 @@
           "blockNumber": 486895371,
           "timestamp": "2026-07-23T13:58:58.000Z"
         }
+      },
+      "implementationDeployment": {
+        "verified": "https://arbiscan.io/address/0x0fa6925f21d0493072ad29f3aF66f4E11655faF1#code"
       }
     },
     "L2Curation": {
