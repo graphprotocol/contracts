@@ -18,6 +18,7 @@ import {
   type RoleCondition,
 } from './contract-checks.js'
 import { createGovernanceTxBuilder, executeTxBatchDirect, saveGovernanceTx } from './execute-governance.js'
+import type { TxBuilder } from './tx-builder.js'
 
 /**
  * Options for applyConfiguration
@@ -44,6 +45,14 @@ export interface ApplyConfigurationOptions {
    * valid only after the upgrade bundle executes.
    */
   assumeUndone?: boolean
+
+  /**
+   * Optional shared TX builder. When provided, configuration TXs are appended to
+   * it and NOT executed or saved here — the caller owns executing/saving the
+   * combined batch once. Lets multiple applyConfiguration calls (e.g. across
+   * several contracts) contribute to a single governance bundle.
+   */
+  builder?: TxBuilder
 }
 
 /**
@@ -87,7 +96,14 @@ export async function applyConfiguration<T>(
   conditions: ConfigCondition<T>[],
   options: ApplyConfigurationOptions,
 ): Promise<ApplyConfigurationResult<T>> {
-  const { contractName, contractAddress, canExecuteDirectly, executor, assumeUndone } = options
+  const {
+    contractName,
+    contractAddress,
+    canExecuteDirectly,
+    executor,
+    assumeUndone,
+    builder: externalBuilder,
+  } = options
 
   // 1. Check all conditions — or, in sequenced-generation mode, skip the read and
   // treat every condition as un-applied (the target proxy isn't upgraded yet, so
@@ -126,7 +142,7 @@ export async function applyConfiguration<T>(
   // 3. Build TX batch for failing conditions
   env.showMessage('\n🔨 Building configuration TX batch...\n')
 
-  const builder = await createGovernanceTxBuilder(env, `configure-${contractName}`)
+  const builder = externalBuilder ?? (await createGovernanceTxBuilder(env, `configure-${contractName}`))
 
   const failingConditions = conditions.filter((_, i) => !status.conditions[i].ok)
 
@@ -166,7 +182,13 @@ export async function applyConfiguration<T>(
     }
   }
 
-  // 4/5. Execute or save based on access
+  // 4/5. When a shared builder was supplied, the caller owns executing/saving the
+  // combined batch — return with the TXs appended.
+  if (externalBuilder) {
+    return { status, changesNeeded: true, executedDirectly: false }
+  }
+
+  // Otherwise execute or save based on access.
   if (canExecuteDirectly && executor) {
     env.showMessage('\n🔨 Executing configuration TX batch...\n')
     await executeTxBatchDirect(env, builder, executor)
