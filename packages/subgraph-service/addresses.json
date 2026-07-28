@@ -39,6 +39,9 @@
       },
       "implementationDeployment": {
         "verified": "https://arbiscan.io/address/0x0fa6925f21d0493072ad29f3aF66f4E11655faF1#code"
+      },
+      "proxyDeployment": {
+        "verified": "https://arbiscan.io/address/0x2FE023a575449AcB698648eD21276293Fa176f96#code"
       }
     },
     "L2Curation": {

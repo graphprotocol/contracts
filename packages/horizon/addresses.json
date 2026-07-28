@@ -97,6 +97,9 @@
       },
       "implementationDeployment": {
         "verified": "https://arbiscan.io/address/0xaA3359434B534dE9964d4e72bE2782b076a1Eb5A#code"
+      },
+      "proxyDeployment": {
+        "verified": "https://arbiscan.io/address/0x00669A4CF01450B64E8A2A20E9b1FCB71E61eF03#code"
       }
     },
     "GraphTallyCollector": {
