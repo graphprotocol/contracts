@@ -66,7 +66,8 @@
     },
     "patchedDependencies": {
       "typechain@8.3.2": "patches/typechain@8.3.2.patch",
-      "rocketh@0.17.13": "patches/rocketh@0.17.13.patch"
+      "rocketh@0.17.13": "patches/rocketh@0.17.13.patch",
+      "@rocketh/read-execute@0.17.8": "patches/@rocketh__read-execute@0.17.8.patch"
     }
   },
   "lint-staged": {

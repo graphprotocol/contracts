@@ -353,6 +353,7 @@ async function verifySingleContract(
   apiKey: string,
   proxyOnly: boolean,
   implOnly: boolean,
+  includePending: boolean,
 ): Promise<VerifyResult> {
   const addressBook = getAddressBookForType(addressBookType, chainId)
 
@@ -493,6 +494,47 @@ async function verifySingleContract(
     }
   }
 
+  // Verify the pending implementation (a new impl deployed but not yet live —
+  // the proxy still points at `implementation` until governance executes the
+  // upgrade). By default deploy:verify only covers the live implementation;
+  // --include-pending also verifies `pendingImplementation` so the new code is
+  // readable on the explorer before the upgrade is signed/executed. It's an
+  // implementation, so --proxy-only skips it and only proxied entries have one.
+  if (includePending && !proxyOnly && hasArtifact && entry.pendingImplementation) {
+    const pendingAddr = entry.pendingImplementation.address
+    const pendingArgs = entry.pendingImplementation.deployment?.argsData
+
+    const existingPendingUrl = await checkEtherscanVerified(pendingAddr, apiKey, chainId)
+    if (existingPendingUrl) {
+      console.log(`  ✓ Pending implementation already verified: ${existingPendingUrl}`)
+    } else {
+      const packageDir = getPackageDir(metadata.artifact!)
+      const isHHv3 = isHardhatV3Package(metadata.artifact!)
+      const artifact = loadArtifactFromSource(metadata.artifact!)
+      const fullyQualifiedName = getFullyQualifiedContractName(metadata.artifact!)
+
+      console.log(`  📋 Verifying pending implementation at: ${pendingAddr}`)
+      const pendingResult = await runVerify(
+        packageDir,
+        networkName,
+        pendingAddr,
+        apiKey,
+        pendingArgs,
+        artifact,
+        isHHv3,
+        fullyQualifiedName,
+      )
+      if (pendingResult.success) {
+        console.log(
+          `    ✅ Pending implementation verification complete${pendingResult.url ? `: ${pendingResult.url}` : ''}`,
+        )
+      } else {
+        console.log(`    ⚠️  Pending implementation verification failed (may already be verified)`)
+        verificationFailed = true
+      }
+    }
+  }
+
   return { contract: contractName, addressBook: addressBookType, status: verificationFailed ? 'failed' : 'verified' }
 }
 
@@ -501,6 +543,7 @@ interface TaskArgs {
   addressBook: string
   proxyOnly: boolean
   implOnly: boolean
+  includePending: boolean
 }
 
 /**
@@ -518,9 +561,10 @@ interface TaskArgs {
  *   npx hardhat deploy:verify --network arbitrumSepolia                    # verify all
  *   npx hardhat deploy:verify --contract RewardsManager --network arbitrumSepolia  # verify one
  *   npx hardhat deploy:verify --impl-only --network arbitrumSepolia        # implementations only
+ *   npx hardhat deploy:verify --include-pending --network arbitrumOne      # also verify pending (pre-upgrade) impls
  */
 const action: NewTaskActionFunction<TaskArgs> = async (taskArgs, hre) => {
-  const { contract, proxyOnly, implOnly } = taskArgs
+  const { contract, proxyOnly, implOnly, includePending } = taskArgs
   const explicitAddressBook = taskArgs.addressBook || undefined
 
   if (proxyOnly && implOnly) {
@@ -591,6 +635,7 @@ const action: NewTaskActionFunction<TaskArgs> = async (taskArgs, hre) => {
       apiKey,
       proxyOnly,
       implOnly,
+      includePending,
     )
 
     results.push(result)
@@ -653,6 +698,12 @@ const verifyContractTask = task('deploy:verify', 'Verify deployed contracts on E
   .addOption({
     name: 'implOnly',
     description: 'Only verify implementation addresses (skip proxies)',
+    type: ArgumentType.FLAG,
+    defaultValue: false,
+  })
+  .addOption({
+    name: 'includePending',
+    description: 'Also verify pendingImplementation addresses (new impls awaiting a governance upgrade)',
     type: ArgumentType.FLAG,
     defaultValue: false,
   })

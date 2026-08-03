@@ -136,6 +136,9 @@ overrides:
 packageExtensionsChecksum: sha256-anBhQrlJaJ3Z62unAlKotKwV/itS9LEqUbuFem1Cbv8=
 
 patchedDependencies:
+  '@rocketh/read-execute@0.17.8':
+    hash: 3323e501a08c93d0099ce527aa6f2467b72cd181bc5da6256774f67fec431700
+    path: patches/@rocketh__read-execute@0.17.8.patch
   rocketh@0.17.13:
     hash: 9922612567456c164edd9dd5a0c9304bfd66babcebfe7c39dca333659ff1248f
     path: patches/rocketh@0.17.13.patch
@@ -797,7 +800,7 @@ importers:
         version: 0.17.12(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
       '@rocketh/read-execute':
         specifier: ^0.17.8
-        version: 0.17.8(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
+        version: 0.17.8(patch_hash=3323e501a08c93d0099ce527aa6f2467b72cd181bc5da6256774f67fec431700)(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
       '@rocketh/verifier':
         specifier: ^0.17.16
         version: 0.17.16(@rocketh/node@0.17.16(bufferutil@4.0.9)(rocketh@0.17.13(patch_hash=9922612567456c164edd9dd5a0c9304bfd66babcebfe7c39dca333659ff1248f)(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
@@ -14699,7 +14702,7 @@ snapshots:
     dependencies:
       '@rocketh/core': 0.17.8(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
       '@rocketh/deploy': 0.17.8(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
-      '@rocketh/read-execute': 0.17.8(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
+      '@rocketh/read-execute': 0.17.8(patch_hash=3323e501a08c93d0099ce527aa6f2467b72cd181bc5da6256774f67fec431700)(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
       abitype: 1.2.3(typescript@5.9.3)(zod@3.25.76)
       eip-1193: 0.6.5
       named-logs: 0.4.1
@@ -14767,7 +14770,7 @@ snapshots:
     dependencies:
       '@rocketh/core': 0.17.8(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
       '@rocketh/deploy': 0.17.8(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
-      '@rocketh/read-execute': 0.17.8(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
+      '@rocketh/read-execute': 0.17.8(patch_hash=3323e501a08c93d0099ce527aa6f2467b72cd181bc5da6256774f67fec431700)(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
       abitype: 1.2.3(typescript@5.9.3)(zod@3.25.76)
       eip-1193: 0.6.5
       named-logs: 0.4.1
@@ -14778,7 +14781,7 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@rocketh/read-execute@0.17.8(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)':
+  '@rocketh/read-execute@0.17.8(patch_hash=3323e501a08c93d0099ce527aa6f2467b72cd181bc5da6256774f67fec431700)(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)':
     dependencies:
       '@rocketh/core': 0.17.8(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
       abitype: 1.2.3(typescript@5.9.3)(zod@3.25.76)

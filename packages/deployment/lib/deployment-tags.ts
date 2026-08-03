@@ -82,6 +82,28 @@ export const GoalTags = {
 } as const
 
 /**
+ * Sequenced-bundle generation flag (`GIP_0088_ASSUME_UPGRADED=1`).
+ *
+ * When set, the GIP-0088 activation goals (`eligibility-integrate`,
+ * `issuance-connect`) build their governance bundles as if the RewardsManager
+ * upgrade had already landed — skipping the "is RM upgraded on-chain" guard and
+ * the post-upgrade idempotency reads that would otherwise revert against the
+ * un-upgraded proxy.
+ *
+ * Purpose: generate the whole GIP-0088 governance sequence up front so a council
+ * multisig can review and sign every bundle in ONE session, executing them in
+ * nonce order (upgrade bundle first). The activation bundles produced this way
+ * are SEQUENCED-ONLY — valid only when executed after the upgrade bundle; the
+ * Safe's nonce ordering enforces that.
+ *
+ * Do NOT use for re-runs or recovery: it blind-emits the full tx set with no
+ * idempotency. Use the default (guarded) mode there. The rate-alignment
+ * invariant in `issuance-connect` is still enforced (it does not need the new
+ * implementation).
+ */
+export const assumeUpgraded = (): boolean => process.env.GIP_0088_ASSUME_UPGRADED === '1'
+
+/**
  * Special tags
  */
 export const SpecialTags = {

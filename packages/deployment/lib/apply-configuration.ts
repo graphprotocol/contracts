@@ -18,6 +18,7 @@ import {
   type RoleCondition,
 } from './contract-checks.js'
 import { createGovernanceTxBuilder, executeTxBatchDirect, saveGovernanceTx } from './execute-governance.js'
+import type { TxBuilder } from './tx-builder.js'
 
 /**
  * Options for applyConfiguration
@@ -34,6 +35,24 @@ export interface ApplyConfigurationOptions {
 
   /** Account to execute from (if canExecuteDirectly) */
   executor?: string
+
+  /**
+   * Skip the on-chain state check and treat every condition as un-applied,
+   * emitting a TX for each. Used by sequenced-bundle generation
+   * (`GIP_0088_ASSUME_UPGRADED`) where the target proxy isn't upgraded yet, so
+   * the getter reads that drive the normal idempotency check would revert
+   * against the old implementation. The resulting batch is sequenced-only —
+   * valid only after the upgrade bundle executes.
+   */
+  assumeUndone?: boolean
+
+  /**
+   * Optional shared TX builder. When provided, configuration TXs are appended to
+   * it and NOT executed or saved here — the caller owns executing/saving the
+   * combined batch once. Lets multiple applyConfiguration calls (e.g. across
+   * several contracts) contribute to a single governance bundle.
+   */
+  builder?: TxBuilder
 }
 
 /**
@@ -77,16 +96,41 @@ export async function applyConfiguration<T>(
   conditions: ConfigCondition<T>[],
   options: ApplyConfigurationOptions,
 ): Promise<ApplyConfigurationResult<T>> {
-  const { contractName, contractAddress, canExecuteDirectly, executor } = options
+  const {
+    contractName,
+    contractAddress,
+    canExecuteDirectly,
+    executor,
+    assumeUndone,
+    builder: externalBuilder,
+  } = options
 
-  // 1. Check all conditions
-  env.showMessage(`📋 Checking ${contractName} configuration...\n`)
+  // 1. Check all conditions — or, in sequenced-generation mode, skip the read and
+  // treat every condition as un-applied (the target proxy isn't upgraded yet, so
+  // the getter reads would revert). The resulting batch is sequenced-only.
+  let status: ConfigurationStatus<T | boolean>
+  if (assumeUndone) {
+    env.showMessage(
+      `⚠ ${contractName}: sequenced generation — skipping on-chain check, emitting all configuration TXs\n`,
+    )
+    status = {
+      allOk: false,
+      conditions: conditions.map((c) => ({
+        name: c.name,
+        ok: false,
+        current: false,
+        target: false,
+        message: `  (assumed un-applied) ${c.name}`,
+      })),
+    }
+  } else {
+    env.showMessage(`📋 Checking ${contractName} configuration...\n`)
+    status = await checkConditions(client, contractAddress, conditions)
 
-  const status = await checkConditions(client, contractAddress, conditions)
-
-  // Display results
-  for (const result of status.conditions) {
-    env.showMessage(`  ${result.message}`)
+    // Display results
+    for (const result of status.conditions) {
+      env.showMessage(`  ${result.message}`)
+    }
   }
 
   // 2. If all OK, no-op
@@ -98,7 +142,7 @@ export async function applyConfiguration<T>(
   // 3. Build TX batch for failing conditions
   env.showMessage('\n🔨 Building configuration TX batch...\n')
 
-  const builder = await createGovernanceTxBuilder(env, `configure-${contractName}`)
+  const builder = externalBuilder ?? (await createGovernanceTxBuilder(env, `configure-${contractName}`))
 
   const failingConditions = conditions.filter((_, i) => !status.conditions[i].ok)
 
@@ -138,7 +182,13 @@ export async function applyConfiguration<T>(
     }
   }
 
-  // 4/5. Execute or save based on access
+  // 4/5. When a shared builder was supplied, the caller owns executing/saving the
+  // combined batch — return with the TXs appended.
+  if (externalBuilder) {
+    return { status, changesNeeded: true, executedDirectly: false }
+  }
+
+  // Otherwise execute or save based on access.
   if (canExecuteDirectly && executor) {
     env.showMessage('\n🔨 Executing configuration TX batch...\n')
     await executeTxBatchDirect(env, builder, executor)

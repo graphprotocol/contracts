@@ -5,6 +5,13 @@
     eligibilityOracle: 'RewardsEligibilityOracleA',
   },
 
+  RecurringAgreementManager: {
+    // Wired to the same REO as RewardsManager. RAM stays dormant at launch
+    // (0 issuance + RecurringCollector paused) — this only pre-configures its
+    // eligibility oracle so it matches RM.
+    eligibilityOracle: 'RewardsEligibilityOracleA',
+  },
+
   IssuanceAllocator: {
     // Explicit issuance allocation table, by target contract name. The rates must
     // sum to issuancePerBlock, which must equal RM's on-chain issuance rate — the
