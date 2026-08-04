@@ -8,9 +8,16 @@ Changes fall into two categories:
 
 - **Automatic on upgrade:** New logic that activates immediately when the upgraded contracts are deployed behind their proxies. No governance action required. These include: zero-signal detection, zero-allocated-tokens reclaim, POI presentation paths (claim/reclaim/defer), allocation resize staleness check, allocation close reclaim, and the `POIPresented` event.
 
-- **Governance-gated:** Features that require explicit governance transactions after upgrade. Until configured, the system preserves legacy behaviour (rewards are dropped, not reclaimed). These include: setting the issuance allocator, configuring reclaim addresses (per-condition and default), setting the eligibility oracle, and changing the minimum subgraph signal threshold.
+- **Governance-gated:** Features that require explicit governance transactions after upgrade. In the abstract, until configured the system preserves legacy behaviour (rewards are dropped, not reclaimed). These include: setting the issuance allocator, configuring reclaim addresses (per-condition and default), setting the eligibility oracle, and changing the minimum subgraph signal threshold.
 
-This two-phase approach allows a safe upgrade with the new infrastructure in place, while governance coordinates separate activation steps for each optional feature.
+**What this deployment configures.** The governance batches executed alongside this upgrade turn several of the gated features on immediately, so their legacy behaviour does _not_ persist:
+
+- **Issuance allocator — set.** The RewardsManager self-mints 100% of the rate (120.73 GRT/block); the RecurringAgreementManager gets 0 issuance (DIPs dormant at launch). Effective issuance rate is unchanged from before the upgrade.
+- **Default reclaim address — set** (no per-condition addresses). Reclaiming is active for **every** condition via the catch-all fallback the moment the batch executes — previously-dropped rewards are now minted to the reclaim address.
+- **Eligibility oracle — wired, then enabled.** The oracle is set on the RewardsManager (and RecurringAgreementManager), and a subsequent governance transaction in the plan sets the oracle's validation flag to true; both switches are required before `INDEXER_INELIGIBLE` denials can occur.
+- **Minimum subgraph signal — unchanged.** The threshold is not modified.
+
+The per-feature `Activates:` notes below reflect this deployment's configuration, not just the abstract gating.
 
 ## Issuance Rate
 
@@ -44,7 +51,7 @@ A new `RewardsCondition` library defines typed `bytes32` identifiers for every s
 
 **After:** Undistributable rewards are _reclaimed_ by minting them to a configurable address. Governance can set a per-condition address via `setReclaimAddress(condition, address)` and a catch-all fallback via `setDefaultReclaimAddress(address)`. If neither is configured for a given condition, rewards are still not minted (preserving the old drop behaviour). Every reclaim emits a `RewardsReclaimed` event with the condition, amount, indexer, allocation, and subgraph.
 
-**Activates:** Governance-gated — requires `setReclaimAddress()` and/or `setDefaultReclaimAddress()` for each condition. Until configured, rewards are dropped (preserving legacy behaviour).
+**Activates:** Governance-gated — requires `setReclaimAddress()` and/or `setDefaultReclaimAddress()`. This deployment configures the **default** reclaim address (no per-condition addresses), so reclaiming is active for **every** condition via the catch-all fallback from the moment the batch executes: rewards that were previously dropped are now minted to the reclaim address.
 
 ## Zero Global Signal
 
@@ -52,7 +59,7 @@ A new `RewardsCondition` library defines typed `bytes32` identifiers for every s
 
 **After:** Detected in `updateAccRewardsPerSignal()` and reclaimed as `NO_SIGNAL`.
 
-**Activates:** Automatic on upgrade — detection is built into the accumulator update. Reclaim requires a configured address for `NO_SIGNAL`.
+**Activates:** Automatic on upgrade — detection is built into the accumulator update. Reclaim requires a configured address for `NO_SIGNAL`, which this deployment supplies via the default reclaim address, so zero-signal issuance is reclaimed (minted) rather than dropped.
 
 ## Subgraph-Level Denial
 
@@ -86,9 +93,16 @@ A new `RewardsCondition` library defines typed `bytes32` identifiers for every s
 
 **Before:** No per-indexer eligibility checks existed.
 
-**After:** An optional `rewardsEligibilityOracle` can be set by governance. When set, `takeRewards()` checks `isEligible(indexer)` at claim time. If the indexer is ineligible, rewards are denied (emitting `RewardsDeniedDueToEligibility`) and reclaimed to the `INDEXER_INELIGIBLE` address. Subgraph denial takes precedence: if a subgraph is denied, eligibility is not checked.
+**After:** An optional `rewardsEligibilityOracle` can be set by governance. When set, the eligibility check runs at claim time — but **only on the claim path** (`takeRewards()`, condition `NONE`): a valid, reward-bearing POI that is not stale, non-zero, old enough, and on a non-denied subgraph. Behaviour when the indexer is ineligible depends on the `revertOnIneligible` flag:
 
-**Activates:** Governance-gated — requires `setRewardsEligibilityOracle()`. Until called, no eligibility checks are performed.
+- **`revertOnIneligible = true` (this deployment):** the POI presentation **reverts** (`"Indexer not eligible for rewards"`). Rewards are neither minted nor reclaimed — they stay pending and become collectable if the indexer regains eligibility before the allocation goes stale.
+- **`revertOnIneligible = false`:** rewards are denied (emitting `RewardsDeniedDueToEligibility`) and reclaimed to the `INDEXER_INELIGIBLE` address (or the default reclaim address) — permanently forfeited.
+
+Subgraph denial takes precedence: if a subgraph is denied, eligibility is not checked.
+
+Because the check guards only the claim path, an ineligible indexer is **never locked out of the allocation**. A **zero POI** (`ZERO_POI`), a stale allocation (`STALE_POI`), and closing via `stopService` (`CLOSE_ALLOCATION`) all take reclaim/defer paths that skip the eligibility check and succeed — forfeiting the affected rewards to the reclaim address rather than reverting (and a zero POI still resets the staleness clock, keeping the allocation alive). Under `revertOnIneligible = true`, the only action ineligibility blocks is **collecting rewards via a valid POI**.
+
+**Activates:** Governance-gated by **two** switches: `setRewardsEligibilityOracle()` on the RewardsManager, and `setEligibilityValidation(true)` on the oracle itself (it ships with validation disabled, so `isEligible` returns true for everyone until enabled). This deployment does both — the oracle is wired at upgrade and validation is enabled by a subsequent governance transaction in the plan — so eligibility enforcement becomes active. With `revertOnIneligible = true` (this deployment) that enforcement is a **revert** on the claim path, not an `INDEXER_INELIGIBLE` reclaim (see above). Note the oracle also fail-opens (returns eligible) if it receives no updates within its configured timeout.
 
 ## POI Presentation (AllocationManager)
 
