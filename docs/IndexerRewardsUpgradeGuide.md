@@ -37,10 +37,10 @@ At launch the effective flow is **identical** to today — 100% still reaches th
 
 ### 2. Rewards Eligibility Oracle
 
-The protocol can now consult an **eligibility oracle** to decide whether an indexer is eligible for rewards at claim time:
+The protocol now takes input from an **eligibility oracle** to decide whether an indexer is eligible for rewards at claim time:
 
 - The oracle will be enabled at launch with a very low threshold to qualify for eligibility.
-- If the oracle stops receiving updates, it treats everyone as eligible again, so a stalled oracle can't block rewards.
+- If the REO contract stops receiving updates, it treats everyone as eligible again, so a stalled oracle can't block rewards.
 
 Useful links
 
