@@ -4,41 +4,31 @@
       "address": "0xb2Bb92d0DE618878E438b55D5846cfecD9301105",
       "proxy": "transparent",
       "proxyAdmin": "0x49021Ada0806cabce24b73002EB4477fe4934215",
-      "implementation": "0x80D1a23472a4EcFa484c95779D5CE855C24747cD",
-      "pendingImplementation": {
-        "address": "0x03a2d29d5cac0373a73f29c8d03b08e634a86939",
-        "deployment": {
-          "txHash": "0x7ba886b1165987d011c381f483986612022781131414e9e6bd0bcb2dfbe838e4",
-          "argsData": "0x0000000000000000000000000a8491544221dd212964fbb96487467291b2c97e0000000000000000000000002fe023a575449acb698648ed21276293fa176f960000000000000000000000008f69f5c07477ac46fbc491b1e6d91e2bb0111a9e00000000000000000000000022d78fb4bc72e191c765807f8891b5e1785c8014000000000000000000000000ff0dc7310fbfbcc2524dae230cd4f34727eb84ee",
-          "bytecodeHash": "0x7a050c83c8b277775e875806c50b5d557902a9f3f8ab62d17e362ac57e954a84",
-          "blockNumber": 486895347,
-          "timestamp": "2026-07-23T13:58:52.000Z"
-        }
-      },
+      "implementation": "0x03a2d29d5cac0373a73f29c8d03b08e634a86939",
       "proxyDeployment": {
         "verified": "https://arbiscan.io/address/0xb2Bb92d0DE618878E438b55D5846cfecD9301105#code"
       },
       "implementationDeployment": {
-        "verified": "https://arbiscan.io/address/0x80D1a23472a4EcFa484c95779D5CE855C24747cD#code"
+        "txHash": "0x7ba886b1165987d011c381f483986612022781131414e9e6bd0bcb2dfbe838e4",
+        "argsData": "0x0000000000000000000000000a8491544221dd212964fbb96487467291b2c97e0000000000000000000000002fe023a575449acb698648ed21276293fa176f960000000000000000000000008f69f5c07477ac46fbc491b1e6d91e2bb0111a9e00000000000000000000000022d78fb4bc72e191c765807f8891b5e1785c8014000000000000000000000000ff0dc7310fbfbcc2524dae230cd4f34727eb84ee",
+        "bytecodeHash": "0x7a050c83c8b277775e875806c50b5d557902a9f3f8ab62d17e362ac57e954a84",
+        "blockNumber": 486895347,
+        "timestamp": "2026-07-23T13:58:52.000Z",
+        "verified": "https://arbiscan.io/address/0x03a2d29d5cac0373a73f29c8d03b08e634a86939#code"
       }
     },
     "DisputeManager": {
       "address": "0x2FE023a575449AcB698648eD21276293Fa176f96",
       "proxy": "transparent",
       "proxyAdmin": "0x2cf40C92706943dCAE5E0Ba047a29563863C9d75",
-      "implementation": "0x0fa6925f21d0493072ad29f3aF66f4E11655faF1",
-      "pendingImplementation": {
-        "address": "0x40b17388b078d24ccc6bd3d3d64e475a7b0383fb",
-        "deployment": {
-          "txHash": "0xc3ab39fc1e8a75a69b33ba6b000871b0d2ddaea3958aae80a484d096512de97c",
-          "argsData": "0x0000000000000000000000000a8491544221dd212964fbb96487467291b2c97e",
-          "bytecodeHash": "0xff6852f3bcaeb2e092067b1c8239a93f36d945f0bbca82cb721d65b5a953ab25",
-          "blockNumber": 486895371,
-          "timestamp": "2026-07-23T13:58:58.000Z"
-        }
-      },
+      "implementation": "0x40b17388b078d24ccc6bd3d3d64e475a7b0383fb",
       "implementationDeployment": {
-        "verified": "https://arbiscan.io/address/0x0fa6925f21d0493072ad29f3aF66f4E11655faF1#code"
+        "txHash": "0xc3ab39fc1e8a75a69b33ba6b000871b0d2ddaea3958aae80a484d096512de97c",
+        "argsData": "0x0000000000000000000000000a8491544221dd212964fbb96487467291b2c97e",
+        "bytecodeHash": "0xff6852f3bcaeb2e092067b1c8239a93f36d945f0bbca82cb721d65b5a953ab25",
+        "blockNumber": 486895371,
+        "timestamp": "2026-07-23T13:58:58.000Z",
+        "verified": "https://arbiscan.io/address/0x40b17388b078d24ccc6bd3d3d64e475a7b0383fb#code"
       },
       "proxyDeployment": {
         "verified": "https://arbiscan.io/address/0x2FE023a575449AcB698648eD21276293Fa176f96#code"

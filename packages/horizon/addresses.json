@@ -13,43 +13,33 @@
       "address": "0xf6Fcc27aAf1fcD8B254498c9794451d82afC673E",
       "proxy": "transparent",
       "proxyAdmin": "0x6465e08CD46669f8841641655186148b490B4b24",
-      "implementation": "0xc493e8EBedE3d1cC61632736108d943693DA11F7",
-      "pendingImplementation": {
-        "address": "0x59678950d4766f90c916a82e658b65781228609f",
-        "deployment": {
-          "txHash": "0xd24e9a23abe2b26c00212b9a5d7cab9513a948e8aedb40cb1e31bbf4cce8e8b6",
-          "argsData": "0x0000000000000000000000000a8491544221dd212964fbb96487467291b2c97e0000000000000000000000000000000000000000000000000000000000278d00",
-          "bytecodeHash": "0x00c6fe965489c9fe484cc508e52c1a674170b16d2fd321fcda3f9c702553ead0",
-          "blockNumber": 486895397,
-          "timestamp": "2026-07-23T13:59:04.000Z"
-        }
-      },
+      "implementation": "0x59678950d4766f90c916a82e658b65781228609f",
       "proxyDeployment": {
         "verified": "https://arbiscan.io/address/0xf6Fcc27aAf1fcD8B254498c9794451d82afC673E#code"
       },
       "implementationDeployment": {
-        "verified": "https://arbiscan.io/address/0xc493e8EBedE3d1cC61632736108d943693DA11F7#code"
+        "txHash": "0xd24e9a23abe2b26c00212b9a5d7cab9513a948e8aedb40cb1e31bbf4cce8e8b6",
+        "argsData": "0x0000000000000000000000000a8491544221dd212964fbb96487467291b2c97e0000000000000000000000000000000000000000000000000000000000278d00",
+        "bytecodeHash": "0x00c6fe965489c9fe484cc508e52c1a674170b16d2fd321fcda3f9c702553ead0",
+        "blockNumber": 486895397,
+        "timestamp": "2026-07-23T13:59:04.000Z",
+        "verified": "https://arbiscan.io/address/0x59678950d4766f90c916a82e658b65781228609f#code"
       }
     },
     "L2Curation": {
       "address": "0x22d78fb4bc72e191C765807f8891B5e1785C8014",
       "proxy": "graph",
-      "implementation": "0xc4Ce508c8fda35C597CC78e3604261110fc4c957",
-      "pendingImplementation": {
-        "address": "0xd6e26e680fef5cec449b74298aa98b8ca67ecf96",
-        "deployment": {
-          "txHash": "0x3b5dbb4bcca7a26f851219d202799e03e7967eff6409c01dd65692f000fe0169",
-          "argsData": "0x",
-          "bytecodeHash": "0xaad16b82ef09b39624235fcc47361da5bd2c6cb0f3926a4aa2d9d11f88a3e238",
-          "blockNumber": 486895413,
-          "timestamp": "2026-07-23T13:59:08.000Z"
-        }
-      },
+      "implementation": "0xd6e26e680fef5cec449b74298aa98b8ca67ecf96",
       "proxyDeployment": {
         "verified": "https://arbiscan.io/address/0x22d78fb4bc72e191C765807f8891B5e1785C8014#code"
       },
       "implementationDeployment": {
-        "verified": "https://arbiscan.io/address/0xc4Ce508c8fda35C597CC78e3604261110fc4c957#code"
+        "txHash": "0x3b5dbb4bcca7a26f851219d202799e03e7967eff6409c01dd65692f000fe0169",
+        "argsData": "0x",
+        "bytecodeHash": "0xaad16b82ef09b39624235fcc47361da5bd2c6cb0f3926a4aa2d9d11f88a3e238",
+        "blockNumber": 486895413,
+        "timestamp": "2026-07-23T13:59:08.000Z",
+        "verified": "https://arbiscan.io/address/0xd6e26e680fef5cec449b74298aa98b8ca67ecf96#code"
       }
     },
     "L2GNS": {
@@ -63,40 +53,30 @@
     "RewardsManager": {
       "address": "0x971B9d3d0Ae3ECa029CAB5eA1fB0F72c85e6a525",
       "proxy": "graph",
-      "implementation": "0xBcD7a231eAB1f4667AAbFdb482026f244bfBf101",
-      "pendingImplementation": {
-        "address": "0xa13cff50092c1c83d7d135bd0d2774cd4328ab01",
-        "deployment": {
-          "txHash": "0x509ac61e869638b05690fbb234b2e1293da6e645f622ebc07cfb98329e66a8c4",
-          "argsData": "0x",
-          "bytecodeHash": "0xd0cd3f4b7ce4ce4fe6ea8ee8ecd4e74bb683c64de2696c9e5ad7f74ef4c16f4e",
-          "blockNumber": 486895215,
-          "timestamp": "2026-07-23T13:58:19.000Z"
-        }
-      },
+      "implementation": "0xa13cff50092c1c83d7d135bd0d2774cd4328ab01",
       "proxyDeployment": {
         "verified": "https://arbiscan.io/address/0x971B9d3d0Ae3ECa029CAB5eA1fB0F72c85e6a525#code"
       },
       "implementationDeployment": {
-        "verified": "https://arbiscan.io/address/0xBcD7a231eAB1f4667AAbFdb482026f244bfBf101#code"
+        "txHash": "0x509ac61e869638b05690fbb234b2e1293da6e645f622ebc07cfb98329e66a8c4",
+        "argsData": "0x",
+        "bytecodeHash": "0xd0cd3f4b7ce4ce4fe6ea8ee8ecd4e74bb683c64de2696c9e5ad7f74ef4c16f4e",
+        "blockNumber": 486895215,
+        "timestamp": "2026-07-23T13:58:19.000Z",
+        "verified": "https://arbiscan.io/address/0xa13cff50092c1c83d7d135bd0d2774cd4328ab01#code"
       }
     },
     "HorizonStaking": {
       "address": "0x00669A4CF01450B64E8A2A20E9b1FCB71E61eF03",
       "proxy": "graph",
-      "implementation": "0xaA3359434B534dE9964d4e72bE2782b076a1Eb5A",
-      "pendingImplementation": {
-        "address": "0xd3ba4a3bc240883a42819d0fa662148f9f035ea1",
-        "deployment": {
-          "txHash": "0xf91403458bcebdb894d12feb780968e304cbd4e8f99e707e040ed32b121fb89c",
-          "argsData": "0x0000000000000000000000000a8491544221dd212964fbb96487467291b2c97e000000000000000000000000b2bb92d0de618878e438b55d5846cfecd9301105",
-          "bytecodeHash": "0xed53dca54465c51e6778244bf3453b16ba5d1a79e494bb522c9dc8d1504d8ba8",
-          "blockNumber": 486895253,
-          "timestamp": "2026-07-23T13:58:28.000Z"
-        }
-      },
+      "implementation": "0xd3ba4a3bc240883a42819d0fa662148f9f035ea1",
       "implementationDeployment": {
-        "verified": "https://arbiscan.io/address/0xaA3359434B534dE9964d4e72bE2782b076a1Eb5A#code"
+        "txHash": "0xf91403458bcebdb894d12feb780968e304cbd4e8f99e707e040ed32b121fb89c",
+        "argsData": "0x0000000000000000000000000a8491544221dd212964fbb96487467291b2c97e000000000000000000000000b2bb92d0de618878e438b55d5846cfecd9301105",
+        "bytecodeHash": "0xed53dca54465c51e6778244bf3453b16ba5d1a79e494bb522c9dc8d1504d8ba8",
+        "blockNumber": 486895253,
+        "timestamp": "2026-07-23T13:58:28.000Z",
+        "verified": "https://arbiscan.io/address/0xd3ba4a3bc240883a42819d0fa662148f9f035ea1#code"
       },
       "proxyDeployment": {
         "verified": "https://arbiscan.io/address/0x00669A4CF01450B64E8A2A20E9b1FCB71E61eF03#code"
