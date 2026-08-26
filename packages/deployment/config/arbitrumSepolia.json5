@@ -6,13 +6,22 @@
   },
 
   IssuanceAllocator: {
-    // Testnet mirror of the mainnet GIP-0089 split (mainnet is exactly 20x these
-    // rates): RM 80%, InnovationAllocation 20%, total unchanged at 6.0365.
-    // RecurringAgreementManager stays at 0 — DIPs dormant.
+    // InnovationAllocation takes 20% (1.2073), as on mainnet. Total unchanged at
+    // 6.0365 — RewardsManager absorbs the difference, not the other targets.
+    //
+    // RecurringAgreementManager keeps its existing 0.5: DIPs are live on testnet and
+    // GIP-0089 deliberately leaves them alone. An earlier GIP-0088 note had this at 0
+    // ("DIPs dormant"), a convergence that was written down but never executed
+    // on-chain. Turning DIPs off is a GIP-0088 decision and should be its own batch —
+    // folding it into the GIP-0089 allocation would make one GIP's governance
+    // transaction silently carry another's pending change.
+    //
+    // This is why the testnet table is not a scaled copy of mainnet's: mainnet has no
+    // RAM allocation, so there RewardsManager keeps 80%; here it keeps 71.72%.
     issuancePerBlock: '6.0365',
     allocations: {
-      RewardsManager: { selfGrtPerBlock: '4.8292' },
-      RecurringAgreementManager: { allocatorGrtPerBlock: '0' },
+      RewardsManager: { selfGrtPerBlock: '4.3292' },
+      RecurringAgreementManager: { allocatorGrtPerBlock: '0.5' },
       InnovationAllocation: { allocatorGrtPerBlock: '1.2073' },
     },
   },
