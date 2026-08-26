@@ -71,9 +71,10 @@ describe('Issuance allocation config', () => {
       const byTarget = Object.fromEntries(s.issuanceAllocator.allocations.map((a) => [a.target, a]))
       // Assert the per-target values, not just the sum: validateIssuanceAllocations
       // only checks the total, so compensating wrong values would pass on their own.
-      expect(byTarget.RewardsManager.selfGrtPerBlock).to.equal('4.8292')
+      expect(byTarget.RewardsManager.selfGrtPerBlock).to.equal('4.3292')
       expect(byTarget.InnovationAllocation.allocatorGrtPerBlock).to.equal('1.2073')
-      expect(byTarget.RecurringAgreementManager.allocatorGrtPerBlock).to.equal('0')
+      // RAM keeps its existing testnet allocation — GIP-0089 does not turn DIPs off.
+      expect(byTarget.RecurringAgreementManager.allocatorGrtPerBlock).to.equal('0.5')
       expect(() => validateIssuanceAllocations(s, parseUnits('6.0365', 18))).to.not.throw()
     })
   })
