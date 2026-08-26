@@ -549,10 +549,10 @@ async function readControllerPauseGuardian(client: PublicClient, horizonBook: Ad
 /**
  * InnovationAllocation (GIP-0089) role and handover checks.
  *
- * Gates G3 (roles-correct) and G4 (governance-transferred) of
+ * Gates G2 (roles-correct) and G3 (governance-transferred) of
  * [Gip0089Runbook.md](../docs/Gip0089Runbook.md) are ticked off this output, so it
  * has to actually evaluate the role grants plus OPERATOR_ROLE and GOVERNOR_ROLE
- * exclusivity rather than only showing the proxy address. Exclusivity is what G4
+ * exclusivity rather than only showing the proxy address. Exclusivity is what G3
  * rests on: it holds on a read-only run with no deployer account, and a deployer
  * whose GOVERNOR_ROLE was never revoked surfaces as a second holder. ProxyAdmin
  * ownership is rendered separately by `formatProxyAdminDetail`.
@@ -620,7 +620,7 @@ export async function getInnovationAllocationChecks(
   // cannot: `resolveOwnershipContext` takes `eth_accounts[0]` verbatim, which on a
   // read-only `--tags InnovationAllocation` run is the dummy key from
   // hardhat.config.ts — an address that can never hold the role, so the row would
-  // pass without evaluating anything. Gate G4 is ticked off this row.
+  // pass without evaluating anything. Gate G3 is ticked off this row.
   const expectedGovernor = ownershipCtx?.governor ?? null
   if (!expectedGovernor) {
     checks.push({ ok: null, label: 'GOVERNOR_ROLE exclusivity (governor address unresolved)' })
