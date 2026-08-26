@@ -3,6 +3,9 @@
     "NetworkOperator": {
       "address": "0xae656A0aa51cd465B7506F98F2e8FBb82aa79894"
     },
+    "InnovationOperator": {
+      "address": "0x7700d56D2cFAFa620048633B2586b063eCD93dd1"
+    },
     "IssuanceAllocator": {
       "address": "0xb64f29b2d81140ffc3a135e319561a1bd03b1a7e",
       "proxy": "transparent",
@@ -143,6 +146,9 @@
   "421614": {
     "NetworkOperator": {
       "address": "0xade6b8eb69a49b56929c1d4f4b428d791861db6f"
+    },
+    "InnovationOperator": {
+      "address": "0xc306C6D55f3E0F3C6758CCc0E8c448c90A4c79fe"
     },
     "RewardsEligibilityOracleA": {
       "address": "0x6ba849fbd33257162552578b2a432d30784f2f80",

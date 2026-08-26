@@ -45,6 +45,7 @@ export interface PreconditionResult {
 // Precomputed role hashes (matches BaseUpgradeable constants)
 const GOVERNOR_ROLE = keccak256(toHex('GOVERNOR_ROLE'))
 const PAUSE_ROLE = keccak256(toHex('PAUSE_ROLE'))
+const OPERATOR_ROLE = keccak256(toHex('OPERATOR_ROLE'))
 
 /** Check if account has a role on a contract */
 async function hasRole(
@@ -331,6 +332,35 @@ export async function checkDefaultAllocationConfigured(
   }
 
   return { done: false, reason: roles.reasons.join(', ') }
+}
+
+/**
+ * Check if InnovationAllocation is configured (GIP-0089)
+ *
+ * - governor has GOVERNOR_ROLE
+ * - pauseGuardian has PAUSE_ROLE
+ * - operator (InnovationOperator) has OPERATOR_ROLE
+ *
+ * Exclusivity of OPERATOR_ROLE is asserted separately by `checkOperatorRole` in
+ * contract-checks.ts — an extra holder can call sendTokens and drain the contract.
+ */
+export async function checkInnovationAllocationConfigured(
+  client: PublicClient,
+  address: string,
+  governor: string,
+  pauseGuardian: string,
+  operator: string,
+): Promise<PreconditionResult> {
+  const roles = await checkRoleGrants(client, address, governor, pauseGuardian)
+  const operatorOk = await hasRole(client, address, OPERATOR_ROLE, operator)
+
+  const reasons = [...roles.reasons]
+  if (!operatorOk) reasons.push('innovation operator missing OPERATOR_ROLE')
+
+  if (roles.governorOk && roles.pauseOk && operatorOk) {
+    return { done: true }
+  }
+  return { done: false, reason: reasons.join(', ') }
 }
 
 // ============================================================================

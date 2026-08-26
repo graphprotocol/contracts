@@ -260,6 +260,10 @@ const ISSUANCE_CONTRACTS = {
   // Used by deployment scripts to grant OPERATOR_ROLE
   NetworkOperator: { addressOnly: true },
 
+  // Address placeholder for the innovation operator (The Graph Foundation multisig
+  // on mainnet). Holds OPERATOR_ROLE on InnovationAllocation — withdrawals only.
+  InnovationOperator: { addressOnly: true },
+
   IssuanceAllocator: {
     artifact: { type: 'issuance', path: 'contracts/allocate/IssuanceAllocator.sol/IssuanceAllocator' },
     generateAbi: 'ISSUANCE_ALLOCATOR_ABI',
@@ -329,6 +333,16 @@ const ISSUANCE_CONTRACTS = {
     deployable: true,
     roles: BASE_ROLES,
     componentTag: ComponentTags.DEFAULT_ALLOCATION,
+    lifecycleActions: ['deploy', 'upgrade', 'configure', 'transfer'],
+  },
+  // GIP-0089 innovation allocation — allocator-minted target receiving 20% of issuance.
+  // Uses the shared DirectAllocation implementation (per-proxy ProxyAdmin).
+  InnovationAllocation: {
+    proxyType: 'transparent',
+    sharedImplementation: 'DirectAllocation_Implementation',
+    deployable: true,
+    roles: BASE_ROLES,
+    componentTag: ComponentTags.INNOVATION_ALLOCATION,
     lifecycleActions: ['deploy', 'upgrade', 'configure', 'transfer'],
   },
   // Default reclaim address — receives reclaimed rewards for all reasons
@@ -434,12 +448,17 @@ export function eligibilityOracleContract(name: EligibilityOracleContractName): 
 /**
  * Contract names the IssuanceAllocator can hold an explicit allocation for
  * *today*. RewardsManager self-mints the bulk of issuance; RecurringAgreementManager
- * is allocator-minted for agreement payments. Full names (not a suffix enum) are
+ * is allocator-minted for agreement payments; InnovationAllocation is the
+ * allocator-minted GIP-0089 innovation target. Full names (not a suffix enum) are
  * deliberate: a future issuance target may be a different contract — add it here
  * when it lands. (DefaultAllocation is the allocator's residual sink, set via
  * `setDefaultTarget`, not an explicit per-target allocation, so it is not listed.)
  */
-export const ALLOCATION_TARGET_CONTRACTS = ['RewardsManager', 'RecurringAgreementManager'] as const
+export const ALLOCATION_TARGET_CONTRACTS = [
+  'RewardsManager',
+  'RecurringAgreementManager',
+  'InnovationAllocation',
+] as const
 
 /** Full contract name of an IssuanceAllocator target (e.g. `RewardsManager`). */
 export type AllocationTargetContractName = (typeof ALLOCATION_TARGET_CONTRACTS)[number]
@@ -455,6 +474,8 @@ export function allocationTargetContract(name: AllocationTargetContractName): Re
       return Contracts.horizon.RewardsManager
     case 'RecurringAgreementManager':
       return Contracts.issuance.RecurringAgreementManager
+    case 'InnovationAllocation':
+      return Contracts.issuance.InnovationAllocation
   }
 }
 

@@ -234,19 +234,19 @@ export async function checkIssuanceConnectComplete(
 }
 
 // ============================================================================
-// REO Role Checks
+// Role Checks
 // ============================================================================
 
 /**
- * Result of checking OPERATOR_ROLE assignment on an REO instance
+ * Result of checking exclusive holdership of a role on a BaseUpgradeable contract
  */
-export interface OperatorRoleCheckResult {
+export interface RoleExclusivityCheckResult {
   /** Whether the check passed (correct assignment state) */
   ok: boolean
-  /** Number of addresses with OPERATOR_ROLE */
+  /** Number of addresses holding the role */
   count: number
-  /** The expected operator address (null if not configured) */
-  expectedOperator: string | null
+  /** The expected sole holder (null if none is configured) */
+  expectedHolder: string | null
   /** Actual role holders (if enumerable) */
   actualHolders: string[]
   /** Human-readable status message */
@@ -254,39 +254,48 @@ export interface OperatorRoleCheckResult {
 }
 
 /**
- * Check OPERATOR_ROLE assignment on an REO instance
+ * Check that a role on a BaseUpgradeable contract is held by exactly the expected account
  *
- * This is the SINGLE authoritative check for OPERATOR_ROLE correctness.
- * Used by both deployment scripts and status checks.
+ * This is the SINGLE authoritative exclusivity check for role assignment. It reads the
+ * role constant off the contract by name, enumerates every holder via
+ * `AccessControlEnumerable`, and asserts the holder set is exactly what was configured.
  *
  * Rules:
- * - If expectedOperator is provided: exactly 1 holder, must be expectedOperator
- * - If expectedOperator is null: exactly 0 holders
+ * - If expectedHolder is provided: exactly 1 holder, must be expectedHolder
+ * - If expectedHolder is null: exactly 0 holders
  *
  * @param client - Viem public client
- * @param reoAddress - REO instance address
- * @param expectedOperator - Expected operator address (from address book), or null if not configured
+ * @param contractAddress - Contract address
+ * @param roleName - Name of the role constant getter on the contract (`OPERATOR_ROLE`, `GOVERNOR_ROLE`, ...)
+ * @param expectedHolder - Expected sole holder, or null if the role should be unassigned
+ * @param holderEntryName - Where the expected holder comes from, used in messages
+ *   (`NetworkOperator`, `InnovationOperator`, `Controller governor`, ...)
  * @returns Check result with pass/fail status and details
  */
-export async function checkOperatorRole(
+export async function checkExclusiveRoleHolder(
   client: PublicClient,
-  reoAddress: string,
-  expectedOperator: string | null,
-): Promise<OperatorRoleCheckResult> {
-  // Get OPERATOR_ROLE constant
-  const operatorRole = (await client.readContract({
-    address: reoAddress as `0x${string}`,
-    abi: REWARDS_ELIGIBILITY_ORACLE_ABI,
-    functionName: 'OPERATOR_ROLE',
+  contractAddress: string,
+  roleName: string,
+  expectedHolder: string | null,
+  holderEntryName: string,
+): Promise<RoleExclusivityCheckResult> {
+  // Get the role constant
+  const roleConstantAbi: Abi = [
+    { inputs: [], name: roleName, outputs: [{ type: 'bytes32' }], stateMutability: 'view', type: 'function' },
+  ]
+  const role = (await client.readContract({
+    address: contractAddress as `0x${string}`,
+    abi: roleConstantAbi,
+    functionName: roleName,
   })) as `0x${string}`
 
   // Get role member count
   const count = Number(
     (await client.readContract({
-      address: reoAddress as `0x${string}`,
-      abi: REWARDS_ELIGIBILITY_ORACLE_ABI,
+      address: contractAddress as `0x${string}`,
+      abi: ACCESS_CONTROL_ENUMERABLE_ABI,
       functionName: 'getRoleMemberCount',
-      args: [operatorRole],
+      args: [role],
     })) as bigint,
   )
 
@@ -294,70 +303,70 @@ export async function checkOperatorRole(
   const actualHolders: string[] = []
   for (let i = 0; i < count; i++) {
     const holder = (await client.readContract({
-      address: reoAddress as `0x${string}`,
-      abi: REWARDS_ELIGIBILITY_ORACLE_ABI,
+      address: contractAddress as `0x${string}`,
+      abi: ACCESS_CONTROL_ENUMERABLE_ABI,
       functionName: 'getRoleMember',
-      args: [operatorRole, BigInt(i)],
+      args: [role, BigInt(i)],
     })) as string
     actualHolders.push(holder)
   }
 
+  const base = { count, expectedHolder, actualHolders }
+
   // Validate based on expected state
-  if (expectedOperator === null) {
-    // No operator configured - must have zero holders
+  if (expectedHolder === null) {
+    // No holder configured - must have zero holders
     if (count === 0) {
-      return {
-        ok: true,
-        count,
-        expectedOperator,
-        actualHolders,
-        message: 'OPERATOR_ROLE: none assigned (NetworkOperator not configured)',
-      }
-    } else {
-      return {
-        ok: false,
-        count,
-        expectedOperator,
-        actualHolders,
-        message: `OPERATOR_ROLE: unexpected holders (${count}) when NetworkOperator not configured: ${actualHolders.join(', ')}`,
-      }
+      return { ...base, ok: true, message: `${roleName}: none assigned (${holderEntryName} not configured)` }
     }
-  } else {
-    // Operator configured - must have exactly one holder matching expected
-    if (count === 0) {
-      return {
-        ok: false,
-        count,
-        expectedOperator,
-        actualHolders,
-        message: `OPERATOR_ROLE: not assigned (expected ${expectedOperator})`,
-      }
-    } else if (count === 1 && actualHolders[0].toLowerCase() === expectedOperator.toLowerCase()) {
-      return {
-        ok: true,
-        count,
-        expectedOperator,
-        actualHolders,
-        message: `OPERATOR_ROLE: ${expectedOperator}`,
-      }
-    } else if (count === 1) {
-      return {
-        ok: false,
-        count,
-        expectedOperator,
-        actualHolders,
-        message: `OPERATOR_ROLE: wrong holder (expected ${expectedOperator}, got ${actualHolders[0]})`,
-      }
-    } else {
-      return {
-        ok: false,
-        count,
-        expectedOperator,
-        actualHolders,
-        message: `OPERATOR_ROLE: too many holders (${count}): ${actualHolders.join(', ')} (expected only ${expectedOperator})`,
-      }
+    return {
+      ...base,
+      ok: false,
+      message: `${roleName}: unexpected holders (${count}) when ${holderEntryName} not configured: ${actualHolders.join(', ')}`,
     }
   }
+
+  // Holder configured - must have exactly one holder matching expected
+  if (count === 0) {
+    return { ...base, ok: false, message: `${roleName}: not assigned (expected ${expectedHolder})` }
+  }
+  if (count === 1 && actualHolders[0].toLowerCase() === expectedHolder.toLowerCase()) {
+    return { ...base, ok: true, message: `${roleName}: ${expectedHolder}` }
+  }
+  if (count === 1) {
+    return {
+      ...base,
+      ok: false,
+      message: `${roleName}: wrong holder (expected ${expectedHolder}, got ${actualHolders[0]})`,
+    }
+  }
+  return {
+    ...base,
+    ok: false,
+    message: `${roleName}: too many holders (${count}): ${actualHolders.join(', ')} (expected only ${expectedHolder})`,
+  }
+}
+
+/**
+ * Check OPERATOR_ROLE assignment on a BaseUpgradeable contract
+ *
+ * Thin wrapper over {@link checkExclusiveRoleHolder} — an extra OPERATOR_ROLE holder
+ * can call `sendTokens`, so the count assertion is exact.
+ *
+ * @param client - Viem public client
+ * @param contractAddress - Contract address
+ * @param expectedOperator - Expected operator address (from address book), or null if not configured
+ * @param operatorEntryName - Address-book entry the operator comes from, used in messages
+ *   (`NetworkOperator` for the eligibility oracles, `InnovationOperator` for GIP-0089)
+ * @returns Check result with pass/fail status and details
+ */
+export async function checkOperatorRole(
+  client: PublicClient,
+  contractAddress: string,
+  expectedOperator: string | null,
+  operatorEntryName = 'NetworkOperator',
+): Promise<RoleExclusivityCheckResult> {
+  return checkExclusiveRoleHolder(client, contractAddress, 'OPERATOR_ROLE', expectedOperator, operatorEntryName)
 }
 
 // ============================================================================

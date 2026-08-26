@@ -23,8 +23,18 @@ describe('Issuance allocation config', () => {
       expect(entry.addressBook).to.equal('issuance')
     })
 
+    it('resolves InnovationAllocation from the issuance address book', () => {
+      const entry = allocationTargetContract('InnovationAllocation')
+      expect(entry.name).to.equal('InnovationAllocation')
+      expect(entry.addressBook).to.equal('issuance')
+    })
+
     it('lists the currently-allocatable targets', () => {
-      expect([...ALLOCATION_TARGET_CONTRACTS]).to.deep.equal(['RewardsManager', 'RecurringAgreementManager'])
+      expect([...ALLOCATION_TARGET_CONTRACTS]).to.deep.equal([
+        'RewardsManager',
+        'RecurringAgreementManager',
+        'InnovationAllocation',
+      ])
     })
   })
 
@@ -42,6 +52,29 @@ describe('Issuance allocation config', () => {
           expect(ALLOCATION_TARGET_CONTRACTS as readonly string[]).to.include(a.target)
         }
       }
+    })
+
+    it('resolves the GIP-0089 split for arbitrumOne', () => {
+      const s = getResolvedSettings(42161)
+      expect(s.issuanceAllocator.issuancePerBlock).to.equal('120.73')
+      const byTarget = Object.fromEntries(s.issuanceAllocator.allocations.map((a) => [a.target, a]))
+      expect(byTarget.RewardsManager.selfGrtPerBlock).to.equal('96.584')
+      expect(byTarget.InnovationAllocation.allocatorGrtPerBlock).to.equal('24.146')
+      // The table must allocate exactly the full issuance — this is the invariant
+      // validateIssuanceAllocations enforces against RM's on-chain rate.
+      expect(() => validateIssuanceAllocations(s, parseUnits('120.73', 18))).to.not.throw()
+    })
+
+    it('resolves the mirrored split for arbitrumSepolia', () => {
+      const s = getResolvedSettings(421614)
+      expect(s.issuanceAllocator.issuancePerBlock).to.equal('6.0365')
+      const byTarget = Object.fromEntries(s.issuanceAllocator.allocations.map((a) => [a.target, a]))
+      // Assert the per-target values, not just the sum: validateIssuanceAllocations
+      // only checks the total, so compensating wrong values would pass on their own.
+      expect(byTarget.RewardsManager.selfGrtPerBlock).to.equal('4.8292')
+      expect(byTarget.InnovationAllocation.allocatorGrtPerBlock).to.equal('1.2073')
+      expect(byTarget.RecurringAgreementManager.allocatorGrtPerBlock).to.equal('0')
+      expect(() => validateIssuanceAllocations(s, parseUnits('6.0365', 18))).to.not.throw()
     })
   })
 

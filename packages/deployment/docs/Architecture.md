@@ -16,10 +16,12 @@ packages/deployment/
 │   ├── common/                   # 00_sync.ts
 │   ├── horizon/                  # RM, HS, PE, L2Curation, RC
 │   ├── service/                  # SubgraphService, DisputeManager
-│   ├── allocate/                 # IssuanceAllocator, DefaultAllocation, DirectAllocation
+│   ├── allocate/                 # allocator/ (IssuanceAllocator), direct/ (shared
+│   │                             #   DirectAllocation impl), default/, innovation/
 │   ├── agreement/                # RecurringAgreementManager
 │   ├── rewards/                  # RewardsEligibilityOracle (A/B/mock), Reclaim
-│   └── gip/0088/                 # GIP-0088 goal orchestration (upgrade phase + activation)
+│   ├── gip/0088/                 # GIP-0088 goal orchestration (upgrade phase + activation)
+│   └── gip/0089/                 # GIP-0089 goal orchestration (innovation allocation)
 ├── lib/                          # Shared utilities (preconditions, contract registry, tags, ABIs, ...)
 ├── tasks/                        # Hardhat tasks (deploy:*)
 ├── docs/                         # This documentation
@@ -30,14 +32,14 @@ packages/deployment/
 
 Two-dimensional tag model. See [`lib/deployment-tags.ts`](../lib/deployment-tags.ts) for the source of truth.
 
-| Kind            | Examples                                                                                             | Purpose                                                       |
-| --------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| Special         | `sync`                                                                                               | Sync address books, import contracts                          |
-| Component       | `IssuanceAllocator`, `RewardsManager`, `RecurringAgreementManager`, `RewardsEligibilityOracleA`, ... | One per deployable contract                                   |
-| Action verb     | `deploy`, `upgrade`, `configure`, `transfer`, `integrate`, `all`                                     | Combined with a component or goal tag to gate work            |
-| Goal scope      | `GIP-0088`, `GIP-0088:upgrade`                                                                       | Multi-component orchestration for a deployment                |
-| Activation goal | `GIP-0088:eligibility-integrate`, `GIP-0088:issuance-connect`, `GIP-0088:issuance-allocate`          | Per-step governance TX for the activation phases              |
-| Optional goal   | `GIP-0088:eligibility-revert`, `GIP-0088:issuance-close-guard`                                       | Excluded from `--tags ...,all` — must be requested explicitly |
+| Kind            | Examples                                                                                                                     | Purpose                                                       |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Special         | `sync`                                                                                                                       | Sync address books, import contracts                          |
+| Component       | `IssuanceAllocator`, `RewardsManager`, `RecurringAgreementManager`, `RewardsEligibilityOracleA`, `InnovationAllocation`, ... | One per deployable contract                                   |
+| Action verb     | `deploy`, `upgrade`, `configure`, `transfer`, `integrate`, `all`                                                             | Combined with a component or goal tag to gate work            |
+| Goal scope      | `GIP-0088`, `GIP-0088:upgrade`, `GIP-0089`                                                                                   | Multi-component orchestration for a deployment                |
+| Activation goal | `GIP-0088:eligibility-integrate`, `GIP-0088:issuance-connect`, `GIP-0088:issuance-allocate`, `GIP-0089:allocate`             | Per-step governance TX for the activation phases              |
+| Optional goal   | `GIP-0088:eligibility-revert`, `GIP-0088:issuance-close-guard`                                                               | Excluded from `--tags ...,all` — must be requested explicitly |
 
 ## External Artifacts
 

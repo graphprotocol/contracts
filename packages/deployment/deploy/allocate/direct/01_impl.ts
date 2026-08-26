@@ -16,8 +16,9 @@ import type { DeployScriptModule } from '@rocketh/core/types'
  * Deploy shared DirectAllocation implementation
  *
  * This implementation is shared by all DirectAllocation proxies
- * (DefaultAllocation, ReclaimedRewards). Runs during both deploy AND upgrade
- * actions — deploying the implementation is a prerequisite for proxy upgrades.
+ * (DefaultAllocation, ReclaimedRewards, InnovationAllocation). Runs during both
+ * deploy AND upgrade actions — deploying the implementation is a prerequisite for
+ * proxy upgrades.
  *
  * Rocketh handles idempotency: if bytecode is unchanged, no redeployment occurs.
  *

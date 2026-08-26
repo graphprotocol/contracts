@@ -37,6 +37,7 @@ function buildTargetLabels(targetChainId: number): Map<string, string> {
   add(horizonBook, 'RewardsManager', 'RM  (RewardsManager)')
   add(issuanceBook, 'RecurringAgreementManager', 'RAM (RecurringAgreementManager)')
   add(issuanceBook, 'DefaultAllocation', 'DA  (DefaultAllocation)')
+  add(issuanceBook, 'InnovationAllocation', 'InnovationAllocation')
   add(issuanceBook, 'ReclaimedRewards', 'ReclaimedRewards')
   return labels
 }

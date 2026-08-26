@@ -11,6 +11,8 @@ import type { ContractList } from '../contract'
 export const GraphIssuanceContractNameList = [
   'DefaultAllocation',
   'DirectAllocation_Implementation',
+  'InnovationAllocation',
+  'InnovationOperator',
   'IssuanceAllocator',
   'NetworkOperator',
   'ReclaimedRewards',
@@ -25,6 +27,8 @@ export type GraphIssuanceContractName = (typeof GraphIssuanceContractNameList)[n
 export interface GraphIssuanceContracts extends ContractList<GraphIssuanceContractName> {
   DefaultAllocation: DirectAllocation
   DirectAllocation_Implementation: Contract
+  InnovationAllocation: DirectAllocation
+  InnovationOperator: Contract // Address holder for the innovation operator (not an actual contract)
   IssuanceAllocator: IssuanceAllocator
   NetworkOperator: Contract // Address holder for network operator (not an actual contract)
   ReclaimedRewards: DirectAllocation

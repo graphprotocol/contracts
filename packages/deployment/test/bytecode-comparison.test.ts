@@ -1,5 +1,6 @@
 import { expect } from 'chai'
 
+import { loadDirectAllocationArtifact } from '../lib/artifact-loaders.js'
 import {
   computeBytecodeHash,
   type LibraryArtifactResolver,
@@ -7,6 +8,7 @@ import {
   stripMetadata,
 } from '../lib/bytecode-utils.js'
 import { loadContractsArtifact } from '../lib/deploy-implementation.js'
+import { graph } from '../rocketh/deploy.js'
 
 /**
  * Bytecode utility tests
@@ -239,4 +241,43 @@ describe('Deploy Implementation Helper', function () {
       expect(curation.bytecode).to.match(/^0x/)
     })
   })
+})
+
+// =============================================================================
+// SHARED IMPLEMENTATION DRIFT GUARD
+// =============================================================================
+
+/**
+ * DirectAllocation_Implementation is shared by three proxies (DefaultAllocation,
+ * ReclaimedRewards, InnovationAllocation). `deploy/allocate/direct/01_impl.ts` runs
+ * on the `deploy` action and redeploys whenever the artifact bytecode differs from
+ * the recorded hash — which would silently split the proxies across two
+ * implementations. This asserts the invariant that keeps them together.
+ *
+ * When this fails, that is the signal to make a deliberate, recorded decision:
+ * upgrade all three proxies together, or pin the implementation. Do not "fix" it
+ * by updating the expected hash.
+ */
+describe('DirectAllocation shared implementation', function () {
+  for (const chainId of [42161, 421614]) {
+    it(`matches the recorded bytecodeHash on chain ${chainId}`, function () {
+      const book = graph.getIssuanceAddressBook(chainId)
+      const meta = book.getDeploymentMetadata('DirectAllocation_Implementation')
+      // Fail rather than skip: a removed metadata record would otherwise silently
+      // disable the drift guard, which is the whole point of this test.
+      expect(
+        meta?.bytecodeHash,
+        `DirectAllocation_Implementation has no recorded bytecodeHash on chain ${chainId} — ` +
+          `the shared-implementation drift guard cannot run. Restore the deployment metadata ` +
+          `in packages/issuance/addresses.json instead of deleting the record.`,
+      ).to.be.a('string')
+      const localHash = computeBytecodeHash(loadDirectAllocationArtifact().deployedBytecode ?? '0x')
+      expect(localHash).to.equal(
+        meta!.bytecodeHash,
+        `DirectAllocation artifact drifted from the implementation deployed on chain ${chainId}. ` +
+          `Deploying a new proxy now would put it on a different implementation than ` +
+          `DefaultAllocation and ReclaimedRewards.`,
+      )
+    })
+  }
 })
