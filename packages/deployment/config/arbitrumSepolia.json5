@@ -6,21 +6,14 @@
   },
 
   IssuanceAllocator: {
-    // Explicit issuance allocation table, by target contract name. The rates must
-    // sum to issuancePerBlock, which must equal RM's on-chain issuance rate — the
-    // scripts error on mismatch and never set the rate from config.
-    //
-    // DIPs-dormant target: RecurringAgreementManager is left out of the table so it
-    // receives 0 issuance (protocol-funded indexing-agreement path off). RM self-mints
-    // the full rate (6.0365 GRT/block). The chain currently still has the active split
-    // (RM 5.5365 + RAM 0.5); re-run `GIP-0088:issuance-allocate` to converge to this
-    // table (it emits setTargetAllocation(RAM,0,0) then setTargetAllocation(RM,0,6.0365),
-    // decrease-first), and have the guardian pause RecurringCollector out-of-band.
+    // Testnet mirror of the mainnet GIP-0089 split (mainnet is exactly 20x these
+    // rates): RM 80%, InnovationAllocation 20%, total unchanged at 6.0365.
+    // RecurringAgreementManager stays at 0 — DIPs dormant.
     issuancePerBlock: '6.0365',
     allocations: {
-      RewardsManager: { selfGrtPerBlock: '6.0365' },
+      RewardsManager: { selfGrtPerBlock: '4.8292' },
       RecurringAgreementManager: { allocatorGrtPerBlock: '0' },
-    },
+      InnovationAllocation: { allocatorGrtPerBlock: '1.2073' },
     },
   },
 }

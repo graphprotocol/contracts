@@ -470,14 +470,37 @@ rate (no rebalancing). **Exits** unless the config `issuancePerBlock` equals RM'
 on-chain rate and the per-target rates sum to it. Skips when no allocations are
 configured.
 
-In the **DIPs-dormant** config the only target is RM, already at 100% from
-[S8](#stage-s8) `issuance-connect`, so this stage emits **no transactions** —
-run it to confirm the table matches on-chain. (When DIPs are later activated, the
-RAM allocation is added back to config and this stage does the real work.)
+<a id="allocate-table-requires-post-connect-state"></a>
+
+> **The mainnet allocate table is no longer a no-op.** Since GIP-0089,
+> `config/arbitrumOne.json5` splits issuance `RewardsManager: 96.584` /
+> `InnovationAllocation: 24.146` (and `arbitrumSepolia.json5` mirrors it). This
+> stage therefore emits real transactions, and their decrease-first ordering is
+> only correct once [S8](#stage-s8) `issuance-connect` has executed — RM must
+> already hold its issuance as a self-minting IssuanceAllocator allocation.
+> `applyIssuanceAllocationTable` enforces that precondition and refuses to build a
+> batch otherwise. To generate this bundle **ahead** of the connect bundle in the
+> [single-session sequenced flow](#sequenced-bundle-generation-single-council-signing-session),
+> prefix the command with `GIP_0088_ASSUME_UPGRADED=1`; the resulting batch is
+> sequenced-only and valid solely when executed after the connect bundle in Safe
+> nonce order.
+>
+> **Until GIP-0089 completes, `--tags GIP-0088,all` exits 1** with
+> `Allocation configured for InnovationAllocation but it is not deployed` — the
+> config lists the target before its proxy exists on either chain. That is the
+> gate reporting a real gap in the combined end state, not a GIP-0088
+> regression: everything GIP-0088 owns is still verified by bare
+> `--tags GIP-0088`, which is what
+> [Gip0089Runbook.md](Gip0089Runbook.md) G5 prescribes during the window. The
+> combined gate goes green once
+> [S1–S4 of the GIP-0089 runbook](Gip0089Runbook.md#the-run) have deployed
+> InnovationAllocation and executed its allocate batch.
 
 **Steps.**
 
 1. `pnpm hardhat deploy --tags GIP-0088:issuance-allocate --network <network>`
+   (add `GIP_0088_ASSUME_UPGRADED=1` only for sequenced generation before
+   [S9](#stage-s9) has executed)
    <a id="stage-s11"></a>
 
 ### Stage S11 — Sign & execute the issuance-allocate batch
@@ -859,9 +882,11 @@ N+1/N+2 are blocked rather than executing against an un-upgraded RM.
 - **Dropped:** idempotency. The flag blind-emits the full set, so use it only for
   the initial sequenced generation — **not** for re-runs or recovery, where the
   default (guarded) mode reads live state and emits only the remaining work.
-- **`issuance-allocate`** stays a no-op in the DIPs-dormant config (RM already
-  100% from `issuance-connect`), so it needs no bundle. On a DIPs-active config,
-  generate it too, with the flag, as an `N+3` sequenced bundle.
+- **`issuance-allocate`** now also carries the issuance-connect precondition (it
+  lives in `lib/issuance-allocate.ts`, shared with `GIP-0089:allocate`), so the flag
+  is what lets it be generated ahead of the connect bundle — as an `N+3` sequenced
+  bundle. See [the allocate-table note](#allocate-table-requires-post-connect-state)
+  below.
 
 This mode trades the staged per-goal review gates ([G7](#gate-g7)/[G9](#gate-g9))
 for a single up-front review of all bundles — a deliberate choice for the

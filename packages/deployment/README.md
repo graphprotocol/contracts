@@ -97,6 +97,8 @@ FORK_NETWORK=arbitrumSepolia ARBITRUM_SEPOLIA_RPC=<url> pnpm test
 
 - [docs/Gip0088.md](./docs/Gip0088.md) - GIP-0088 reference guide: scripts, tags, preconditions
 - [docs/Gip0088Runbook.md](./docs/Gip0088Runbook.md) - GIP-0088 operational runbook: staged, gated execution plan
+- [docs/Gip0089.md](./docs/Gip0089.md) - GIP-0089 reference guide: innovation allocation scripts and tags
+- [docs/Gip0089Runbook.md](./docs/Gip0089Runbook.md) - GIP-0089 operational runbook
 - [docs/deploy/ImplementationPrinciples.md](./docs/deploy/ImplementationPrinciples.md) - Core design principles and patterns
 - [docs/Architecture.md](./docs/Architecture.md) - Package structure and tags
 - [docs/GovernanceWorkflow.md](./docs/GovernanceWorkflow.md) - Detailed governance workflow

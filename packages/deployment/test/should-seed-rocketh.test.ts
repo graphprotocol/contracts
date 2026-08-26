@@ -14,7 +14,8 @@ import { type ContractSpec, shouldSeedRocketh } from '../lib/sync-utils.js'
  * deployFn call (it ends up comparing the new artifact to itself), so the
  * impl never gets redeployed and dependent proxies never receive a pending
  * implementation. Concretely, this caused shared-impl proxies (DefaultAllocation,
- * ReclaimedRewards) to get stuck on stale code with no upgrade triggered.
+ * ReclaimedRewards, InnovationAllocation) to get stuck on stale code with no
+ * upgrade triggered.
  *
  * The rules below are the truth table that pins the gate against future
  * regressions of any of those failure modes.

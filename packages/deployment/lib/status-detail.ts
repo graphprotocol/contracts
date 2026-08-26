@@ -23,6 +23,7 @@ import {
 import type { AddressBookOps } from './address-book-ops.js'
 import { getAddressBookForType, getTargetChainIdFromEnv } from './address-book-utils.js'
 import {
+  checkExclusiveRoleHolder,
   checkIssuanceAllocatorActivation,
   checkOperatorRole,
   formatAddress,
@@ -507,6 +508,151 @@ export async function getReclaimAddressChecks(
     checks.push({ ok: configured, label: 'configured as RM.defaultReclaimAddress' })
   } catch {
     checks.push({ ok: false, label: 'configured as RM.defaultReclaimAddress' })
+  }
+
+  return checks
+}
+
+/**
+ * Minimal ABI for the BaseUpgradeable role constants and pause state, shared by
+ * every DirectAllocation-backed proxy.
+ */
+const BASE_UPGRADEABLE_ABI = [
+  { inputs: [], name: 'GOVERNOR_ROLE', outputs: [{ type: 'bytes32' }], stateMutability: 'view', type: 'function' },
+  { inputs: [], name: 'PAUSE_ROLE', outputs: [{ type: 'bytes32' }], stateMutability: 'view', type: 'function' },
+  { inputs: [], name: 'paused', outputs: [{ type: 'bool' }], stateMutability: 'view', type: 'function' },
+] as const
+
+/** Read Controller.pauseGuardian (auto-generated getter, not on IController). */
+async function readControllerPauseGuardian(client: PublicClient, horizonBook: AddressBookOps): Promise<string | null> {
+  const controller = horizonBook.entryExists('Controller') ? horizonBook.getEntry('Controller')?.address : null
+  if (!controller) return null
+  try {
+    return (await client.readContract({
+      address: controller as `0x${string}`,
+      abi: [
+        {
+          inputs: [],
+          name: 'pauseGuardian',
+          outputs: [{ type: 'address' }],
+          stateMutability: 'view',
+          type: 'function',
+        },
+      ],
+      functionName: 'pauseGuardian',
+    })) as string
+  } catch {
+    return null
+  }
+}
+
+/**
+ * InnovationAllocation (GIP-0089) role and handover checks.
+ *
+ * Gates G3 (roles-correct) and G4 (governance-transferred) of
+ * [Gip0089Runbook.md](../docs/Gip0089Runbook.md) are ticked off this output, so it
+ * has to actually evaluate the role grants plus OPERATOR_ROLE and GOVERNOR_ROLE
+ * exclusivity rather than only showing the proxy address. Exclusivity is what G4
+ * rests on: it holds on a read-only run with no deployer account, and a deployer
+ * whose GOVERNOR_ROLE was never revoked surfaces as a second holder. ProxyAdmin
+ * ownership is rendered separately by `formatProxyAdminDetail`.
+ */
+export async function getInnovationAllocationChecks(
+  client: PublicClient,
+  horizonBook: AddressBookOps,
+  issuanceBook: AddressBookOps,
+  ownershipCtx?: ProxyAdminOwnershipContext,
+): Promise<IntegrationCheck[]> {
+  const checks: IntegrationCheck[] = []
+  const address = issuanceBook.entryExists('InnovationAllocation')
+    ? issuanceBook.getEntry('InnovationAllocation')?.address
+    : null
+  if (!address) return checks
+
+  const pushRoleCheck = async (
+    roleName: 'GOVERNOR_ROLE' | 'PAUSE_ROLE',
+    holder: string | null,
+    label: string,
+  ): Promise<void> => {
+    if (!holder) {
+      checks.push({ ok: null, label: `${label} (holder address unresolved)` })
+      return
+    }
+    try {
+      const role = (await client.readContract({
+        address: address as `0x${string}`,
+        abi: BASE_UPGRADEABLE_ABI,
+        functionName: roleName,
+      })) as `0x${string}`
+      const has = (await client.readContract({
+        address: address as `0x${string}`,
+        abi: ACCESS_CONTROL_ENUMERABLE_ABI,
+        functionName: 'hasRole',
+        args: [role, holder as `0x${string}`],
+      })) as boolean
+      checks.push({ ok: has, label: `${label} (${formatAddress(holder)})` })
+    } catch {
+      checks.push({ ok: null, label: `${label} (check failed)` })
+    }
+  }
+
+  await pushRoleCheck('GOVERNOR_ROLE', ownershipCtx?.governor ?? null, 'governor has GOVERNOR_ROLE')
+  await pushRoleCheck(
+    'PAUSE_ROLE',
+    await readControllerPauseGuardian(client, horizonBook),
+    'pause guardian has PAUSE_ROLE',
+  )
+
+  // OPERATOR_ROLE exclusivity — an extra holder can call sendTokens and drain it.
+  const operator = issuanceBook.entryExists('InnovationOperator')
+    ? (issuanceBook.getEntry('InnovationOperator')?.address ?? null)
+    : null
+  try {
+    const operatorCheck = await checkOperatorRole(client, address, operator, 'InnovationOperator')
+    checks.push({ ok: operator === null ? false : operatorCheck.ok, label: operatorCheck.message })
+  } catch {
+    checks.push({ ok: null, label: 'OPERATOR_ROLE (check failed)' })
+  }
+
+  // GOVERNOR_ROLE exclusivity — subsumes deployer revocation (a deployer that still
+  // holds GOVERNOR_ROLE shows up here as a second holder) and needs no deployer
+  // account, so it evaluates on a read-only run. A deployer-vs-governor comparison
+  // cannot: `resolveOwnershipContext` takes `eth_accounts[0]` verbatim, which on a
+  // read-only `--tags InnovationAllocation` run is the dummy key from
+  // hardhat.config.ts — an address that can never hold the role, so the row would
+  // pass without evaluating anything. Gate G4 is ticked off this row.
+  const expectedGovernor = ownershipCtx?.governor ?? null
+  if (!expectedGovernor) {
+    checks.push({ ok: null, label: 'GOVERNOR_ROLE exclusivity (governor address unresolved)' })
+  } else {
+    try {
+      const governorCheck = await checkExclusiveRoleHolder(
+        client,
+        address,
+        'GOVERNOR_ROLE',
+        expectedGovernor,
+        'Controller governor',
+      )
+      checks.push({
+        ok: governorCheck.ok,
+        label: governorCheck.ok
+          ? `GOVERNOR_ROLE held only by governor (${formatAddress(expectedGovernor)})`
+          : governorCheck.message,
+      })
+    } catch {
+      checks.push({ ok: null, label: 'GOVERNOR_ROLE exclusivity (check failed)' })
+    }
+  }
+
+  try {
+    const paused = (await client.readContract({
+      address: address as `0x${string}`,
+      abi: BASE_UPGRADEABLE_ABI,
+      functionName: 'paused',
+    })) as boolean
+    checks.push({ ok: !paused, label: paused ? 'PAUSED' : 'not paused' })
+  } catch {
+    checks.push({ ok: null, label: 'paused() (check failed)' })
   }
 
   return checks
@@ -1083,6 +1229,8 @@ export async function showDetailedComponentStatus(
     )
   } else if (contract.name === 'ReclaimedRewards') {
     checks = await getReclaimAddressChecks(client, horizonBook, issuanceBook)
+  } else if (contract.name === 'InnovationAllocation') {
+    checks = await getInnovationAllocationChecks(client, horizonBook, issuanceBook, ownershipCtx)
   } else if (contract.name === 'RecurringCollector') {
     const addr = horizonBook.entryExists('RecurringCollector')
       ? horizonBook.getEntry('RecurringCollector')?.address

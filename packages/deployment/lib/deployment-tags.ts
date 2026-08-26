@@ -52,6 +52,7 @@ export const ComponentTags = {
 
   // Issuance agreement contracts
   RECURRING_AGREEMENT_MANAGER: 'RecurringAgreementManager',
+  INNOVATION_ALLOCATION: 'InnovationAllocation',
 } as const
 
 /**
@@ -79,6 +80,10 @@ export const GoalTags = {
 
   // Optional goals (not activated by `all`)
   GIP_0088_ISSUANCE_CLOSE_GUARD: 'GIP-0088:issuance-close-guard',
+
+  // GIP-0089 — innovation allocation
+  GIP_0089: 'GIP-0089',
+  GIP_0089_ALLOCATE: 'GIP-0089:allocate',
 } as const
 
 /**

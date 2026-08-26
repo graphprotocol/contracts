@@ -25,15 +25,17 @@
     // Per-target allocation map, keyed by full contract name. Each rate is a
     // string of GRT/block (parsed via parseUnits at 1e18). Unspecified rates
     // default to '0'. The values MUST sum to `issuancePerBlock` exactly.
-    // Targets must be known allocation-target contracts (see
-    // ALLOCATION_TARGET_CONTRACTS in lib/contract-registry.ts):
-    //   RewardsManager, RecurringAgreementManager, DefaultAllocation,
-    //   ReclaimedRewards, …
+    // Targets must be known allocation-target contracts — exactly the entries of
+    // ALLOCATION_TARGET_CONTRACTS in lib/contract-registry.ts:
+    //   RewardsManager, RecurringAgreementManager, InnovationAllocation
+    // (DefaultAllocation is the allocator's default target, set via
+    // IA.setDefaultTarget, and is NOT an entry here; ReclaimedRewards is funded
+    // by RewardsManager, not by the allocator.)
     // Default: {} (no allocations configured — issuance-allocate is a no-op).
     allocations: {
       RewardsManager: { selfGrtPerBlock: '5.5365' },
       RecurringAgreementManager: { allocatorGrtPerBlock: '0.5' },
-      // DefaultAllocation: { allocatorGrtPerBlock: '0', selfGrtPerBlock: '0' },
+      // InnovationAllocation: { allocatorGrtPerBlock: '0' },
     },
   },
 
