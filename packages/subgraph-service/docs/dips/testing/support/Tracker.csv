@@ -1,0 +1,12 @@
+Test ID,Set,Test Name,Link,Runner A,Runner B,Runner C,Status,Notes
+T-1.1,Receive and accept,Accept on a pre-allocated subgraph (existing-allocation path),../TestnetIndexerGuide.md#t-11-accept-on-a-pre-allocated-subgraph-existing-allocation-path,,,,Not Started,
+T-1.2,Receive and accept,Accept on an unallocated subgraph (new-allocation path),../TestnetIndexerGuide.md#t-12-accept-on-an-unallocated-subgraph-new-allocation-path,,,,Not Started,
+T-2.1,Allocation sizing,Reward-earning subgraph sizing,../TestnetIndexerGuide.md#t-21-reward-earning-subgraph-sizing,,,,Not Started,
+T-2.2,Allocation sizing,Rewards-denied subgraph sizing,../TestnetIndexerGuide.md#t-22-rewards-denied-subgraph-sizing,,,,Not Started,
+T-3.1,Recurring collection,First collection includes the maxInitialTokens bonus,../TestnetIndexerGuide.md#t-31-first-collection-includes-the-maxinitialtokens-bonus,,,,Not Started,
+T-3.2,Recurring collection,Recurring collection across multiple windows,../TestnetIndexerGuide.md#t-32-recurring-collection-across-multiple-windows,,,,Not Started,
+T-3.3,Recurring collection,Collection lands within the window near --dips-collection-target,../TestnetIndexerGuide.md#t-33-collection-lands-within-the-window-near---dips-collection-target,,,,Not Started,
+T-4.1,Long-lived allocation protection,Unallocate blocked without --force,../TestnetIndexerGuide.md#t-41-unallocate-blocked-without---force,,,,Not Started,
+T-4.2,Long-lived allocation protection,Force-close cancels the agreement on-chain (state 2),../TestnetIndexerGuide.md#t-42-force-close-cancels-the-agreement-on-chain-state-2,,,,Not Started,
+T-5.1,Cancellation,Opt out via a never rule,../TestnetIndexerGuide.md#t-51-opt-out-via-a-never-rule,,,,Not Started,
+T-5.2,Cancellation,(Observe) Payer cancels,../TestnetIndexerGuide.md#t-52-observe-payer-cancels,,,,Not Started,
