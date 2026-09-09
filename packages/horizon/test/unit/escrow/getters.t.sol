@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
+pragma solidity ^0.8.27;
 
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 
@@ -13,6 +13,16 @@ contract GraphEscrowGettersTest is GraphEscrowTest {
     function testGetBalance(uint256 amount) public useGateway useDeposit(amount) {
         uint256 balance = escrow.getBalance(users.gateway, users.verifier, users.indexer);
         assertEq(balance, amount);
+    }
+
+    function testEscrowAccounts(uint256 amount) public useGateway useDeposit(amount) {
+        (uint256 balance, uint256 tokensThawing, ) = escrow.escrowAccounts(
+            users.gateway,
+            users.verifier,
+            users.indexer
+        );
+        assertEq(balance, amount);
+        assertEq(tokensThawing, 0);
     }
 
     function testGetBalance_WhenThawing(

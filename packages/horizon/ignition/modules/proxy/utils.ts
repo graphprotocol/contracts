@@ -13,11 +13,12 @@ export function loadProxyWithABI(
   contract: ImplementationMetadata,
   options?: ContractOptions,
 ) {
+  const { id: customId, ...rest } = options ?? {}
   let proxyWithABI
   if (contract.artifact === undefined) {
-    proxyWithABI = m.contractAt(contract.name, proxy, options)
+    proxyWithABI = m.contractAt(customId ?? contract.name, proxy, rest)
   } else {
-    proxyWithABI = m.contractAt(`${contract.name}_ProxyWithABI`, contract.artifact, proxy, options)
+    proxyWithABI = m.contractAt(customId ?? `${contract.name}_ProxyWithABI`, contract.artifact, proxy, rest)
   }
   return proxyWithABI
 }

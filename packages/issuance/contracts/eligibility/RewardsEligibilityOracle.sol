@@ -1,12 +1,17 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity 0.8.33;
+pragma solidity ^0.8.27;
 
-import { IRewardsEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibility.sol";
+import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+
+import { IProviderEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IProviderEligibility.sol";
 import { IRewardsEligibilityAdministration } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibilityAdministration.sol";
+import { IRewardsEligibilityMaintenance } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibilityMaintenance.sol";
 import { IRewardsEligibilityReporting } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibilityReporting.sol";
 import { IRewardsEligibilityStatus } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibilityStatus.sol";
+import { EnumerableSetUtil } from "../common/EnumerableSetUtil.sol";
 import { BaseUpgradeable } from "../common/BaseUpgradeable.sol";
+import { IGraphToken } from "../common/IGraphToken.sol";
 
 /**
  * @title RewardsEligibilityOracle
@@ -27,11 +32,15 @@ import { BaseUpgradeable } from "../common/BaseUpgradeable.sol";
  */
 contract RewardsEligibilityOracle is
     BaseUpgradeable,
-    IRewardsEligibility,
+    IProviderEligibility,
     IRewardsEligibilityAdministration,
+    IRewardsEligibilityMaintenance,
     IRewardsEligibilityReporting,
     IRewardsEligibilityStatus
 {
+    using EnumerableSet for EnumerableSet.AddressSet;
+    using EnumerableSetUtil for EnumerableSet.AddressSet;
+
     // -- Role Constants --
 
     /**
@@ -54,21 +63,27 @@ contract RewardsEligibilityOracle is
     /// @notice Main storage structure for RewardsEligibilityOracle using ERC-7201 namespaced storage
     /// @param indexerEligibilityTimestamps Mapping of indexers to their eligibility renewal timestamps
     /// @param eligibilityPeriod Period in seconds for which indexer eligibility status lasts
-    /// @param eligibilityValidationEnabled Flag to enable/disable eligibility validation
     /// @param oracleUpdateTimeout Timeout period in seconds after which isEligible returns true if no oracle updates
     /// @param lastOracleUpdateTime Timestamp of the last oracle update
+    /// @param trackedIndexers Enumerable set of all indexers ever renewed by the oracle
+    /// @param indexerRetentionPeriod Duration after which an un-renewed indexer can be removed from tracking
+    /// @param eligibilityValidationEnabled Flag to enable/disable eligibility validation
     /// @custom:storage-location erc7201:graphprotocol.storage.RewardsEligibilityOracle
     struct RewardsEligibilityOracleData {
         /// @dev Mapping of indexers to their eligibility renewal timestamps
         mapping(address => uint256) indexerEligibilityTimestamps;
         /// @dev Period in seconds for which indexer eligibility status lasts
         uint256 eligibilityPeriod;
-        /// @dev Flag to enable/disable eligibility validation
-        bool eligibilityValidationEnabled;
         /// @dev Timeout period in seconds after which isEligible returns true if no oracle updates
         uint256 oracleUpdateTimeout;
         /// @dev Timestamp of the last oracle update
         uint256 lastOracleUpdateTime;
+        /// @dev Enumerable set of all indexers renewed by the oracle
+        EnumerableSet.AddressSet trackedIndexers;
+        /// @dev Duration in seconds after which an un-renewed indexer can be permissionlessly removed
+        uint256 indexerRetentionPeriod;
+        /// @dev Flag to enable/disable eligibility validation
+        bool eligibilityValidationEnabled;
     }
 
     /**
@@ -91,10 +106,10 @@ contract RewardsEligibilityOracle is
      * @notice Constructor for the RewardsEligibilityOracle contract
      * @dev This contract is upgradeable, but we use the constructor to pass the Graph Token address
      * to the base contract.
-     * @param graphToken Address of the Graph Token contract
+     * @param graphToken The Graph Token contract
      * @custom:oz-upgrades-unsafe-allow constructor
      */
-    constructor(address graphToken) BaseUpgradeable(graphToken) {}
+    constructor(IGraphToken graphToken) BaseUpgradeable(graphToken) {}
 
     // -- Initialization --
 
@@ -114,6 +129,7 @@ contract RewardsEligibilityOracle is
         $.eligibilityPeriod = 14 days;
         $.oracleUpdateTimeout = 7 days;
         $.eligibilityValidationEnabled = false; // Start with eligibility validation disabled, to be enabled later when the oracle is ready
+        $.indexerRetentionPeriod = 365 days;
     }
 
     /**
@@ -124,8 +140,9 @@ contract RewardsEligibilityOracle is
      */
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
         return
-            interfaceId == type(IRewardsEligibility).interfaceId ||
+            interfaceId == type(IProviderEligibility).interfaceId ||
             interfaceId == type(IRewardsEligibilityAdministration).interfaceId ||
+            interfaceId == type(IRewardsEligibilityMaintenance).interfaceId ||
             interfaceId == type(IRewardsEligibilityReporting).interfaceId ||
             interfaceId == type(IRewardsEligibilityStatus).interfaceId ||
             super.supportsInterface(interfaceId);
@@ -196,6 +213,23 @@ contract RewardsEligibilityOracle is
         return true;
     }
 
+    /// @inheritdoc IRewardsEligibilityAdministration
+    function setIndexerRetentionPeriod(
+        uint256 indexerRetentionPeriod
+    ) external override onlyRole(OPERATOR_ROLE) returns (bool) {
+        RewardsEligibilityOracleData storage $ = _getRewardsEligibilityOracleStorage();
+        uint256 oldPeriod = $.indexerRetentionPeriod;
+
+        if (indexerRetentionPeriod != oldPeriod) {
+            $.indexerRetentionPeriod = indexerRetentionPeriod;
+            emit IndexerRetentionPeriodSet(oldPeriod, indexerRetentionPeriod);
+        }
+
+        return true;
+    }
+
+    // -- Oracle Functions --
+
     /**
      * @notice Renew eligibility for provided indexers to receive rewards
      * @param indexers Array of indexer addresses. Zero addresses are ignored.
@@ -220,6 +254,7 @@ contract RewardsEligibilityOracle is
 
             if (indexer != address(0) && $.indexerEligibilityTimestamps[indexer] < blockTimestamp) {
                 $.indexerEligibilityTimestamps[indexer] = blockTimestamp;
+                if ($.trackedIndexers.add(indexer)) emit IndexerTrackingUpdated(indexer, true);
                 emit IndexerEligibilityRenewed(indexer, msg.sender);
                 ++updatedCount;
             }
@@ -228,10 +263,28 @@ contract RewardsEligibilityOracle is
         return updatedCount;
     }
 
+    // -- Maintenance Functions --
+
+    /// @inheritdoc IRewardsEligibilityMaintenance
+    function removeExpiredIndexer(address indexer) external override returns (bool gone) {
+        RewardsEligibilityOracleData storage $ = _getRewardsEligibilityOracleStorage();
+
+        if (!$.trackedIndexers.contains(indexer)) return true;
+
+        uint256 renewalTime = $.indexerEligibilityTimestamps[indexer];
+        if (block.timestamp < renewalTime + $.indexerRetentionPeriod) return false;
+
+        $.trackedIndexers.remove(indexer);
+        delete $.indexerEligibilityTimestamps[indexer];
+        emit IndexerTrackingUpdated(indexer, false);
+
+        return true;
+    }
+
     // -- View Functions --
 
     /**
-     * @inheritdoc IRewardsEligibility
+     * @inheritdoc IProviderEligibility
      * @dev Returns true if any of the following conditions are met:
      * 1. Eligibility validation is disabled globally
      * 2. Oracle timeout has been exceeded (fail-safe to allow all indexers)
@@ -292,5 +345,25 @@ contract RewardsEligibilityOracle is
      */
     function getEligibilityValidation() external view override returns (bool) {
         return _getRewardsEligibilityOracleStorage().eligibilityValidationEnabled;
+    }
+
+    /// @inheritdoc IRewardsEligibilityStatus
+    function getIndexerRetentionPeriod() external view override returns (uint256) {
+        return _getRewardsEligibilityOracleStorage().indexerRetentionPeriod;
+    }
+
+    /// @inheritdoc IRewardsEligibilityStatus
+    function getIndexerCount() external view override returns (uint256) {
+        return _getRewardsEligibilityOracleStorage().trackedIndexers.length();
+    }
+
+    /// @inheritdoc IRewardsEligibilityStatus
+    function getIndexers() external view override returns (address[] memory) {
+        return _getRewardsEligibilityOracleStorage().trackedIndexers.getPage(0, type(uint256).max);
+    }
+
+    /// @inheritdoc IRewardsEligibilityStatus
+    function getIndexers(uint256 offset, uint256 count) external view override returns (address[] memory) {
+        return _getRewardsEligibilityOracleStorage().trackedIndexers.getPage(offset, count);
     }
 }

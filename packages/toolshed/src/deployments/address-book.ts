@@ -17,8 +17,8 @@ export type AddressBookJson<ChainId extends number = number, ContractName extend
 export type DeploymentMetadata = {
   /** Deployment transaction hash - enables recovery of all tx details */
   txHash: string
-  /** ABI-encoded constructor arguments */
-  argsData: string
+  /** ABI-encoded constructor arguments (omitted when not captured at deploy time) */
+  argsData?: string
   /** keccak256 of deployed bytecode (sans CBOR) for change detection */
   bytecodeHash: string
   /** Block number of deployment - useful for sync conflict detection */

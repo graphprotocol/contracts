@@ -6,9 +6,6 @@ yarn.lock
 # Dependencies (from .gitignore)
 node_modules/
 
-# Third-party libraries in lib directories
-**/lib/
-
 # Build outputs (from .gitignore)
 **/build/
 **/dist/

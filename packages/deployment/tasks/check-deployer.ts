@@ -1,45 +1,13 @@
-import { configVariable, task } from 'hardhat/config'
+import { task } from 'hardhat/config'
 import type { NewTaskActionFunction } from 'hardhat/types/tasks'
 import { createPublicClient, custom, formatEther } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 
+import { networkToEnvPrefix, resolveConfigVar } from '../lib/task-utils.js'
+
 const BLOCK_EXPLORERS: Record<number, string> = {
   42161: 'https://arbiscan.io/address/',
   421614: 'https://sepolia.arbiscan.io/address/',
-}
-
-/**
- * Convert network name to env var prefix: arbitrumSepolia → ARBITRUM_SEPOLIA
- */
-function networkToEnvPrefix(networkName: string): string {
-  return networkName.replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase()
-}
-
-/**
- * Resolve a configuration variable using Hardhat's hook chain (keystore + env fallback)
- */
-async function resolveConfigVar(hre: unknown, name: string): Promise<string | undefined> {
-  try {
-    const variable = configVariable(name)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const hooks = (hre as any).hooks
-
-    const value = await hooks.runHandlerChain(
-      'configurationVariables',
-      'fetchValue',
-      [variable],
-      async (_context: unknown, v: { name: string }) => {
-        const envValue = process.env[v.name]
-        if (typeof envValue !== 'string') {
-          throw new Error(`Variable ${v.name} not found`)
-        }
-        return envValue
-      },
-    )
-    return value
-  } catch {
-    return undefined
-  }
 }
 
 interface TaskArgs {

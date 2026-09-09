@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
+pragma solidity ^0.8.27;
 
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
@@ -48,6 +48,11 @@ contract GraphEscrowPausedTest is GraphEscrowTest {
     ) public useGateway depositAndThawTokens(tokens, thawAmount) usePaused(true) {
         vm.expectRevert(abi.encodeWithSelector(IPaymentsEscrow.PaymentsEscrowIsPaused.selector));
         escrow.cancelThaw(users.verifier, users.indexer);
+    }
+
+    function testPaused_RevertWhen_AdjustThaw(uint256 tokens) public useGateway useDeposit(tokens) usePaused(true) {
+        vm.expectRevert(abi.encodeWithSelector(IPaymentsEscrow.PaymentsEscrowIsPaused.selector));
+        escrow.adjustThaw(users.verifier, users.indexer, tokens, false);
     }
 
     function testPaused_RevertWhen_WithdrawTokens(

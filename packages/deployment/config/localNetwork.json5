@@ -1,0 +1,26 @@
+{
+  // Deployment configuration for local-network (docker-compose dev stack)
+  // Local network uses generous rates for fast iteration and testing.
+
+  RewardsManager: {
+    eligibilityOracle: 'RewardsEligibilityOracleMock',
+  },
+
+  IssuanceAllocator: {
+    // Explicit issuance allocation table, by target contract name. The rates must
+    // sum to issuancePerBlock, which must equal RM's on-chain issuance rate — the
+    // scripts error on mismatch and never set the rate from config.
+    //
+    // TODO(local): set issuancePerBlock to the running local stack's actual RM
+    // rate — read it with `cast call <RM> "issuancePerBlock()(uint256)"` against
+    // the local node (the repo's graph.*localhost*.yml candidates disagree:
+    // 6.0365 vs 114.6935, so don't assume). Then add the RewardsManager self
+    // allocation so the table sums to it. Until both are filled, issuance-allocate
+    // errors by design rather than allocating partially.
+    // issuancePerBlock: '<RM issuancePerBlock>',
+    allocations: {
+      RecurringAgreementManager: { allocatorGrtPerBlock: '6' },
+      // RewardsManager: { selfGrtPerBlock: '<issuancePerBlock - 6>' },
+    },
+  },
+}

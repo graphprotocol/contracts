@@ -1,4 +1,3 @@
-/* eslint-disable  @typescript-eslint/no-explicit-any */
 import { Controller } from '@graphprotocol/contracts'
 import { DisputeManager } from '@graphprotocol/contracts'
 import { EpochManager } from '@graphprotocol/contracts'
@@ -101,9 +100,7 @@ export class NetworkFixture {
     // with the latest changes, and re-attach with the correct ABI.
     if (l2Deploy && contracts.L2GNS) {
       const hre = await import('hardhat')
-      const L2GNSFactory = await hre.default.ethers.getContractFactory(
-        'contracts/l2/discovery/L2GNS.sol:L2GNS',
-      )
+      const L2GNSFactory = await hre.default.ethers.getContractFactory('contracts/l2/discovery/L2GNS.sol:L2GNS')
 
       // Deploy new L2GNS implementation
       const l2gnsImpl = await L2GNSFactory.deploy()

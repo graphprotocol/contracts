@@ -111,6 +111,39 @@ export function getEtherscanBrowserUrl(chainId: number): string {
 }
 
 /**
+ * Check if a contract is already verified on Etherscan.
+ *
+ * Queries the getsourcecode API — a verified contract has a non-empty
+ * SourceCode field. Returns the explorer URL if verified, undefined otherwise.
+ */
+export async function checkEtherscanVerified(
+  address: string,
+  apiKey: string,
+  chainId: number,
+): Promise<string | undefined> {
+  const apiUrl = getApiUrl()
+  const browserUrl = getEtherscanBrowserUrl(chainId)
+
+  const params = new URLSearchParams({
+    module: 'contract',
+    action: 'getsourcecode',
+    address,
+    apikey: apiKey,
+  })
+
+  try {
+    const response = await fetch(`${apiUrl}?chainid=${chainId}&${params.toString()}`)
+    const data = (await response.json()) as { status: string; result: Array<{ SourceCode?: string }> }
+    if (data.status === '1' && data.result?.[0]?.SourceCode) {
+      return `${browserUrl}/address/${address}#code`
+    }
+  } catch {
+    // Network error — assume not verified, let the caller proceed
+  }
+  return undefined
+}
+
+/**
  * Verify OZ TransparentUpgradeableProxy via Etherscan API
  *
  * @param address - Proxy contract address
@@ -198,6 +231,12 @@ export async function verifyOZProxy(
     if (checkResult.status === '1' || checkResult.result === 'Pass - Verified') {
       const url = `${browserUrl}/address/${address}#code`
       return { success: true, url }
+    }
+
+    // "Already Verified" can appear during polling (not just at submission)
+    if (checkResult.result?.toLowerCase().includes('already verified')) {
+      const url = `${browserUrl}/address/${address}#code`
+      return { success: true, url, message: 'Already verified' }
     }
 
     // Verification failed

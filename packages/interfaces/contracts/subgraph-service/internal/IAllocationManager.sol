@@ -84,18 +84,6 @@ interface IAllocationManager {
     );
 
     /**
-     * @notice Emitted when a legacy allocation is migrated into the subgraph service
-     * @param indexer The address of the indexer
-     * @param allocationId The id of the allocation
-     * @param subgraphDeploymentId The id of the subgraph deployment
-     */
-    event LegacyAllocationMigrated(
-        address indexed indexer,
-        address indexed allocationId,
-        bytes32 indexed subgraphDeploymentId
-    );
-
-    /**
      * @notice Emitted when the maximum POI staleness is updated
      * @param maxPOIStaleness The max POI staleness in seconds
      */

@@ -8,12 +8,15 @@
  * the same contract name appears in multiple address books.
  */
 
+import { ComponentTags } from './deployment-tags.js'
+
 /**
  * Artifact source configuration - where to load contract ABI and bytecode from
  */
 export type ArtifactSource =
   | { type: 'contracts'; path: string; name: string }
   | { type: 'subgraph-service'; name: string }
+  | { type: 'horizon'; path: string }
   | { type: 'issuance'; path: string }
   | { type: 'openzeppelin'; name: string }
 
@@ -29,6 +32,17 @@ export type ProxyType = 'graph' | 'transparent'
  * Address book types - which address book a contract belongs to
  */
 export type AddressBookType = 'horizon' | 'subgraph-service' | 'issuance'
+
+/**
+ * Interface ABI configuration for typed ABI generation.
+ * Maps an export name to an interface in @graphprotocol/interfaces.
+ */
+export interface InterfaceAbiConfig {
+  /** Export name for the generated ABI constant (e.g. 'REWARDS_MANAGER_ABI') */
+  name: string
+  /** Interface name in @graphprotocol/interfaces artifacts (e.g. 'IRewardsManager') */
+  interface: string
+}
 
 /**
  * Contract metadata specification
@@ -69,6 +83,53 @@ export interface ContractMetadata {
    * Used by roles:list task to enumerate role holders.
    */
   roles?: readonly string[]
+
+  /**
+   * Component tag for deployment lifecycle management.
+   * Used by script factories to derive action tags (deploy, upgrade, etc.)
+   * and dependencies without per-script boilerplate.
+   *
+   * Must match the PascalCase contract name in deployment-tags.ts ComponentTags.
+   * Example: 'PaymentsEscrow' → tags: 'PaymentsEscrow:upgrade', deps: 'PaymentsEscrow:deploy'
+   *
+   * Multiple contracts may share a componentTag when they form a single
+   * deployment unit (e.g., REO A/B instances share 'RewardsEligibility').
+   */
+  componentTag?: string
+
+  /**
+   * Lifecycle actions available for this component beyond the standard deploy+upgrade.
+   * Used by status modules to show available `--tags` actions.
+   *
+   * When omitted, defaults to ['deploy', 'upgrade'] for deployable proxy contracts,
+   * or ['deploy'] for non-proxy deployable contracts.
+   * Always includes 'all' implicitly.
+   */
+  lifecycleActions?: readonly string[]
+
+  /**
+   * Interface ABIs to generate for this contract.
+   * Used by the ABI codegen script to produce typed `as const` exports.
+   * Each entry maps to an interface artifact in @graphprotocol/interfaces.
+   * The codegen also extracts the interfaceId from the factory class.
+   */
+  interfaces?: readonly InterfaceAbiConfig[]
+
+  /**
+   * Generate a typed ABI from the contract's full artifact.
+   * Value is the export name (e.g. 'ISSUANCE_ALLOCATOR_ABI').
+   * Requires `artifact` to be set on this entry.
+   */
+  generateAbi?: string
+
+  /**
+   * Name of the shared implementation entry when this proxy uses an
+   * implementation deployed separately (e.g. DirectAllocation_Implementation).
+   *
+   * Used by the upgrade pipeline to auto-detect when the shared implementation
+   * has been redeployed and set pendingImplementation accordingly.
+   */
+  sharedImplementation?: string
 }
 
 // ============================================================================
@@ -78,40 +139,78 @@ export interface ContractMetadata {
 const HORIZON_CONTRACTS = {
   RewardsManager: {
     artifact: { type: 'contracts', path: 'rewards', name: 'RewardsManager' },
+    interfaces: [
+      { name: 'REWARDS_MANAGER_ABI', interface: 'IRewardsManager' },
+      { name: 'REWARDS_MANAGER_DEPRECATED_ABI', interface: 'IRewardsManagerDeprecated' },
+      { name: 'PROVIDER_ELIGIBILITY_MANAGEMENT_ABI', interface: 'IProviderEligibilityManagement' },
+    ],
     proxyType: 'graph',
     proxyAdminName: 'GraphProxyAdmin',
     prerequisite: true,
     deployable: true,
+    componentTag: ComponentTags.REWARDS_MANAGER,
+    lifecycleActions: ['deploy', 'upgrade'],
   },
   GraphProxyAdmin: {
+    interfaces: [{ name: 'GRAPH_PROXY_ADMIN_ABI', interface: 'IGraphProxyAdmin' }],
     prerequisite: true,
   },
   L2GraphToken: {
     artifact: { type: 'contracts', path: 'l2/token', name: 'L2GraphToken' },
+    interfaces: [{ name: 'GRAPH_TOKEN_ABI', interface: 'IGraphToken' }],
     prerequisite: true,
   },
   Controller: {
+    interfaces: [{ name: 'CONTROLLER_ABI', interface: 'IControllerToolshed' }],
     prerequisite: true,
   },
   GraphTallyCollector: {
     prerequisite: true,
   },
+  RecurringCollector: {
+    artifact: { type: 'horizon', path: 'contracts/payments/collectors/RecurringCollector.sol/RecurringCollector' },
+    proxyType: 'transparent',
+    deployable: true,
+    componentTag: ComponentTags.RECURRING_COLLECTOR,
+    lifecycleActions: ['deploy', 'upgrade', 'configure', 'transfer'],
+  },
   L2Curation: {
+    artifact: { type: 'contracts', path: 'l2/curation', name: 'L2Curation' },
+    proxyType: 'graph',
+    proxyAdminName: 'GraphProxyAdmin',
+    prerequisite: true,
+    deployable: true,
+    componentTag: ComponentTags.L2_CURATION,
+  },
+  HorizonStaking: {
+    artifact: { type: 'horizon', path: 'contracts/staking/HorizonStaking.sol/HorizonStaking' },
+    proxyType: 'graph',
+    proxyAdminName: 'GraphProxyAdmin',
+    prerequisite: true,
+    deployable: true,
+    componentTag: ComponentTags.HORIZON_STAKING,
+  },
+  GraphPayments: {
     prerequisite: true,
   },
-  // Contracts deployed by other systems (placeholders for address book type completeness)
-  EpochManager: {},
-  GraphPayments: {},
-  HorizonStaking: {},
+  PaymentsEscrow: {
+    artifact: { type: 'horizon', path: 'contracts/payments/PaymentsEscrow.sol/PaymentsEscrow' },
+    proxyType: 'transparent',
+    prerequisite: true,
+    deployable: true,
+    componentTag: ComponentTags.PAYMENTS_ESCROW,
+  },
   L2GNS: {
     artifact: { type: 'contracts', path: 'l2/discovery', name: 'L2GNS' },
     proxyType: 'graph',
     proxyAdminName: 'GraphProxyAdmin',
     prerequisite: true,
     deployable: true,
+    componentTag: ComponentTags.L2GNS,
   },
+  // Contracts deployed by other systems (placeholders for address book type completeness)
+  EpochManager: {},
   L2GraphTokenGateway: {},
-  PaymentsEscrow: {},
   SubgraphNFT: {},
 } as const satisfies Record<string, ContractMetadata>
 
@@ -128,6 +227,8 @@ const SUBGRAPH_SERVICE_CONTRACTS = {
     proxyType: 'transparent',
     // proxyAdminName omitted - auto-generates as DisputeManager_ProxyAdmin
     prerequisite: true,
+    deployable: true,
+    componentTag: ComponentTags.DISPUTE_MANAGER,
   },
   SubgraphService: {
     artifact: { type: 'subgraph-service', name: 'SubgraphService' },
@@ -135,6 +236,8 @@ const SUBGRAPH_SERVICE_CONTRACTS = {
     // proxyAdminName omitted - auto-generates as SubgraphService_ProxyAdmin
     prerequisite: true,
     deployable: true,
+    componentTag: ComponentTags.SUBGRAPH_SERVICE,
+    lifecycleActions: ['deploy', 'upgrade', 'configure'],
   },
   // Contracts deployed by other systems (placeholders for address book type completeness)
   // These exist in the subgraph-service address book but are managed elsewhere
@@ -150,7 +253,9 @@ const SUBGRAPH_SERVICE_CONTRACTS = {
 // ============================================================================
 
 // NOTE: Issuance contracts use OZ v5 TransparentUpgradeableProxy which creates
-// a per-proxy ProxyAdmin in the constructor. The ProxyAdmin address is stored
+// a per-proxy ProxyAdmin in the constructor. The deployer is the initial ProxyAdmin
+// owner to allow post-deployment configuration; ownership is transferred to the
+// protocol governor in the transfer-governance step. The ProxyAdmin address is stored
 // inline in each contract's address book entry (proxyAdmin field), similar to
 // subgraph-service contracts.
 
@@ -162,56 +267,100 @@ const ISSUANCE_CONTRACTS = {
   // Used by deployment scripts to grant OPERATOR_ROLE
   NetworkOperator: { addressOnly: true },
 
+  // Address placeholder for the innovation operator (The Graph Foundation multisig
+  // on mainnet). Holds OPERATOR_ROLE on InnovationAllocation — withdrawals only.
+  InnovationOperator: { addressOnly: true },
+
   IssuanceAllocator: {
     artifact: { type: 'issuance', path: 'contracts/allocate/IssuanceAllocator.sol/IssuanceAllocator' },
+    generateAbi: 'ISSUANCE_ALLOCATOR_ABI',
     proxyType: 'transparent',
     // Per-proxy ProxyAdmin - address stored in address book entry's proxyAdmin field
     deployable: true,
     roles: BASE_ROLES,
+    componentTag: ComponentTags.ISSUANCE_ALLOCATOR,
+    lifecycleActions: ['deploy', 'upgrade', 'configure', 'transfer'],
   },
-  PilotAllocation: {
-    artifact: { type: 'issuance', path: 'contracts/allocate/PilotAllocation.sol/PilotAllocation' },
+  RecurringAgreementManager: {
+    artifact: {
+      type: 'issuance',
+      path: 'contracts/agreement/RecurringAgreementManager.sol/RecurringAgreementManager',
+    },
     proxyType: 'transparent',
     deployable: true,
-    roles: BASE_ROLES,
+    roles: [...BASE_ROLES, 'DATA_SERVICE_ROLE', 'COLLECTOR_ROLE', 'AGREEMENT_MANAGER_ROLE'] as const,
+    componentTag: ComponentTags.RECURRING_AGREEMENT_MANAGER,
+    lifecycleActions: ['deploy', 'upgrade', 'configure', 'transfer'],
   },
-  RewardsEligibilityOracle: {
+  // A/B instances of RewardsEligibilityOracle - both share the same contract artifact
+  // but deploy as independent proxies. Only one is active (integrated with RewardsManager) at a time.
+  RewardsEligibilityOracleA: {
+    artifact: { type: 'issuance', path: 'contracts/eligibility/RewardsEligibilityOracle.sol/RewardsEligibilityOracle' },
+    generateAbi: 'REWARDS_ELIGIBILITY_ORACLE_ABI',
+    proxyType: 'transparent',
+    deployable: true,
+    roles: [...BASE_ROLES, 'ORACLE_ROLE'] as const,
+    componentTag: ComponentTags.REWARDS_ELIGIBILITY_A,
+    // Integration with RewardsManager is a goal-level activation
+    // (--tags GIP-0088:eligibility-integrate), not a per-component lifecycle action.
+    lifecycleActions: ['deploy', 'upgrade', 'configure', 'transfer'],
+  },
+  RewardsEligibilityOracleB: {
     artifact: { type: 'issuance', path: 'contracts/eligibility/RewardsEligibilityOracle.sol/RewardsEligibilityOracle' },
     proxyType: 'transparent',
     deployable: true,
     roles: [...BASE_ROLES, 'ORACLE_ROLE'] as const,
+    componentTag: ComponentTags.REWARDS_ELIGIBILITY_B,
+    lifecycleActions: ['deploy', 'upgrade', 'configure', 'transfer'],
+  },
+  // Testnet mock REO - indexers control own eligibility, upgradeable for deployment consistency
+  RewardsEligibilityOracleMock: {
+    artifact: {
+      type: 'issuance',
+      path: 'contracts/eligibility/mocks/RewardsEligibilityOracleMock.sol/RewardsEligibilityOracleMock',
+    },
+    proxyType: 'transparent',
+    deployable: true,
+    roles: BASE_ROLES,
+    componentTag: ComponentTags.REWARDS_ELIGIBILITY_MOCK,
+    lifecycleActions: ['deploy', 'upgrade', 'transfer', 'integrate'],
   },
   DirectAllocation_Implementation: {
     artifact: { type: 'issuance', path: 'contracts/allocate/DirectAllocation.sol/DirectAllocation' },
+    generateAbi: 'DIRECT_ALLOCATION_ABI',
     deployable: true,
     roles: BASE_ROLES,
+    componentTag: ComponentTags.DIRECT_ALLOCATION_IMPL,
   },
-  // Reclaim addresses for different reward reclaim reasons
-  // All share DirectAllocation implementation (per-proxy ProxyAdmin for each)
-  ReclaimedRewardsForIndexerIneligible: {
+  // Default target for IA — safety net for unallocated issuance
+  // Uses DirectAllocation implementation (per-proxy ProxyAdmin)
+  DefaultAllocation: {
     proxyType: 'transparent',
+    sharedImplementation: 'DirectAllocation_Implementation',
     deployable: true,
     roles: BASE_ROLES,
+    componentTag: ComponentTags.DEFAULT_ALLOCATION,
+    lifecycleActions: ['deploy', 'upgrade', 'configure', 'transfer'],
   },
-  ReclaimedRewardsForSubgraphDenied: {
+  // GIP-0089 innovation allocation — allocator-minted target receiving 20% of issuance.
+  // Uses the shared DirectAllocation implementation (per-proxy ProxyAdmin).
+  InnovationAllocation: {
     proxyType: 'transparent',
+    sharedImplementation: 'DirectAllocation_Implementation',
     deployable: true,
     roles: BASE_ROLES,
+    componentTag: ComponentTags.INNOVATION_ALLOCATION,
+    lifecycleActions: ['deploy', 'upgrade', 'configure', 'transfer'],
   },
-  ReclaimedRewardsForStalePoi: {
+  // Default reclaim address — receives reclaimed rewards for all reasons
+  // Uses DirectAllocation implementation (per-proxy ProxyAdmin)
+  ReclaimedRewards: {
     proxyType: 'transparent',
+    sharedImplementation: 'DirectAllocation_Implementation',
     deployable: true,
     roles: BASE_ROLES,
-  },
-  ReclaimedRewardsForZeroPoi: {
-    proxyType: 'transparent',
-    deployable: true,
-    roles: BASE_ROLES,
-  },
-  ReclaimedRewardsForCloseAllocation: {
-    proxyType: 'transparent',
-    deployable: true,
-    roles: BASE_ROLES,
+    componentTag: ComponentTags.REWARDS_RECLAIM,
+    lifecycleActions: ['deploy', 'upgrade', 'configure', 'transfer'],
   },
 } as const satisfies Record<string, ContractMetadata>
 
@@ -277,6 +426,67 @@ export const Contracts = {
 } as const
 
 /**
+ * Issuance contract names that are valid eligibility-oracle targets *today*.
+ * `A`/`B` are the real oracle proxies (same artifact, independent deployments);
+ * `Mock` is the testnet oracle where indexers self-manage eligibility. Config
+ * selects one by its full contract name (or omits it for "no oracle"). Full
+ * names — rather than an `A`/`B`/`Mock` suffix enum — are deliberate: a future
+ * eligibility oracle may be a different contract entirely; add it here when it
+ * lands.
+ */
+export const ELIGIBILITY_ORACLE_CONTRACTS = [
+  'RewardsEligibilityOracleA',
+  'RewardsEligibilityOracleB',
+  'RewardsEligibilityOracleMock',
+] as const satisfies readonly IssuanceContractName[]
+
+/** Full contract name of an eligibility-oracle target (e.g. `RewardsEligibilityOracleA`). */
+export type EligibilityOracleContractName = (typeof ELIGIBILITY_ORACLE_CONTRACTS)[number]
+
+/**
+ * Resolve an eligibility-oracle contract name to its registry entry. Used by the
+ * GIP-0088 eligibility-integrate goal and its status/gate checks so "which REO
+ * is the target" is driven by config, not hard-coded.
+ */
+export function eligibilityOracleContract(name: EligibilityOracleContractName): RegistryEntry {
+  return Contracts.issuance[name]
+}
+
+/**
+ * Contract names the IssuanceAllocator can hold an explicit allocation for
+ * *today*. RewardsManager self-mints the bulk of issuance; RecurringAgreementManager
+ * is allocator-minted for agreement payments; InnovationAllocation is the
+ * allocator-minted GIP-0089 innovation target. Full names (not a suffix enum) are
+ * deliberate: a future issuance target may be a different contract — add it here
+ * when it lands. (DefaultAllocation is the allocator's residual sink, set via
+ * `setDefaultTarget`, not an explicit per-target allocation, so it is not listed.)
+ */
+export const ALLOCATION_TARGET_CONTRACTS = [
+  'RewardsManager',
+  'RecurringAgreementManager',
+  'InnovationAllocation',
+] as const
+
+/** Full contract name of an IssuanceAllocator target (e.g. `RewardsManager`). */
+export type AllocationTargetContractName = (typeof ALLOCATION_TARGET_CONTRACTS)[number]
+
+/**
+ * Resolve an allocation-target contract name to its registry entry. Targets span
+ * address books (RewardsManager is horizon, the rest issuance), so this is a
+ * switch rather than a single-book lookup.
+ */
+export function allocationTargetContract(name: AllocationTargetContractName): RegistryEntry {
+  switch (name) {
+    case 'RewardsManager':
+      return Contracts.horizon.RewardsManager
+    case 'RecurringAgreementManager':
+      return Contracts.issuance.RecurringAgreementManager
+    case 'InnovationAllocation':
+      return Contracts.issuance.InnovationAllocation
+  }
+}
+
+/**
  * Get contract metadata by address book and name
  */
 export function getContractMetadata(addressBook: AddressBookType, name: string): ContractMetadata | undefined {
@@ -307,3 +517,25 @@ export function getContractsByAddressBook(addressBook: AddressBookType): Array<[
 export const PROXIED_ISSUANCE_CONTRACTS = Object.entries(ISSUANCE_CONTRACTS)
   .filter(([_, meta]) => 'proxyType' in meta && meta.proxyType === 'transparent')
   .map(([name]) => name)
+
+/**
+ * Iterate every registry entry that is a deployable proxy across all address books.
+ *
+ * Yields fully-resolved {@link RegistryEntry} objects (name + addressBook embedded),
+ * filtered to those that have both `deployable: true` and a `proxyType`. Used by
+ * goal-orchestrator upgrade scripts that need to enumerate every proxy the registry
+ * knows about and feed each through the shared upgrade-TX builder.
+ *
+ * Per-component upgrade scripts (`02_upgrade.ts`) operate on a single entry and
+ * don't need this — they pass `Contracts.<book>.<name>` directly through the
+ * `createUpgradeModule` factory.
+ */
+export function* allUpgradeableEntries(): Generator<RegistryEntry> {
+  const books: AddressBookType[] = ['horizon', 'subgraph-service', 'issuance']
+  for (const ab of books) {
+    for (const entry of Object.values(Contracts[ab]) as RegistryEntry[]) {
+      if (!entry.deployable || !entry.proxyType) continue
+      yield entry
+    }
+  }
+}

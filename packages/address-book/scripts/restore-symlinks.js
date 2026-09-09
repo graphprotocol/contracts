@@ -3,54 +3,32 @@
 /**
  * Restore Symlinks After Publishing
  *
- * This script restores the symlinks after npm publish completes.
- * The prepublishOnly script replaces symlinks with actual files for publishing,
- * and this script puts the symlinks back for development.
+ * Restores the dev-time symlinks under src/<name>/addresses.json after
+ * npm publish. copy-addresses-for-publish.js replaces them with real files
+ * for the publish step; this puts them back.
  */
 
 const fs = require('fs')
 const path = require('path')
+const SOURCES = require('./sources')
 
-const SYMLINKS_TO_RESTORE = [
-  {
-    target: '../../../horizon/addresses.json',
-    link: 'src/horizon/addresses.json',
-  },
-  {
-    target: '../../../issuance/addresses.json',
-    link: 'src/issuance/addresses.json',
-  },
-  {
-    target: '../../../subgraph-service/addresses.json',
-    link: 'src/subgraph-service/addresses.json',
-  },
-]
+const ROOT = path.resolve(__dirname, '..')
+const SRC = path.join(ROOT, 'src')
 
-function restoreSymlink(target, link) {
-  const linkPath = path.resolve(__dirname, '..', link)
+function restoreOne(name) {
+  const linkTarget = `../../../${name}/addresses.json`
+  const linkDir = path.join(SRC, name)
+  const linkPath = path.join(linkDir, 'addresses.json')
 
-  // Remove the copied file
-  if (fs.existsSync(linkPath)) {
-    fs.unlinkSync(linkPath)
-  }
-
-  // Restore symlink
-  try {
-    fs.symlinkSync(target, linkPath)
-    console.log(`✅ Restored symlink: ${link} -> ${target}`)
-  } catch (error) {
-    console.error(`❌ Failed to restore symlink ${link}:`, error.message)
-    process.exit(1)
-  }
+  fs.mkdirSync(linkDir, { recursive: true })
+  fs.rmSync(linkPath, { force: true })
+  fs.symlinkSync(linkTarget, linkPath)
+  console.log(`✅ Restored symlink: src/${name}/addresses.json -> ${linkTarget}`)
 }
 
 function main() {
   console.log('🔗 Restoring symlinks after publish...')
-
-  for (const { target, link } of SYMLINKS_TO_RESTORE) {
-    restoreSymlink(target, link)
-  }
-
+  for (const name of SOURCES) restoreOne(name)
   console.log('✅ Symlinks restored!')
 }
 

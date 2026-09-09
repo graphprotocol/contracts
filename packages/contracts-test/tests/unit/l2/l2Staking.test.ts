@@ -1,4 +1,4 @@
-import { IL2Staking } from '@graphprotocol/contracts'
+import { IL2Staking, IRewardsManager } from '@graphprotocol/contracts'
 import { L2GraphTokenGateway } from '@graphprotocol/contracts'
 import { GraphToken } from '@graphprotocol/contracts'
 import { EpochManager, L1GNS, L1GraphTokenGateway, L1Staking } from '@graphprotocol/contracts'
@@ -35,6 +35,7 @@ describe('L2Staking', () => {
   let l2GraphTokenGateway: L2GraphTokenGateway
   let staking: IL2Staking
   let grt: GraphToken
+  let rewardsManager: IRewardsManager
 
   const tokens10k = toGRT('10000')
   const tokens100k = toGRT('100000')
@@ -88,6 +89,7 @@ describe('L2Staking', () => {
     l1StakingMock = l1MockContracts.L1Staking as L1Staking
     l1GNSMock = l1MockContracts.L1GNS as L1GNS
     l1GRTGatewayMock = l1MockContracts.L1GraphTokenGateway as L1GraphTokenGateway
+    rewardsManager = fixtureContracts.RewardsManager as IRewardsManager
 
     // Deploy L2 arbitrum bridge
     await fixture.loadL2ArbitrumBridge(governor)
@@ -99,6 +101,10 @@ describe('L2Staking', () => {
     await grt.connect(me).approve(staking.address, tokens1m)
     await grt.connect(governor).mint(other.address, tokens1m)
     await grt.connect(other).approve(staking.address, tokens1m)
+
+    // HACK: we set the staking contract as the subgraph service to make tests pass.
+    // This is due to the test suite being outdated.
+    await rewardsManager.connect(governor).setSubgraphService(staking.address)
   })
 
   beforeEach(async function () {

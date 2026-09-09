@@ -12,6 +12,10 @@ export default buildModule('L2GraphToken', (m) => {
   const { L2GraphTokenGateway } = m.useModule(GraphTokenGatewayModule)
 
   const deployer = m.getAccount(0)
+  // m.getAccount(1) rather than getParameter('governor') — the from: option on
+  // m.call only accepts an AccountRuntimeValue, so the acceptOwnership signer
+  // has to come from getAccount. Configs are expected to set the 'governor'
+  // parameter to this same address (index 1 of the deploying mnemonic).
   const governor = m.getAccount(1)
   const initialSupply = m.getParameter('initialSupply')
 

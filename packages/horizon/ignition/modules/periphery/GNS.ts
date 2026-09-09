@@ -19,7 +19,7 @@ export default buildModule('L2GNS', (m) => {
   const { L2Curation } = m.useModule(CurationModule)
 
   const deployer = m.getAccount(0)
-  const governor = m.getAccount(1)
+  const governor = m.getParameter('governor')
 
   const SubgraphNFTDescriptor = m.contract('SubgraphNFTDescriptor', SubgraphNFTDescriptorArtifact)
   const SubgraphNFT = m.contract('SubgraphNFT', SubgraphNFTArtifact, [deployer])

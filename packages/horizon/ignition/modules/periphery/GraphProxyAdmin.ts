@@ -2,7 +2,7 @@ import GraphProxyAdminArtifact from '@graphprotocol/contracts/artifacts/contract
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
 export default buildModule('GraphProxyAdmin', (m) => {
-  const governor = m.getAccount(1)
+  const governor = m.getParameter('governor')
 
   const GraphProxyAdmin = m.contract('GraphProxyAdmin', GraphProxyAdminArtifact)
   m.call(GraphProxyAdmin, 'transferOwnership', [governor])

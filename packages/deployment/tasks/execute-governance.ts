@@ -1,50 +1,12 @@
 import fs from 'fs'
-import { configVariable, task } from 'hardhat/config'
+import { task } from 'hardhat/config'
+import { ArgumentType } from 'hardhat/types/arguments'
 import type { NewTaskActionFunction } from 'hardhat/types/tasks'
 import path from 'path'
 
+import { autoDetectForkNetwork } from '../lib/address-book-utils.js'
 import { executeGovernanceTxs } from '../lib/execute-governance.js'
-
-/**
- * Convert network name to env var prefix: arbitrumSepolia → ARBITRUM_SEPOLIA
- */
-function networkToEnvPrefix(networkName: string): string {
-  return networkName.replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase()
-}
-
-/**
- * Resolve a configuration variable using Hardhat's hook chain (keystore + env fallback)
- *
- * Uses hre.hooks.runHandlerChain to go through the configurationVariables fetchValue
- * hook chain, which includes the keystore plugin.
- */
-async function resolveConfigVar(hre: unknown, name: string): Promise<string | undefined> {
-  try {
-    const variable = configVariable(name)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const hooks = (hre as any).hooks
-
-    // Call the configurationVariables fetchValue hook chain
-    // Falls back to env var if not in keystore
-    const value = await hooks.runHandlerChain(
-      'configurationVariables',
-      'fetchValue',
-      [variable],
-      // Default handler: read from environment variable
-      async (_context: unknown, v: { name: string }) => {
-        const envValue = process.env[v.name]
-        if (typeof envValue !== 'string') {
-          throw new Error(`Environment variable ${v.name} not found`)
-        }
-        return envValue
-      },
-    )
-    return value
-  } catch {
-    // Key not configured in keystore or env
-    return undefined
-  }
-}
+import { networkToEnvPrefix, resolveConfigVar } from '../lib/task-utils.js'
 
 /**
  * Resolve governor key for a network.
@@ -64,11 +26,20 @@ async function resolveGovernorKey(hre: unknown, networkName: string): Promise<st
 }
 
 interface TaskArgs {
-  // No arguments for this task
+  name: string
+  all: boolean
+  allowMissing: boolean
 }
 
 /**
  * Execute pending governance TX batches.
+ *
+ * Under the orchestrator/gather model each deploy produces one consolidated
+ * bundle. The task defaults reflect that:
+ *   - Single pending bundle: executes it.
+ *   - Multiple pending bundles: errors with a file list, asking for
+ *     `--name <basename>` or `--all` to acknowledge.
+ *   - `--name X` with X missing errors unless `--allow-missing` is passed.
  *
  * Execution modes:
  * - Fork mode: Automatic via governor impersonation
@@ -79,16 +50,16 @@ interface TaskArgs {
  *   npx hardhat keystore set ARBITRUM_SEPOLIA_GOVERNOR_KEY
  *   npx hardhat deploy:execute-governance --network arbitrumSepolia
  *
- * For fork testing:
- *   FORK_NETWORK=arbitrumSepolia npx hardhat deploy:execute-governance --network fork
+ * For fork testing (auto-detects fork network from anvil):
+ *   npx hardhat deploy:execute-governance --network fork
  */
-const action: NewTaskActionFunction<TaskArgs> = async (_taskArgs, hre) => {
+const action: NewTaskActionFunction<TaskArgs> = async (taskArgs, hre) => {
+  // Auto-detect fork network from anvil before checking
+  await autoDetectForkNetwork()
+
   // HH v3: Connect to network to get network connection
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const conn = await (hre as any).network.connect()
-
-  // Get governor key: try network-specific first, fall back to generic
-  const governorPrivateKey = await resolveGovernorKey(hre, conn.networkName)
 
   // Create minimal Environment-like object for executeGovernanceTxs
   const env = {
@@ -112,14 +83,42 @@ const action: NewTaskActionFunction<TaskArgs> = async (_taskArgs, hre) => {
     },
   }
 
+  // Lazy resolver for governor key - only called when actually needed (non-fork EOA mode)
+  const resolveKey = () => resolveGovernorKey(hre, conn.networkName)
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await executeGovernanceTxs(env as any, { governorPrivateKey })
+  await executeGovernanceTxs(env as any, {
+    name: taskArgs.name || undefined,
+    all: taskArgs.all,
+    allowMissing: taskArgs.allowMissing,
+    resolveGovernorKey: resolveKey,
+  })
 }
 
 const executeGovernanceTask = task(
   'deploy:execute-governance',
   'Execute pending governance transactions via governor impersonation',
 )
+  .addOption({
+    name: 'name',
+    description: 'Execute only the bundle with this basename (no .json extension). Mutually exclusive with --all.',
+    type: ArgumentType.STRING,
+    defaultValue: '',
+  })
+  .addOption({
+    name: 'all',
+    description:
+      'Acknowledge multiple pending bundles and execute every one. Required when 2+ bundles are pending and --name is not given.',
+    type: ArgumentType.FLAG,
+    defaultValue: false,
+  })
+  .addOption({
+    name: 'allowMissing',
+    description:
+      'Treat a missing --name target as a silent no-op instead of an error. Useful for CI scripts that conditionally execute a known bundle.',
+    type: ArgumentType.FLAG,
+    defaultValue: false,
+  })
   .setAction(async () => ({ default: action }))
   .build()
 

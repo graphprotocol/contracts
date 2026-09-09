@@ -23,6 +23,11 @@ contract SubgraphServiceGettersTest is SubgraphServiceTest {
         assertEq(result, address(curation));
     }
 
+    function test_GetRecurringCollector() public view {
+        address result = address(subgraphService.recurringCollector());
+        assertEq(result, address(recurringCollector));
+    }
+
     function test_GetAllocationData(uint256 tokens) public useIndexer useAllocation(tokens) {
         (
             bool isOpen,

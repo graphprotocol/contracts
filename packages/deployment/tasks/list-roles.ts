@@ -4,12 +4,8 @@ import type { NewTaskActionFunction } from 'hardhat/types/tasks'
 import { createPublicClient, custom, type PublicClient } from 'viem'
 
 import { enumerateContractRoles, type RoleInfo } from '../lib/contract-checks.js'
-import {
-  type AddressBookType,
-  CONTRACT_REGISTRY,
-  Contracts,
-  type IssuanceContractName,
-} from '../lib/contract-registry.js'
+import { Contracts, type IssuanceContractName } from '../lib/contract-registry.js'
+import { getContractAddress, resolveContractFromRegistry } from '../lib/task-utils.js'
 import { graph } from '../rocketh/deploy.js'
 
 interface TaskArgs {
@@ -52,43 +48,6 @@ function printRoleInfo(role: RoleInfo, knownRoles: RoleInfo[]): void {
   }
 }
 
-/**
- * Resolve contract from registry by name
- *
- * Searches across all address books for a matching contract name.
- * Returns the contract metadata and address book type if found.
- */
-function resolveContractFromRegistry(
-  contractName: string,
-): { addressBook: AddressBookType; roles: readonly string[] } | null {
-  // Search issuance first (most likely for this use case)
-  for (const [book, contracts] of Object.entries(CONTRACT_REGISTRY)) {
-    const contract = contracts[contractName as keyof typeof contracts] as { roles?: readonly string[] } | undefined
-    if (contract?.roles) {
-      return { addressBook: book as AddressBookType, roles: contract.roles }
-    }
-  }
-  return null
-}
-
-/**
- * Get contract address from address book
- */
-function getContractAddress(addressBook: AddressBookType, contractName: string, chainId: number): string | null {
-  const book =
-    addressBook === 'issuance'
-      ? graph.getIssuanceAddressBook(chainId)
-      : addressBook === 'horizon'
-        ? graph.getHorizonAddressBook(chainId)
-        : graph.getSubgraphServiceAddressBook(chainId)
-
-  if (!book.entryExists(contractName)) {
-    return null
-  }
-
-  return book.getEntry(contractName)?.address ?? null
-}
-
 const action: NewTaskActionFunction<TaskArgs> = async (taskArgs, hre) => {
   // Empty strings treated as not provided
   const contractName = taskArgs.contract || undefined
@@ -97,7 +56,7 @@ const action: NewTaskActionFunction<TaskArgs> = async (taskArgs, hre) => {
   // Validate: must provide either --contract or --address
   if (!contractName && !address) {
     console.error('\nError: Must provide either --contract or --address')
-    console.error('  --contract <name>  Contract name from registry (e.g., RewardsEligibilityOracle)')
+    console.error('  --contract <name>  Contract name from registry (e.g., RewardsEligibilityOracleA)')
     console.error('  --address <addr>   Contract address (requires known role list)\n')
     return
   }
@@ -115,6 +74,7 @@ const action: NewTaskActionFunction<TaskArgs> = async (taskArgs, hre) => {
   const actualChainId = await client.getChainId()
 
   // Determine target chain ID (handle fork mode)
+  await graph.autoDetect()
   const forkChainId = graph.getForkTargetChainId()
   const targetChainId = forkChainId ?? actualChainId
 
@@ -189,13 +149,13 @@ const action: NewTaskActionFunction<TaskArgs> = async (taskArgs, hre) => {
  * List all role holders for a BaseUpgradeable contract
  *
  * Examples:
- *   npx hardhat roles:list --contract RewardsEligibilityOracle --network arbitrumSepolia
+ *   npx hardhat roles:list --contract RewardsEligibilityOracleA --network arbitrumSepolia
  *   npx hardhat roles:list --address 0x62c2... --network arbitrumSepolia
  */
 const listRolesTask = task('roles:list', 'List all role holders for a contract')
   .addOption({
     name: 'contract',
-    description: 'Contract name from registry (e.g., RewardsEligibilityOracle)',
+    description: 'Contract name from registry (e.g., RewardsEligibilityOracleA)',
     type: ArgumentType.STRING,
     defaultValue: '',
   })

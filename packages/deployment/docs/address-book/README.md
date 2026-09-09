@@ -16,7 +16,7 @@ const addressBook = graph.getIssuanceAddressBook(chainId)
 
 // Write operations
 addressBook.setProxy('RewardsManager', proxyAddr, implAddr, adminAddr, 'transparent')
-addressBook.setPendingImplementation('RewardsManager', newImplAddr, { txHash: '0x...' })
+addressBook.setPendingImplementationWithMetadata('RewardsManager', newImplAddr, deploymentMetadata)
 
 // Read operations
 const entry = addressBook.getEntry('RewardsManager')
@@ -26,16 +26,16 @@ const entry = addressBook.getEntry('RewardsManager')
 
 ### Write Operations
 
-| Method                                            | Purpose                                  |
-| ------------------------------------------------- | ---------------------------------------- |
-| `setContract(name, address)`                      | Non-proxied contract                     |
-| `setProxy(name, proxy, impl, admin, type)`        | All proxy fields                         |
-| `setImplementation(name, impl)`                   | Active implementation                    |
-| `setProxyAdmin(name, admin)`                      | Proxy admin                              |
-| `setPendingImplementation(name, impl, metadata?)` | Pending implementation                   |
-| `promotePendingImplementation(name)`              | Move pending → active                    |
-| `clearPendingImplementation(name)`                | Clear pending                            |
-| `setImplementationAndClearIfMatches(name, impl)`  | Set impl + auto-clear pending if matches |
+| Method                                                       | Purpose                                  |
+| ------------------------------------------------------------ | ---------------------------------------- |
+| `setContract(name, address)`                                 | Non-proxied contract                     |
+| `setProxy(name, proxy, impl, admin, type)`                   | All proxy fields                         |
+| `setImplementation(name, impl)`                              | Active implementation                    |
+| `setProxyAdmin(name, admin)`                                 | Proxy admin                              |
+| `setPendingImplementationWithMetadata(name, impl, metadata)` | Pending implementation                   |
+| `promotePendingImplementation(name)`                         | Move pending → active                    |
+| `clearPendingImplementation(name)`                           | Clear pending                            |
+| `setImplementationAndClearIfMatches(name, impl)`             | Set impl + auto-clear pending if matches |
 
 ### Read Operations
 

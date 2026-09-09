@@ -1,0 +1,35 @@
+{
+  // Deployment configuration for Arbitrum One (mainnet)
+
+  RewardsManager: {
+    eligibilityOracle: 'RewardsEligibilityOracleA',
+  },
+
+  RecurringAgreementManager: {
+    // Wired to the same REO as RewardsManager. RAM stays dormant at launch
+    // (0 issuance + RecurringCollector paused) — this only pre-configures its
+    // eligibility oracle so it matches RM.
+    eligibilityOracle: 'RewardsEligibilityOracleA',
+  },
+
+  IssuanceAllocator: {
+    // Explicit issuance allocation table, by target contract name. The rates must
+    // sum to issuancePerBlock, which must equal RM's on-chain issuance rate — the
+    // scripts error on mismatch and never set the rate from config.
+    //
+    // GIP-0089 innovation allocation: 20% of issuance is routed to
+    // InnovationAllocation, a DirectAllocation proxy whose OPERATOR_ROLE is held by
+    // The Graph Foundation multisig. Total issuance is unchanged — RM's self-mint
+    // drops from 120.73 to 96.584 and InnovationAllocation takes the 24.146
+    // difference as an allocator-minted target.
+    //
+    // DIPs remain dormant: RecurringAgreementManager is left out of the table so it
+    // receives 0 issuance. DIP activation later re-splits these numbers and re-runs
+    // the allocate goal, alongside the guardian unpausing RecurringCollector.
+    issuancePerBlock: '120.73',
+    allocations: {
+      RewardsManager: { selfGrtPerBlock: '96.584' },
+      InnovationAllocation: { allocatorGrtPerBlock: '24.146' },
+    },
+  },
+}
