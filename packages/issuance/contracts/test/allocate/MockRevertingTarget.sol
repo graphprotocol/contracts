@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationDistribution.sol";
 import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceTarget.sol";
 import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
@@ -23,7 +24,14 @@ contract MockRevertingTarget is IIssuanceTarget, ERC165 {
     /**
      * @inheritdoc IIssuanceTarget
      */
-    function setIssuanceAllocator(address _issuanceAllocator) external pure override {
+    function getIssuanceAllocator() external pure override returns (IIssuanceAllocationDistribution) {
+        return IIssuanceAllocationDistribution(address(0));
+    }
+
+    /**
+     * @inheritdoc IIssuanceTarget
+     */
+    function setIssuanceAllocator(IIssuanceAllocationDistribution _issuanceAllocator) external pure override {
         // No-op
     }
 

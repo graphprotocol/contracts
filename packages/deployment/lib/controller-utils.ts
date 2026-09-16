@@ -1,10 +1,39 @@
 import type { Environment } from '@rocketh/core/types'
 import type { PublicClient } from 'viem'
 
+import { graph } from '../rocketh/deploy.js'
 import { CONTROLLER_ABI } from './abis.js'
 import { Contracts } from './contract-registry.js'
 import { requireContract } from './issuance-deploy-utils.js'
-import { graph } from '../rocketh/deploy.js'
+
+/**
+ * Check if the provider can sign as the protocol governor
+ *
+ * With a mnemonic (local network), all derived accounts are available via eth_accounts.
+ * With explicit keys (production), only configured accounts are available.
+ *
+ * @param env - Deployment environment
+ * @returns Governor address and whether the provider can sign as governor
+ */
+export async function canSignAsGovernor(env: Environment): Promise<{ governor: string; canSign: boolean }> {
+  const governor = await getGovernor(env)
+  const accounts = (await env.network.provider.request({ method: 'eth_accounts' })) as string[]
+  const canSign = accounts.some((a) => a.toLowerCase() === governor.toLowerCase())
+
+  // Verify the rocketh named account 'governor' matches the on-chain governor.
+  // If they disagree, tx({ account: 'governor' }) would send from the wrong address.
+  if (canSign && env.namedAccounts['governor']) {
+    const named = env.namedAccounts['governor'] as string
+    if (named.toLowerCase() !== governor.toLowerCase()) {
+      throw new Error(
+        `Named account 'governor' (${named}) does not match Controller.getGovernor() (${governor}). ` +
+          `Check rocketh account config — mnemonic index may not match the on-chain governor.`,
+      )
+    }
+  }
+
+  return { governor, canSign }
+}
 
 /**
  * Get the protocol governor address from the Controller contract

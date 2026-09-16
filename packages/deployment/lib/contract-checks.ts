@@ -1,19 +1,21 @@
 import type { Environment } from '@rocketh/core/types'
-import type { PublicClient } from 'viem'
+import type { Abi, PublicClient } from 'viem'
 
+import { graph } from '../rocketh/deploy.js'
 import {
   ACCESS_CONTROL_ENUMERABLE_ABI,
   GRAPH_TOKEN_ABI,
   IERC165_ABI,
-  IERC165_INTERFACE_ID,
   IISSUANCE_TARGET_INTERFACE_ID,
+  ISSUANCE_ALLOCATOR_ABI,
+  ISSUANCE_TARGET_ABI,
+  PROVIDER_ELIGIBILITY_MANAGEMENT_ABI,
   REWARDS_ELIGIBILITY_ORACLE_ABI,
-  REWARDS_MANAGER_ABI,
   REWARDS_MANAGER_DEPRECATED_ABI,
 } from './abis.js'
 import { getTargetChainIdFromEnv } from './address-book-utils.js'
 import { getGovernor, getPauseGuardian } from './controller-utils.js'
-import { graph } from '../rocketh/deploy.js'
+import { getResolvedSettingsForEnv } from './deployment-config.js'
 
 /**
  * Check if a contract supports a specific interface via ERC165
@@ -100,7 +102,7 @@ export async function checkIssuanceAllocatorActivation(
   // Check RM.issuanceAllocator() == IA
   const currentIA = (await client.readContract({
     address: rmAddress as `0x${string}`,
-    abi: REWARDS_MANAGER_ABI,
+    abi: ISSUANCE_TARGET_ABI,
     functionName: 'getIssuanceAllocator',
   })) as string
 
@@ -136,58 +138,6 @@ export async function isIssuanceAllocatorActivated(
   return status.iaIntegrated && status.iaMinter
 }
 
-// Well-known reclaim reasons (bytes32)
-// These correspond to the condition identifiers in RewardsCondition.sol (keccak256 of condition string)
-// Each reason maps to a contract: ReclaimedRewardsFor<ReasonName>
-export const RECLAIM_REASONS = {
-  indexerIneligible: '0xfcadc72cad493def76767524554db9da829b6aca9457c0187f63000dba3c9439',
-  subgraphDenied: '0xc0f4a5620db2f97e7c3a4ba7058497eaa0d497538b2666d66bd6932f25345c88',
-  stalePoi: '0xe677423ace949fe7684efc4b33b0b10dc0f71b38c22370d74dad5ff6bec3e311',
-  zeroPoi: '0xf067261e30ea99a11911c4e98249a1645a4870b3ef56b8aa8b8967e15a543095',
-  closeAllocation: '0x3021a5ea86e7115dadc0819121dc2b1f58b45c2372d2e93b593567f0dd797df8',
-} as const
-
-// Mapping from reclaim reason keys to deployed contract names
-export const RECLAIM_CONTRACT_NAMES = {
-  indexerIneligible: 'ReclaimedRewardsForIndexerIneligible',
-  subgraphDenied: 'ReclaimedRewardsForSubgraphDenied',
-  stalePoi: 'ReclaimedRewardsForStalePoi',
-  zeroPoi: 'ReclaimedRewardsForZeroPoi',
-  closeAllocation: 'ReclaimedRewardsForCloseAllocation',
-} as const
-
-export type ReclaimReasonKey = keyof typeof RECLAIM_REASONS
-
-/**
- * Get the reclaim address for a given reason from RewardsManager
- *
- * @param client - Viem public client
- * @param rmAddress - RewardsManager address
- * @param reason - The reason identifier (bytes32)
- * @returns The reclaim address for that reason, or null if not set or function doesn't exist
- */
-export async function getReclaimAddress(
-  client: PublicClient,
-  rmAddress: string,
-  reason: string,
-): Promise<string | null> {
-  try {
-    const reclaimAddress = (await client.readContract({
-      address: rmAddress as `0x${string}`,
-      abi: REWARDS_MANAGER_ABI,
-      functionName: 'getReclaimAddress',
-      args: [reason as `0x${string}`],
-    })) as string
-    // Zero address means not set
-    if (reclaimAddress === '0x0000000000000000000000000000000000000000') {
-      return null
-    }
-    return reclaimAddress
-  } catch {
-    return null
-  }
-}
-
 /**
  * Get issuancePerBlock from RewardsManager
  */
@@ -200,20 +150,103 @@ export async function getRewardsManagerRawIssuanceRate(client: PublicClient, rmA
   return rate
 }
 
+/**
+ * End-state status of the GIP-0088 issuance-connect goal.
+ *
+ * Each sub-flag is independently observable; `complete` is true iff all of them are.
+ * Callers gate idempotency on `complete` and render the sub-flags / underlying values
+ * for human-readable status.
+ *
+ * Preconditions for the read: RM must already be upgraded to implement IIssuanceTarget
+ * (the caller can verify with {@link isRewardsManagerUpgraded}). With an unupgraded RM
+ * the `getIssuanceAllocator` read will revert.
+ *
+ * The shape encoded here is appropriate while GIP-0088 expects RM to be the sole
+ * self-minting target with no allocator-minting share. If a future configuration
+ * has RM share self-minting with another target, or RM also receives allocator-minting,
+ * the `rmAllocationShape` clause needs to relax.
+ */
+export interface IssuanceConnectStatus {
+  /** RM.issuanceAllocator == IA */
+  iaIntegrated: boolean
+  /** GraphToken.isMinter(IA) */
+  iaMinter: boolean
+  /** IA.issuancePerBlock == RM.issuancePerBlock (the migration invariant) */
+  ratesAligned: boolean
+  /** RM holds a non-zero self-minting allocation and no allocator-minting share */
+  rmAllocationShape: boolean
+  /** IA.totalAllocation.totalAllocationRate == IA.issuancePerBlock (100% invariant) */
+  fullyAllocated: boolean
+  /** True iff every sub-flag above is true */
+  complete: boolean
+
+  /** Underlying values for display / diagnostics */
+  currentIssuanceAllocator: string
+  iaRate: bigint
+  rmRate: bigint
+  rmAllocation: { allocatorMintingRate: bigint; selfMintingRate: bigint }
+  iaTotalAllocationRate: bigint
+}
+
+export async function checkIssuanceConnectComplete(
+  client: PublicClient,
+  iaAddress: string,
+  rmAddress: string,
+  gtAddress: string,
+): Promise<IssuanceConnectStatus> {
+  const activation = await checkIssuanceAllocatorActivation(client, iaAddress, rmAddress, gtAddress)
+
+  const iaRate = (await client.readContract({
+    address: iaAddress as `0x${string}`,
+    abi: ISSUANCE_ALLOCATOR_ABI,
+    functionName: 'getIssuancePerBlock',
+  })) as bigint
+  const rmRate = await getRewardsManagerRawIssuanceRate(client, rmAddress)
+  const rmAlloc = (await client.readContract({
+    address: iaAddress as `0x${string}`,
+    abi: ISSUANCE_ALLOCATOR_ABI,
+    functionName: 'getTargetAllocation',
+    args: [rmAddress as `0x${string}`],
+  })) as { totalAllocationRate: bigint; allocatorMintingRate: bigint; selfMintingRate: bigint }
+  const total = (await client.readContract({
+    address: iaAddress as `0x${string}`,
+    abi: ISSUANCE_ALLOCATOR_ABI,
+    functionName: 'getTotalAllocation',
+  })) as { totalAllocationRate: bigint; allocatorMintingRate: bigint; selfMintingRate: bigint }
+
+  const ratesAligned = iaRate > 0n && iaRate === rmRate
+  const rmAllocationShape = rmAlloc.allocatorMintingRate === 0n && rmAlloc.selfMintingRate > 0n
+  const fullyAllocated = iaRate > 0n && total.totalAllocationRate === iaRate
+
+  return {
+    iaIntegrated: activation.iaIntegrated,
+    iaMinter: activation.iaMinter,
+    ratesAligned,
+    rmAllocationShape,
+    fullyAllocated,
+    complete: activation.iaIntegrated && activation.iaMinter && ratesAligned && rmAllocationShape && fullyAllocated,
+    currentIssuanceAllocator: activation.currentIssuanceAllocator,
+    iaRate,
+    rmRate,
+    rmAllocation: { allocatorMintingRate: rmAlloc.allocatorMintingRate, selfMintingRate: rmAlloc.selfMintingRate },
+    iaTotalAllocationRate: total.totalAllocationRate,
+  }
+}
+
 // ============================================================================
-// RewardsEligibilityOracle Role Checks
+// Role Checks
 // ============================================================================
 
 /**
- * Result of checking OPERATOR_ROLE assignment on RewardsEligibilityOracle
+ * Result of checking exclusive holdership of a role on a BaseUpgradeable contract
  */
-export interface OperatorRoleCheckResult {
+export interface RoleExclusivityCheckResult {
   /** Whether the check passed (correct assignment state) */
   ok: boolean
-  /** Number of addresses with OPERATOR_ROLE */
+  /** Number of addresses holding the role */
   count: number
-  /** The expected operator address (null if not configured) */
-  expectedOperator: string | null
+  /** The expected sole holder (null if none is configured) */
+  expectedHolder: string | null
   /** Actual role holders (if enumerable) */
   actualHolders: string[]
   /** Human-readable status message */
@@ -221,39 +254,48 @@ export interface OperatorRoleCheckResult {
 }
 
 /**
- * Check OPERATOR_ROLE assignment on RewardsEligibilityOracle
+ * Check that a role on a BaseUpgradeable contract is held by exactly the expected account
  *
- * This is the SINGLE authoritative check for OPERATOR_ROLE correctness.
- * Used by both deployment scripts and status checks.
+ * This is the SINGLE authoritative exclusivity check for role assignment. It reads the
+ * role constant off the contract by name, enumerates every holder via
+ * `AccessControlEnumerable`, and asserts the holder set is exactly what was configured.
  *
  * Rules:
- * - If expectedOperator is provided: exactly 1 holder, must be expectedOperator
- * - If expectedOperator is null: exactly 0 holders
+ * - If expectedHolder is provided: exactly 1 holder, must be expectedHolder
+ * - If expectedHolder is null: exactly 0 holders
  *
  * @param client - Viem public client
- * @param reoAddress - RewardsEligibilityOracle address
- * @param expectedOperator - Expected operator address (from address book), or null if not configured
+ * @param contractAddress - Contract address
+ * @param roleName - Name of the role constant getter on the contract (`OPERATOR_ROLE`, `GOVERNOR_ROLE`, ...)
+ * @param expectedHolder - Expected sole holder, or null if the role should be unassigned
+ * @param holderEntryName - Where the expected holder comes from, used in messages
+ *   (`NetworkOperator`, `InnovationOperator`, `Controller governor`, ...)
  * @returns Check result with pass/fail status and details
  */
-export async function checkOperatorRole(
+export async function checkExclusiveRoleHolder(
   client: PublicClient,
-  reoAddress: string,
-  expectedOperator: string | null,
-): Promise<OperatorRoleCheckResult> {
-  // Get OPERATOR_ROLE constant
-  const operatorRole = (await client.readContract({
-    address: reoAddress as `0x${string}`,
-    abi: REWARDS_ELIGIBILITY_ORACLE_ABI,
-    functionName: 'OPERATOR_ROLE',
+  contractAddress: string,
+  roleName: string,
+  expectedHolder: string | null,
+  holderEntryName: string,
+): Promise<RoleExclusivityCheckResult> {
+  // Get the role constant
+  const roleConstantAbi: Abi = [
+    { inputs: [], name: roleName, outputs: [{ type: 'bytes32' }], stateMutability: 'view', type: 'function' },
+  ]
+  const role = (await client.readContract({
+    address: contractAddress as `0x${string}`,
+    abi: roleConstantAbi,
+    functionName: roleName,
   })) as `0x${string}`
 
   // Get role member count
   const count = Number(
     (await client.readContract({
-      address: reoAddress as `0x${string}`,
-      abi: REWARDS_ELIGIBILITY_ORACLE_ABI,
+      address: contractAddress as `0x${string}`,
+      abi: ACCESS_CONTROL_ENUMERABLE_ABI,
       functionName: 'getRoleMemberCount',
-      args: [operatorRole],
+      args: [role],
     })) as bigint,
   )
 
@@ -261,70 +303,70 @@ export async function checkOperatorRole(
   const actualHolders: string[] = []
   for (let i = 0; i < count; i++) {
     const holder = (await client.readContract({
-      address: reoAddress as `0x${string}`,
-      abi: REWARDS_ELIGIBILITY_ORACLE_ABI,
+      address: contractAddress as `0x${string}`,
+      abi: ACCESS_CONTROL_ENUMERABLE_ABI,
       functionName: 'getRoleMember',
-      args: [operatorRole, BigInt(i)],
+      args: [role, BigInt(i)],
     })) as string
     actualHolders.push(holder)
   }
 
+  const base = { count, expectedHolder, actualHolders }
+
   // Validate based on expected state
-  if (expectedOperator === null) {
-    // No operator configured - must have zero holders
+  if (expectedHolder === null) {
+    // No holder configured - must have zero holders
     if (count === 0) {
-      return {
-        ok: true,
-        count,
-        expectedOperator,
-        actualHolders,
-        message: 'OPERATOR_ROLE: none assigned (NetworkOperator not configured)',
-      }
-    } else {
-      return {
-        ok: false,
-        count,
-        expectedOperator,
-        actualHolders,
-        message: `OPERATOR_ROLE: unexpected holders (${count}) when NetworkOperator not configured: ${actualHolders.join(', ')}`,
-      }
+      return { ...base, ok: true, message: `${roleName}: none assigned (${holderEntryName} not configured)` }
     }
-  } else {
-    // Operator configured - must have exactly one holder matching expected
-    if (count === 0) {
-      return {
-        ok: false,
-        count,
-        expectedOperator,
-        actualHolders,
-        message: `OPERATOR_ROLE: not assigned (expected ${expectedOperator})`,
-      }
-    } else if (count === 1 && actualHolders[0].toLowerCase() === expectedOperator.toLowerCase()) {
-      return {
-        ok: true,
-        count,
-        expectedOperator,
-        actualHolders,
-        message: `OPERATOR_ROLE: ${expectedOperator}`,
-      }
-    } else if (count === 1) {
-      return {
-        ok: false,
-        count,
-        expectedOperator,
-        actualHolders,
-        message: `OPERATOR_ROLE: wrong holder (expected ${expectedOperator}, got ${actualHolders[0]})`,
-      }
-    } else {
-      return {
-        ok: false,
-        count,
-        expectedOperator,
-        actualHolders,
-        message: `OPERATOR_ROLE: too many holders (${count}): ${actualHolders.join(', ')} (expected only ${expectedOperator})`,
-      }
+    return {
+      ...base,
+      ok: false,
+      message: `${roleName}: unexpected holders (${count}) when ${holderEntryName} not configured: ${actualHolders.join(', ')}`,
     }
   }
+
+  // Holder configured - must have exactly one holder matching expected
+  if (count === 0) {
+    return { ...base, ok: false, message: `${roleName}: not assigned (expected ${expectedHolder})` }
+  }
+  if (count === 1 && actualHolders[0].toLowerCase() === expectedHolder.toLowerCase()) {
+    return { ...base, ok: true, message: `${roleName}: ${expectedHolder}` }
+  }
+  if (count === 1) {
+    return {
+      ...base,
+      ok: false,
+      message: `${roleName}: wrong holder (expected ${expectedHolder}, got ${actualHolders[0]})`,
+    }
+  }
+  return {
+    ...base,
+    ok: false,
+    message: `${roleName}: too many holders (${count}): ${actualHolders.join(', ')} (expected only ${expectedHolder})`,
+  }
+}
+
+/**
+ * Check OPERATOR_ROLE assignment on a BaseUpgradeable contract
+ *
+ * Thin wrapper over {@link checkExclusiveRoleHolder} — an extra OPERATOR_ROLE holder
+ * can call `sendTokens`, so the count assertion is exact.
+ *
+ * @param client - Viem public client
+ * @param contractAddress - Contract address
+ * @param expectedOperator - Expected operator address (from address book), or null if not configured
+ * @param operatorEntryName - Address-book entry the operator comes from, used in messages
+ *   (`NetworkOperator` for the eligibility oracles, `InnovationOperator` for GIP-0089)
+ * @returns Check result with pass/fail status and details
+ */
+export async function checkOperatorRole(
+  client: PublicClient,
+  contractAddress: string,
+  expectedOperator: string | null,
+  operatorEntryName = 'NetworkOperator',
+): Promise<RoleExclusivityCheckResult> {
+  return checkExclusiveRoleHolder(client, contractAddress, 'OPERATOR_ROLE', expectedOperator, operatorEntryName)
 }
 
 // ============================================================================
@@ -359,7 +401,7 @@ export interface ParamCondition<T = bigint> {
   description: string
 
   /** ABI for contract reads/writes */
-  abi: readonly unknown[]
+  abi: Abi
 
   /** Function name to read current value */
   getter: string
@@ -391,7 +433,7 @@ export interface RoleCondition {
   description: string
 
   /** ABI for contract reads/writes */
-  abi: readonly unknown[]
+  abi: Abi
 
   /** Function name to get role bytes32 (e.g., 'PAUSE_ROLE') */
   roleGetter: string
@@ -519,7 +561,7 @@ export async function checkConditions<T>(
 }
 
 // ============================================================================
-// RewardsEligibilityOracle Conditions
+// REO Conditions
 // ============================================================================
 
 /** Default REO configuration values */
@@ -557,11 +599,6 @@ export function createREOParamConditions(
     },
   ]
 }
-
-/**
- * @deprecated Use createREOParamConditions for param-only or createREOConditions for all
- */
-export const createREOConditions = createREOParamConditions
 
 /**
  * REO role condition targets
@@ -620,7 +657,10 @@ export function createREORoleConditions(targets: REORoleTargets): RoleCondition[
 export function createAllREOConditions(
   paramTargets: { eligibilityPeriod?: bigint; oracleUpdateTimeout?: bigint } = {},
   roleTargets: REORoleTargets,
-): ConfigCondition<bigint>[] {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): ConfigCondition<any>[] {
+  // Note: setEligibilityValidation requires OPERATOR_ROLE, not GOVERNOR_ROLE.
+  // It is enabled by the network operator after deployment, not in the configure step.
   return [...createREOParamConditions(paramTargets), ...createREORoleConditions(roleTargets)]
 }
 
@@ -653,10 +693,12 @@ export function createREODeployerRevokeCondition(deployer: string): RoleConditio
  *
  * Requires NetworkOperator to be configured in the issuance address book.
  */
-export async function getREOConditions(env: Environment): Promise<ConfigCondition<bigint>[]> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function getREOConditions(env: Environment): Promise<ConfigCondition<any>[]> {
   const governor = await getGovernor(env)
   const pauseGuardian = await getPauseGuardian(env)
   const ab = graph.getIssuanceAddressBook(await getTargetChainIdFromEnv(env))
+  const settings = await getResolvedSettingsForEnv(env)
 
   const networkOperator = ab.entryExists('NetworkOperator') ? ab.getEntry('NetworkOperator')?.address : null
   if (!networkOperator) {
@@ -665,7 +707,13 @@ export async function getREOConditions(env: Environment): Promise<ConfigConditio
     process.exit(1)
   }
 
-  return createAllREOConditions({}, { governor, pauseGuardian, networkOperator })
+  return createAllREOConditions(
+    {
+      eligibilityPeriod: settings.rewardsEligibilityOracle.eligibilityPeriod,
+      oracleUpdateTimeout: settings.rewardsEligibilityOracle.oracleUpdateTimeout,
+    },
+    { governor, pauseGuardian, networkOperator },
+  )
 }
 
 /**
@@ -678,7 +726,7 @@ export function getREOTransferGovernanceConditions(deployer: string): ConfigCond
 }
 
 // ============================================================================
-// RewardsEligibilityOracle Role Checks
+// REO Role Checks
 // ============================================================================
 
 /**
@@ -696,7 +744,7 @@ export interface RoleCheckResult {
 }
 
 /**
- * Check if an account has a specific role on RewardsEligibilityOracle
+ * Check if an account has a specific role on an REO instance
  */
 export async function checkREORole(
   client: PublicClient,
@@ -746,15 +794,15 @@ export function formatAddress(address: string): string {
 /**
  * Create RewardsManager integration condition for REO
  *
- * Checks that RewardsManager.getRewardsEligibilityOracle() == reoAddress
+ * Checks that RewardsManager.getProviderEligibilityOracle() == reoAddress
  */
 export function createRMIntegrationCondition(reoAddress: string): ParamCondition<string> {
   return {
-    name: 'rewardsEligibilityOracle',
-    description: 'RewardsEligibilityOracle',
-    abi: REWARDS_MANAGER_ABI,
-    getter: 'getRewardsEligibilityOracle',
-    setter: 'setRewardsEligibilityOracle',
+    name: 'providerEligibilityOracle',
+    description: 'REO instance',
+    abi: PROVIDER_ELIGIBILITY_MANAGEMENT_ABI,
+    getter: 'getProviderEligibilityOracle',
+    setter: 'setProviderEligibilityOracle',
     target: reoAddress,
     compare: addressEquals,
     format: formatAddress,

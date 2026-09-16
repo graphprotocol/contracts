@@ -4,12 +4,15 @@ import GraphPaymentsModule, { MigrateGraphPaymentsModule } from './GraphPayments
 import GraphTallyCollectorModule, { MigrateGraphTallyCollectorModule } from './GraphTallyCollector'
 import HorizonStakingModule, { MigrateHorizonStakingDeployerModule } from './HorizonStaking'
 import PaymentsEscrowModule, { MigratePaymentsEscrowModule } from './PaymentsEscrow'
+import RecurringCollectorModule from './RecurringCollector'
 
 export default buildModule('GraphHorizon_Core', (m) => {
   const { HorizonStaking, HorizonStakingImplementation } = m.useModule(HorizonStakingModule)
   const { GraphPaymentsProxyAdmin, GraphPayments, GraphPaymentsImplementation } = m.useModule(GraphPaymentsModule)
   const { PaymentsEscrowProxyAdmin, PaymentsEscrow, PaymentsEscrowImplementation } = m.useModule(PaymentsEscrowModule)
   const { GraphTallyCollector } = m.useModule(GraphTallyCollectorModule)
+  const { RecurringCollectorProxyAdmin, RecurringCollector, RecurringCollectorImplementation } =
+    m.useModule(RecurringCollectorModule)
 
   return {
     HorizonStaking,
@@ -21,10 +24,13 @@ export default buildModule('GraphHorizon_Core', (m) => {
     PaymentsEscrow,
     PaymentsEscrowImplementation,
     GraphTallyCollector,
+    RecurringCollectorProxyAdmin,
+    RecurringCollector,
+    RecurringCollectorImplementation,
   }
 })
 
-export const MigrateHorizonCoreModule = buildModule('GraphHorizon_Core', (m) => {
+export const MigrateHorizonCoreModule = buildModule('MigrateGraphHorizon_Core', (m) => {
   const { HorizonStakingProxy: HorizonStaking, HorizonStakingImplementation } = m.useModule(
     MigrateHorizonStakingDeployerModule,
   )

@@ -6,6 +6,10 @@
   "repository": "git@github.com:graphprotocol/contracts.git",
   "author": "Edge & Node",
   "packageManager": "pnpm@10.28.0+sha512.05df71d1421f21399e053fde567cea34d446fa02c76571441bfc1c7956e98e363088982d940465fd34480d4d90a0668bc12362f8aa88000a64e83d0b0e47be48",
+  "engines": {
+    "node": "^24",
+    "pnpm": "^10.28"
+  },
   "scripts": {
     "postinstall": "husky",
     "clean": "pnpm -r run clean",
@@ -18,9 +22,10 @@
     "lint:sol": "pnpm -r run lint:sol; prettier -w --cache --log-level warn 'packages/**/*.sol'; pnpm todo",
     "lint:forge": "pnpm -r run lint:forge",
     "lint:md": "markdownlint --fix --ignore-path .gitignore 'packages/**/*.md' 'docs/**/*.md' '*.md'; prettier -w --cache --log-level warn 'packages/**/*.md' 'docs/**/*.md' '*.md'",
-    "lint:json": "prettier -w --cache --log-level warn 'packages/**/*.json' '.changeset/**/*.json' '*.json'",
+    "lint:json": "prettier -w --cache --log-level warn 'packages/**/*.{json,json5}' '.changeset/**/*.json' '*.{json,json5}'",
     "lint:yaml": "npx yaml-lint .github/**/*.{yml,yaml} packages/contracts/task/config/*.yml; prettier -w --cache --log-level warn 'packages/**/*.{yml,yaml}' '.github/**/*.{yml,yaml}'",
     "test": "pnpm build && pnpm -r run test:self",
+    "test:prod": "FOUNDRY_PROFILE=prod pnpm test",
     "test:coverage": "pnpm build && pnpm -r run build:self:coverage && pnpm -r run test:coverage:self"
   },
   "devDependencies": {
@@ -51,8 +56,18 @@
     "overrides": {
       "@types/node": "^20.17.50"
     },
+    "packageExtensions": {
+      "@nomiclabs/hardhat-waffle@*": {
+        "dependencies": {
+          "@ethereum-waffle/chai": "*",
+          "@ethereum-waffle/provider": "*"
+        }
+      }
+    },
     "patchedDependencies": {
-      "typechain@8.3.2": "patches/typechain@8.3.2.patch"
+      "typechain@8.3.2": "patches/typechain@8.3.2.patch",
+      "rocketh@0.17.13": "patches/rocketh@0.17.13.patch",
+      "@rocketh/read-execute@0.17.8": "patches/@rocketh__read-execute@0.17.8.patch"
     }
   },
   "lint-staged": {
@@ -68,7 +83,7 @@
       "markdownlint --fix",
       "prettier -w --cache --log-level warn"
     ],
-    "*.json": "prettier -w --cache --log-level warn",
+    "*.{json,json5}": "prettier -w --cache --log-level warn",
     "*.{yml,yaml}": [
       "npx yamllint",
       "prettier -w --cache --log-level warn"

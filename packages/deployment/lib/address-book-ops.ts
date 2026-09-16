@@ -17,7 +17,7 @@
  *
  * // Write operations
  * addressBook.setProxy('RewardsManager', proxyAddr, implAddr, adminAddr, 'transparent')
- * addressBook.setPendingImplementation('RewardsManager', newImplAddr, { txHash: '0x...' })
+ * addressBook.setPendingImplementationWithMetadata('RewardsManager', newImplAddr, metadata)
  * ```
  */
 
@@ -140,56 +140,6 @@ export class AddressBookOps<ContractName extends string = string> {
     this.addressBook.setEntry(name, {
       ...entry,
       proxyAdmin: proxyAdminAddress,
-    })
-  }
-
-  /**
-   * Set pending implementation
-   *
-   * Stores an implementation address in the pendingImplementation field.
-   * Only one pending implementation can exist at a time (replaces any existing pending).
-   *
-   * @example
-   * ```typescript
-   * ops.setPendingImplementation('RewardsManager', '0xNewImpl...', {
-   *   txHash: '0xabc...',
-   * })
-   * ```
-   *
-   * @throws Error if contract not found in address book
-   * @throws Error if contract is not a proxy
-   */
-  setPendingImplementation(
-    name: ContractName,
-    implementationAddress: string,
-    metadata?: {
-      txHash?: string
-      timestamp?: string
-    },
-  ): void {
-    const entry = this.addressBook.getEntry(name as string)
-
-    if (!entry) {
-      throw new Error(`Contract ${name} not found in address book`)
-    }
-
-    if (!entry.proxy) {
-      throw new Error(`Contract ${name} is not a proxy contract`)
-    }
-
-    const pendingImplementation: PendingImplementation = {
-      address: implementationAddress,
-      deployment: {
-        txHash: metadata?.txHash ?? '',
-        argsData: '0x',
-        bytecodeHash: '',
-        ...(metadata?.timestamp && { timestamp: metadata.timestamp }),
-      },
-    }
-
-    this.addressBook.setEntry(name, {
-      ...entry,
-      pendingImplementation,
     })
   }
 
@@ -379,10 +329,8 @@ export class AddressBookOps<ContractName extends string = string> {
   }
 
   /**
-   * Set pending implementation with full deployment metadata
-   *
-   * Enhanced version of setPendingImplementation that includes full deployment metadata
-   * for verification and record reconstruction.
+   * Set pending implementation with full deployment metadata for verification
+   * and record reconstruction.
    *
    * @example
    * ```typescript

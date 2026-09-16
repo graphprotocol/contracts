@@ -2,7 +2,8 @@ import { expect } from 'chai'
 
 import { AddressBookOps } from '../lib/address-book-ops.js'
 import { computeBytecodeHash } from '../lib/bytecode-utils.js'
-import { checkShouldSync, createDeploymentMetadata, reconstructDeploymentRecord } from '../lib/sync-utils.js'
+import { buildDeploymentMetadata } from '../lib/deployment-metadata.js'
+import { checkShouldSync, reconstructDeploymentRecord } from '../lib/sync-utils.js'
 
 /**
  * Deployment Metadata Tests
@@ -303,30 +304,68 @@ describe('Sync Change Detection', () => {
     })
   })
 
-  describe('createDeploymentMetadata', () => {
+  describe('buildDeploymentMetadata', () => {
+    const bytecode = '0x608060405234801561001057600080fd5b50'
+
     it('creates metadata with all required fields', () => {
-      const bytecode = '0x608060405234801561001057600080fd5b50'
       const expectedHash = computeBytecodeHash(bytecode)
+      const metadata = buildDeploymentMetadata(
+        { transaction: { hash: '0xtxhash' }, argsData: '0xargsdata' },
+        expectedHash,
+        { blockNumber: 12345678, timestamp: '2024-01-15T10:30:00Z' },
+      )
 
-      const metadata = createDeploymentMetadata('0xtxhash', '0xargsdata', bytecode, 12345678, '2024-01-15T10:30:00Z')
-
-      expect(metadata.txHash).to.equal('0xtxhash')
-      expect(metadata.argsData).to.equal('0xargsdata')
-      expect(metadata.bytecodeHash).to.equal(expectedHash)
-      expect(metadata.blockNumber).to.equal(12345678)
-      expect(metadata.timestamp).to.equal('2024-01-15T10:30:00Z')
+      expect(metadata).to.exist
+      expect(metadata!.txHash).to.equal('0xtxhash')
+      expect(metadata!.argsData).to.equal('0xargsdata')
+      expect(metadata!.bytecodeHash).to.equal(expectedHash)
+      expect(metadata!.blockNumber).to.equal(12345678)
+      expect(metadata!.timestamp).to.equal('2024-01-15T10:30:00Z')
     })
 
     it('creates metadata without optional fields', () => {
-      const bytecode = '0x608060405234801561001057600080fd5b50'
+      const metadata = buildDeploymentMetadata(
+        { transaction: { hash: '0xtxhash' }, argsData: '0xargsdata' },
+        computeBytecodeHash(bytecode),
+      )
 
-      const metadata = createDeploymentMetadata('0xtxhash', '0xargsdata', bytecode)
+      expect(metadata).to.exist
+      expect(metadata!.txHash).to.equal('0xtxhash')
+      expect(metadata!.argsData).to.equal('0xargsdata')
+      expect(metadata!.bytecodeHash).to.be.a('string')
+      expect(metadata!.blockNumber).to.be.undefined
+      expect(metadata!.timestamp).to.be.undefined
+    })
 
-      expect(metadata.txHash).to.equal('0xtxhash')
-      expect(metadata.argsData).to.equal('0xargsdata')
-      expect(metadata.bytecodeHash).to.be.a('string')
-      expect(metadata.blockNumber).to.be.undefined
-      expect(metadata.timestamp).to.be.undefined
+    it('prefers explicit blockNumber over receipt.blockNumber', () => {
+      const metadata = buildDeploymentMetadata(
+        { transaction: { hash: '0xtxhash' }, argsData: '0xargsdata', receipt: { blockNumber: '0x1' } },
+        computeBytecodeHash(bytecode),
+        { blockNumber: 12345678 },
+      )
+
+      expect(metadata!.blockNumber).to.equal(12345678)
+    })
+
+    it('extracts blockNumber from a hex-string receipt', () => {
+      const metadata = buildDeploymentMetadata(
+        { transaction: { hash: '0xtxhash' }, argsData: '0xargsdata', receipt: { blockNumber: '0x2a' } },
+        computeBytecodeHash(bytecode),
+      )
+
+      expect(metadata!.blockNumber).to.equal(42)
+    })
+
+    it('returns undefined when txHash is missing', () => {
+      const metadata = buildDeploymentMetadata({ argsData: '0xargsdata' }, computeBytecodeHash(bytecode))
+
+      expect(metadata).to.be.undefined
+    })
+
+    it('returns undefined when argsData is missing', () => {
+      const metadata = buildDeploymentMetadata({ transaction: { hash: '0xtxhash' } }, computeBytecodeHash(bytecode))
+
+      expect(metadata).to.be.undefined
     })
   })
 })

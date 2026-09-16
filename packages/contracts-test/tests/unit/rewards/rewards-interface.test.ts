@@ -1,5 +1,10 @@
 import { RewardsManager } from '@graphprotocol/contracts'
-import { IERC165__factory, IIssuanceTarget__factory, IRewardsManager__factory } from '@graphprotocol/interfaces/types'
+import {
+  IERC165__factory,
+  IIssuanceTarget__factory,
+  IProviderEligibilityManagement__factory,
+  IRewardsManager__factory,
+} from '@graphprotocol/interfaces/types'
 import { GraphNetworkContracts, toGRT } from '@graphprotocol/sdk'
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
@@ -54,11 +59,11 @@ describe('RewardsManager interfaces', () => {
     })
 
     it('IIssuanceTarget should have stable interface ID', () => {
-      expect(IIssuanceTarget__factory.interfaceId).to.equal('0xaee4dc43')
+      expect(IIssuanceTarget__factory.interfaceId).to.equal('0x19f6601a')
     })
 
     it('IRewardsManager should have stable interface ID', () => {
-      expect(IRewardsManager__factory.interfaceId).to.equal('0x36b70adb')
+      expect(IRewardsManager__factory.interfaceId).to.equal('0x8469b577')
     })
   })
 
@@ -78,6 +83,11 @@ describe('RewardsManager interfaces', () => {
       expect(supports).to.be.true
     })
 
+    it('should support IProviderEligibilityManagement interface', async function () {
+      const supports = await rewardsManager.supportsInterface(IProviderEligibilityManagement__factory.interfaceId)
+      expect(supports).to.be.true
+    })
+
     it('should return false for unsupported interfaces', async function () {
       // Test with an unknown interface ID
       const unknownInterfaceId = '0x12345678' // Random interface ID
@@ -93,7 +103,7 @@ describe('RewardsManager interfaces', () => {
     })
 
     it('should return zero address for rewards eligibility oracle when not set', async function () {
-      const oracle = await rewardsManager.getRewardsEligibilityOracle()
+      const oracle = await rewardsManager.getProviderEligibilityOracle()
       expect(oracle).to.equal(constants.AddressZero)
     })
 

@@ -31,8 +31,15 @@ export default buildModule('GraphHorizon_Deploy', (m) => {
     PaymentsEscrow,
     PaymentsEscrowImplementation,
     GraphTallyCollector,
+    RecurringCollectorProxyAdmin,
+    RecurringCollector,
+    RecurringCollectorImplementation,
   } = m.useModule(GraphHorizonCoreModule)
 
+  // m.getAccount(1) rather than getParameter('governor') — the from: option on
+  // m.call only accepts an AccountRuntimeValue, so the acceptOwnership signer
+  // has to come from getAccount. Configs are expected to set the 'governor'
+  // parameter to this same address (index 1 of the deploying mnemonic).
   const governor = m.getAccount(1)
 
   // BUG?: acceptOwnership should be called after everything in GraphHorizonCoreModule and GraphPeripheryModule is resolved
@@ -74,5 +81,8 @@ export default buildModule('GraphHorizon_Deploy', (m) => {
     Transparent_Proxy_PaymentsEscrow: PaymentsEscrow,
     Implementation_PaymentsEscrow: PaymentsEscrowImplementation,
     GraphTallyCollector,
+    Transparent_ProxyAdmin_RecurringCollector: RecurringCollectorProxyAdmin,
+    Transparent_Proxy_RecurringCollector: RecurringCollector,
+    Implementation_RecurringCollector: RecurringCollectorImplementation,
   }
 })

@@ -62,9 +62,11 @@ describe('Permissionless', () => {
       // Close allocation as anyone
       await subgraphService.connect(anyone).closeStaleAllocation(allocationId)
 
-      // Verify allocation is closed
+      // closeStaleAllocation resizes the allocation to zero rather than closing it,
+      // so any bound indexing agreement stays active. The allocation remains open.
       const afterAllocation = await subgraphService.getAllocation(allocationId)
-      expect(afterAllocation.closedAt).to.not.equal(0, 'Allocation should be closed')
+      expect(afterAllocation.closedAt).to.equal(0n, 'Allocation should remain open after resize-to-zero')
+      expect(afterAllocation.tokens).to.equal(0n, 'Allocation should be resized to zero')
 
       // Verify tokens are released
       const afterLockedTokens = await subgraphService.allocationProvisionTracker(indexer.address)

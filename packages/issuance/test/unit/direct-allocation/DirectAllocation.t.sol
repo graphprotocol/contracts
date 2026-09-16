@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.33;
+pragma solidity ^0.8.27;
 
 import { Test } from "forge-std/Test.sol";
 
@@ -8,12 +8,34 @@ import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.so
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
+import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationDistribution.sol";
 import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceTarget.sol";
 import { ISendTokens } from "@graphprotocol/interfaces/contracts/issuance/allocate/ISendTokens.sol";
 
 import { BaseUpgradeable } from "../../../contracts/common/BaseUpgradeable.sol";
+import { IGraphToken } from "../../../contracts/common/IGraphToken.sol";
 import { DirectAllocation } from "../../../contracts/allocate/DirectAllocation.sol";
 import { MockGraphToken } from "../mocks/MockGraphToken.sol";
+import { TargetIssuancePerBlock } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocatorTypes.sol";
+
+/// @notice Minimal IIssuanceAllocationDistribution stub that advertises the interface via ERC-165.
+/// Used to exercise DirectAllocation's ERC-165 acceptance path without pulling in heavier
+/// allocator mocks from other test trees.
+contract StubIssuanceAllocator is IIssuanceAllocationDistribution, IERC165 {
+    function distributeIssuance() external pure override returns (uint256) {
+        return 0;
+    }
+
+    function getTargetIssuancePerBlock(address) external pure override returns (TargetIssuancePerBlock memory) {
+        return TargetIssuancePerBlock(0, 0, 0, 0);
+    }
+
+    function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
+        return
+            interfaceId == type(IIssuanceAllocationDistribution).interfaceId ||
+            interfaceId == type(IERC165).interfaceId;
+    }
+}
 
 /// @notice Tests for DirectAllocation contract.
 contract DirectAllocationTest is Test {
@@ -39,7 +61,7 @@ contract DirectAllocationTest is Test {
 
         token = new MockGraphToken();
 
-        DirectAllocation impl = new DirectAllocation(address(token));
+        DirectAllocation impl = new DirectAllocation(IGraphToken(address(token)));
         bytes memory initData = abi.encodeCall(DirectAllocation.initialize, (governor));
         TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(impl), address(this), initData);
         directAlloc = DirectAllocation(address(proxy));
@@ -52,11 +74,11 @@ contract DirectAllocationTest is Test {
 
     function test_Revert_ZeroGraphTokenAddress() public {
         vm.expectRevert(BaseUpgradeable.GraphTokenCannotBeZeroAddress.selector);
-        new DirectAllocation(address(0));
+        new DirectAllocation(IGraphToken(address(0)));
     }
 
     function test_Revert_ZeroGovernorAddress() public {
-        DirectAllocation impl = new DirectAllocation(address(token));
+        DirectAllocation impl = new DirectAllocation(IGraphToken(address(token)));
         bytes memory initData = abi.encodeCall(DirectAllocation.initialize, (address(0)));
         vm.expectRevert(BaseUpgradeable.GovernorCannotBeZeroAddress.selector);
         new TransparentUpgradeableProxy(address(impl), address(this), initData);
@@ -132,15 +154,81 @@ contract DirectAllocationTest is Test {
         directAlloc.beforeIssuanceAllocationChange();
     }
 
-    function test_SetIssuanceAllocator_NoOp() public {
+    function test_GetIssuanceAllocator_InitiallyZero() public view {
+        assertEq(address(directAlloc.getIssuanceAllocator()), address(0));
+    }
+
+    function test_SetIssuanceAllocator_UpdatesGetter() public {
+        StubIssuanceAllocator allocator = new StubIssuanceAllocator();
         vm.prank(governor);
-        directAlloc.setIssuanceAllocator(makeAddr("allocator"));
+        directAlloc.setIssuanceAllocator(allocator);
+        assertEq(address(directAlloc.getIssuanceAllocator()), address(allocator));
+    }
+
+    function test_SetIssuanceAllocator_EmitsEvent() public {
+        StubIssuanceAllocator allocator = new StubIssuanceAllocator();
+        vm.prank(governor);
+        vm.expectEmit(address(directAlloc));
+        emit IIssuanceTarget.IssuanceAllocatorSet(IIssuanceAllocationDistribution(address(0)), allocator);
+        directAlloc.setIssuanceAllocator(allocator);
+    }
+
+    function test_SetIssuanceAllocator_EmitsEventWithOldValue() public {
+        StubIssuanceAllocator first = new StubIssuanceAllocator();
+        StubIssuanceAllocator second = new StubIssuanceAllocator();
+        vm.prank(governor);
+        directAlloc.setIssuanceAllocator(first);
+
+        vm.prank(governor);
+        vm.expectEmit(address(directAlloc));
+        emit IIssuanceTarget.IssuanceAllocatorSet(first, second);
+        directAlloc.setIssuanceAllocator(second);
+    }
+
+    function test_SetIssuanceAllocator_SkipsWhenSameValue() public {
+        StubIssuanceAllocator allocator = new StubIssuanceAllocator();
+        vm.prank(governor);
+        directAlloc.setIssuanceAllocator(allocator);
+
+        vm.prank(governor);
+        vm.recordLogs();
+        directAlloc.setIssuanceAllocator(allocator);
+        assertEq(vm.getRecordedLogs().length, 0);
+    }
+
+    function test_SetIssuanceAllocator_AllowsZeroAddress() public {
+        // Zero-address bypasses the ERC165 check — clearing the allocator is always legal.
+        StubIssuanceAllocator allocator = new StubIssuanceAllocator();
+        vm.prank(governor);
+        directAlloc.setIssuanceAllocator(allocator);
+
+        vm.prank(governor);
+        directAlloc.setIssuanceAllocator(IIssuanceAllocationDistribution(address(0)));
+        assertEq(address(directAlloc.getIssuanceAllocator()), address(0));
+    }
+
+    /// @notice An EOA (no code) fails the ERC-165 interface probe and must be rejected. Prevents
+    /// governance from accidentally wiring up a non-contract as the allocator.
+    function test_Revert_SetIssuanceAllocator_WhenEOA() public {
+        address eoa = makeAddr("eoa");
+        vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSelector(DirectAllocation.InvalidIssuanceAllocator.selector, eoa));
+        directAlloc.setIssuanceAllocator(IIssuanceAllocationDistribution(eoa));
+    }
+
+    /// @notice A contract that does not implement IIssuanceAllocationDistribution must be rejected.
+    /// Uses the MockGraphToken fixture — it has code but doesn't advertise the allocator interface.
+    function test_Revert_SetIssuanceAllocator_WhenWrongInterface() public {
+        vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSelector(DirectAllocation.InvalidIssuanceAllocator.selector, address(token)));
+        directAlloc.setIssuanceAllocator(IIssuanceAllocationDistribution(address(token)));
     }
 
     function test_Revert_SetIssuanceAllocator_NonGovernor() public {
+        StubIssuanceAllocator allocator = new StubIssuanceAllocator();
         vm.expectRevert();
         vm.prank(unauthorized);
-        directAlloc.setIssuanceAllocator(makeAddr("allocator"));
+        directAlloc.setIssuanceAllocator(allocator);
     }
 
     // ==================== ERC-165 Interface Support ====================
@@ -178,7 +266,7 @@ contract DirectAllocationTest is Test {
     function test_Revert_SendTokens_TransferReturnsFalse() public {
         // Deploy DirectAllocation with a mock token that returns false on transfer
         MockFalseTransferToken falseToken = new MockFalseTransferToken();
-        DirectAllocation impl2 = new DirectAllocation(address(falseToken));
+        DirectAllocation impl2 = new DirectAllocation(IGraphToken(address(falseToken)));
         bytes memory initData2 = abi.encodeCall(DirectAllocation.initialize, (governor));
         TransparentUpgradeableProxy proxy2 = new TransparentUpgradeableProxy(address(impl2), address(this), initData2);
         DirectAllocation da2 = DirectAllocation(address(proxy2));

@@ -1,4 +1,3 @@
-/* eslint-disable  @typescript-eslint/no-explicit-any */
 import { Controller } from '@graphprotocol/contracts'
 import { DisputeManager } from '@graphprotocol/contracts'
 import { EpochManager } from '@graphprotocol/contracts'

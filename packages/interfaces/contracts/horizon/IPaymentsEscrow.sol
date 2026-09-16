@@ -199,6 +199,25 @@ interface IPaymentsEscrow {
     function thaw(address collector, address receiver, uint256 tokens) external;
 
     /**
+     * @notice Adjusts the thawing amount with a guard against timer reset.
+     * Caps the requested amount to the current balance. When decreasing, the timer is preserved.
+     * When increasing, the timer resets; if `evenIfTimerReset` is false and the timer would
+     * change, the call is a no-op and returns the current tokensThawing.
+     * Setting tokens to 0 cancels the thaw entirely.
+     * @param collector The address of the collector
+     * @param receiver The address of the receiver
+     * @param tokensToThaw The desired amount of tokens to thaw
+     * @param evenIfTimerReset If true, always proceed. If false, skip increases that would reset the timer.
+     * @return tokensThawing The resulting amount of tokens thawing after the operation
+     */
+    function adjustThaw(
+        address collector,
+        address receiver,
+        uint256 tokensToThaw,
+        bool evenIfTimerReset
+    ) external returns (uint256 tokensThawing);
+
+    /**
      * @notice Cancels the thawing of escrow from a payer-collector-receiver's escrow account.
      * @param collector The address of the collector
      * @param receiver The address of the receiver
@@ -257,4 +276,19 @@ interface IPaymentsEscrow {
      * @return The balance of the payer-collector-receiver tuple
      */
     function getBalance(address payer, address collector, address receiver) external view returns (uint256);
+
+    /**
+     * @notice Escrow account details for a payer-collector-receiver tuple
+     * @param payer The address of the payer
+     * @param collector The address of the collector
+     * @param receiver The address of the receiver
+     * @return balance The total token balance
+     * @return tokensThawing The amount of tokens currently being thawed
+     * @return thawEndTimestamp The timestamp at which thawing period ends (zero if not thawing)
+     */
+    function escrowAccounts(
+        address payer,
+        address collector,
+        address receiver
+    ) external view returns (uint256 balance, uint256 tokensThawing, uint256 thawEndTimestamp);
 }

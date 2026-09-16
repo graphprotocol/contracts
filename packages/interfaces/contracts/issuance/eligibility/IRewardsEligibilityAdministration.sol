@@ -34,4 +34,14 @@ interface IRewardsEligibilityAdministration is IRewardsEligibilityEvents {
      * @return True if successfully set (always the case for current code)
      */
     function setEligibilityValidation(bool enabled) external returns (bool);
+
+    /**
+     * @notice Set the indexer retention period for tracked indexer cleanup
+     * @dev Only callable by accounts with the OPERATOR_ROLE. Indexers whose last
+     * renewal timestamp is older than this period can be permissionlessly removed
+     * from the tracked set via {IRewardsEligibilityMaintenance-removeStaleIndexer}.
+     * @param indexerRetentionPeriod New retention period in seconds
+     * @return True if the state is as requested (retention period is set to the specified value)
+     */
+    function setIndexerRetentionPeriod(uint256 indexerRetentionPeriod) external returns (bool);
 }

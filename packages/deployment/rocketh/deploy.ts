@@ -5,7 +5,10 @@ import { deployViaProxy } from '@rocketh/proxy'
 import { execute, read, tx } from '@rocketh/read-execute'
 import { createPublicClient, custom } from 'viem'
 
+import type { AnyAddressBookOps } from '../lib/address-book-ops.js'
 import {
+  autoDetectForkNetwork,
+  getAddressBookForType,
   getForkTargetChainId,
   getHorizonAddressBook,
   getIssuanceAddressBook,
@@ -13,12 +16,13 @@ import {
   getTargetChainIdFromEnv,
   isForkMode,
 } from '../lib/address-book-utils.js'
+import type { RegistryEntry } from '../lib/contract-registry.js'
 import { accounts, data } from './config.js'
 
 /**
- * Options for updating issuance address book after deployment
+ * Options for updating an address book after deployment
  */
-export interface IssuanceDeploymentUpdate {
+export interface DeploymentUpdate {
   /** Contract name in the address book */
   name: string
   /** Deployed address (proxy address if proxied) */
@@ -29,8 +33,12 @@ export interface IssuanceDeploymentUpdate {
   implementation?: string
   /** Proxy type if this is a proxied contract */
   proxy?: 'transparent' | 'graph'
-  /** Implementation deployment metadata (for verification) */
+  /** Proxy deployment metadata (for verification of the proxy contract itself) */
+  proxyDeployment?: DeploymentMetadata
+  /** Implementation deployment metadata (for verification of proxied contracts) */
   implementationDeployment?: DeploymentMetadata
+  /** Deployment metadata (for verification of non-proxied contracts) */
+  deployment?: DeploymentMetadata
 }
 
 /**
@@ -56,6 +64,13 @@ export interface IssuanceDeploymentUpdate {
  * ```
  */
 export const graph = {
+  /**
+   * Auto-detect fork network by querying anvil.
+   * Call at the top of any task that needs fork awareness.
+   * No-op if FORK_NETWORK is already set or node isn't an anvil fork.
+   */
+  autoDetect: () => autoDetectForkNetwork(),
+
   /**
    * Get a viem public client for on-chain queries
    */
@@ -91,35 +106,58 @@ export const graph = {
   getIssuanceAddressBook: (chainId?: number) => getIssuanceAddressBook(chainId),
 
   /**
+   * Update horizon address book after deploying a contract.
+   * Supports both standalone and proxied contracts.
+   */
+  updateHorizonAddressBook: async (env: Environment, update: DeploymentUpdate) => {
+    const chainId = await getTargetChainIdFromEnv(env)
+    await applyDeploymentUpdate(getHorizonAddressBook(chainId), update)
+  },
+
+  /**
+   * Update subgraph-service address book after deploying a contract.
+   * Supports both standalone and proxied contracts.
+   */
+  updateSubgraphServiceAddressBook: async (env: Environment, update: DeploymentUpdate) => {
+    const chainId = await getTargetChainIdFromEnv(env)
+    await applyDeploymentUpdate(getSubgraphServiceAddressBook(chainId), update)
+  },
+
+  /**
    * Update issuance address book after deploying a contract.
    * Call this after rocketh's deployViaProxy or deploy to sync the address book.
-   *
-   * @param env - Rocketh environment (used to get chain ID from provider)
-   * @param update - Deployment update details
    */
-  updateIssuanceAddressBook: async (env: Environment, update: IssuanceDeploymentUpdate) => {
+  updateIssuanceAddressBook: async (env: Environment, update: DeploymentUpdate) => {
     const chainId = await getTargetChainIdFromEnv(env)
-    const addressBook = getIssuanceAddressBook(chainId)
-
-    if (update.proxy) {
-      addressBook.setProxy(
-        update.name as Parameters<typeof addressBook.setProxy>[0],
-        update.address,
-        update.implementation!,
-        update.proxyAdmin!,
-        update.proxy,
-      )
-      // Store implementation deployment metadata for verification
-      if (update.implementationDeployment) {
-        addressBook.setImplementationDeploymentMetadata(
-          update.name as Parameters<typeof addressBook.setImplementationDeploymentMetadata>[0],
-          update.implementationDeployment,
-        )
-      }
-    } else {
-      addressBook.setContract(update.name as Parameters<typeof addressBook.setContract>[0], update.address)
-    }
+    await applyDeploymentUpdate(getIssuanceAddressBook(chainId), update)
   },
+
+  /**
+   * Update the address book for a contract, choosing the correct book from
+   * `contract.addressBook`. Single dispatch point — adding a new address book
+   * type will surface as a TypeScript error in `getAddressBookForType`.
+   */
+  updateAddressBookForContract: async (env: Environment, contract: RegistryEntry, update: DeploymentUpdate) => {
+    const chainId = await getTargetChainIdFromEnv(env)
+    await applyDeploymentUpdate(getAddressBookForType(contract.addressBook, chainId), update)
+  },
+}
+
+function applyDeploymentUpdate(addressBook: AnyAddressBookOps, update: DeploymentUpdate): void {
+  if (update.proxy) {
+    addressBook.setProxy(update.name, update.address, update.implementation!, update.proxyAdmin!, update.proxy)
+    if (update.proxyDeployment) {
+      addressBook.setProxyDeploymentMetadata(update.name, update.proxyDeployment)
+    }
+    if (update.implementationDeployment) {
+      addressBook.setImplementationDeploymentMetadata(update.name, update.implementationDeployment)
+    }
+  } else {
+    addressBook.setContract(update.name, update.address)
+    if (update.deployment) {
+      addressBook.setDeploymentMetadata(update.name, update.deployment)
+    }
+  }
 }
 
 // Re-export rocketh functions for convenience

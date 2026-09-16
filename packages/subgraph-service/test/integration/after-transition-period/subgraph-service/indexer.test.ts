@@ -499,9 +499,63 @@ describe('Indexer', () => {
             const afterProvisionTokens = (await staking.getProvision(indexer.address, subgraphService.target)).tokens
             expect(afterProvisionTokens).to.equal(beforeProvisionTokens + rewards, 'Rewards should be collected')
 
-            // Verify allocation was closed
+            // Over-allocated collect resizes the allocation to zero rather than closing it.
             const allocation = await subgraphService.getAllocation(allocationId)
-            expect(allocation.closedAt).to.not.equal(0)
+            expect(allocation.closedAt).to.equal(0n, 'Allocation should remain open after over-allocation resize')
+            expect(allocation.tokens).to.equal(0n, 'Allocation should be resized to zero')
+          })
+
+          // Invariant: each accumulator delta is collected exactly once across an
+          // over-allocation resize. When the first collect pays the accrual, clears
+          // `accRewardsPending`, and resizes the allocation to zero (but leaves it
+          // open), a later POI must pay nothing: `RewardsManager.takeRewards` returns
+          // `pending + tokens·delta/1e18`, which is zero once `pending` is cleared and
+          // `tokens == 0`. (The resize must therefore not re-credit `accRewardsPending`
+          // from a stale allocation copy, or the same delta could be paid twice.)
+          it('should not collect rewards again on a second POI after over-allocation resize', async () => {
+            // Mine blocks so the first collect has rewards to take.
+            for (let i = 0; i < 1000; i++) {
+              await ethers.provider.send('evm_mine', [])
+            }
+
+            // First collect: takes rewards, snapshots, then resizes the allocation
+            // to zero because the indexer is over-allocated.
+            const poi1 = generatePOI()
+            const poiMetadata1 = encodePOIMetadata(0, poi1, 0, 0, 0)
+            const data1 = encodeCollectIndexingRewardsData(allocationId, poi1, poiMetadata1)
+            const firstRewards = await collect(indexer, [indexer.address, PaymentTypes.IndexingRewards, data1])
+            expect(firstRewards).to.not.equal(0n, 'First collect should pay the accumulator delta')
+
+            const allocationAfterFirst = await subgraphService.getAllocation(allocationId)
+            expect(allocationAfterFirst.tokens).to.equal(0n, 'Allocation should be resized to zero')
+            expect(allocationAfterFirst.closedAt).to.equal(0n, 'Allocation should remain open after resize')
+
+            // Snapshot indexer provision balance and pending rewards before the second collect.
+            const beforeProvisionTokens = (await staking.getProvision(indexer.address, subgraphService.target)).tokens
+
+            // Mine more blocks so the second presentPOI is not classified as too-young.
+            // With tokens=0, no new rewards should accrue between the two presentations.
+            for (let i = 0; i < 100; i++) {
+              await ethers.provider.send('evm_mine', [])
+            }
+
+            // Second collect: pending was paid and cleared by the first collect and
+            // tokens=0, so the real RewardsManager mints zero.
+            const poi2 = generatePOI()
+            const poiMetadata2 = encodePOIMetadata(0, poi2, 0, 0, 0)
+            const data2 = encodeCollectIndexingRewardsData(allocationId, poi2, poiMetadata2)
+            const secondRewards = await collect(indexer, [indexer.address, PaymentTypes.IndexingRewards, data2])
+
+            expect(secondRewards).to.equal(
+              0n,
+              'Second collect on a zero-token allocation must not pay again — the accumulator delta was already collected',
+            )
+
+            const afterProvisionTokens = (await staking.getProvision(indexer.address, subgraphService.target)).tokens
+            expect(afterProvisionTokens).to.equal(
+              beforeProvisionTokens,
+              'Indexer provision must not grow on a second collect against a zero-token allocation',
+            )
           })
         })
       })

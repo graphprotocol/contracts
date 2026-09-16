@@ -21,7 +21,7 @@
     "lint": "pnpm lint:ts; pnpm lint:sol; pnpm lint:forge; pnpm lint:md; pnpm lint:json",
     "lint:ts": "eslint --fix --cache '**/*.{js,ts,cjs,mjs,jsx,tsx}'; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
     "lint:sol": "solhint --fix --noPrompt --noPoster 'contracts/**/*.sol'; prettier -w --cache --log-level warn '**/*.sol'",
-    "lint:forge": "forge lint",
+    "lint:forge": "forge lint contracts/",
     "lint:md": "markdownlint --fix --ignore-path ../../.gitignore '**/*.md'; prettier -w --cache --log-level warn '**/*.md'",
     "lint:json": "prettier -w --cache --log-level warn '**/*.json'",
     "clean": "rm -rf build dist cache cache_forge typechain-types",
@@ -32,7 +32,7 @@
     "test:self": "forge test",
     "test:deployment": "SECURE_ACCOUNTS_DISABLE_PROVIDER=true hardhat test test/deployment/*.ts",
     "test:integration": "./scripts/integration",
-    "test:coverage": "pnpm build && pnpm test:coverage:self",
+    "test:coverage": "forge coverage",
     "test:coverage:self": "mkdir -p coverage && forge coverage --report lcov --report-file coverage/lcov.info",
     "prepublishOnly": "pnpm run build"
   },

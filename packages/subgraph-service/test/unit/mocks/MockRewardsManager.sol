@@ -3,7 +3,6 @@ pragma solidity ^0.8.27;
 
 import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManager.sol";
 import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationDistribution.sol";
-import { IRewardsEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibility.sol";
 import { IRewardsIssuer } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsIssuer.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 
@@ -53,6 +52,12 @@ contract MockRewardsManager is IRewardsManager {
 
     function setDefaultReclaimAddress(address) external {}
 
+    function setRevertOnIneligible(bool) external {}
+
+    function getRevertOnIneligible() external pure returns (bool) {
+        return false;
+    }
+
     function reclaimRewards(bytes32, address _allocationId) external view returns (uint256) {
         address rewardsIssuer = msg.sender;
         (
@@ -94,10 +99,6 @@ contract MockRewardsManager is IRewardsManager {
         return address(0);
     }
 
-    function getRewardsEligibilityOracle() external pure returns (IRewardsEligibility) {
-        return IRewardsEligibility(address(0));
-    }
-
     function getNewRewardsPerSignal() external view returns (uint256) {}
 
     function getAccRewardsPerSignal() external view returns (uint256) {}
@@ -115,10 +116,6 @@ contract MockRewardsManager is IRewardsManager {
     function getAllocatedIssuancePerBlock() external view returns (uint256) {}
 
     function getRawIssuancePerBlock() external view returns (uint256) {}
-
-    // -- Setters --
-
-    function setRewardsEligibilityOracle(address newRewardsEligibilityOracle) external {}
 
     // -- Updates --
 

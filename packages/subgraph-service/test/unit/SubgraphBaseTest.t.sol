@@ -6,11 +6,13 @@ import { GraphPayments } from "@graphprotocol/horizon/contracts/payments/GraphPa
 import { GraphProxy } from "@graphprotocol/contracts/contracts/upgrades/GraphProxy.sol";
 import { GraphProxyAdmin } from "@graphprotocol/contracts/contracts/upgrades/GraphProxyAdmin.sol";
 import { HorizonStaking } from "@graphprotocol/horizon/contracts/staking/HorizonStaking.sol";
-import { HorizonStakingExtension } from "@graphprotocol/horizon/contracts/staking/HorizonStakingExtension.sol";
 import { IHorizonStaking } from "@graphprotocol/interfaces/contracts/horizon/IHorizonStaking.sol";
 import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
 import { GraphTallyCollector } from "@graphprotocol/horizon/contracts/payments/collectors/GraphTallyCollector.sol";
+import { RecurringCollector } from "@graphprotocol/horizon/contracts/payments/collectors/RecurringCollector.sol";
 import { PaymentsEscrow } from "@graphprotocol/horizon/contracts/payments/PaymentsEscrow.sol";
+import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import { ERC1967Utils } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils.sol";
 import { UnsafeUpgrades } from "@openzeppelin/foundry-upgrades/src/Upgrades.sol";
 
 import { Constants } from "./utils/Constants.sol";
@@ -39,9 +41,10 @@ abstract contract SubgraphBaseTest is Utils, Constants {
     GraphPayments graphPayments;
     IPaymentsEscrow escrow;
     GraphTallyCollector graphTallyCollector;
+    RecurringCollector recurringCollector;
+    address recurringCollectorProxyAdmin;
 
     HorizonStaking private stakingBase;
-    HorizonStakingExtension private stakingExtension;
 
     MockCuration curation;
     MockGRTToken token;
@@ -152,12 +155,26 @@ abstract contract SubgraphBaseTest is Utils, Constants {
             address(controller),
             REVOKE_SIGNER_THAWING_PERIOD
         );
+        {
+            RecurringCollector rcImpl = new RecurringCollector(address(controller), REVOKE_SIGNER_THAWING_PERIOD);
+            TransparentUpgradeableProxy rcProxy = new TransparentUpgradeableProxy(
+                address(rcImpl),
+                users.governor,
+                abi.encodeCall(RecurringCollector.initialize, ("RecurringCollector", "1"))
+            );
+            recurringCollector = RecurringCollector(address(rcProxy));
+            recurringCollectorProxyAdmin = address(
+                uint160(uint256(vm.load(address(rcProxy), ERC1967Utils.ADMIN_SLOT)))
+            );
+        }
+
         address subgraphServiceImplementation = address(
             new SubgraphService(
                 address(controller),
                 address(disputeManager),
                 address(graphTallyCollector),
-                address(curation)
+                address(curation),
+                address(recurringCollector)
             )
         );
         address subgraphServiceProxy = UnsafeUpgrades.deployTransparentProxy(
@@ -170,8 +187,7 @@ abstract contract SubgraphBaseTest is Utils, Constants {
         );
         subgraphService = SubgraphService(subgraphServiceProxy);
 
-        stakingExtension = new HorizonStakingExtension(address(controller), address(subgraphService));
-        stakingBase = new HorizonStaking(address(controller), address(stakingExtension), address(subgraphService));
+        stakingBase = new HorizonStaking(address(controller), address(subgraphService));
 
         graphPayments = new GraphPayments{ salt: saltGraphPayments }(address(controller), PROTOCOL_PAYMENT_CUT);
         escrow = new PaymentsEscrow{ salt: saltEscrow }(address(controller), WITHDRAW_ESCROW_THAWING_PERIOD);

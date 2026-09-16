@@ -1,5 +1,3 @@
-import '@nomiclabs/hardhat-ethers'
-
 import { promises as fs } from 'fs'
 import { task } from 'hardhat/config'
 
@@ -31,25 +29,25 @@ task('data-edge:deploy', 'Deploy a DataEdge contract')
 
     console.log(`Deploying contract...`)
     const contract = await factory.deploy()
-    const tx = contract.deployTransaction
+    const tx = contract.deploymentTransaction()!
 
-    // The address the Contract WILL have once mined
-    console.log(`> deployer: ${await contract.signer.getAddress()}`)
-    console.log(`> contract: ${contract.address}`)
+    const contractAddress = await contract.getAddress()
+    const [signer] = await hre.ethers.getSigners()
+    console.log(`> deployer: ${await signer.getAddress()}`)
+    console.log(`> contract: ${contractAddress}`)
     console.log(
-      `> tx: ${tx.hash} nonce:${tx.nonce} limit: ${tx.gasLimit.toString()} gas: ${tx.gasPrice.toNumber() / 1e9} (gwei)`,
+      `> tx: ${tx.hash} nonce:${tx.nonce} limit: ${tx.gasLimit.toString()} gas: ${Number(tx.gasPrice) / 1e9} (gwei)`,
     )
 
-    // The contract is NOT deployed yet; we must wait until it is mined
-    await contract.deployed()
+    await contract.waitForDeployment()
     console.log(`Done!`)
 
     // Update addresses.json
-    const chainId = hre.network.config.chainId.toString()
+    const chainId = hre.network.config.chainId!.toString()
     if (!addresses[chainId]) {
       addresses[chainId] = {}
     }
     const deployName = `${taskArgs.deployName}${taskArgs.contract}`
-    addresses[chainId][deployName] = contract.address
+    addresses[chainId][deployName] = contractAddress
     return fs.writeFile('addresses.json', JSON.stringify(addresses, null, 2) + '\n')
   })

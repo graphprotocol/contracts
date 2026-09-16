@@ -14,6 +14,8 @@ The contract operates on a "deny by default" principle - indexers are not eligib
 - **Oracle-based Renewal**: Only authorized oracles can renew indexer eligibility
 - **Global Toggle**: Eligibility validation can be globally enabled/disabled
 - **Timeout Mechanism**: If oracles don't update for too long, all indexers are automatically eligible
+- **Enumerable Indexer Tracking**: On-chain discovery of all renewed indexers via `EnumerableSet`
+- **Retention-based Cleanup**: Permissionless removal of indexers not renewed within a configurable threshold (default: 365 days)
 - **Role-based Access Control**: Uses hierarchical roles for governance and operations
 
 ## Architecture
@@ -36,6 +38,8 @@ The contract uses ERC-7201 namespaced storage to prevent storage collisions in u
 - `eligibilityValidationEnabled`: Global flag to enable/disable eligibility validation (default: false, to be enabled by operator when ready)
 - `oracleUpdateTimeout`: Timeout after which all indexers are automatically eligible (default: 7 days)
 - `lastOracleUpdateTime`: Timestamp of the last oracle update
+- `trackedIndexers`: Enumerable set of all indexer addresses renewed by the oracle
+- `indexerRetentionPeriod`: Duration after which an un-renewed indexer can be permissionlessly removed from tracking (default: 365 days)
 
 ## Core Functions
 
@@ -75,6 +79,14 @@ The `ORACLE_ROLE` constant can be used as the role parameter for these functions
 - **Returns**: Always true for current implementation
 - **Events**: Emits `EligibilityValidationUpdated` if state changes
 
+#### `setIndexerRetentionPeriod(uint256 indexerRetentionPeriod) → bool`
+
+- **Access**: OPERATOR_ROLE only
+- **Purpose**: Set how long after last renewal an indexer can be removed from the tracked set
+- **Parameters**: `indexerRetentionPeriod` - Duration in seconds
+- **Returns**: Always true for current implementation
+- **Events**: Emits `IndexerRetentionPeriodSet` if value changes
+
 ### Indexer Management
 
 #### `renewIndexerEligibility(address[] calldata indexers, bytes calldata data) → uint256`
@@ -87,11 +99,25 @@ The `ORACLE_ROLE` constant can be used as the role parameter for these functions
 - **Returns**: Number of indexers whose eligibility renewal timestamp was updated
 - **Events**:
   - Emits `IndexerEligibilityData` with oracle and data
+  - Emits `IndexerTrackingUpdated(indexer, true)` when an indexer is first added to the tracked set
   - Emits `IndexerEligibilityRenewed` for each indexer whose eligibility was renewed
 - **Notes**:
   - Updates `lastOracleUpdateTime` to current block timestamp
   - Only updates timestamp if less than current block timestamp
   - Ignores zero addresses and duplicate updates within same block
+  - Adds each renewed indexer to the enumerable tracked set (idempotent for existing members)
+
+### Maintenance Functions
+
+#### `removeExpiredIndexer(address indexer) → bool`
+
+- **Access**: Permissionless
+- **Purpose**: Remove an indexer from the tracked set if expired (`block.timestamp >= renewalTimestamp + indexerRetentionPeriod`)
+- **Parameters**: `indexer` - The indexer address to check and remove
+- **Returns**: True if the indexer is absent from the tracked set (removed or was never there); false if still tracked (not yet expired)
+- **Effects**: Removes from the enumerable set and deletes the renewal timestamp mapping entry
+- **Events**: Emits `IndexerTrackingUpdated(indexer, false)` when an indexer is actually removed
+- **Notes**: A removed indexer can be re-added if the oracle renews it again
 
 ### View Functions
 
@@ -128,6 +154,28 @@ The `ORACLE_ROLE` constant can be used as the role parameter for these functions
 
 - **Purpose**: Get eligibility validation state
 - **Returns**: True if enabled, false if disabled
+
+#### `getIndexerRetentionPeriod() → uint256`
+
+- **Purpose**: Get the indexer retention period for tracked indexer cleanup
+- **Returns**: Duration in seconds
+
+#### `getIndexerCount() → uint256`
+
+- **Purpose**: Get the number of indexers in the tracked set
+- **Returns**: Count of tracked indexers
+
+#### `getIndexers() → address[]`
+
+- **Purpose**: Get all tracked indexer addresses
+- **Returns**: Array of addresses
+- **Note**: May be expensive for large sets; prefer paginated overload for on-chain use
+
+#### `getIndexers(uint256 offset, uint256 count) → address[]`
+
+- **Purpose**: Get a paginated slice of tracked indexer addresses
+- **Parameters**: `offset` - Start index, `count` - Maximum number to return (clamped)
+- **Returns**: Array of addresses
 
 ## Eligibility Logic
 
@@ -270,6 +318,8 @@ event IndexerEligibilityRenewed(address indexed indexer, address indexed oracle)
 event EligibilityPeriodUpdated(uint256 indexed oldPeriod, uint256 indexed newPeriod);
 event EligibilityValidationUpdated(bool indexed enabled);
 event OracleUpdateTimeoutUpdated(uint256 indexed oldTimeout, uint256 indexed newTimeout);
+event IndexerTrackingUpdated(address indexed indexer, bool indexed tracked);
+event IndexerRetentionPeriodSet(uint256 indexed oldThreshold, uint256 indexed newThreshold);
 ```
 
 ## Default Configuration
@@ -277,6 +327,7 @@ event OracleUpdateTimeoutUpdated(uint256 indexed oldTimeout, uint256 indexed new
 - **Eligibility Period**: 14 days (1,209,600 seconds)
 - **Oracle Update Timeout**: 7 days (604,800 seconds)
 - **Eligibility Validation**: Disabled (false)
+- **Indexer Retention Period**: 365 days (31,536,000 seconds)
 - **Last Oracle Update Time**: 0 (never updated)
 
 The system is deployed with reasonable defaults but can be adjusted as required. Eligibility validation is disabled by default as the expectation is to first see oracles successfully marking indexers as eligible and having suitably established eligible indexers before enabling.
@@ -307,4 +358,21 @@ The system is deployed with reasonable defaults but can be adjusted as required.
 
 ## Integration
 
-The contract implements four focused interfaces (`IRewardsEligibility`, `IRewardsEligibilityAdministration`, `IRewardsEligibilityReporting`, and `IRewardsEligibilityStatus`) and can be integrated with any system that needs to verify indexer eligibility status. The primary integration point is the `isEligible(address)` function which returns a simple boolean indicating eligibility.
+The contract implements five focused interfaces (`IProviderEligibility`, `IRewardsEligibilityAdministration`, `IRewardsEligibilityMaintenance`, `IRewardsEligibilityReporting`, and `IRewardsEligibilityStatus`) and can be integrated with any system that needs to verify provider eligibility status. The primary integration point is the `isEligible(address)` function which returns a simple boolean indicating eligibility. The `getIndexers()` function enables on-chain discovery of all tracked indexers without requiring event indexing.
+
+## RewardsEligibilityHelper
+
+A stateless, permissionless companion contract that provides batch convenience operations on the oracle. Independently deployable — better versions can be deployed without protocol changes.
+
+### `removeExpiredIndexers(address[] calldata indexers) → uint256`
+
+- **Purpose**: Batch removal of expired indexers by explicit address list
+- **Parameters**: `indexers` - Array of indexer addresses to process
+- **Returns**: Number of indexers now absent from the tracked set (`gone` count)
+
+### `removeExpiredIndexers(uint256 offset, uint256 count) → uint256`
+
+- **Purpose**: Batch removal by paginated scan of the tracked set
+- **Parameters**: `offset` - Start index, `count` - Maximum number of indexers to process
+- **Returns**: Number of indexers now absent from the tracked set (`gone` count)
+- **Notes**: Useful for keeper-driven sweeps without requiring an off-chain indexer list

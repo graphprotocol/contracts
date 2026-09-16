@@ -4,13 +4,9 @@ import { TASK_TEST } from 'hardhat/builtin-tasks/task-names'
 import { task } from 'hardhat/config'
 
 task('test:integration', 'Runs all integration tests')
-  .addParam(
-    'phase',
-    'Test phase to run: "during-transition-period", "after-transition-period", "after-delegation-slashing-enabled"',
-  )
+  .addParam('phase', 'Test phase to run: "after-transition-period", "after-delegation-slashing-enabled"')
   .setAction(async (taskArgs, hre) => {
     // Get test files for each phase
-    const duringTransitionPeriodFiles = await glob('test/integration/during-transition-period/**/*.{js,ts}')
     const afterTransitionPeriodFiles = await glob('test/integration/after-transition-period/**/*.{js,ts}')
     const afterDelegationSlashingEnabledFiles = await glob(
       'test/integration/after-delegation-slashing-enabled/**/*.{js,ts}',
@@ -20,9 +16,6 @@ task('test:integration', 'Runs all integration tests')
     printBanner(taskArgs.phase, 'INTEGRATION TESTS: ')
 
     switch (taskArgs.phase) {
-      case 'during-transition-period':
-        await hre.run(TASK_TEST, { testFiles: duringTransitionPeriodFiles })
-        break
       case 'after-transition-period':
         await hre.run(TASK_TEST, { testFiles: afterTransitionPeriodFiles })
         break
@@ -31,7 +24,7 @@ task('test:integration', 'Runs all integration tests')
         break
       default:
         throw new Error(
-          'Invalid phase. Must be "during-transition-period", "after-transition-period", "after-delegation-slashing-enabled", or "all"',
+          'Invalid phase. Must be "after-transition-period", "after-delegation-slashing-enabled", or "all"',
         )
     }
   })

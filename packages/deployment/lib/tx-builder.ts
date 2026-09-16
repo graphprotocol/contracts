@@ -87,6 +87,12 @@ interface SafeTxBuilderContents {
 interface EnhancedTxBuilderContents extends SafeTxBuilderContents {
   /** Rich metadata for each transaction (parallel array to transactions) */
   _transactionMetadata?: TxMetadata[]
+  /**
+   * Source filenames this bundle was gathered from (set when an orchestrator
+   * consolidates per-component bundles into one consolidated batch). The
+   * underscore prefix keeps the field out of Safe's standard `meta` block.
+   */
+  _gatheredFrom?: string[]
 }
 
 export interface TxBuilderOptions {
@@ -166,16 +172,33 @@ export class TxBuilder {
   }
 
   /**
-   * Save to file with metadata for governance review
-   * Outputs both Safe-compatible format and enhanced metadata
+   * Record the source filenames this bundle was gathered from. Used by goal
+   * orchestrators that consolidate per-component bundles so the resulting
+   * file carries an audit trail of which sources contributed.
    */
-  saveToFile() {
-    // Include metadata in output for governance review
+  markGatheredFrom(sourceFiles: string[]): void {
+    this.contents._gatheredFrom = sourceFiles
+  }
+
+  /**
+   * Save to file with metadata for governance review.
+   *
+   * Outputs both Safe-compatible format and enhanced metadata (rich per-TX
+   * metadata, `_gatheredFrom` provenance, etc.).
+   *
+   * @param targetPath - Optional override for the destination path. Defaults
+   *   to this builder's `outputFile` (its claimed `txs/<name>.json` slot).
+   *   Used by direct-execute paths that need to write a full copy to
+   *   `executed/<name>.json` without losing metadata.
+   * @returns The path actually written.
+   */
+  saveToFile(targetPath?: string): string {
     const output: EnhancedTxBuilderContents = {
       ...this.contents,
       _transactionMetadata: this.metadata.length > 0 ? this.metadata : undefined,
     }
-    fs.writeFileSync(this.outputFile, JSON.stringify(output, null, 2) + '\n')
-    return this.outputFile
+    const dest = targetPath ?? this.outputFile
+    fs.writeFileSync(dest, JSON.stringify(output, null, 2) + '\n')
+    return dest
   }
 }

@@ -1,0 +1,12 @@
+diff --git a/dist/index.js b/dist/index.js
+index 166db4f708c7f4b4d232b5be25bfe64c6d25f448..c18de8ebc6c7ceab809c6354e990dc07ab382261 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -125,6 +125,7 @@ export function read(env) {
+                     data: calldata,
+                     // value: `0x${viemArgs.value?.toString(16)}` as `0x${string}`,
+                 },
++                'latest', // block parameter: strict RPC nodes (e.g. Arbitrum Nitro) require it on eth_call
+             ], // TODO fix eip-1193 ?,,
+         }));
+         const parsed = decodeFunctionResult({

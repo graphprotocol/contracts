@@ -3,67 +3,52 @@
 /**
  * Copy Addresses for Publishing
  *
- * This script copies the actual addresses.json files from horizon and subgraph-service
- * packages to replace the symlinks before npm publish.
- *
- * Why we need this:
- * - Development uses symlinks (committed to git) for convenience
- * - npm publish doesn't include symlinks in the published package
- * - We need actual files in the published package for consumers
- *
- * The postpublish script will restore the symlinks after publishing.
+ * Replaces the dev-time symlinks under src/<name>/addresses.json with real
+ * file copies before npm publish — npm does not include symlinks in the
+ * published tarball. restore-symlinks.js puts the symlinks back afterwards.
  */
 
 const fs = require('fs')
 const path = require('path')
+const SOURCES = require('./sources')
 
-const FILES_TO_COPY = [
-  {
-    source: '../../../horizon/addresses.json',
-    target: 'src/horizon/addresses.json',
-  },
-  {
-    source: '../../../issuance/addresses.json',
-    target: 'src/issuance/addresses.json',
-  },
-  {
-    source: '../../../subgraph-service/addresses.json',
-    target: 'src/subgraph-service/addresses.json',
-  },
-]
+const ROOT = path.resolve(__dirname, '..')
+const SRC = path.join(ROOT, 'src')
 
-function copyFileForPublish(source, target) {
-  const targetPath = path.resolve(__dirname, '..', target)
-  const sourcePath = path.resolve(path.dirname(targetPath), source)
+function copyOne(name) {
+  const sourcePath = path.resolve(ROOT, '..', name, 'addresses.json')
+  const targetDir = path.join(SRC, name)
+  const targetPath = path.join(targetDir, 'addresses.json')
 
-  // Ensure source exists
   if (!fs.existsSync(sourcePath)) {
     console.error(`❌ Source file ${sourcePath} does not exist`)
     process.exit(1)
   }
 
-  // Remove existing symlink
-  if (fs.existsSync(targetPath)) {
-    fs.unlinkSync(targetPath)
-  }
+  fs.mkdirSync(targetDir, { recursive: true })
+  fs.rmSync(targetPath, { force: true })
+  fs.copyFileSync(sourcePath, targetPath)
+  console.log(`✅ Copied for publish: src/${name}/addresses.json`)
+}
 
-  // Copy actual file
-  try {
-    fs.copyFileSync(sourcePath, targetPath)
-    console.log(`✅ Copied for publish: ${target} <- ${source}`)
-  } catch (error) {
-    console.error(`❌ Failed to copy ${source} to ${target}:`, error.message)
+function checkDrift() {
+  const dirs = fs
+    .readdirSync(SRC)
+    .filter((d) => fs.statSync(path.join(SRC, d)).isDirectory())
+    .sort()
+  const expected = [...SOURCES].sort()
+  if (JSON.stringify(dirs) !== JSON.stringify(expected)) {
+    console.error(`❌ Drift between SOURCES and src/`)
+    console.error(`   SOURCES: [${expected.join(', ')}]`)
+    console.error(`   src/   : [${dirs.join(', ')}]`)
     process.exit(1)
   }
 }
 
 function main() {
   console.log('📦 Copying address files for npm publish...')
-
-  for (const { source, target } of FILES_TO_COPY) {
-    copyFileForPublish(source, target)
-  }
-
+  for (const name of SOURCES) copyOne(name)
+  checkDrift()
   console.log('✅ Address files copied for publish!')
 }
 
