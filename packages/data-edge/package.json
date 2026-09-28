@@ -25,7 +25,7 @@
     "flatten": "scripts/flatten",
     "verify": "hardhat verify",
     "size": "hardhat size-contracts",
-    "deploy": "hardhat run scripts/deploy.ts"
+    "deploy": "hardhat data-edge:deploy"
   },
   "files": [
     "dist/**/*",

@@ -11,11 +11,12 @@ enum Contract {
 enum DeployName {
   EBODataEdge = 'EBO',
   SAODataEdge = 'SAO',
+  REODataEdge = 'REO',
 }
 
 task('data-edge:deploy', 'Deploy a DataEdge contract')
   .addParam('contract', 'Chose DataEdge or EventfulDataEdge')
-  .addParam('deployName', 'Chose EBO or SAO')
+  .addParam('deployName', 'Chose EBO, SAO or REO')
   .setAction(async (taskArgs, hre) => {
     if (!Object.values(Contract).includes(taskArgs.contract)) {
       throw new Error(`Contract ${taskArgs.contract} not supported`)
