@@ -7,6 +7,7 @@ import 'hardhat-gas-reporter'
 import 'hardhat-contract-sizer'
 import 'solidity-coverage'
 import 'hardhat-secure-accounts'
+import 'dotenv/config'
 // Tasks
 import './tasks/craft-calldata'
 import './tasks/post-calldata'
