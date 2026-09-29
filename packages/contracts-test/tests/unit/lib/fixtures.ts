@@ -93,6 +93,29 @@ export class NetworkFixture {
     if (!contracts) {
       throw new Error('Failed to deploy contracts')
     }
+
+    // WORKAROUND: The SDK version 0.6.0 uses old contract artifacts that were bundled
+    // before recent changes to L2GNS.
+    // We manually upgrade the proxy to use the locally compiled L2GNS implementation
+    // with the latest changes, and re-attach with the correct ABI.
+    if (l2Deploy && contracts.L2GNS) {
+      const hre = await import('hardhat')
+      const L2GNSFactory = await hre.default.ethers.getContractFactory('contracts/l2/discovery/L2GNS.sol:L2GNS')
+
+      // Deploy new L2GNS implementation
+      const l2gnsImpl = await L2GNSFactory.deploy()
+      await l2gnsImpl.deployed()
+
+      // Upgrade L2GNS proxy to new implementation
+      const proxyAdmin = contracts.GraphProxyAdmin as GraphProxyAdmin
+      const proxy = contracts.L2GNS
+      await proxyAdmin.connect(deployer).upgrade(proxy.address, l2gnsImpl.address)
+      await proxyAdmin.connect(deployer).acceptProxy(l2gnsImpl.address, proxy.address)
+
+      // Re-attach with correct ABI
+      contracts.L2GNS = L2GNSFactory.attach(proxy.address) as any
+    }
+
     return contracts
   }
 

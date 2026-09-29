@@ -173,17 +173,19 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
 
     /**
      * @notice Publish a new version of an existing subgraph.
-     * @dev This is the same as the one in the base GNS, but skips the check for
-     * a subgraph to not be pre-curated, as the reserve ratio in L2 is set to 1,
-     * which prevents the risk of rug-pulling.
+     * @dev This is similar to the one in the base GNS, but skips the check for
+     * a subgraph to be pre-curated and includes slippage protection
+     * via the _signalOutMin parameter to protect against inflation attacks.
      * @param _subgraphID Subgraph ID
      * @param _subgraphDeploymentID Subgraph deployment ID of the new version
      * @param _versionMetadata IPFS hash for the subgraph version metadata
+     * @param _signalOutMin Minimum signal expected when minting on the new deployment (slippage protection)
      */
     function publishNewVersion(
         uint256 _subgraphID,
         bytes32 _subgraphDeploymentID,
-        bytes32 _versionMetadata
+        bytes32 _versionMetadata,
+        uint256 _signalOutMin
     ) external override notPaused onlySubgraphAuth(_subgraphID) {
         // Perform the upgrade from the current subgraph deployment to the new one.
         // This involves burning all signal from the old deployment and using the funds to buy
@@ -216,9 +218,9 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
             address subgraphOwner = msg.sender;
             uint256 tokensWithTax = _chargeOwnerTax(tokens, subgraphOwner, curation.curationTaxPercentage());
 
-            // Update pool: constant nSignal, vSignal can change (w/no slippage protection)
+            // Update pool: constant nSignal, vSignal can change (with slippage protection)
             // Buy all signal from the new deployment
-            (subgraphData.vSignal, ) = curation.mint(_subgraphDeploymentID, tokensWithTax, 0);
+            (subgraphData.vSignal, ) = curation.mint(_subgraphDeploymentID, tokensWithTax, _signalOutMin);
 
             emit SubgraphUpgraded(_subgraphID, subgraphData.vSignal, tokensWithTax, _subgraphDeploymentID);
         }

@@ -118,9 +118,17 @@ export const publishNewVersion = async (
     curation,
   )
   // Send tx
-  const tx = gns
-    .connect(account)
-    .publishNewVersion(subgraphID, newSubgraph.subgraphDeploymentID, newSubgraph.versionMetadata)
+  // Check if it's L2GNS (which requires slippage parameter) or L1GNS
+  const isL2 = 'getAliasedL2SubgraphID' in gns
+  const tx = isL2
+    ? (gns as L2GNS)
+        .connect(account)
+        [
+          'publishNewVersion(uint256,bytes32,bytes32,uint256)'
+        ](subgraphID, newSubgraph.subgraphDeploymentID, newSubgraph.versionMetadata, 0)
+    : (gns as L1GNS)
+        .connect(account)
+        .publishNewVersion(subgraphID, newSubgraph.subgraphDeploymentID, newSubgraph.versionMetadata)
   const txResult = expect(tx)
     .emit(gns, 'SubgraphVersionUpdated')
     .withArgs(subgraphID, newSubgraph.subgraphDeploymentID, newSubgraph.versionMetadata)

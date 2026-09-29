@@ -49,6 +49,7 @@ export const ComponentTags = {
 
   // Legacy contracts (graph proxy, upgrade only)
   L2_CURATION: 'L2Curation',
+  L2GNS: 'L2GNS',
 
   // Issuance agreement contracts
   RECURRING_AGREEMENT_MANAGER: 'RecurringAgreementManager',

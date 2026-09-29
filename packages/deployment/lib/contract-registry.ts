@@ -200,9 +200,16 @@ const HORIZON_CONTRACTS = {
     deployable: true,
     componentTag: ComponentTags.PAYMENTS_ESCROW,
   },
+  L2GNS: {
+    artifact: { type: 'contracts', path: 'l2/discovery', name: 'L2GNS' },
+    proxyType: 'graph',
+    proxyAdminName: 'GraphProxyAdmin',
+    prerequisite: true,
+    deployable: true,
+    componentTag: ComponentTags.L2GNS,
+  },
   // Contracts deployed by other systems (placeholders for address book type completeness)
   EpochManager: {},
-  L2GNS: {},
   L2GraphTokenGateway: {},
   SubgraphNFT: {},
 } as const satisfies Record<string, ContractMetadata>
