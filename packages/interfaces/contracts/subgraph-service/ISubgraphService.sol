@@ -172,6 +172,12 @@ interface ISubgraphService is IDataServiceAgreements, IDataServiceFees {
     error SubgraphServiceInvalidCollectionId(bytes32 collectionId);
 
     /**
+     * @notice Thrown when trying to set the payments destination to an invalid address
+     * @param paymentsDestination The invalid payments destination address
+     */
+    error SubgraphServiceInvalidPaymentsDestination(address paymentsDestination);
+
+    /**
      * @notice Thrown when trying to close an allocation that has an active indexing agreement
      * and the close allocation guard is enabled
      * @param allocationId The id of the allocation

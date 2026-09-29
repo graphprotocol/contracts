@@ -85,4 +85,19 @@ contract SubgraphServiceProviderRegisterTest is SubgraphServiceTest {
         vm.expectRevert(abi.encodeWithSelector(ISubgraphService.SubgraphServiceEmptyGeohash.selector));
         subgraphService.register(users.indexer, data);
     }
+
+    function test_SubgraphService_Provider_Register_RevertIf_PaymentsDestinationIsSubgraphService(
+        uint256 tokens
+    ) public useIndexer {
+        tokens = bound(tokens, MINIMUM_PROVISION_TOKENS, MAX_TOKENS);
+        _createProvision(users.indexer, tokens, FISHERMAN_REWARD_PERCENTAGE, DISPUTE_PERIOD);
+        bytes memory data = abi.encode("url", "geoHash", address(subgraphService));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISubgraphService.SubgraphServiceInvalidPaymentsDestination.selector,
+                address(subgraphService)
+            )
+        );
+        subgraphService.register(users.indexer, data);
+    }
 }
