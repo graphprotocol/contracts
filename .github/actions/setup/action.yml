@@ -12,6 +12,8 @@ runs:
         sudo apt-get install -y libudev-dev libusb-1.0-0-dev
     - name: Install Foundry
       uses: foundry-rs/foundry-toolchain@v1
+      with:
+        version: v1.8.3
     - name: Enable Corepack
       shell: bash
       run: corepack enable

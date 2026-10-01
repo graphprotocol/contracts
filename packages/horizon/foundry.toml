@@ -2,6 +2,7 @@
 src = 'contracts'
 out = 'build'
 libs = ["node_modules"]
+auto_detect_remappings = false
 test = 'test'
 cache_path = 'cache_forge'
 fs_permissions = [{ access = "read", path = "./" }]
