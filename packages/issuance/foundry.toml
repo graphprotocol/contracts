@@ -13,6 +13,7 @@ cache_path = 'cache_forge'
 fs_permissions = [{ access = "read", path = "./" }]
 solc_version = '0.8.35'
 evm_version = 'cancun'
+isolate = false
 # Suppress solc warnings emitted from third-party code we don't control
 # (e.g. @openzeppelin/foundry-upgrades' state-mutability suggestions).
 ignored_warnings_from = ["node_modules"]
