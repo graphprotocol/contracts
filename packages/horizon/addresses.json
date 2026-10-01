@@ -45,7 +45,15 @@
     "L2GNS": {
       "address": "0xec9A7fb6CbC2E41926127929c2dcE6e9c5D33Bec",
       "proxy": "graph",
-      "implementation": "0x9B81c7C5A21E65b849FD487540B0A82d3b97b2c7"
+      "implementation": "0xa3946606960eee45c9b855de8d3cd30b9c875c34",
+      "implementationDeployment": {
+        "txHash": "0x46c17c9f72e9703bd5366396bc87f7b691442f234d7e461b63cff2b31bc37e95",
+        "argsData": "0x",
+        "bytecodeHash": "0xc8017e4d2d88f34c878efceae26bada5c21aea34d350dba59530e6c5c69ae9ce",
+        "blockNumber": 506560967,
+        "timestamp": "2026-09-18T21:12:37.000Z",
+        "verified": "https://arbiscan.io/address/0xa3946606960eee45c9b855de8d3cd30b9c875c34#code"
+      }
     },
     "SubgraphNFT": {
       "address": "0x3FbD54f0cc17b7aE649008dEEA12ed7D2622B23f"
