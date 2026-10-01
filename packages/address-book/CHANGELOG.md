@@ -1,5 +1,11 @@
 # @graphprotocol/address-book
 
+## 1.4.0
+
+### Minor Changes
+
+- Mainnet upgrade on Arbitrum One: promote the fixed SubgraphService implementation (0x09a72545d2040dc6ac3686631daff113e492f8ea, rejects the SubgraphService itself as a payments destination) and the fixed L2GNS implementation (0xa3946606960eee45c9b855de8d3cd30b9c875c34, adds slippage protection to publishNewVersion).
+
 ## 1.3.0
 
 ### Minor Changes
