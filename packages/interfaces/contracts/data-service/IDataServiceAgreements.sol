@@ -13,6 +13,9 @@ pragma solidity ^0.8.22;
 interface IDataServiceAgreements {
     /**
      * @notice Cancel an indexing agreement by payer / signer.
+     * @dev Called by the collector when a payer cancels an active agreement. Implementations must
+     * complete the cancellation by calling the collector's cancel with CancelAgreementBy.Payer;
+     * otherwise the agreement remains active in the collector.
      * @param agreementId The id of the indexing agreement
      */
     function cancelIndexingAgreementByPayer(bytes16 agreementId) external;

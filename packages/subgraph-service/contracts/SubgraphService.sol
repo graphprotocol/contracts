@@ -152,7 +152,6 @@ contract SubgraphService is
      * @dev Implements {IDataService-acceptProvisionPendingParameters}
      *
      * Requirements:
-     * - The indexer must be registered
      * - Must have previously staged provision parameters, using {IHorizonStaking-setProvisionParameters}
      * - The new provision parameters must be valid according to the subgraph service rules
      *

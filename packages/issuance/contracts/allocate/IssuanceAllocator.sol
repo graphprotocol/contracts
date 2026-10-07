@@ -85,9 +85,16 @@ import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/int
  *
  *    Total minted (self + allocator) for period:
  *      ≤ max(selfMintingOffset, issuancePerBlock_final * blocks)
+ *
+ *    When issuancePerBlock_final does not exceed the rates in force during the period:
  *      ≤ Σ(issuancePerBlock_b)
  *
  *    Therefore, total issuance never exceeds the sum of configured rates during the period.
+ *
+ *    Exception: a rate set over an undistributed window (e.g. while paused, via
+ *    setIssuancePerBlock with minDistributedBlock) applies retroactively to the whole window,
+ *    so a rate increase is bounded by issuancePerBlock_final * blocks rather than by the rates
+ *    previously in force. This is intended; see {setIssuancePerBlock}.
  *
  * 5. Offset Reconciliation: During pending distribution, selfMintingOffset is adjusted to account for
  *    the period's issuance budget. When distribution catches up to current block, the offset is cleared.
@@ -102,7 +109,8 @@ import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/int
  *
  * This design ensures that even when issuancePerBlock or allocation rates change over time, and even
  * when self-minting targets mint independently, the total tokens minted never exceeds the sum of
- * configured issuance rates during the period.
+ * configured issuance rates during the period, except for the intentional retroactive rate
+ * application described in the Issuance Upper Bound invariant.
  *
  * @dev There are a number of scenarios where the IssuanceAllocator could run into issues, including:
  * 1. The targetAddresses array could grow large enough that it exceeds the gas limit when calling distributeIssuance.
