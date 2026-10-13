@@ -37,6 +37,8 @@
     "graph-protocol",
     "horizon",
     "subgraph-service",
+    "issuance",
+    "data-edge",
     "address-book"
   ]
 }

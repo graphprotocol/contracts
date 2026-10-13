@@ -15,6 +15,7 @@ Update the source address files in the contracts monorepo. These live in:
 - `packages/horizon/addresses.json`
 - `packages/subgraph-service/addresses.json`
 - `packages/issuance/addresses.json`
+- `packages/data-edge/addresses.json`
 
 The address-book package symlinks to these files during development, so changes here are automatically reflected locally.
 

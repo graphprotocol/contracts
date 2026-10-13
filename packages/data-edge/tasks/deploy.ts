@@ -1,7 +1,10 @@
 import { promises as fs } from 'fs'
 import { task } from 'hardhat/config'
 
-import addresses from '../addresses.json'
+import addressBook from '../addresses.json'
+
+type AddressBook = Record<string, Record<string, { address: string }>>
+const addresses: AddressBook = addressBook
 
 enum Contract {
   DataEdge,
@@ -49,6 +52,6 @@ task('data-edge:deploy', 'Deploy a DataEdge contract')
       addresses[chainId] = {}
     }
     const deployName = `${taskArgs.deployName}${taskArgs.contract}`
-    addresses[chainId][deployName] = contractAddress
+    addresses[chainId][deployName] = { address: contractAddress }
     return fs.writeFile('addresses.json', JSON.stringify(addresses, null, 2) + '\n')
   })

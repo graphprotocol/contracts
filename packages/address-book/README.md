@@ -4,7 +4,7 @@ Contract addresses for The Graph Protocol. This package provides JSON files cont
 
 ## Features
 
-- Contract addresses for Horizon and Subgraph Service
+- Contract addresses for Horizon, Subgraph Service, Issuance and DataEdge
 - Network-specific deployment addresses
 - Zero dependencies
 
@@ -24,10 +24,14 @@ pnpm install @graphprotocol/address-book
 // CommonJS
 const horizonAddresses = require('@graphprotocol/address-book/horizon/addresses.json')
 const subgraphServiceAddresses = require('@graphprotocol/address-book/subgraph-service/addresses.json')
+const issuanceAddresses = require('@graphprotocol/address-book/issuance/addresses.json')
+const dataEdgeAddresses = require('@graphprotocol/address-book/data-edge/addresses.json')
 
 // ES Modules
 import horizonAddresses from '@graphprotocol/address-book/horizon/addresses.json'
 import subgraphServiceAddresses from '@graphprotocol/address-book/subgraph-service/addresses.json'
+import issuanceAddresses from '@graphprotocol/address-book/issuance/addresses.json'
+import dataEdgeAddresses from '@graphprotocol/address-book/data-edge/addresses.json'
 ```
 
 ### Address format
@@ -61,6 +65,10 @@ This package uses a special workflow to ensure address files are included in the
 
 - `src/horizon/addresses.json` → symlink to `../../../horizon/addresses.json`
 - `src/subgraph-service/addresses.json` → symlink to `../../../subgraph-service/addresses.json`
+- `src/issuance/addresses.json` → symlink to `../../../issuance/addresses.json`
+- `src/data-edge/addresses.json` → symlink to `../../../data-edge/addresses.json`
+
+The list of exported packages lives in `scripts/sources.js`.
 
 **Publishing**: npm doesn't include symlinks in packages, so we automatically handle this:
 
