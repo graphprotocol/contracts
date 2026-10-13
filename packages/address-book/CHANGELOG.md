@@ -1,5 +1,11 @@
 # @graphprotocol/address-book
 
+## 1.5.0
+
+### Minor Changes
+
+- 7ebfbd1: Add DataEdge addresses (`@graphprotocol/address-book/data-edge/addresses.json`): EBO, SAO and REO EventfulDataEdge deployments on Arbitrum One and Arbitrum Sepolia, plus the EBO DataEdge on Ethereum mainnet and EBO EventfulDataEdge on Sepolia.
+
 ## 1.4.0
 
 ### Minor Changes
