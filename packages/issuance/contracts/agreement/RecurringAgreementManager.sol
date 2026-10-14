@@ -85,7 +85,10 @@ import { ReentrancyGuardTransient } from "@openzeppelin/contracts/utils/Reentran
  * {reconcileAgreement} is called. To fully halt collections, pause RecurringCollector too.
  *
  * Escalation ladder (targeted → full stop):
- * 1. {emergencyRevokeRole} — disable a specific actor (operator, collector, guardian)
+ * 1. {emergencyRevokeRole} — disable a specific actor (operator, collector, guardian).
+ *    Revoking COLLECTOR_ROLE only blocks discovery of new agreements; callbacks and
+ *    reconciliation for already-tracked agreements continue. To contain a compromised
+ *    collector, pause this contract (step 3) and {forceRemoveAgreement} its agreements.
  * 2. {emergencyClearEligibilityOracle} — fail-open if oracle blocks collections
  * 3. Pause this contract — blocks permissionless state changes, including collection
  *    callbacks and reconciliation (see cross-contract note above)

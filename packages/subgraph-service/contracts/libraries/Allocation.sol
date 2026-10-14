@@ -133,7 +133,7 @@ library Allocation {
     /**
      * @notice Checks if an allocation is stale
      * @param self The allocation
-     * @param staleThreshold The time in blocks to consider an allocation stale
+     * @param staleThreshold The time in seconds to consider an allocation stale
      * @return True if the allocation is stale
      */
     function isStale(IAllocation.State memory self, uint256 staleThreshold) internal view returns (bool) {

@@ -140,6 +140,9 @@ interface IAgreementCollector is IPaymentsCollector {
      *   payer writes against the wrong key and does not block the signature.
      * - SCOPE_PENDING and SCOPE_ACTIVE require payer authorization and no-op if nothing exists
      *   on-chain. The payer (not the signer) must call.
+     * - SCOPE_ACTIVE does not change the agreement state directly: it forwards the request to the
+     *   agreement's data service via {IDataServiceAgreements.cancelIndexingAgreementByPayer}, and
+     *   the cancellation takes effect when the data service calls back into the collector.
      * Combining SCOPE_SIGNED with SCOPE_PENDING / SCOPE_ACTIVE in a single call is therefore only
      * useful when msg.sender is both the payer and the signer, which in this implementation only
      * happens when an EOA signs for itself as payer.

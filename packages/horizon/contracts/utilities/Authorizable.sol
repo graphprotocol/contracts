@@ -15,6 +15,7 @@ import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/Mes
  * @dev Implements the {IAuthorizable} interface.
  * @notice A mechanism to authorize signers to sign messages on behalf of an authorizer.
  * Signers cannot be reused for different authorizers.
+ * Revocation is permanent: a revoked signer cannot be authorized again by any authorizer.
  * @dev Contract uses "authorizeSignerProof" as the domain for signer proofs.
  * Uses ERC-7201 namespaced storage for upgrade safety.
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
