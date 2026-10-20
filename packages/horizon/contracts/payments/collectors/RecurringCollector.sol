@@ -1375,6 +1375,12 @@ contract RecurringCollector is
      * @dev Allows RC to call data service functions (e.g. cancelByPayer) that check
      * rc.isAuthorized(payer, msg.sender). When msg.sender is RC itself, this returns true,
      * meaning RC is trusted to have verified authorization before delegating.
+     * @dev This override also governs the {Authorizable} `onlyAuthorized` guard, so
+     * thawSigner, cancelThawSigner and revokeAuthorizedSigner are callable by anyone for
+     * address(this). This is harmless because RC's own authorization record can never be
+     * authorized and the self-trust branch does not read it. The self-trust branch must not
+     * depend on stored authorization state (e.g. `revoked`); decouple the modifier from this
+     * predicate before changing that.
      * @param authorizer The authorizer address
      * @param signer The signer address to check authorization for
      * @return True if the signer is authorized

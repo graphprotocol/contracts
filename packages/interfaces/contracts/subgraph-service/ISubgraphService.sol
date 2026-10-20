@@ -261,6 +261,8 @@ interface ISubgraphService is IDataServiceAgreements, IDataServiceFees {
 
     /**
      * @notice Sets the stake to fees ratio
+     * @dev The ratio is a plain multiplier, not a PPM value: collecting query or indexing fees
+     * locks `tokensCollected * stakeToFeesRatio` of the indexer's provision in a stake claim.
      * @param newStakeToFeesRatio The stake to fees ratio
      */
     function setStakeToFeesRatio(uint256 newStakeToFeesRatio) external;

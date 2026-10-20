@@ -31,6 +31,9 @@ interface IDataServiceFees is IDataService {
      * @dev This function is only meant to be called if the service provider has enough
      * stake claims that releasing them all at once would exceed the block gas limit.
      * @dev This function can be overriden and/or disabled.
+     * @dev Stake claims are released in creation order and traversal stops at the first claim that
+     * has not expired. If the dispute period is reduced, an older unexpired claim can temporarily
+     * block the release of newer claims that have already expired.
      * @dev Emits a {StakeClaimsReleased} event, and a {StakeClaimReleased} event for each claim released.
      * @param numClaimsToRelease Amount of stake claims to process. If 0, all stake claims are processed.
      */
