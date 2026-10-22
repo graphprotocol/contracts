@@ -1214,9 +1214,6 @@ importers:
       '@graphprotocol/client-cli':
         specifier: ^2.2.22
         version: 2.2.22(@babel/core@7.28.4)(@envelop/core@5.3.1)(@graphql-mesh/cross-helpers@0.3.4(@graphql-tools/utils@10.9.1(graphql@16.11.0))(graphql@16.11.0)(react-native@0.81.4(@babel/core@7.28.4)(bufferutil@4.0.9)(react@19.1.1)(utf-8-validate@5.0.10)))(@graphql-mesh/store@0.93.1)(@graphql-mesh/types@0.93.2)(@graphql-mesh/utils@0.93.2)(@graphql-tools/delegate@9.0.35(graphql@16.11.0))(@graphql-tools/merge@9.1.1(graphql@16.11.0))(@graphql-tools/utils@10.9.1(graphql@16.11.0))(@graphql-tools/wrap@9.4.2(graphql@16.11.0))(@types/node@20.19.14)(bufferutil@4.0.9)(encoding@0.1.13)(graphql-tag@2.12.6(graphql@16.11.0))(graphql@16.11.0)(react-native@0.81.4(@babel/core@7.28.4)(bufferutil@4.0.9)(react@19.1.1)(utf-8-validate@5.0.10))(utf-8-validate@5.0.10)
-      '@graphprotocol/contracts':
-        specifier: workspace:^
-        version: link:../contracts
       '@graphprotocol/interfaces':
         specifier: workspace:^
         version: link:../interfaces
