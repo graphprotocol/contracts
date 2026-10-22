@@ -1,0 +1,106 @@
+{
+  "AllocationHandler": {
+    "bytecode": "32c496212c35507775978c944588ba0fc72bf48edfad06b207b02cad2a4b4308",
+    "deployedBytecode": "5e1aae4006573c7e7780a8b32abdc442cc12559b788be8461edc81508a4fb034"
+  },
+  "BridgeEscrow": {
+    "bytecode": "5c106df052caf18fcabdacbef3255435a7e561053b528bf30233088d3a2caba0",
+    "deployedBytecode": "e2eaccad0ebf55b4e40026baeb6a72e612180d49d745f6a43154f8d2477a8b74"
+  },
+  "Controller": {
+    "bytecode": "00e6f46e306ed4b56bee2d3d3dba75404e939d56213f9a1720fb733b3697f4f8",
+    "deployedBytecode": "b31676ab0ab9ae7c5c21a3e29e58d1c05f80994a2462a852df1707e9cec68a3b"
+  },
+  "Curation": {
+    "bytecode": "467680b598f1c37cf0f9ce30ca421168531ec22d4f2e6dea1b230efe5e4f91a3",
+    "deployedBytecode": "c8b0bdcab52a661ff3a8615f5bf29336615832f4f0b4b3cf4e2506c6b22a87b6"
+  },
+  "DisputeManager": {
+    "bytecode": "1c35b2800868b36ed27d6dad5e812ef97cccc05ad1883240ac1b1efb1443d192",
+    "deployedBytecode": "1d2a0f2ae36930e31bab47c7a00e3eec3d6c92320d9d9d89b614f20f2ea2fa34"
+  },
+  "EpochManager": {
+    "bytecode": "fb46ad844725360c5048cd427bd4f2c230b62ce22673c1b8edd3574fb2f90eac",
+    "deployedBytecode": "bfd994416a46234114f88f2d28a0d40d60441ff305a105908bb1d1089b2dac91"
+  },
+  "GraphCurationToken": {
+    "bytecode": "c88b7af1a3200b97603a7c30352662b80882ef467bcee3991a0b3c40981bb874",
+    "deployedBytecode": "7eef834bd6fb58360c7349aa645e5a41fcbdd5c7a2783eb85556e93b51ceda3a"
+  },
+  "GraphPayments": {
+    "bytecode": "2bc8929c8824603d845276c9d8b221c0fe09c76752b0b0cdb886cb3abd342ffb",
+    "deployedBytecode": "d0b923b04d4394e28d2b268fd628d78c512bfcc63eae92cf0a3bbfa470b045a1"
+  },
+  "GraphProxy": {
+    "bytecode": "6009c7ac0658fd0d2d596d99921cdff3a12f663010d705fb48f55f610e33af18",
+    "deployedBytecode": "d1b20d2a07e71364d9296d932bb2a4b085baf91410b977207d033cbd21e6e1c0"
+  },
+  "GraphProxyAdmin": {
+    "bytecode": "cb2f3134b2d8784f5eaa9d571e2b534bb35f2220c0d58eb54f911231fb1a1e5b",
+    "deployedBytecode": "f382404b1ac32e98d46478e6b4d4b99dec7dbda06a45b74523e0d3a643bb6f85"
+  },
+  "GraphToken": {
+    "bytecode": "e7cd08c68085627675767bd24a51b40f1fc20ec43d88e20cc10f37e1722a61e3",
+    "deployedBytecode": "e51ca8222a25f984292ab955aacbe8f3cfc5d2266fa28b6492dc2ac52b308e52"
+  },
+  "HorizonStaking": {
+    "bytecode": "8385b1f97086b46ce0eb3b93d42d5922595bafb8f1eed14588dd3712855ea44d",
+    "deployedBytecode": "6d7255530d2e65918aa05965b6f88051c0f4ae5c69a388b61764cab3fcfd2d80"
+  },
+  "L1GNS": {
+    "bytecode": "1e441ceeaa5098b613b6666e1d0624c3e71425dbb3910b4223595ef9bafe43bc",
+    "deployedBytecode": "064db8dfa22c6533327307135ef15d5f98e90d462c350a50dd6d9bc75aefe737"
+  },
+  "L1GraphTokenGateway": {
+    "bytecode": "25293735575b568a928cf162c13f5bb4ca848833be86a98ad2c4ef7d3970aada",
+    "deployedBytecode": "0b35cd9f9a56eff56b0c97eae2ca8be472cfffecdf83151deae47bda2135bc54"
+  },
+  "L1Staking": {
+    "bytecode": "4b4d19ef9a2a48fc0214593215d24e8f18681951efa9041443d30497c08f718b",
+    "deployedBytecode": "aeefa8093800d94ff5244470d26851af2b64711bb73a6c8701b59dfb7132377e"
+  },
+  "L2Curation": {
+    "bytecode": "8d160a02518b02079b6c6fcdb9be6d356eed976f37adbf40fc9e06db369bd171",
+    "deployedBytecode": "38285a1736db0d3632fb160cdaa0a4d6d9e66d412c6223a6184716caa1f683ec"
+  },
+  "L2GNS": {
+    "bytecode": "9991ff5db9d7410bb3e9561fef43f05cf6618830fd324cca4223673f710c03ff",
+    "deployedBytecode": "0e1b063478c7beebe749534bc1f74e64bb0dc274cb8499f2415e887f6a692abe"
+  },
+  "L2GraphToken": {
+    "bytecode": "2509f7ce90438223a5abf9fa58175ceccca7925f3c097a950671a524507d1010",
+    "deployedBytecode": "82e740658e3328bb1637d060f2f2eafd6d4e0a663f1eaa00ef8a86f36e67e7cf"
+  },
+  "L2GraphTokenGateway": {
+    "bytecode": "3960ebe0a49a7b2dadb1f866434704f15d1618e8f23f22b24b9791fc5edd172c",
+    "deployedBytecode": "9f500273f04af6e593aba64049e912196f61c912b5ff4a885579b8af6150425d"
+  },
+  "LibExponential": {
+    "bytecode": "cf8e0f70123c2a525e61ab51fcfa8549fd1dc364ffb0f62890504323c3ea1b92",
+    "deployedBytecode": "d4a129118f42b08e5ed9dd7e29b76fe18767d64ec62e778447a013a25e722ec8"
+  },
+  "PaymentsEscrow": {
+    "bytecode": "c5ee87225cd0c023d298d810457736f2a6fcf011d8e9be8bfeea96c4c34936f5",
+    "deployedBytecode": "07e1e1055195ed396e9ac8df7d84d98a37644bea8b48f9ccab0f31f677d53d99"
+  },
+  "RewardsManager": {
+    "bytecode": "0dea68140e59bec61d669269c2097630bd0a9da9b2a241fe887073f741df30ac",
+    "deployedBytecode": "f361c19bcc1553e923fef7a16d423766cf3a0ea2577223f61b84fe41cf1a77da"
+  },
+  "StakingExtension": {
+    "bytecode": "aa3a270946cab805c889d9ef1fd6d3541d8f736fb2ec85b51543836a5c38b23f",
+    "deployedBytecode": "55758d8712cd9eda9b96bc3922a9d82c8ea3f31be1772d4ea52e9118af611107"
+  },
+  "SubgraphNFT": {
+    "bytecode": "830d22ac49214e1f6ba157c5cc7794d69277e96d5c93a773272ab3055a13426a",
+    "deployedBytecode": "9718d61570d90867068568f9b0f33a9633e55bb3cf8e8cea1f11ab5e8298f36a"
+  },
+  "SubgraphNFTDescriptor": {
+    "bytecode": "05b3383d413f08c7fcac78905b05e814cd3f48353288b6c261d9d646bd2b9415",
+    "deployedBytecode": "a5afe887c814da0ad8c8cc8d95337cb0c3b548d767b06baa558a199ee6da5d91"
+  },
+  "SubgraphService": {
+    "bytecode": "5e4db6627b195d893fa23aed782d1bb0d7bd048da473c8bc0b83c29188d192b0",
+    "deployedBytecode": "72a35d0372425f3e5eaa06362cefd39cb2889a938a7d6641c1104dc2f427f323"
+  }
+}
