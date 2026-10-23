@@ -711,6 +711,18 @@ importers:
         specifier: ^5.5.0
         version: 5.9.3
 
+  packages/graph-core:
+    devDependencies:
+      '@graphprotocol/contracts':
+        specifier: workspace:^
+        version: link:../contracts
+      '@graphprotocol/interfaces':
+        specifier: workspace:^
+        version: link:../interfaces
+      forge-std:
+        specifier: 'catalog:'
+        version: https://github.com/foundry-rs/forge-std/tarball/v1.14.0
+
   packages/hardhat-graph-protocol:
     dependencies:
       '@graphprotocol/toolshed':

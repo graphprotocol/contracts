@@ -1,0 +1,22 @@
+[profile.default]
+src = 'test'
+out = 'forge-artifacts'
+test = 'test'
+libs = ["node_modules"]
+cache_path = 'cache_forge'
+auto_detect_remappings = false
+remappings = [
+    "@graphprotocol/=node_modules/@graphprotocol/",
+    "forge-std/=node_modules/forge-std/src/",
+]
+solc_version = '0.8.35'
+evm_version = 'cancun'
+fs_permissions = [{ access = "read", path = "node_modules/@graphprotocol/contracts/artifacts" }]
+ignored_warnings_from = ["node_modules"]
+
+[lint]
+# Disable lint-on-build: forge's lint walker follows symlinks without cycle detection and
+# infinite-loops on this package's pnpm-hoisted node_modules.
+lint_on_build = false
+exclude_lints = ["mixed-case-function", "mixed-case-variable", "block-timestamp"]
+ignore = ["node_modules/**", "**/node_modules/**"]
