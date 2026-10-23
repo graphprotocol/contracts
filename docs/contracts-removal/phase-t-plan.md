@@ -73,7 +73,7 @@ The executors read the spec and this plan together.
     - `contracts/contracts/gateway/ICallhookReceiver.sol`
   - These packages don't depend on OpenZeppelin, so a violation fails to compile.
 - **Naming:**
-  - Test functions are `test_<Area>_<Behavior>` and `test_<Area>_RevertWhen_<Condition>`, where `<Area>` is the old `describe` name in PascalCase.
+  - Test functions are `test_<Area>_<Behavior>` and `test_<Area>_RevertWhen_<Condition>`, where `<Area>` is the innermost old `describe` name in PascalCase (as in T1's `Controller.t.sol`).
   - The test contract is named after its file (`Controller.t.sol` → `ControllerTest`).
   - Shared setup lives in `shared.t.sol` or `shared/`.
 - **Translating a TS test:**
@@ -324,7 +324,7 @@ The current `parseLcov` reads `LF`/`LH` and overwrites repeated `SF:` records fo
   - remappings `@graphprotocol/=node_modules/@graphprotocol/` and `forge-std/=node_modules/forge-std/src/` only
   - the `fs_permissions` line above
   - `ignored_warnings_from = ["node_modules"]`
-- Keep `solc_version = '0.8.35'`, `evm_version = 'cancun'` and the `[lint]` block.
+- Keep `solc_version = '0.8.35'`, `evm_version = 'cancun'` and the `[lint]` block. Reword the `[lint]` comment so it doesn't mention `forge lint contracts/` (there is no `contracts/` folder yet).
 - No `[profile.prod]`.
 
 `ManagedMock.sol` (0.7.6, in `contracts/tests/` next to `GovernedMock.sol`):
