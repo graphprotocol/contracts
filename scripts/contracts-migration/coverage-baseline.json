@@ -1,0 +1,262 @@
+{
+  "contracts/base/Multicall.sol": {
+    "linesFound": 8,
+    "linesHit": 6,
+    "pct": 75
+  },
+  "contracts/curation/Curation.sol": {
+    "linesFound": 86,
+    "linesHit": 86,
+    "pct": 100
+  },
+  "contracts/curation/CurationStorage.sol": {
+    "linesFound": 0,
+    "linesHit": 0,
+    "pct": null
+  },
+  "contracts/curation/GraphCurationToken.sol": {
+    "linesFound": 4,
+    "linesHit": 4,
+    "pct": 100
+  },
+  "contracts/discovery/GNS.sol": {
+    "linesFound": 159,
+    "linesHit": 109,
+    "pct": 68.55
+  },
+  "contracts/discovery/GNSStorage.sol": {
+    "linesFound": 0,
+    "linesHit": 0,
+    "pct": null
+  },
+  "contracts/discovery/L1GNS.sol": {
+    "linesFound": 40,
+    "linesHit": 0,
+    "pct": 0
+  },
+  "contracts/discovery/L1GNSStorage.sol": {
+    "linesFound": 0,
+    "linesHit": 0,
+    "pct": null
+  },
+  "contracts/discovery/ServiceRegistry.sol": {
+    "linesFound": 15,
+    "linesHit": 15,
+    "pct": 100
+  },
+  "contracts/discovery/ServiceRegistryStorage.sol": {
+    "linesFound": 0,
+    "linesHit": 0,
+    "pct": null
+  },
+  "contracts/discovery/SubgraphNFT.sol": {
+    "linesFound": 27,
+    "linesHit": 15,
+    "pct": 55.56
+  },
+  "contracts/discovery/SubgraphNFTDescriptor.sol": {
+    "linesFound": 4,
+    "linesHit": 0,
+    "pct": 0
+  },
+  "contracts/discovery/erc1056/EthereumDIDRegistry.sol": {
+    "linesFound": 40,
+    "linesHit": 0,
+    "pct": 0
+  },
+  "contracts/disputes/DisputeManager.sol": {
+    "linesFound": 124,
+    "linesHit": 123,
+    "pct": 99.19
+  },
+  "contracts/disputes/DisputeManagerStorage.sol": {
+    "linesFound": 0,
+    "linesHit": 0,
+    "pct": null
+  },
+  "contracts/epochs/EpochManager.sol": {
+    "linesFound": 27,
+    "linesHit": 17,
+    "pct": 62.96
+  },
+  "contracts/epochs/EpochManagerStorage.sol": {
+    "linesFound": 0,
+    "linesHit": 0,
+    "pct": null
+  },
+  "contracts/gateway/BridgeEscrow.sol": {
+    "linesFound": 3,
+    "linesHit": 3,
+    "pct": 100
+  },
+  "contracts/gateway/GraphTokenGateway.sol": {
+    "linesFound": 9,
+    "linesHit": 9,
+    "pct": 100
+  },
+  "contracts/gateway/L1GraphTokenGateway.sol": {
+    "linesFound": 102,
+    "linesHit": 102,
+    "pct": 100
+  },
+  "contracts/governance/Controller.sol": {
+    "linesFound": 19,
+    "linesHit": 19,
+    "pct": 100
+  },
+  "contracts/governance/Governed.sol": {
+    "linesFound": 14,
+    "linesHit": 14,
+    "pct": 100
+  },
+  "contracts/governance/Managed.sol": {
+    "linesFound": 40,
+    "linesHit": 40,
+    "pct": 100
+  },
+  "contracts/governance/Pausable.sol": {
+    "linesFound": 15,
+    "linesHit": 13,
+    "pct": 86.67
+  },
+  "contracts/l2/curation/L2Curation.sol": {
+    "linesFound": 107,
+    "linesHit": 107,
+    "pct": 100
+  },
+  "contracts/l2/discovery/L2GNS.sol": {
+    "linesFound": 81,
+    "linesHit": 77,
+    "pct": 95.06
+  },
+  "contracts/l2/discovery/L2GNSStorage.sol": {
+    "linesFound": 0,
+    "linesHit": 0,
+    "pct": null
+  },
+  "contracts/l2/gateway/L2GraphTokenGateway.sol": {
+    "linesFound": 46,
+    "linesHit": 41,
+    "pct": 89.13
+  },
+  "contracts/l2/staking/L2Staking.sol": {
+    "linesFound": 26,
+    "linesHit": 26,
+    "pct": 100
+  },
+  "contracts/l2/token/GraphTokenUpgradeable.sol": {
+    "linesFound": 28,
+    "linesHit": 28,
+    "pct": 100
+  },
+  "contracts/l2/token/L2GraphToken.sol": {
+    "linesFound": 14,
+    "linesHit": 14,
+    "pct": 100
+  },
+  "contracts/libraries/Base58Encoder.sol": {
+    "linesFound": 27,
+    "linesHit": 0,
+    "pct": 0
+  },
+  "contracts/libraries/HexStrings.sol": {
+    "linesFound": 16,
+    "linesHit": 0,
+    "pct": 0
+  },
+  "contracts/payments/AllocationExchange.sol": {
+    "linesFound": 27,
+    "linesHit": 25,
+    "pct": 92.59
+  },
+  "contracts/rewards/RewardsManager.sol": {
+    "linesFound": 165,
+    "linesHit": 165,
+    "pct": 100
+  },
+  "contracts/rewards/RewardsManagerStorage.sol": {
+    "linesFound": 0,
+    "linesHit": 0,
+    "pct": null
+  },
+  "contracts/rewards/SubgraphAvailabilityManager.sol": {
+    "linesFound": 46,
+    "linesHit": 13,
+    "pct": 28.26
+  },
+  "contracts/staking/L1Staking.sol": {
+    "linesFound": 69,
+    "linesHit": 69,
+    "pct": 100
+  },
+  "contracts/staking/L1StakingStorage.sol": {
+    "linesFound": 0,
+    "linesHit": 0,
+    "pct": null
+  },
+  "contracts/staking/Staking.sol": {
+    "linesFound": 220,
+    "linesHit": 215,
+    "pct": 97.73
+  },
+  "contracts/staking/StakingExtension.sol": {
+    "linesFound": 114,
+    "linesHit": 113,
+    "pct": 99.12
+  },
+  "contracts/staking/StakingStorage.sol": {
+    "linesFound": 0,
+    "linesHit": 0,
+    "pct": null
+  },
+  "contracts/staking/libs/Exponential.sol": {
+    "linesFound": 11,
+    "linesHit": 11,
+    "pct": 100
+  },
+  "contracts/staking/libs/LibFixedMath.sol": {
+    "linesFound": 166,
+    "linesHit": 83,
+    "pct": 50
+  },
+  "contracts/staking/libs/MathUtils.sol": {
+    "linesFound": 3,
+    "linesHit": 3,
+    "pct": 100
+  },
+  "contracts/staking/libs/Stakes.sol": {
+    "linesFound": 28,
+    "linesHit": 28,
+    "pct": 100
+  },
+  "contracts/token/GraphToken.sol": {
+    "linesFound": 24,
+    "linesHit": 24,
+    "pct": 100
+  },
+  "contracts/upgrades/GraphProxy.sol": {
+    "linesFound": 30,
+    "linesHit": 30,
+    "pct": 100
+  },
+  "contracts/upgrades/GraphProxyAdmin.sol": {
+    "linesFound": 14,
+    "linesHit": 14,
+    "pct": 100
+  },
+  "contracts/upgrades/GraphProxyStorage.sol": {
+    "linesFound": 20,
+    "linesHit": 18,
+    "pct": 90
+  },
+  "contracts/upgrades/GraphUpgradeable.sol": {
+    "linesFound": 8,
+    "linesHit": 8,
+    "pct": 100
+  },
+  "contracts/utils/TokenUtils.sol": {
+    "linesFound": 6,
+    "linesHit": 6,
+    "pct": 100
+  }
+}

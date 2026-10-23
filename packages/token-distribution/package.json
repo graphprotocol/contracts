@@ -45,7 +45,6 @@
     "@ethersproject/hardware-wallets": "^5.7.0",
     "@ethersproject/providers": "^5.7.0",
     "@graphprotocol/client-cli": "^2.2.22",
-    "@graphprotocol/contracts": "workspace:^",
     "@graphprotocol/interfaces": "workspace:^",
     "@graphql-yoga/plugin-persisted-operations": "^3.13.5",
     "@nomiclabs/hardhat-ethers": "^2.2.3",

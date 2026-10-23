@@ -23,9 +23,11 @@
     "lint:forge": "pnpm -r run lint:forge",
     "lint:md": "markdownlint --fix --ignore-path .gitignore 'packages/**/*.md' 'docs/**/*.md' '*.md'; prettier -w --cache --log-level warn 'packages/**/*.md' 'docs/**/*.md' '*.md'",
     "lint:json": "prettier -w --cache --log-level warn 'packages/**/*.{json,json5}' '.changeset/**/*.json' '*.{json,json5}'",
-    "lint:yaml": "npx yaml-lint .github/**/*.{yml,yaml} packages/contracts/task/config/*.yml; prettier -w --cache --log-level warn 'packages/**/*.{yml,yaml}' '.github/**/*.{yml,yaml}'",
+    "lint:yaml": "npx yaml-lint .github/**/*.{yml,yaml}; prettier -w --cache --log-level warn 'packages/**/*.{yml,yaml}' '.github/**/*.{yml,yaml}'",
     "test": "pnpm build && pnpm -r run test:self",
     "test:prod": "FOUNDRY_PROFILE=prod pnpm test",
+    "test:scripts": "node --test 'scripts/**/*.test.mjs'",
+    "check:bytecode": "node scripts/contracts-migration/check-bytecode.mjs",
     "test:coverage": "pnpm build && pnpm -r run build:self:coverage && pnpm -r run test:coverage:self"
   },
   "devDependencies": {
