@@ -147,20 +147,20 @@ The 0.7.6 settings must reproduce the current build exactly: solc 0.7.6, optimiz
   - **L2Curation:** `setSubgraphService` before `collect`.
   - **L2GraphTokenGateway:** `vm.mockCall` / `vm.etch` at ArbSys `0x64`.
 
-- **Unit tests use mocks, not the full network.** A test deploys only the contract under test plus mocks for its dependencies. Issuance tests in particular mock EpochManager, Curation, Staking, GRT and the subgraph service, and never load artifacts from horizon or subgraph-discovery (see the acyclicity rules in §2). Test cases that really exercise a cross-package flow, such as the allocation path through staking, curation and rewards, move to `packages/testing`, the existing cross-package Foundry integration suite.
+- **Unit tests use mocks, not the full network.** A test deploys only the contract under test plus mocks for its dependencies. Issuance tests in particular mock EpochManager, Curation, Staking, GRT and the subgraph service, and never load artifacts from horizon or subgraph-discovery (see the acyclicity rules in §2). The old rewards tests that went through legacy Staking (restaking, rewards destination, delegation cut) keep their RewardsManager assertions as mock-based unit tests. Their Staking assertions are dropped: that is legacy Staking behaviour, and the Horizon equivalent is already tested in subgraph-service. `packages/testing` stays the home for new cross-package flows.
 - **Coverage.** Phase 0d records per-contract **line** coverage from `contracts-test` (solidity-coverage) before anything changes. Branch numbers aren't comparable between solidity-coverage and `forge coverage`, so they're informative only.
   - In graph-core, graph-token and subgraph-discovery, `forge coverage` line coverage after the move must be at least the baseline.
   - EpochManager and RewardsManager live in Foundry-skipped `legacy-0.7/` folders, so Foundry can't measure coverage for them. For those two, completeness is enforced by the old-to-new test mapping table.
 
 #### Test assignment
 
-| Destination                                          | Source tests (`contracts-test/tests/unit`)                                                                                                                | Approx. lines |
-| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
-| issuance (+ `packages/testing` for allocation flows) | `rewards/*` except `subgraphAvailability.test.ts`                                                                                                         | 6.8k          |
-| subgraph-discovery                                   | `l2/l2GNS.test.ts`, `l2/l2Curation.test.ts`, `lib/gnsUtils.ts`                                                                                            | 1.8k          |
-| graph-token                                          | `gateway/*`, `l2/l2GraphToken.test.ts`, `l2/l2GraphTokenGateway.test.ts`, `l2/l2ArbitrumMessengerMock.ts`, `graphToken.test.ts`, `lib/graphTokenTests.ts` | 1.6k          |
-| graph-core                                           | `governance/*`, `upgrade/admin.test.ts`                                                                                                                   | 0.5k          |
-| horizon                                              | `epochs.test.ts`                                                                                                                                          | 0.2k          |
+| Destination        | Source tests (`contracts-test/tests/unit`)                                                                                                                | Approx. lines |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| issuance           | `rewards/*` except `subgraphAvailability.test.ts`                                                                                                         | 6.8k          |
+| subgraph-discovery | `l2/l2GNS.test.ts`, `l2/l2Curation.test.ts`, `lib/gnsUtils.ts`                                                                                            | 1.8k          |
+| graph-token        | `gateway/*`, `l2/l2GraphToken.test.ts`, `l2/l2GraphTokenGateway.test.ts`, `l2/l2ArbitrumMessengerMock.ts`, `graphToken.test.ts`, `lib/graphTokenTests.ts` | 1.6k          |
+| graph-core         | `governance/*`, `upgrade/admin.test.ts`                                                                                                                   | 0.5k          |
+| horizon            | `epochs.test.ts`                                                                                                                                          | 0.2k          |
 
 Notes:
 
@@ -177,13 +177,15 @@ Dropped, because their contracts are deleted or legacy:
 
 #### Mocks needed by ported tests
 
-| Mock                                                                                 | Destination                                                                             |
-| ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
-| GovernedMock                                                                         | graph-core                                                                              |
-| BridgeMock, InboxMock, OutboxMock, CallhookReceiverMock                              | graph-token                                                                             |
-| MockERC165, MockIssuanceAllocator, MockRewardsEligibilityOracle, MockSubgraphService | issuance (reuse its existing 0.8 mocks where they exist; otherwise rewrite them in 0.8) |
+| Mock                                                                                 | Destination                                                                                                                                |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| GovernedMock, ManagedMock (new, 0.7.6)                                               | graph-core                                                                                                                                 |
+| BridgeMock, InboxMock, OutboxMock, CallhookReceiverMock, TokenUtilsMock (new, 0.7.6) | graph-token                                                                                                                                |
+| MockERC165, MockIssuanceAllocator, MockRewardsEligibilityOracle, MockSubgraphService | issuance (reuse its existing 0.8 mocks where they exist; otherwise rewrite them in 0.8; MockSubgraphService becomes a rewards-issuer mock) |
 
-Every test-port PR includes a table mapping each old test case to its new Foundry test (or to `packages/testing`), or to "dropped" with a reason.
+ManagedMock and TokenUtilsMock are added to `packages/contracts/contracts/tests/` in Phase T, because 0.8 tests can't compile a Managed contract or call the TokenUtils library. They move with their packages in Phase 1. ArbSysMock is not used (ArbSys is faked with `vm.mockCall`), so it stays on the delete list.
+
+Every test-port PR includes a table mapping each old test case to its new Foundry test, or to "dropped" with a reason.
 
 ### 5. Tooling and infrastructure
 
@@ -294,7 +296,7 @@ Tests are ported first, against the contracts where they are today. Then dead co
 
 Each PR:
 
-- creates the destination package skeleton if needed: `package.json`, `foundry.toml`, a 0.7.6 Hardhat config (graph-core, graph-token and subgraph-discovery don't use toolshed), `test/`;
+- creates the destination package skeleton if needed: `package.json`, `foundry.toml` and `test/`. The 0.7.6 Hardhat config (graph-core, graph-token and subgraph-discovery don't use toolshed) comes in Phase 1 with the contracts, since there is nothing to compile before then;
 - adds `@graphprotocol/contracts` as a temporary devDependency;
 - writes the Foundry tests against its artifacts, following §4;
 - deletes the matching TypeScript tests from `contracts-test`.
@@ -305,7 +307,9 @@ New packages aren't published yet: they stay `"private": true` until their contr
 - **T2.** graph-token.
 - **T3.** subgraph-discovery. Also deletes `gns.test.ts` and `lib/gnsUtils.ts`.
 - **T4.** horizon (epochs).
-- **T5.** issuance (rewards, with mocks only) plus the allocation-flow cases in `packages/testing`. This PR may be split by test file group.
+- **T5.** issuance (rewards, with mocks only). This PR may be split by test file group.
+
+The detailed task split is in `phase-t-plan.md`.
 
 ### Phase D: removal of dead code
 
@@ -390,5 +394,5 @@ Per-step notes:
 - **Two OpenZeppelin versions in horizon and issuance.** Limited to `legacy-0.7/`, and enforced by the CI grep rule. In issuance, Hardhat 3 resolves imports per package, so the import rule in §3 also matters there.
 - **Hardhat 3 artifacts consumed by Hardhat 2 tooling.** horizon's Ignition and verification tooling read the RewardsManager artifact from issuance. Step 5 validates this, with a Hardhat 2-shaped copy as the fallback.
 - **Mainnet source drift.** Current source may not reproduce every mainnet implementation exactly. D2's onchain comparison catches this, and `legacy` then uses the source from the deployed tag.
-- **Test port fidelity.** A rewrite can silently drop behaviours. The mapping table, the coverage baseline and keeping `packages/testing` integration cases guard against this.
+- **Test port fidelity.** A rewrite can silently drop behaviours. The mapping table and the coverage baseline guard against this.
 - **Library link references.** Only L1Staking (legacy) links a library (`Exponential`). The 0c check covers it. None of the live moved contracts link libraries.
