@@ -43,11 +43,6 @@ contract RewardsManagerReclaimTest is RewardsManagerSharedTest {
         return _expectedAllocationRewards(EPOCH_LENGTH, ALLOCATION, ALLOCATION);
     }
 
-    /// Rewards of the subgraph (holding all the signal) over `blocks`, as reclaimed at the subgraph level.
-    function _subgraphRewards(uint256 blocks) internal pure returns (uint256) {
-        return _expectedSubgraphRewards(blocks, SIGNAL, SIGNAL);
-    }
-
     function _setReclaimAddress(bytes32 reason, address target) internal {
         vm.prank(governor);
         rm.setReclaimAddress(reason, target);

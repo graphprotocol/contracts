@@ -2,6 +2,7 @@
 pragma solidity ^0.8.27;
 
 import { Vm } from "forge-std/Vm.sol";
+import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManager.sol";
 import { IProviderEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IProviderEligibility.sol";
 
 import { ProtocolFixture } from "../shared/ProtocolFixture.t.sol";
@@ -111,6 +112,11 @@ contract RewardsManagerSharedTest is ProtocolFixture {
         return (_expectedRewardsPerSignal(blocks, totalSignal) * subgraphSignal) / 1e18;
     }
 
+    /// Rewards of a subgraph holding all the signal (`SIGNAL`) over `blocks`.
+    function _subgraphRewards(uint256 blocks) internal pure returns (uint256) {
+        return _expectedSubgraphRewards(blocks, SIGNAL, SIGNAL);
+    }
+
     function _expectedRewardsPerAllocatedToken(
         uint256 subgraphRewards,
         uint256 allocatedTokens
@@ -126,6 +132,15 @@ contract RewardsManagerSharedTest is ProtocolFixture {
     ) internal pure returns (uint256) {
         uint256 subgraphRewards = _expectedSubgraphRewards(blocks, SIGNAL, SIGNAL);
         return (_expectedRewardsPerAllocatedToken(subgraphRewards, allocatedTokens) * tokens) / 1e18;
+    }
+
+    function _subgraph(bytes32 sd) internal view returns (IRewardsManager.Subgraph memory subgraph) {
+        (
+            subgraph.accRewardsForSubgraph,
+            subgraph.accRewardsForSubgraphSnapshot,
+            subgraph.accRewardsPerSignalSnapshot,
+            subgraph.accRewardsPerAllocatedToken
+        ) = rm.subgraphs(sd);
     }
 
     function _assertNotEmitted(Vm.Log[] memory logs, bytes32 topic) internal view {
