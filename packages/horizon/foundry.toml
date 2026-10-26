@@ -5,7 +5,7 @@ libs = ["node_modules"]
 auto_detect_remappings = false
 test = 'test'
 cache_path = 'cache_forge'
-fs_permissions = [{ access = "read", path = "./" }]
+fs_permissions = [{ access = "read", path = "./" }, { access = "read", path = "node_modules/@graphprotocol/contracts/artifacts" }]
 solc_version = '0.8.35'
 evm_version = 'cancun'
 # Suppress solc warnings emitted from third-party code we don't control
