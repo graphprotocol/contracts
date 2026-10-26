@@ -723,6 +723,18 @@ importers:
         specifier: 'catalog:'
         version: https://github.com/foundry-rs/forge-std/tarball/v1.14.0
 
+  packages/graph-token:
+    devDependencies:
+      '@graphprotocol/contracts':
+        specifier: workspace:^
+        version: link:../contracts
+      '@graphprotocol/interfaces':
+        specifier: workspace:^
+        version: link:../interfaces
+      forge-std:
+        specifier: 'catalog:'
+        version: https://github.com/foundry-rs/forge-std/tarball/v1.14.0
+
   packages/hardhat-graph-protocol:
     dependencies:
       '@graphprotocol/toolshed':
