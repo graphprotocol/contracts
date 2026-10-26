@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
+import { Vm } from "forge-std/Vm.sol";
+
 import { ProtocolFixture } from "../shared/ProtocolFixture.t.sol";
 import { MockGraphToken } from "../mocks/MockGraphToken.sol";
 import { IRewardsManagerLike } from "./IRewardsManagerLike.sol";
@@ -80,5 +82,27 @@ contract RewardsManagerSharedTest is ProtocolFixture {
 
     function _expectedRewardsPerSignal(uint256 blocks, uint256 totalSignal) internal pure returns (uint256) {
         return (blocks * ISSUANCE_PER_BLOCK * 1e18) / totalSignal;
+    }
+
+    /// Rewards a subgraph with `subgraphSignal` accrues over `blocks` while total signal is `totalSignal`.
+    function _expectedSubgraphRewards(
+        uint256 blocks,
+        uint256 totalSignal,
+        uint256 subgraphSignal
+    ) internal pure returns (uint256) {
+        return (_expectedRewardsPerSignal(blocks, totalSignal) * subgraphSignal) / 1e18;
+    }
+
+    function _expectedRewardsPerAllocatedToken(
+        uint256 subgraphRewards,
+        uint256 allocatedTokens
+    ) internal pure returns (uint256) {
+        return (subgraphRewards * 1e18) / allocatedTokens;
+    }
+
+    function _assertNotEmitted(Vm.Log[] memory logs, bytes32 topic) internal view {
+        for (uint256 i = 0; i < logs.length; ++i) {
+            if (logs[i].emitter == address(rm)) assertTrue(logs[i].topics[0] != topic, "unexpected event");
+        }
     }
 }

@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import { Vm } from "forge-std/Vm.sol";
-
 import { RewardsManagerSharedTest } from "./shared.t.sol";
 
 contract RewardsManagerConfigTest is RewardsManagerSharedTest {
@@ -16,12 +14,6 @@ contract RewardsManagerConfigTest is RewardsManagerSharedTest {
     function _setAvailabilityOracle() internal {
         vm.prank(governor);
         rm.setSubgraphAvailabilityOracle(availabilityOracle);
-    }
-
-    function _assertNotEmitted(Vm.Log[] memory logs, bytes32 topic) internal view {
-        for (uint256 i = 0; i < logs.length; ++i) {
-            if (logs[i].emitter == address(rm)) assertTrue(logs[i].topics[0] != topic, "unexpected event");
-        }
     }
 
     // -- initialize --
