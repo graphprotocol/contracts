@@ -122,4 +122,8 @@ interface IL2GNSLike {
     function nSignalToTokens(uint256 subgraphID, uint256 nSignalIn) external view returns (uint256, uint256);
 
     function vSignalToNSignal(uint256 subgraphID, uint256 vSignalIn) external view returns (uint256);
+
+    function nSignalToVSignal(uint256 subgraphID, uint256 nSignalIn) external view returns (uint256);
+
+    function multicall(bytes[] calldata data) external returns (bytes[] memory results);
 }
