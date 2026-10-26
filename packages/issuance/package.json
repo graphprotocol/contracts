@@ -27,7 +27,7 @@
     "clean": "rm -rf artifacts/ forge-artifacts/ cache_forge/ coverage/ cache/ types/ typechain-src/ .eslintcache test/node_modules/",
     "compile": "hardhat compile --quiet --no-tests",
     "typechain": "typechain --target ethers-v6 --out-dir typechain-src 'artifacts/contracts/**/!(*.dbg).json' && tsc -p tsconfig.typechain.json && rm -rf typechain-src && echo '{\"type\":\"commonjs\"}' > types/package.json",
-    "test": "pnpm test:self",
+    "test": "pnpm build && pnpm test:self",
     "test:self": "forge test",
     "test:coverage": "forge coverage",
     "test:coverage:self": "mkdir -p coverage && forge coverage --report lcov --report-file coverage/lcov.info",
@@ -48,6 +48,7 @@
     "README.md"
   ],
   "devDependencies": {
+    "@graphprotocol/contracts": "workspace:^",
     "@graphprotocol/interfaces": "workspace:^",
     "@nomicfoundation/hardhat-ethers": "^4.0.0",
     "@nomicfoundation/hardhat-ethers-chai-matchers": "^3.0.0",

@@ -976,6 +976,9 @@ importers:
         specifier: ^1.8.0
         version: 1.8.0
     devDependencies:
+      '@graphprotocol/contracts':
+        specifier: workspace:^
+        version: link:../contracts
       '@graphprotocol/interfaces':
         specifier: workspace:^
         version: link:../interfaces
