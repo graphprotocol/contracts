@@ -2,6 +2,7 @@
 pragma solidity ^0.8.27;
 
 import { Vm } from "forge-std/Vm.sol";
+import { IProviderEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IProviderEligibility.sol";
 
 import { ProtocolFixture } from "../shared/ProtocolFixture.t.sol";
 import { MockGraphToken } from "../mocks/MockGraphToken.sol";
@@ -17,6 +18,8 @@ contract RewardsManagerSharedTest is ProtocolFixture {
     uint256 internal constant ISSUANCE_PER_BLOCK = 200 ether;
     uint256 internal constant SIGNAL = 1500 ether;
     uint256 internal constant ALLOCATION = 12_500 ether;
+    /// Blocks per `helpers.mineEpoch`: the old tests set the epoch length to 10
+    uint256 internal constant EPOCH_LENGTH = 10;
 
     IRewardsManagerLike internal rm;
     MockGraphToken internal token;
@@ -80,6 +83,21 @@ contract RewardsManagerSharedTest is ProtocolFixture {
         return issuer.close(allocationId);
     }
 
+    /// Signal `SIGNAL`, then allocate `ALLOCATION` one block later, as the old `setupIndexerAllocation` did
+    /// in separate transactions: the pre-allocation block is reclaimed under the subgraph's condition.
+    function _signalThenAllocate(bytes32 sd, address allocationId) internal {
+        _signal(sd, SIGNAL);
+        vm.roll(block.number + 1);
+        _allocate(allocationId, sd, ALLOCATION);
+    }
+
+    /// Sets the fixture's `oracle` as the eligibility oracle, answering `eligibleByDefault` for every indexer.
+    function _useEligibilityOracle(bool eligibleByDefault) internal {
+        oracle.setDefaultResponse(eligibleByDefault);
+        vm.prank(governor);
+        rm.setProviderEligibilityOracle(IProviderEligibility(address(oracle)));
+    }
+
     function _expectedRewardsPerSignal(uint256 blocks, uint256 totalSignal) internal pure returns (uint256) {
         return (blocks * ISSUANCE_PER_BLOCK * 1e18) / totalSignal;
     }
@@ -98,6 +116,16 @@ contract RewardsManagerSharedTest is ProtocolFixture {
         uint256 allocatedTokens
     ) internal pure returns (uint256) {
         return (subgraphRewards * 1e18) / allocatedTokens;
+    }
+
+    /// Rewards for an allocation of `tokens` out of `allocatedTokens` on a subgraph holding all the signal.
+    function _expectedAllocationRewards(
+        uint256 blocks,
+        uint256 tokens,
+        uint256 allocatedTokens
+    ) internal pure returns (uint256) {
+        uint256 subgraphRewards = _expectedSubgraphRewards(blocks, SIGNAL, SIGNAL);
+        return (_expectedRewardsPerAllocatedToken(subgraphRewards, allocatedTokens) * tokens) / 1e18;
     }
 
     function _assertNotEmitted(Vm.Log[] memory logs, bytes32 topic) internal view {

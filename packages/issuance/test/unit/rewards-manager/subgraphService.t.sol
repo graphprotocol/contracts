@@ -17,12 +17,6 @@ contract RewardsManagerSubgraphServiceTest is RewardsManagerSharedTest {
 
     address internal allocationID1 = makeAddr("allocationID1");
 
-    /// Rewards of an allocation holding all of the allocated tokens, on a subgraph holding all the signal.
-    function _expectedAllocationRewards(uint256 blocks, uint256 tokens) internal pure returns (uint256) {
-        uint256 subgraphRewards = _expectedSubgraphRewards(blocks, SIGNAL, SIGNAL);
-        return (_expectedRewardsPerAllocatedToken(subgraphRewards, tokens) * tokens) / 1e18;
-    }
-
     function _setActiveAllocation(uint256 tokens, uint256 accRewardsPending) internal {
         issuer.setAllocation(allocationID1, true, indexer, SUBGRAPH_DEPLOYMENT_ID_1, tokens, 0, accRewardsPending);
         issuer.setSubgraphAllocatedTokens(SUBGRAPH_DEPLOYMENT_ID_1, tokens);
@@ -83,7 +77,7 @@ contract RewardsManagerSubgraphServiceTest is RewardsManagerSharedTest {
 
         uint256 rewards = rm.getRewards(address(issuer), allocationID1);
         assertGt(rewards, 0);
-        assertEq(rewards, _expectedAllocationRewards(10, ALLOCATION));
+        assertEq(rewards, _expectedAllocationRewards(10, ALLOCATION, ALLOCATION));
     }
 
     function test_GetRewards_ZeroForInactiveAllocation() public {
@@ -107,7 +101,7 @@ contract RewardsManagerSubgraphServiceTest is RewardsManagerSharedTest {
 
         vm.roll(block.number + 10);
 
-        uint256 expectedRewards = _expectedAllocationRewards(10, ALLOCATION);
+        uint256 expectedRewards = _expectedAllocationRewards(10, ALLOCATION, ALLOCATION);
         uint256 beforeIssuerBalance = token.balanceOf(address(issuer));
         uint256 beforeTotalSupply = token.totalSupply();
 
@@ -249,7 +243,7 @@ contract RewardsManagerSubgraphServiceTest is RewardsManagerSharedTest {
         emit RewardsDeniedDueToEligibility(
             indexer,
             allocationID1,
-            _expectedAllocationRewards(ISSUANCE_RATE_PERIODS, ALLOCATION)
+            _expectedAllocationRewards(ISSUANCE_RATE_PERIODS, ALLOCATION, ALLOCATION)
         );
         vm.prank(address(issuer));
         rm.takeRewards(allocationID1);

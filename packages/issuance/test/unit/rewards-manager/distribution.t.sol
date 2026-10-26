@@ -9,8 +9,6 @@ contract RewardsManagerDistributionTest is RewardsManagerSharedTest {
     event Transfer(address indexed from, address indexed to, uint256 value);
 
     uint256 internal constant ISSUANCE_RATE_PERIODS = 4;
-    /// Blocks per `helpers.mineEpoch`: the old tests set the epoch length to 10
-    uint256 internal constant EPOCH_LENGTH = 10;
 
     bytes32 internal constant SUBGRAPH_DEPLOYMENT_ID_1 = keccak256("subgraphDeploymentID1");
     bytes32 internal constant SUBGRAPH_DEPLOYMENT_ID_2 = keccak256("subgraphDeploymentID2");
@@ -21,25 +19,13 @@ contract RewardsManagerDistributionTest is RewardsManagerSharedTest {
 
     /// Signal, then allocate one block later, so the pre-allocation block is reclaimed (NO_ALLOCATED_TOKENS).
     function _setupIndexerAllocation() internal {
-        _signal(SUBGRAPH_DEPLOYMENT_ID_1, SIGNAL);
-        vm.roll(block.number + 1);
-        _allocate(allocationID1, SUBGRAPH_DEPLOYMENT_ID_1, ALLOCATION);
+        _signalThenAllocate(SUBGRAPH_DEPLOYMENT_ID_1, allocationID1);
     }
 
     function _setupIndexerAllocationSignalingAfter() internal {
         _allocate(allocationID1, SUBGRAPH_DEPLOYMENT_ID_1, ALLOCATION);
         vm.roll(block.number + 1);
         _signal(SUBGRAPH_DEPLOYMENT_ID_1, SIGNAL);
-    }
-
-    /// Rewards for an allocation of `tokens` out of `allocatedTokens` on a subgraph holding all the signal.
-    function _expectedAllocationRewards(
-        uint256 blocks,
-        uint256 tokens,
-        uint256 allocatedTokens
-    ) internal pure returns (uint256) {
-        uint256 subgraphRewards = _expectedSubgraphRewards(blocks, SIGNAL, SIGNAL);
-        return (_expectedRewardsPerAllocatedToken(subgraphRewards, allocatedTokens) * tokens) / 1e18;
     }
 
     /// RewardsManager half of the legacy-Staking close cases: event amount, mint to the issuer and total supply.
