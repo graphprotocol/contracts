@@ -358,7 +358,9 @@ Per-step notes:
    - Switches `packages/testing`'s Solidity imports.
    - Verifies that the Ignition journals see no new futures.
 2. **graph-token.**
-3. **subgraph-discovery.** Also adds GraphCurationToken and SubgraphNFTDescriptor to `horizon/addresses.json`, and switches subgraph-service's GNS and Curation Ignition modules.
+3. **subgraph-discovery.**
+   - Adds GraphCurationToken and SubgraphNFTDescriptor to `horizon/addresses.json`, and switches subgraph-service's GNS and Curation Ignition modules.
+   - Changes the L2GraphToken path in `DiscoveryTest.t.sol`. Its tests load L2GraphToken from `PKG_ARTIFACTS`, but L2GraphToken moved to graph-token in step 2, and Foundry does not compile it in subgraph-discovery. Add a `TOKEN_ARTIFACTS` constant pointing at graph-token's artifacts and load it from there with `_deployArtifact`, including its `fs_permissions` entry. This is the one place where Phase 1 changes a test body.
 4. **horizon gets EpochManager.**
    - Proves the two-compiler config, the `-v3` alias, the Foundry skip, the lint ignores and the `-v3` CI grep rule.
    - Bumps horizon's OpenZeppelin floor to `^5.4.0`.
