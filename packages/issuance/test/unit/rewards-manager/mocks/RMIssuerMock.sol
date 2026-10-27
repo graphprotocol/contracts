@@ -33,7 +33,8 @@ contract RMIssuerMock is IRewardsIssuer {
 
     /// Takes rewards while the allocation is still active, then deactivates it.
     /// @dev Legacy Staking called `onSubgraphAllocationUpdate` instead of `takeRewards` for a zero POI or an
-    /// allocation under one epoch old. The ported tests never hit that case.
+    /// allocation under one epoch old. Only the zero-reward cases in `legacySuite.t.sol` hit that case, and they call
+    /// the hook themselves.
     function close(address allocationId) external returns (uint256 rewards) {
         rewards = rm.takeRewards(allocationId);
         Allocation storage allocation = _allocations[allocationId];

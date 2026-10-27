@@ -11,11 +11,6 @@ contract RewardsManagerConfigTest is RewardsManagerSharedTest {
 
     address internal availabilityOracle = makeAddr("availabilityOracle");
 
-    function _setAvailabilityOracle() internal {
-        vm.prank(governor);
-        rm.setSubgraphAvailabilityOracle(availabilityOracle);
-    }
-
     // -- initialize --
 
     function test_Initialize_RevertWhen_CalledOnImplementation() public {
@@ -117,7 +112,7 @@ contract RewardsManagerConfigTest is RewardsManagerSharedTest {
     }
 
     function test_SubgraphAvailabilityService_SetOracle() public {
-        _setAvailabilityOracle();
+        _setAvailabilityOracle(availabilityOracle);
         assertEq(rm.subgraphAvailabilityOracle(), availabilityOracle);
     }
 
@@ -128,7 +123,7 @@ contract RewardsManagerConfigTest is RewardsManagerSharedTest {
     }
 
     function test_SubgraphAvailabilityService_Deny() public {
-        _setAvailabilityOracle();
+        _setAvailabilityOracle(availabilityOracle);
 
         vm.expectEmit(address(rm));
         emit RewardsDenylistUpdated(SUBGRAPH_DEPLOYMENT_ID_1, block.number);
@@ -138,7 +133,7 @@ contract RewardsManagerConfigTest is RewardsManagerSharedTest {
     }
 
     function test_SubgraphAvailabilityService_Undeny() public {
-        _setAvailabilityOracle();
+        _setAvailabilityOracle(availabilityOracle);
 
         vm.prank(availabilityOracle);
         rm.setDenied(SUBGRAPH_DEPLOYMENT_ID_1, true);
@@ -152,7 +147,7 @@ contract RewardsManagerConfigTest is RewardsManagerSharedTest {
     }
 
     function test_SubgraphAvailabilityService_DenyAlreadyDeniedIsNoOp() public {
-        _setAvailabilityOracle();
+        _setAvailabilityOracle(availabilityOracle);
 
         vm.prank(availabilityOracle);
         rm.setDenied(SUBGRAPH_DEPLOYMENT_ID_1, true);
@@ -169,7 +164,7 @@ contract RewardsManagerConfigTest is RewardsManagerSharedTest {
     }
 
     function test_SubgraphAvailabilityService_UndenyNotDeniedIsNoOp() public {
-        _setAvailabilityOracle();
+        _setAvailabilityOracle(availabilityOracle);
 
         assertFalse(rm.isDenied(SUBGRAPH_DEPLOYMENT_ID_1));
 
@@ -189,7 +184,7 @@ contract RewardsManagerConfigTest is RewardsManagerSharedTest {
     }
 
     function test_SubgraphAvailabilityService_SetMinimumSubgraphSignalFromOracle() public {
-        _setAvailabilityOracle();
+        _setAvailabilityOracle(availabilityOracle);
 
         uint256 newMinimumSignal = 2000 ether;
         vm.expectEmit(address(rm));

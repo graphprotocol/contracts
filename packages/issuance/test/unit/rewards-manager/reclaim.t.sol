@@ -32,20 +32,9 @@ contract RewardsManagerReclaimTest is RewardsManagerSharedTest {
 
     // -- Helpers --
 
-    /// Old `setupIndexerAllocation` followed by `mineEpoch`: the allocation earns `EPOCH_LENGTH` blocks.
-    function _allocateAndAccrue() internal {
-        _signalThenAllocate(SUBGRAPH_DEPLOYMENT_ID_1, allocationID1);
-        vm.roll(block.number + EPOCH_LENGTH);
-    }
-
     /// Rewards of the single allocation over `EPOCH_LENGTH` blocks.
     function _epochAllocationRewards() internal pure returns (uint256) {
         return _expectedAllocationRewards(EPOCH_LENGTH, ALLOCATION, ALLOCATION);
-    }
-
-    function _setReclaimAddress(bytes32 reason, address target) internal {
-        vm.prank(governor);
-        rm.setReclaimAddress(reason, target);
     }
 
     function _setDefaultReclaimAddress(address target) internal {
@@ -53,19 +42,9 @@ contract RewardsManagerReclaimTest is RewardsManagerSharedTest {
         rm.setDefaultReclaimAddress(target);
     }
 
-    function _setAvailabilityOracle() internal {
-        vm.prank(governor);
-        rm.setSubgraphAvailabilityOracle(governor);
-    }
-
-    function _setDenied(bool deny) internal {
-        vm.prank(governor);
-        rm.setDenied(SUBGRAPH_DEPLOYMENT_ID_1, deny);
-    }
-
     function _deny() internal {
-        _setAvailabilityOracle();
-        _setDenied(true);
+        _setAvailabilityOracle(governor);
+        _setDenied(SUBGRAPH_DEPLOYMENT_ID_1, true);
     }
 
     /// Allocation data on the issuer, as the old test's `MockSubgraphService.setAllocation`.
@@ -88,7 +67,7 @@ contract RewardsManagerReclaimTest is RewardsManagerSharedTest {
     /// Old `default reclaim address fallback` beforeEach.
     modifier withAllocationAndAvailabilityOracle() {
         _signalThenAllocate(SUBGRAPH_DEPLOYMENT_ID_1, allocationID1);
-        _setAvailabilityOracle();
+        _setAvailabilityOracle(governor);
         _;
     }
 
@@ -147,7 +126,7 @@ contract RewardsManagerReclaimTest is RewardsManagerSharedTest {
     function test_ReclaimDeniedRewardsSubgraphDenylist_MintsToReclaimAddressWhenSet() public {
         _setReclaimAddress(RewardsCondition.SUBGRAPH_DENIED, reclaimWallet);
         _deny();
-        _allocateAndAccrue();
+        _allocateAndAccrue(SUBGRAPH_DEPLOYMENT_ID_1, allocationID1);
 
         uint256 expectedRewards = _subgraphRewards(EPOCH_LENGTH);
         uint256 balanceBefore = token.balanceOf(reclaimWallet);
@@ -169,11 +148,11 @@ contract RewardsManagerReclaimTest is RewardsManagerSharedTest {
 
     function test_ReclaimDeniedRewardsSubgraphDenylist_ReclaimsPreDenialRewardsWhenDeniedAfterAllocation() public {
         _setReclaimAddress(RewardsCondition.SUBGRAPH_DENIED, reclaimWallet);
-        _setAvailabilityOracle();
+        _setAvailabilityOracle(governor);
 
         // Allocate first, then deny: the pre-denial rewards stay with the allocation
-        _allocateAndAccrue();
-        _setDenied(true);
+        _allocateAndAccrue(SUBGRAPH_DEPLOYMENT_ID_1, allocationID1);
+        _setDenied(SUBGRAPH_DEPLOYMENT_ID_1, true);
         // Close in the next block, as in Hardhat: that block is reclaimed at the subgraph level
         vm.roll(block.number + 1);
 
@@ -207,7 +186,7 @@ contract RewardsManagerReclaimTest is RewardsManagerSharedTest {
 
     function test_ReclaimDeniedRewardsSubgraphDenylist_NoMintWhenReclaimAddressNotSet() public {
         _deny();
-        _allocateAndAccrue();
+        _allocateAndAccrue(SUBGRAPH_DEPLOYMENT_ID_1, allocationID1);
 
         vm.recordLogs();
         _close(allocationID1);
@@ -221,7 +200,7 @@ contract RewardsManagerReclaimTest is RewardsManagerSharedTest {
     function test_ReclaimDeniedRewardsEligibility_MintsToReclaimAddressWhenSet() public {
         _setReclaimAddress(RewardsCondition.INDEXER_INELIGIBLE, reclaimWallet);
         _useEligibilityOracle(false);
-        _allocateAndAccrue();
+        _allocateAndAccrue(SUBGRAPH_DEPLOYMENT_ID_1, allocationID1);
 
         uint256 expectedRewards = _epochAllocationRewards();
         uint256 balanceBefore = token.balanceOf(reclaimWallet);
@@ -243,7 +222,7 @@ contract RewardsManagerReclaimTest is RewardsManagerSharedTest {
 
     function test_ReclaimDeniedRewardsEligibility_NoMintWhenReclaimAddressNotSet() public {
         _useEligibilityOracle(false);
-        _allocateAndAccrue();
+        _allocateAndAccrue(SUBGRAPH_DEPLOYMENT_ID_1, allocationID1);
 
         vm.recordLogs();
         vm.expectEmit(address(rm), 1);
@@ -259,7 +238,7 @@ contract RewardsManagerReclaimTest is RewardsManagerSharedTest {
         _setReclaimAddress(RewardsCondition.INDEXER_INELIGIBLE, otherWallet);
         _deny();
         _useEligibilityOracle(false);
-        _allocateAndAccrue();
+        _allocateAndAccrue(SUBGRAPH_DEPLOYMENT_ID_1, allocationID1);
 
         uint256 expectedRewards = _subgraphRewards(EPOCH_LENGTH);
         uint256 subgraphDeniedBalanceBefore = token.balanceOf(reclaimWallet);
@@ -287,7 +266,7 @@ contract RewardsManagerReclaimTest is RewardsManagerSharedTest {
         _setReclaimAddress(RewardsCondition.INDEXER_INELIGIBLE, otherWallet);
         _deny();
         _useEligibilityOracle(false);
-        _allocateAndAccrue();
+        _allocateAndAccrue(SUBGRAPH_DEPLOYMENT_ID_1, allocationID1);
 
         uint256 balanceBefore = token.balanceOf(otherWallet);
 
@@ -306,12 +285,12 @@ contract RewardsManagerReclaimTest is RewardsManagerSharedTest {
         public
     {
         _setReclaimAddress(RewardsCondition.INDEXER_INELIGIBLE, reclaimWallet);
-        _setAvailabilityOracle();
+        _setAvailabilityOracle(governor);
         _useEligibilityOracle(false);
 
         // Allocate first, then deny, so the rewards reach `_deniedRewards`
-        _allocateAndAccrue();
-        _setDenied(true);
+        _allocateAndAccrue(SUBGRAPH_DEPLOYMENT_ID_1, allocationID1);
+        _setDenied(SUBGRAPH_DEPLOYMENT_ID_1, true);
         vm.roll(block.number + 1);
 
         uint256 expectedRewards = _epochAllocationRewards();
@@ -339,7 +318,7 @@ contract RewardsManagerReclaimTest is RewardsManagerSharedTest {
     function test_ReclaimPrecedenceFirstSuccessfulReclaimWins_DropsWhenNeitherAddressConfigured() public {
         _deny();
         _useEligibilityOracle(false);
-        _allocateAndAccrue();
+        _allocateAndAccrue(SUBGRAPH_DEPLOYMENT_ID_1, allocationID1);
 
         vm.recordLogs();
         _close(allocationID1);
@@ -354,7 +333,7 @@ contract RewardsManagerReclaimTest is RewardsManagerSharedTest {
     {
         _deny();
         _useEligibilityOracle(true);
-        _allocateAndAccrue();
+        _allocateAndAccrue(SUBGRAPH_DEPLOYMENT_ID_1, allocationID1);
 
         vm.recordLogs();
         _close(allocationID1);
@@ -476,7 +455,7 @@ contract RewardsManagerReclaimTest is RewardsManagerSharedTest {
         withAllocationAndAvailabilityOracle
     {
         _setDefaultReclaimAddress(reclaimWallet);
-        _setDenied(true);
+        _setDenied(SUBGRAPH_DEPLOYMENT_ID_1, true);
         vm.roll(block.number + MINED_BLOCKS);
 
         uint256 expectedRewards = _subgraphRewards(MINED_BLOCKS);
@@ -503,7 +482,7 @@ contract RewardsManagerReclaimTest is RewardsManagerSharedTest {
     {
         _setDefaultReclaimAddress(otherWallet);
         _setReclaimAddress(RewardsCondition.SUBGRAPH_DENIED, reclaimWallet);
-        _setDenied(true);
+        _setDenied(SUBGRAPH_DEPLOYMENT_ID_1, true);
         vm.roll(block.number + MINED_BLOCKS);
 
         uint256 balanceBefore = token.balanceOf(reclaimWallet);
@@ -672,12 +651,12 @@ contract RewardsManagerReclaimTest is RewardsManagerSharedTest {
     {
         _setReclaimAddress(RewardsCondition.SUBGRAPH_DENIED, reclaimWallet);
         _setReclaimAddress(RewardsCondition.INDEXER_INELIGIBLE, otherWallet);
-        _setAvailabilityOracle();
+        _setAvailabilityOracle(governor);
         _useEligibilityOracle(false);
 
         // Allocate first, then deny, so the rewards reach `_deniedRewards`
-        _allocateAndAccrue();
-        _setDenied(true);
+        _allocateAndAccrue(SUBGRAPH_DEPLOYMENT_ID_1, allocationID1);
+        _setDenied(SUBGRAPH_DEPLOYMENT_ID_1, true);
         vm.roll(block.number + 1);
 
         uint256 allocationRewards = _epochAllocationRewards();

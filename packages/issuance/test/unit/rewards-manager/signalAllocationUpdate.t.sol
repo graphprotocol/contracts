@@ -37,11 +37,6 @@ contract RewardsManagerSignalAllocationUpdateTest is RewardsManagerSharedTest {
         vm.stopPrank();
     }
 
-    function _setReclaimAddress(bytes32 reason, address target) internal {
-        vm.prank(governor);
-        rm.setReclaimAddress(reason, target);
-    }
-
     function _perAllocatedToken(uint256 blocks) internal pure returns (uint256) {
         return _expectedRewardsPerAllocatedToken(_subgraphRewards(blocks), ALLOCATION);
     }

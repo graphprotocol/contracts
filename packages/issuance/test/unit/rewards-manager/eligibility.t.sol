@@ -17,23 +17,6 @@ contract RewardsManagerEligibilityTest is RewardsManagerSharedTest {
 
     address internal allocationID1 = makeAddr("allocationID1");
 
-    /// Old `setupIndexerAllocation` followed by `mineEpoch`: the allocation earns `EPOCH_LENGTH` blocks.
-    function _allocateAndAccrue() internal returns (uint256 expectedRewards) {
-        _signalThenAllocate(SUBGRAPH_DEPLOYMENT_ID_1, allocationID1);
-        vm.roll(block.number + EPOCH_LENGTH);
-        return _expectedAllocationRewards(EPOCH_LENGTH, ALLOCATION, ALLOCATION);
-    }
-
-    function _setAvailabilityOracle() internal {
-        vm.prank(governor);
-        rm.setSubgraphAvailabilityOracle(governor);
-    }
-
-    function _setDenied(bool deny) internal {
-        vm.prank(governor);
-        rm.setDenied(SUBGRAPH_DEPLOYMENT_ID_1, deny);
-    }
-
     function _findLog(Vm.Log[] memory logs, bytes32 topic) internal view returns (Vm.Log memory) {
         for (uint256 i = 0; i < logs.length; ++i) {
             if (logs[i].emitter == address(rm) && logs[i].topics[0] == topic) return logs[i];
@@ -99,7 +82,7 @@ contract RewardsManagerEligibilityTest is RewardsManagerSharedTest {
 
     function test_RewardsEligibilityInTakeRewards_DeniesRewardsDueToEligibilityOracle() public {
         _useEligibilityOracle(false);
-        uint256 expectedRewards = _allocateAndAccrue();
+        uint256 expectedRewards = _allocateAndAccrue(SUBGRAPH_DEPLOYMENT_ID_1, allocationID1);
 
         vm.expectEmit(address(rm), 1);
         emit RewardsDeniedDueToEligibility(indexer, allocationID1, expectedRewards);
@@ -108,7 +91,7 @@ contract RewardsManagerEligibilityTest is RewardsManagerSharedTest {
 
     function test_RewardsEligibilityInTakeRewards_AllowsRewardsWhenOracleApproves() public {
         _useEligibilityOracle(true);
-        uint256 expectedRewards = _allocateAndAccrue();
+        uint256 expectedRewards = _allocateAndAccrue(SUBGRAPH_DEPLOYMENT_ID_1, allocationID1);
 
         vm.expectEmit(address(rm), 1);
         emit HorizonRewardsAssigned(indexer, allocationID1, expectedRewards);
@@ -118,12 +101,12 @@ contract RewardsManagerEligibilityTest is RewardsManagerSharedTest {
     // -- rewards eligibility oracle and denylist interaction --
 
     function test_RewardsEligibilityOracleAndDenylistInteraction_PrioritizesDenylistOverOracleWhenBothDeny() public {
-        _setAvailabilityOracle();
-        _setDenied(true);
+        _setAvailabilityOracle(governor);
+        _setDenied(SUBGRAPH_DEPLOYMENT_ID_1, true);
         _useEligibilityOracle(false);
 
         // Created while denied: the accumulator is frozen, so the allocation has no rewards to deny
-        _allocateAndAccrue();
+        _allocateAndAccrue(SUBGRAPH_DEPLOYMENT_ID_1, allocationID1);
 
         vm.recordLogs();
         _close(allocationID1);
@@ -137,7 +120,7 @@ contract RewardsManagerEligibilityTest is RewardsManagerSharedTest {
         public
     {
         _useEligibilityOracle(false);
-        uint256 expectedRewards = _allocateAndAccrue();
+        uint256 expectedRewards = _allocateAndAccrue(SUBGRAPH_DEPLOYMENT_ID_1, allocationID1);
 
         vm.expectEmit(address(rm), 1);
         emit RewardsDeniedDueToEligibility(indexer, allocationID1, expectedRewards);
@@ -146,7 +129,7 @@ contract RewardsManagerEligibilityTest is RewardsManagerSharedTest {
 
     function test_RewardsEligibilityOracleAndDenylistInteraction_IndexerBecomesIneligibleMidAllocation() public {
         _useEligibilityOracle(true);
-        uint256 expectedRewards = _allocateAndAccrue();
+        uint256 expectedRewards = _allocateAndAccrue(SUBGRAPH_DEPLOYMENT_ID_1, allocationID1);
 
         // Eligibility is checked at close time, not at creation time
         oracle.setIndexerEligible(indexer, false);
@@ -158,7 +141,7 @@ contract RewardsManagerEligibilityTest is RewardsManagerSharedTest {
 
     function test_RewardsEligibilityOracleAndDenylistInteraction_IndexerBecomesEligibleMidAllocation() public {
         _useEligibilityOracle(false);
-        uint256 expectedRewards = _allocateAndAccrue();
+        uint256 expectedRewards = _allocateAndAccrue(SUBGRAPH_DEPLOYMENT_ID_1, allocationID1);
 
         oracle.setIndexerEligible(indexer, true);
 
@@ -168,10 +151,10 @@ contract RewardsManagerEligibilityTest is RewardsManagerSharedTest {
     }
 
     function test_RewardsEligibilityOracleAndDenylistInteraction_DenylistAddedMidAllocation() public {
-        _setAvailabilityOracle();
-        _allocateAndAccrue();
+        _setAvailabilityOracle(governor);
+        _allocateAndAccrue(SUBGRAPH_DEPLOYMENT_ID_1, allocationID1);
 
-        _setDenied(true);
+        _setDenied(SUBGRAPH_DEPLOYMENT_ID_1, true);
         vm.roll(block.number + 1);
 
         vm.expectEmit(address(rm));
@@ -180,14 +163,14 @@ contract RewardsManagerEligibilityTest is RewardsManagerSharedTest {
     }
 
     function test_RewardsEligibilityOracleAndDenylistInteraction_DenylistRemovedMidAllocation() public {
-        _setAvailabilityOracle();
-        _setDenied(true);
+        _setAvailabilityOracle(governor);
+        _setDenied(SUBGRAPH_DEPLOYMENT_ID_1, true);
 
         // Created while denied: rewards accrued while denied are reclaimed at the subgraph level
-        _allocateAndAccrue();
+        _allocateAndAccrue(SUBGRAPH_DEPLOYMENT_ID_1, allocationID1);
 
         // Undeny snapshots the accumulator, then only post-undeny rewards accrue
-        _setDenied(false);
+        _setDenied(SUBGRAPH_DEPLOYMENT_ID_1, false);
         vm.roll(block.number + EPOCH_LENGTH);
 
         vm.expectEmit(address(rm));
@@ -202,7 +185,7 @@ contract RewardsManagerEligibilityTest is RewardsManagerSharedTest {
     function test_RewardsEligibilityOracleAndDenylistInteraction_AllowsRewardsWhenOracleIsZeroAddress() public {
         assertEq(address(rm.getProviderEligibilityOracle()), address(0));
 
-        uint256 expectedRewards = _allocateAndAccrue();
+        uint256 expectedRewards = _allocateAndAccrue(SUBGRAPH_DEPLOYMENT_ID_1, allocationID1);
 
         vm.expectEmit(address(rm), 1);
         emit HorizonRewardsAssigned(indexer, allocationID1, expectedRewards);
@@ -214,7 +197,7 @@ contract RewardsManagerEligibilityTest is RewardsManagerSharedTest {
         vm.prank(governor);
         rm.setRevertOnIneligible(true);
 
-        _allocateAndAccrue();
+        _allocateAndAccrue(SUBGRAPH_DEPLOYMENT_ID_1, allocationID1);
 
         vm.expectRevert(bytes("Indexer not eligible for rewards"));
         issuer.close(allocationID1);
@@ -225,7 +208,7 @@ contract RewardsManagerEligibilityTest is RewardsManagerSharedTest {
         vm.prank(governor);
         rm.setRevertOnIneligible(true);
 
-        uint256 expectedRewards = _allocateAndAccrue();
+        uint256 expectedRewards = _allocateAndAccrue(SUBGRAPH_DEPLOYMENT_ID_1, allocationID1);
 
         vm.expectEmit(address(rm));
         emit HorizonRewardsAssigned(indexer, allocationID1, expectedRewards);
@@ -238,7 +221,7 @@ contract RewardsManagerEligibilityTest is RewardsManagerSharedTest {
         _useEligibilityOracle(false);
         assertFalse(rm.getRevertOnIneligible());
 
-        uint256 expectedRewards = _allocateAndAccrue();
+        uint256 expectedRewards = _allocateAndAccrue(SUBGRAPH_DEPLOYMENT_ID_1, allocationID1);
 
         vm.expectEmit(address(rm), 1);
         emit RewardsDeniedDueToEligibility(indexer, allocationID1, expectedRewards);
@@ -250,9 +233,9 @@ contract RewardsManagerEligibilityTest is RewardsManagerSharedTest {
         uint256 snapshot = vm.snapshotState();
 
         // Denylist denial: event WITHOUT amount. Deny after the allocation so there are rewards to deny.
-        _setAvailabilityOracle();
-        _allocateAndAccrue();
-        _setDenied(true);
+        _setAvailabilityOracle(governor);
+        _allocateAndAccrue(SUBGRAPH_DEPLOYMENT_ID_1, allocationID1);
+        _setDenied(SUBGRAPH_DEPLOYMENT_ID_1, true);
         vm.roll(block.number + 1);
 
         vm.recordLogs();
@@ -268,7 +251,7 @@ contract RewardsManagerEligibilityTest is RewardsManagerSharedTest {
 
         // Eligibility denial: event WITH amount, what the indexer would have received
         _useEligibilityOracle(false);
-        uint256 expectedRewards = _allocateAndAccrue();
+        uint256 expectedRewards = _allocateAndAccrue(SUBGRAPH_DEPLOYMENT_ID_1, allocationID1);
 
         vm.recordLogs();
         _close(allocationID1);

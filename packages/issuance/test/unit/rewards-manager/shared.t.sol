@@ -92,6 +92,29 @@ contract RewardsManagerSharedTest is ProtocolFixture {
         _allocate(allocationId, sd, ALLOCATION);
     }
 
+    /// Old `setupIndexerAllocation` followed by `mineEpoch`: the allocation earns `EPOCH_LENGTH` blocks.
+    function _allocateAndAccrue(bytes32 sd, address allocationId) internal returns (uint256 expectedRewards) {
+        _signalThenAllocate(sd, allocationId);
+        vm.roll(block.number + EPOCH_LENGTH);
+        return _expectedAllocationRewards(EPOCH_LENGTH, ALLOCATION, ALLOCATION);
+    }
+
+    function _setAvailabilityOracle(address availabilityOracle) internal {
+        vm.prank(governor);
+        rm.setSubgraphAvailabilityOracle(availabilityOracle);
+    }
+
+    /// Calls `setDenied` as governor, so the caller must have set governor as the availability oracle.
+    function _setDenied(bytes32 sd, bool deny) internal {
+        vm.prank(governor);
+        rm.setDenied(sd, deny);
+    }
+
+    function _setReclaimAddress(bytes32 reason, address target) internal {
+        vm.prank(governor);
+        rm.setReclaimAddress(reason, target);
+    }
+
     /// Sets the fixture's `oracle` as the eligibility oracle, answering `eligibleByDefault` for every indexer.
     function _useEligibilityOracle(bool eligibleByDefault) internal {
         oracle.setDefaultResponse(eligibleByDefault);
