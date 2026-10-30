@@ -11,10 +11,6 @@
     "bytecode": "00e6f46e306ed4b56bee2d3d3dba75404e939d56213f9a1720fb733b3697f4f8",
     "deployedBytecode": "b31676ab0ab9ae7c5c21a3e29e58d1c05f80994a2462a852df1707e9cec68a3b"
   },
-  "Curation": {
-    "bytecode": "467680b598f1c37cf0f9ce30ca421168531ec22d4f2e6dea1b230efe5e4f91a3",
-    "deployedBytecode": "c8b0bdcab52a661ff3a8615f5bf29336615832f4f0b4b3cf4e2506c6b22a87b6"
-  },
   "DisputeManager": {
     "bytecode": "1c35b2800868b36ed27d6dad5e812ef97cccc05ad1883240ac1b1efb1443d192",
     "deployedBytecode": "1d2a0f2ae36930e31bab47c7a00e3eec3d6c92320d9d9d89b614f20f2ea2fa34"
@@ -47,17 +43,9 @@
     "bytecode": "8385b1f97086b46ce0eb3b93d42d5922595bafb8f1eed14588dd3712855ea44d",
     "deployedBytecode": "6d7255530d2e65918aa05965b6f88051c0f4ae5c69a388b61764cab3fcfd2d80"
   },
-  "L1GNS": {
-    "bytecode": "1e441ceeaa5098b613b6666e1d0624c3e71425dbb3910b4223595ef9bafe43bc",
-    "deployedBytecode": "064db8dfa22c6533327307135ef15d5f98e90d462c350a50dd6d9bc75aefe737"
-  },
   "L1GraphTokenGateway": {
     "bytecode": "25293735575b568a928cf162c13f5bb4ca848833be86a98ad2c4ef7d3970aada",
     "deployedBytecode": "0b35cd9f9a56eff56b0c97eae2ca8be472cfffecdf83151deae47bda2135bc54"
-  },
-  "L1Staking": {
-    "bytecode": "4b4d19ef9a2a48fc0214593215d24e8f18681951efa9041443d30497c08f718b",
-    "deployedBytecode": "aeefa8093800d94ff5244470d26851af2b64711bb73a6c8701b59dfb7132377e"
   },
   "L2Curation": {
     "bytecode": "8d160a02518b02079b6c6fcdb9be6d356eed976f37adbf40fc9e06db369bd171",
@@ -75,10 +63,6 @@
     "bytecode": "3960ebe0a49a7b2dadb1f866434704f15d1618e8f23f22b24b9791fc5edd172c",
     "deployedBytecode": "9f500273f04af6e593aba64049e912196f61c912b5ff4a885579b8af6150425d"
   },
-  "LibExponential": {
-    "bytecode": "cf8e0f70123c2a525e61ab51fcfa8549fd1dc364ffb0f62890504323c3ea1b92",
-    "deployedBytecode": "d4a129118f42b08e5ed9dd7e29b76fe18767d64ec62e778447a013a25e722ec8"
-  },
   "PaymentsEscrow": {
     "bytecode": "c5ee87225cd0c023d298d810457736f2a6fcf011d8e9be8bfeea96c4c34936f5",
     "deployedBytecode": "07e1e1055195ed396e9ac8df7d84d98a37644bea8b48f9ccab0f31f677d53d99"
@@ -86,10 +70,6 @@
   "RewardsManager": {
     "bytecode": "0dea68140e59bec61d669269c2097630bd0a9da9b2a241fe887073f741df30ac",
     "deployedBytecode": "f361c19bcc1553e923fef7a16d423766cf3a0ea2577223f61b84fe41cf1a77da"
-  },
-  "StakingExtension": {
-    "bytecode": "aa3a270946cab805c889d9ef1fd6d3541d8f736fb2ec85b51543836a5c38b23f",
-    "deployedBytecode": "55758d8712cd9eda9b96bc3922a9d82c8ea3f31be1772d4ea52e9118af611107"
   },
   "SubgraphNFT": {
     "bytecode": "830d22ac49214e1f6ba157c5cc7794d69277e96d5c93a773272ab3055a13426a",

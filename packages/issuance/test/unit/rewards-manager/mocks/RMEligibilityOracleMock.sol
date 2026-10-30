@@ -4,7 +4,7 @@ pragma solidity ^0.8.27;
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import { IProviderEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IProviderEligibility.sol";
 
-/// 0.8 port of packages/contracts/contracts/tests/MockRewardsEligibilityOracle.sol.
+/// Mock for the RewardsManager tests.
 contract RMEligibilityOracleMock is IProviderEligibility, IERC165 {
     mapping(address indexer => bool eligibility) private _eligible;
     mapping(address indexer => bool set) private _isSet;
