@@ -1,4 +1,4 @@
-import GraphTokenGatewayArtifact from '@graphprotocol/contracts/artifacts/contracts/l2/gateway/L2GraphTokenGateway.sol/L2GraphTokenGateway.json'
+import GraphTokenGatewayArtifact from '@graphprotocol/contracts-7.3.0/artifacts/contracts/l2/gateway/L2GraphTokenGateway.sol/L2GraphTokenGateway.json'
 import { buildModule } from '@nomicfoundation/ignition-core'
 
 import ControllerModule from '../periphery/Controller'

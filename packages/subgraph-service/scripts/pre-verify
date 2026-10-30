@@ -1,7 +1,13 @@
 #!/bin/bash
 
 # Move external artifacts
-cp -r ../contracts/artifacts/contracts/* build/contracts/contracts
+cp -r node_modules/@graphprotocol/contracts-7.3.0/artifacts/contracts/* build/contracts/contracts
+cp -r node_modules/@graphprotocol/contracts-7.3.0/artifacts/build-info/* build/contracts/build-info
+
+# RewardsManager, L2Curation and L2GNS are deployed from live artifacts
+cp -r ../contracts/artifacts/contracts/rewards/RewardsManager.sol build/contracts/contracts/rewards
+cp -r ../contracts/artifacts/contracts/l2/curation/L2Curation.sol build/contracts/contracts/l2/curation
+cp -r ../contracts/artifacts/contracts/l2/discovery/L2GNS.sol build/contracts/contracts/l2/discovery
 cp -r ../contracts/artifacts/build-info/* build/contracts/build-info
 
 cp -r ../horizon/build/contracts/contracts/* build/contracts/contracts
