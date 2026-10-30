@@ -63,7 +63,7 @@ Deleted, with no replacement:
 - Staking: L2Staking. The Arbitrum proxy now runs HorizonStaking.
 - AllocationExchange, EthereumDIDRegistry, SubgraphAvailabilityManager.
 - The Arbitrum DisputeManager and ServiceRegistry, along with their storage contracts.
-- Mocks under `contracts/tests/` that no ported test needs: ArbSysMock, `tests/ens/*`, LegacyGNSMock, MockERC165, MockSubgraphService, and both L1GraphTokenLockTransferTool mocks.
+- Mocks under `contracts/tests/` that no ported test needs: ArbSysMock, `tests/ens/*`, LegacyGNSMock, MockERC165, MockIssuanceAllocator, MockRewardsEligibilityOracle, MockSubgraphService, and both L1GraphTokenLockTransferTool mocks.
 - Each mainnet-only contract is deleted from `packages/contracts` only after its verified source exists in `legacy`.
 
 #### legacy package
@@ -166,7 +166,7 @@ Notes:
 - Today `l2GNS.test.ts` stakes and allocates through L2Staking. Its port uses a staking mock instead.
 - `controller.test.ts`, `pausing.test.ts` and `admin.test.ts` use EpochManager, Staking and Curation. Their ports use Managed or GraphUpgradeable mocks instead.
 - `l2GraphTokenGateway.test.ts` uses RewardsManager. Its port uses a plain callhook receiver mock.
-- `lib/gnsUtils.ts` is also imported by `gns.test.ts`, which is dropped but stays until D1. T3 deletes `gns.test.ts` together with `gnsUtils.ts`.
+- `lib/gnsUtils.ts` is also imported by `gns.test.ts`, which is dropped. T3 deletes `gns.test.ts` together with `gnsUtils.ts`.
 
 Dropped, because their contracts are deleted or legacy:
 
@@ -176,11 +176,11 @@ Dropped, because their contracts are deleted or legacy:
 
 #### Mocks needed by ported tests
 
-| Mock                                                                                 | Destination                                                                             |
-| ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
-| GovernedMock, ManagedMock (new, 0.7.6)                                               | graph-core                                                                              |
-| BridgeMock, InboxMock, OutboxMock, CallhookReceiverMock, TokenUtilsMock (new, 0.7.6) | graph-token                                                                             |
-| MockIssuanceAllocator, MockRewardsEligibilityOracle                                  | issuance (reuse its existing 0.8 mocks where they exist; otherwise rewrite them in 0.8) |
+| Mock                                                                                 | Destination          |
+| ------------------------------------------------------------------------------------ | -------------------- |
+| GovernedMock, ManagedMock (new, 0.7.6)                                               | graph-core           |
+| BridgeMock, InboxMock, OutboxMock, CallhookReceiverMock, TokenUtilsMock (new, 0.7.6) | graph-token          |
+| New 0.8 test mocks for the issuance allocator, eligibility oracle and rewards issuer | issuance's test tree |
 
 ManagedMock and TokenUtilsMock are added to `packages/contracts/contracts/tests/` in Phase T, because 0.8 tests can't compile a Managed contract or call the TokenUtils library. They move with their packages in Phase 1. ArbSysMock is not used (ArbSys is faked with `vm.mockCall`), so it stays on the delete list.
 
@@ -192,7 +192,7 @@ Every test-port PR includes a table mapping each old test case to its new Foundr
 
 Ignition deployed Horizon, but new deployments go through `packages/deployment`. The Ignition modules and journals stay as the record of that deployment, with one mechanical change to their imports.
 
-- horizon and subgraph-service import 14 artifacts in 15 module files from `@graphprotocol/contracts/artifacts/...`. Each package's `tasks/deploy.ts` imports the modules, and `loadTasks` loads it in every built Hardhat run. Both tsconfigs also include `ignition/**/*.ts`. The imports must therefore keep resolving after the workspace package loses those artifacts.
+- horizon and subgraph-service import 14 artifacts in 15 module files from `@graphprotocol/contracts/artifacts/...`. Each package's `tasks/deploy.ts` imports the modules (`migrate/*` dynamically), and `loadTasks` loads it in every built Hardhat run. Both tsconfigs also include `ignition/**/*.ts`. The imports must therefore keep resolving after the workspace package loses those artifacts.
 - Both packages can't simply pin `@graphprotocol/contracts` to 7.3.0. Their Solidity imports from it still need the workspace version until Phase 1: the published sources use the pragma `^0.7.6 || 0.8.27`, and these packages compile with 0.8.35.
 - Before D3, both packages add the devDependency `"@graphprotocol/contracts-7.3.0": "npm:@graphprotocol/contracts@7.3.0"`, and the module imports change only the package name to `@graphprotocol/contracts-7.3.0`. The tarball ships every imported artifact. Journals and module logic don't change.
 - Their `@graphprotocol/contracts` workspace dependency stays for Solidity imports and is removed in Phase 1 as usual.
@@ -225,7 +225,7 @@ Ignition deployed Horizon, but new deployments go through `packages/deployment`.
 - The root `lint:yaml` drops `packages/contracts/task/config`.
 - `count-patterns.txt` paths are updated.
 - `@graphprotocol/sdk` is removed from the `pnpm-workspace.yaml` catalog and from `minumumReleaseAgeExclude` (the key's real, misspelled name).
-- `build-test.yml` coverage collection is updated for the removed packages and the new ones.
+- `build-test.yml` finds coverage files itself, so it needs no change for the removed packages or the new ones.
 - The Docker image (`Dockerfile`, `publish-image.yml`) is checked for use of `packages/contracts` or the sdk before deletion.
 
 #### token-distribution
@@ -320,7 +320,9 @@ The detailed task split is in `phase-t-plan.md`.
 
   Live files that also appear in `legacy` bundles stay: Multicall, GNS, GNSStorage, CurationStorage, Managed, GraphUpgradeable, TokenUtils and MathUtils. Nothing that remains imports a deleted file. A PR just before it adds the Ignition alias (§5). L1GNS, Curation, L1Staking, StakingExtension and LibExponential leave the 0c manifest, because `legacy` now checks them.
 
-After D3, `packages/contracts` contains only live contracts.
+After D3, `packages/contracts` contains only live contracts and the mocks ported tests use.
+
+Phase D moves nothing and leaves the live bytecode hashes unchanged, so the fork check under Verification starts with Phase 1.
 
 ### Phase 1: moves, bottom-up (one PR each, `git mv` to keep history)
 
