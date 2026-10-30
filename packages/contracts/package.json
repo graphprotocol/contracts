@@ -20,12 +20,10 @@
   "types": "index.d.ts",
   "scripts": {
     "prepack": "pnpm build",
-    "clean": "rm -rf artifacts/ cache/ types/ abis/ build/ dist/ coverage/ test/node_modules/",
+    "clean": "rm -rf artifacts/ cache/ types/ abis/ build/ dist/ coverage/",
     "build": "pnpm build:self",
     "build:self": "pnpm compile",
     "compile": "hardhat compile --quiet",
-    "test": "pnpm --filter @graphprotocol/contracts-tests test",
-    "test:coverage": "pnpm --filter @graphprotocol/contracts-tests run test:coverage",
     "deploy": "pnpm predeploy && pnpm build",
     "deploy-localhost": "pnpm build",
     "predeploy": "scripts/predeploy",

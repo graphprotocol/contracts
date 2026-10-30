@@ -4,6 +4,6 @@
     "outDir": "./build",
     "declarationDir": "./types"
   },
-  "include": ["src/**/*.ts", "test/**/*.ts", "deploy/**/*.ts"],
+  "include": ["src/**/*.ts", "deploy/**/*.ts"],
   "exclude": ["node_modules", "build", "types", "artifacts", "cache"]
 }

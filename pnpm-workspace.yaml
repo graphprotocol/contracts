@@ -1,6 +1,4 @@
 minimumReleaseAge: 7200
-minumumReleaseAgeExclude:
-  - '@graphprotocol/sdk'
 
 packages:
   - packages/*
@@ -12,7 +10,6 @@ catalog:
   '@commitlint/cli': ^20.1.0
   '@commitlint/config-conventional': ^20.0.0
   '@eslint/js': ^9.39.2
-  '@graphprotocol/sdk': ^0.6.1
   '@nomicfoundation/hardhat-chai-matchers': ^2.0.0
   '@nomicfoundation/hardhat-ethers': ^3.1.0
   '@nomicfoundation/hardhat-foundry': ^1.1.1
