@@ -9,7 +9,7 @@
 - Each destination package gets a copy of `ProtocolFixture`, a small test base contract. It deploys 0.7.6 contracts from Hardhat JSON artifacts, sets up Controller and GraphProxyAdmin, and puts contracts behind a GraphProxy.
 - Tests are Solidity 0.8 and reach the contracts through 0.8-compilable interfaces.
 - Every dependency that isn't under test is a mock.
-- Artifact paths are always built from two constants, `CORE_ARTIFACTS` (Controller, GraphProxy, GraphProxyAdmin) and `PKG_ARTIFACTS` (the package's own contracts and mocks). In Phase T both point at `@graphprotocol/contracts`. Phase 1 repoints them, and in graph-core, graph-token and subgraph-discovery switches `_deployArtifact` to `deployCode`. The test bodies don't change.
+- Artifact paths are always built from two constants, `CORE_ARTIFACTS` (Controller, GraphProxy, GraphProxyAdmin) and `PKG_ARTIFACTS` (the package's own contracts and mocks). In Phase T both point at `@graphprotocol/contracts`. Phase 1 repoints them, and in graph-core, graph-token and subgraph-discovery switches `_deployArtifact` to `deployCode`. The test bodies don't change, except subgraph-discovery's `DiscoveryTest.t.sol`, which loads L2GraphToken from graph-token's artifacts (design, Phase 1 step 3).
 
 **Tech Stack:** Foundry 1.8.3 (CI's version: `foundryup -i 1.8.3`), forge-std 1.14, solc 0.8.35, pnpm workspaces, Hardhat 2 artifacts from `packages/contracts`, Node 24 (T0 script).
 
