@@ -1,4 +1,4 @@
-import LegacyDisputeManagerArtifact from '@graphprotocol/contracts/artifacts/contracts/disputes/DisputeManager.sol/DisputeManager.json'
+import LegacyDisputeManagerArtifact from '@graphprotocol/contracts-7.3.0/artifacts/contracts/disputes/DisputeManager.sol/DisputeManager.json'
 import { deployImplementation, upgradeTransparentUpgradeableProxy } from '@graphprotocol/horizon/ignition'
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 import ProxyAdminArtifact from '@openzeppelin/contracts/build/contracts/ProxyAdmin.json'

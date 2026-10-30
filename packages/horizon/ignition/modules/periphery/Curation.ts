@@ -1,7 +1,7 @@
-import GraphCurationTokenArtifact from '@graphprotocol/contracts/artifacts/contracts/curation/GraphCurationToken.sol/GraphCurationToken.json'
 import CurationArtifact from '@graphprotocol/contracts/artifacts/contracts/l2/curation/L2Curation.sol/L2Curation.json'
-import GraphProxyArtifact from '@graphprotocol/contracts/artifacts/contracts/upgrades/GraphProxy.sol/GraphProxy.json'
-import GraphProxyAdminArtifact from '@graphprotocol/contracts/artifacts/contracts/upgrades/GraphProxyAdmin.sol/GraphProxyAdmin.json'
+import GraphCurationTokenArtifact from '@graphprotocol/contracts-7.3.0/artifacts/contracts/curation/GraphCurationToken.sol/GraphCurationToken.json'
+import GraphProxyArtifact from '@graphprotocol/contracts-7.3.0/artifacts/contracts/upgrades/GraphProxy.sol/GraphProxy.json'
+import GraphProxyAdminArtifact from '@graphprotocol/contracts-7.3.0/artifacts/contracts/upgrades/GraphProxyAdmin.sol/GraphProxyAdmin.json'
 import { buildModule, IgnitionModuleBuilder } from '@nomicfoundation/ignition-core'
 
 import { deployWithGraphProxy, upgradeGraphProxy } from '../proxy/GraphProxy'

@@ -1,4 +1,4 @@
-import GraphTokenArtifact from '@graphprotocol/contracts/artifacts/contracts/l2/token/L2GraphToken.sol/L2GraphToken.json'
+import GraphTokenArtifact from '@graphprotocol/contracts-7.3.0/artifacts/contracts/l2/token/L2GraphToken.sol/L2GraphToken.json'
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
 import GraphProxyAdminModule from '../periphery/GraphProxyAdmin'
