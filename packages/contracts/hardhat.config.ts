@@ -83,9 +83,6 @@ const config: HardhatUserConfig = {
     '@openzeppelin/contracts/**/*': {
       default: 'off',
     },
-    'contracts/staking/StakingExtension.sol': {
-      5667: 'off', // Unused function parameter
-    },
   },
 }
 

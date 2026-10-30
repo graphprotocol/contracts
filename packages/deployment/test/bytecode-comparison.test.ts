@@ -232,13 +232,13 @@ describe('Deploy Implementation Helper', function () {
     })
 
     it('should load different contracts with correct paths', function () {
-      const staking = loadContractsArtifact('staking', 'Staking')
-      expect(staking.abi).to.be.an('array')
-      expect(staking.bytecode).to.match(/^0x/)
+      const l2Curation = loadContractsArtifact('l2/curation', 'L2Curation')
+      expect(l2Curation.abi).to.be.an('array')
+      expect(l2Curation.bytecode).to.match(/^0x/)
 
-      const curation = loadContractsArtifact('curation', 'Curation')
-      expect(curation.abi).to.be.an('array')
-      expect(curation.bytecode).to.match(/^0x/)
+      const l2Token = loadContractsArtifact('l2/token', 'L2GraphToken')
+      expect(l2Token.abi).to.be.an('array')
+      expect(l2Token.bytecode).to.match(/^0x/)
     })
   })
 })
