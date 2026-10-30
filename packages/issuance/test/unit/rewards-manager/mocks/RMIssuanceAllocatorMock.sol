@@ -6,7 +6,7 @@ import { TargetIssuancePerBlock } from "@graphprotocol/interfaces/contracts/issu
 import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationDistribution.sol";
 import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceTarget.sol";
 
-/// 0.8 port of packages/contracts/contracts/tests/MockIssuanceAllocator.sol.
+/// Mock for the RewardsManager tests.
 contract RMIssuanceAllocatorMock is IERC165, IIssuanceAllocationDistribution {
     mapping(address target => TargetIssuancePerBlock issuance) private _targetIssuance;
 
