@@ -18,6 +18,12 @@ When this archive was created, the workspace source reproduced only Curation.
 
 GraphToken and L1Staking are Sourcify partial matches (`sourcifyMatch: "match"`), so their sources may differ from the deployed ones outside the code.
 
+## Addresses and audits
+
+`addresses.json` is the L1 deployment record: the Ethereum mainnet (1) and Sepolia (11155111) entries, including contracts whose source isn't in this package. It is copied to `@graphprotocol/address-book` as `legacy/addresses.json`; keep `packages/address-book/src/legacy/addresses.json` identical to it.
+
+`audits/` holds the historical audit reports of the original protocol contracts.
+
 ## Checks
 
 `pnpm test:self` needs no network access. It compares every source file with `sourceHashes` in `compiler.json`, compiles every bundle with its exact solc-js version, and compares the result with the hash of the on-chain code in `mainnet.json`. The comparison ignores metadata and immutable values.
