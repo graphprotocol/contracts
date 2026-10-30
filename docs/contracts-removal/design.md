@@ -18,7 +18,7 @@ Out of scope:
 ### 1. npm
 
 - `@graphprotocol/contracts` is frozen at 7.3.0, marked deprecated with `npm deprecate`, and never published again. The git tag `@graphprotocol/contracts@7.3.0` preserves its source, CHANGELOG and docs (`DEPLOYMENT.md`, `TESTING.md`).
-- horizon's and subgraph-service's Ignition modules stay as the record of how Horizon was deployed. They read their artifacts from the published 7.3.0 through an npm alias (§5).
+- horizon's and subgraph-service's Ignition modules stay as the record of how Horizon was deployed. Most read their artifacts from the published 7.3.0 through an npm alias, and three that have changed since then read live artifacts (§5).
 - `@graphprotocol/sdk` is already deprecated in its README (which points to `@graphprotocol/toolshed`). It also gets `npm deprecate`.
 - Known external consumers (graph-network-subgraph, subgraph-studio, network-monitor) pin old versions and are migrated as needed. Addresses come from `@graphprotocol/address-book`, ABIs from `@graphprotocol/interfaces`.
 
@@ -44,6 +44,7 @@ Rules that keep this acyclic:
 
 - `issuance` depends on `graph-core` and `interfaces` only. Its code and tests never use horizon, subgraph-discovery or graph-token, because `horizon → toolshed → issuance` already exists.
 - The 0.7.6 packages (`graph-core`, `graph-token`, `subgraph-discovery`) do not use `toolshed` or `hardhat-graph-protocol`. They have their own small Hardhat configs. `legacy` has no Hardhat config.
+- `horizon → issuance` is only for deploying RewardsManager from Ignition. It already exists transitively through toolshed.
 
 | Package              | Contracts                                                                                                                                                                                                             | Compiler                 |
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
@@ -57,6 +58,7 @@ Rules that keep this acyclic:
 Why `subgraph-discovery` is its own package:
 
 - These contracts need OpenZeppelin 3.4.2 under its real name. `ISubgraphNFT` and `IGraphCurationToken` in `@graphprotocol/interfaces` import `@openzeppelin/contracts/token/ERC721/IERC721.sol` and `@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol`. Inside horizon or subgraph-service (Hardhat 2, OpenZeppelin 5), those imports resolve to v5 and fail. An alias cannot fix imports inside `interfaces`.
+- horizon's and subgraph-service's Ignition modules deploy L2GNS and L2Curation, so the package must sit below them.
 
 Deleted, with no replacement:
 
@@ -93,7 +95,7 @@ The 0.7.6 settings must reproduce the current build exactly: solc 0.7.6, optimiz
 - Each has a single Hardhat compiler: 0.7.6 with the settings above.
 - graph-token and subgraph-discovery depend on OpenZeppelin `contracts` and `contracts-upgradeable` 3.4.2 under their real names.
 - graph-core has no OpenZeppelin imports of its own. It only reaches `IERC20` through `IGraphToken`, so it depends on OpenZeppelin `^5.4`, whose `IERC20` uses `>=0.4.16`. That keeps graph-core importable from 0.7.6 code, 0.8 code and 0.8 Foundry tests. (EpochManager, RewardsManager and L2GNS were verified to produce identical bytecode with v5's `IERC20`.)
-- `packages/deployment` always uses these packages' own 0.7.6 artifacts. That includes GraphProxy, GraphProxyAdmin and Controller, which are deployed from 0.7.6 builds. Ignition uses the 7.3.0 artifacts (§5).
+- `packages/deployment` always uses these packages' own 0.7.6 artifacts. That includes GraphProxy, GraphProxyAdmin and Controller, which are deployed from 0.7.6 builds. Ignition uses the 7.3.0 artifacts where their bytecode is identical (§5).
 - The graph-core files keep the dual pragma `^0.7.6 || ^0.8.27`, so 0.8 code can import them as source. Managed moves from `^0.7.6` to that dual pragma; it was verified to compile under 0.8.35.
 - graph-token adds `arbos-precompiles` (needed by L2ArbitrumMessenger).
 - `TokenUtils` (in graph-token) also keeps its dual pragma. It is imported as source by 0.8 code in horizon (HorizonStaking, GraphPayments, PaymentsEscrow) and subgraph-service (SubgraphService, DisputeManager, AllocationManager, AllocationHandler).
@@ -190,18 +192,19 @@ Every test-port PR includes a table mapping each old test case to its new Foundr
 
 #### Ignition
 
-Ignition deployed Horizon, but new deployments go through `packages/deployment`. The Ignition modules and journals stay as the record of that deployment, with one mechanical change to their imports.
+Ignition deployed Horizon, but new deployments go through `packages/deployment`. The Ignition modules and journals stay as the record of that deployment, and must keep deploying what they deploy today, because `test:integration` and local-network still build stacks with them. The only change is where they read artifacts from.
 
 - horizon and subgraph-service import 14 artifacts in 15 module files from `@graphprotocol/contracts/artifacts/...`. Each package's `tasks/deploy.ts` imports the modules (`migrate/*` dynamically), and `loadTasks` loads it in every built Hardhat run. Both tsconfigs also include `ignition/**/*.ts`. The imports must therefore keep resolving after the workspace package loses those artifacts.
 - Both packages can't simply pin `@graphprotocol/contracts` to 7.3.0. Their Solidity imports from it still need the workspace version until Phase 1: the published sources use the pragma `^0.7.6 || 0.8.27`, and these packages compile with 0.8.35.
-- Before D3, both packages add the devDependency `"@graphprotocol/contracts-7.3.0": "npm:@graphprotocol/contracts@7.3.0"`, and the module imports change only the package name to `@graphprotocol/contracts-7.3.0`. The tarball ships every imported artifact. Journals and module logic don't change.
-- Their `@graphprotocol/contracts` workspace dependency stays for Solidity imports and is removed in Phase 1 as usual.
-- The modules now hold 7.3.0 bytecode. It differs from current source for RewardsManager, L2GNS and L2Curation. `test:integration`, which runs the modules on a fork and isn't in CI, therefore deploys those 7.3.0 versions.
+- Before D3, both packages add the devDependency `"@graphprotocol/contracts-7.3.0": "npm:@graphprotocol/contracts@7.3.0"`. Module imports of the 11 artifacts whose 7.3.0 bytecode equals current source change only the package name to `@graphprotocol/contracts-7.3.0`. The tarball ships them all, and deployments are unaffected.
+- RewardsManager, L2GNS and L2Curation differ from 7.3.0, so their module imports stay on live artifacts. They can't use 7.3.0: current SubgraphService calls `reclaimRewards`, which the 7.3.0 RewardsManager doesn't have, so closing an allocation would revert. These imports move with the contracts in Phase 1 steps 3 and 5.
+- Their `@graphprotocol/contracts` workspace dependency stays for Solidity imports and these three artifacts, and is removed in Phase 1 as usual.
 
 #### Verification and scripts
 
-- `horizon/scripts/pre-verify`, `subgraph-service/scripts/pre-verify` and `horizon/tenderly.config.json` `externalArtifacts` read `../contracts/artifacts` for verifying Ignition deployments. They switch to the 7.3.0 alias with the modules, so they keep matching the bytecode the modules deploy.
-- issuance's artifacts are Hardhat 3 format (`hh3-artifact-1`). Step 5 confirms that `packages/deployment` and verification work with them. If not, the fix is to ship a Hardhat 2-shaped copy of the RewardsManager artifact from issuance.
+- `horizon/scripts/pre-verify` and `subgraph-service/scripts/pre-verify` read `../contracts/artifacts` for verifying Ignition deployments. They copy from the 7.3.0 alias, then the three live artifacts and their build-info over it, so they keep matching what the modules deploy. Steps 3 and 5 update the live paths.
+- `horizon/tenderly.config.json` `externalArtifacts` stays on live artifacts, because its only external contracts are L2Curation and RewardsManager. It holds one `source` and one `buildInfo` (`toolshed/src/hardhat/tenderly.ts`), and from step 3 those two contracts live in different packages, so step 3 needs a toolshed change or a split config.
+- issuance's artifacts are Hardhat 3 format (`hh3-artifact-1`). Step 5 confirms that horizon's Hardhat 2 Ignition deploy, `pre-verify`, `packages/deployment` and verification all work with them. If not, the fix is to ship a Hardhat 2-shaped copy of the RewardsManager artifact from issuance.
 
 #### `packages/deployment`
 
@@ -329,35 +332,38 @@ Phase D moves nothing and leaves the live bytecode hashes unchanged, so the fork
 Each PR:
 
 - moves the files;
-- switches every consumer's Solidity imports, `deployment` sources and test artifact paths (not the Ignition modules, §5);
+- switches every consumer's Solidity imports, `deployment` sources and test artifact paths, and, for steps 3 and 5, the Ignition imports and verification paths that read live artifacts (§5);
 - passes 0c;
 - removes the moved package's temporary `@graphprotocol/contracts` devDependency;
 - flips the moved package to published (drops `"private"`, adds a `publish.yml` option and an initial changeset).
 
 Dependency edges added in each step (removing the devDependency is what prevents a cycle):
 
-| Step | Moves                                   | Edges added                                                                              |
-| ---- | --------------------------------------- | ---------------------------------------------------------------------------------------- |
-| 1    | graph-core                              | contracts, horizon, subgraph-service, testing, deployment → graph-core                   |
-| 2    | graph-token                             | contracts, horizon, subgraph-service, deployment → graph-token. graph-token → graph-core |
-| 3    | subgraph-discovery                      | deployment → subgraph-discovery. subgraph-discovery → graph-token, graph-core            |
-| 4    | EpochManager into horizon               | horizon → graph-core (already present)                                                   |
-| 5    | RewardsManager, MathUtils into issuance | issuance → graph-core. testing, deployment → issuance                                    |
+| Step | Moves                                   | Edges added                                                                                                                                         |
+| ---- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | graph-core                              | contracts, horizon, subgraph-service, testing, deployment → graph-core. graph-token, subgraph-discovery, issuance → graph-core (test devDependency) |
+| 2    | graph-token                             | contracts, horizon, subgraph-service, deployment → graph-token. graph-token → graph-core. subgraph-discovery → graph-token (test devDependency)     |
+| 3    | subgraph-discovery                      | horizon, subgraph-service, deployment → subgraph-discovery. subgraph-discovery → graph-token, graph-core                                            |
+| 4    | EpochManager into horizon               | horizon → graph-core (already present)                                                                                                              |
+| 5    | RewardsManager, MathUtils into issuance | issuance → graph-core. horizon, testing, deployment → issuance                                                                                      |
 
 Per-step notes:
 
 1. **graph-core.**
    - Generalizes `deployment`'s artifact loader to one source per package, and adds the new package cases to `tasks/verify-contract.ts`.
+   - Points `CORE_ARTIFACTS` in the Foundry fixtures of graph-token, subgraph-discovery and issuance at graph-core, with `fs_permissions` entries, because Controller, GraphProxy and GraphProxyAdmin leave `packages/contracts` here while those packages' own contracts don't.
    - Switches `packages/testing`'s Solidity imports.
 2. **graph-token.**
+   - Changes the L2GraphToken path in subgraph-discovery's `DiscoveryTest.t.sol`. Its tests load L2GraphToken from `PKG_ARTIFACTS`, and nothing left in `packages/contracts` imports it, so its artifact disappears at this step. Add a `TOKEN_ARTIFACTS` constant pointing at graph-token's artifacts, with its `fs_permissions` entry and a test devDependency.
 3. **subgraph-discovery.**
    - Adds GraphCurationToken and SubgraphNFTDescriptor to `horizon/addresses.json`.
-   - Changes the L2GraphToken path in `DiscoveryTest.t.sol`. Its tests load L2GraphToken from `PKG_ARTIFACTS`, but L2GraphToken moved to graph-token in step 2, and Foundry does not compile it in subgraph-discovery. Add a `TOKEN_ARTIFACTS` constant pointing at graph-token's artifacts and load it from there with `_deployArtifact`, including its `fs_permissions` entry. This is the one place where Phase 1 changes a test body.
+   - Switches the Ignition L2GNS and L2Curation imports and their verification paths to this package.
 4. **horizon gets EpochManager.**
    - Proves the two-compiler config, the `-v3` alias, the Foundry skip, the lint ignores and the `-v3` CI grep rule.
    - Bumps horizon's OpenZeppelin floor to `^5.4.0`.
 5. **issuance gets RewardsManager and MathUtils.**
    - Confirms the Hardhat 3 compile and artifact compatibility (§3, §5).
+   - Switches the Ignition RewardsManager import and its verification paths to issuance.
    - Moves `packages/testing`'s RewardsManager artifact path and `fs_permissions`.
    - Scheduled when no RewardsManager PRs are in flight.
 
@@ -383,9 +389,9 @@ Per-step notes:
 ## Risks
 
 - **Merge conflicts.** RewardsManager, L2GNS and L2Curation are under active development. Keep T3, T5 and Phase 1 steps 3 and 5 short-lived, and coordinate timing with open work.
-- **Ignition modules are frozen.** They stay on the 7.3.0 artifacts. Re-running them, including through `test:integration`, deploys 7.3.0 code, not the moved packages. New deployments go through `packages/deployment`.
+- **Ignition keeps two artifact sources.** Most modules read 7.3.0, and three read live artifacts. A contract changed later and left on the alias could pair badly with live code, as RewardsManager did, so a change to a contract deployed from the alias must move its import to live artifacts.
 - **Two OpenZeppelin versions in horizon and issuance.** Limited to `legacy-0.7/`, and enforced by the CI grep rule. In issuance, Hardhat 3 resolves imports per package, so the import rule in §3 also matters there.
-- **Hardhat 3 artifacts consumed by Hardhat 2 tooling.** `packages/deployment` reads the RewardsManager artifact from issuance. Step 5 validates this, with a Hardhat 2-shaped copy as the fallback.
+- **Hardhat 3 artifacts consumed by Hardhat 2 tooling.** horizon's Ignition and verification tooling, and `packages/deployment`, read the RewardsManager artifact from issuance. Step 5 validates this, with a Hardhat 2-shaped copy as the fallback.
 - **Mainnet source drift.** Current source does not reproduce most mainnet implementations. `legacy` therefore archives the verified source, and graph-token's README says its mainnet contracts aren't the deployed code.
 - **Test port fidelity.** A rewrite can silently drop behaviours. The mapping table and the coverage baseline guard against this.
 - **Library link references.** Only L1Staking (legacy) links a library (`Exponential`). `legacy`'s check covers it. None of the live moved contracts link libraries.

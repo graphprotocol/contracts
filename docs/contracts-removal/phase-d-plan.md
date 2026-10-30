@@ -8,7 +8,7 @@
 
 - D1 removes `contracts-test` and `@graphprotocol/sdk`.
 - D2a creates `legacy` as per-contract bundles of Sourcify-verified source, each compiled with its exact compiler and compared with committed hashes of the on-chain code. D2b adds its address book and audits.
-- D3a points the Ignition modules at an npm alias of `@graphprotocol/contracts@7.3.0`, so they survive the deletions. D3b deletes the dead contracts.
+- D3a points the Ignition modules whose bytecode is unchanged since 7.3.0 at an npm alias of it, so they survive the deletions. D3b deletes the dead contracts.
 
 **Tech Stack:** pnpm workspaces, Node 24 (`node:test`, `node:crypto`), solc-js 0.7.4 and 0.7.6 from npm, Hardhat 2, Foundry 1.8.3.
 
@@ -23,7 +23,7 @@
 - D3b's list comes from the spec. Do not delete any other contract.
 - `packages/legacy` never gets a `.solhint.json`: CI's changed-files mode runs solhint from that package and passes only because it loads no rules there.
 - The spec's Arbitrum Sepolia fork check for `packages/deployment` doesn't run in this phase: nothing moves, and the unchanged bytecode hashes show no live bytecode changed. It starts with Phase 1.
-- Ignition module changes are limited to the package name in import lines. Journals under `ignition/deployments/` don't change.
+- Ignition module changes are limited to the package name in import lines, for the 11 artifacts whose bytecode is unchanged since 7.3.0. RewardsManager, L2GNS and L2Curation stay on live artifacts. Journals under `ignition/deployments/` don't change.
 
 **Verification for every PR**, run from the repo root after committing. It runs CI's build and test steps, except coverage, and doesn't replace CI's lint job (`lint.yml`):
 
@@ -204,7 +204,7 @@ Adding GraphCurationToken and SubgraphNFTDescriptor to `horizon/addresses.json` 
 
 - Modify: `packages/horizon/package.json`, `packages/subgraph-service/package.json` (add the devDependency `"@graphprotocol/contracts-7.3.0": "npm:@graphprotocol/contracts@7.3.0"`; keep the `@graphprotocol/contracts` workspace dependency)
 - Modify: the 15 import-holding files under `ignition/modules/`: in horizon `core/HorizonStaking.ts`, `migrate/migrate-4.ts`, `proxy/GraphProxy.ts` and `periphery/{Controller,Curation,EpochManager,GNS,GraphProxyAdmin,GraphToken,GraphTokenGateway,RewardsManager}.ts`; in subgraph-service `Curation.ts`, `DisputeManager.ts`, `GNS.ts`, `ServiceRegistry.ts`
-- Modify: `packages/horizon/scripts/pre-verify`, `packages/subgraph-service/scripts/pre-verify`, `packages/horizon/tenderly.config.json` (`../contracts/artifacts` becomes `node_modules/@graphprotocol/contracts-7.3.0/artifacts`; the tarball ships `artifacts/build-info`)
+- Modify: `packages/horizon/scripts/pre-verify`, `packages/subgraph-service/scripts/pre-verify` (copy from `node_modules/@graphprotocol/contracts-7.3.0/artifacts`, then the three live contracts' folders and the workspace `build-info` over them). `tenderly.config.json` doesn't change, because its only external contracts are L2Curation and RewardsManager
 - Modify: `pnpm-lock.yaml`
 
 **Interfaces:**
@@ -213,9 +213,9 @@ Adding GraphCurationToken and SubgraphNFTDescriptor to `horizon/addresses.json` 
 - Produces: the modules and their verification tooling no longer read artifacts from the workspace package, so D3b and Phase 1 can remove them.
 
 - [ ] **Step 1: Add the dependency,** and run `pnpm install --no-frozen-lockfile`.
-- [ ] **Step 2: Replace the package name.** First run `git grep -l "@graphprotocol/contracts/artifacts" -- 'packages/*/ignition/modules/**' | wc -l`. Expected: `15`. In the listed files only, `@graphprotocol/contracts/artifacts/` becomes `@graphprotocol/contracts-7.3.0/artifacts/`.
-- [ ] **Step 3: Check the diff is only that.** Run `git diff -- 'packages/*/ignition/**' | grep -E '^[-+][^-+]' | grep -v "@graphprotocol/contracts"`. Expected: no output. Run `git diff --stat -- 'packages/*/ignition/deployments/**'`. Expected: no output. Run `git grep -n "@graphprotocol/contracts/artifacts" -- 'packages/*/ignition/modules/**'`. Expected: no output.
-- [ ] **Step 4: Point the verification tooling at the alias.** Edit both `pre-verify` scripts and `tenderly.config.json` as listed under Files. CI never runs them, so check them here. Run `git grep -n '\.\./contracts/artifacts' -- packages/horizon packages/subgraph-service`. Expected: no output.
+- [ ] **Step 2: Replace the package name.** First run `git grep -l "@graphprotocol/contracts/artifacts" -- 'packages/*/ignition/modules/**' | wc -l`. Expected: `15`. In the listed files only, `@graphprotocol/contracts/artifacts/` becomes `@graphprotocol/contracts-7.3.0/artifacts/`, except imports of RewardsManager, L2GNS and L2Curation, which stay on live artifacts.
+- [ ] **Step 3: Check the diff is only that.** Run `git diff -- 'packages/*/ignition/**' | grep -E '^[-+][^-+]' | grep -v "@graphprotocol/contracts"`. Expected: no output. Run `git diff --stat -- 'packages/*/ignition/deployments/**'`. Expected: no output. Run `git grep -n "@graphprotocol/contracts/artifacts" -- 'packages/*/ignition/modules/**'`. Expected: exactly 5 lines, the three live contracts.
+- [ ] **Step 4: Point the verification tooling at the alias.** Edit both `pre-verify` scripts as listed under Files. CI never runs them, so Step 7 checks them.
 - [ ] **Step 5: Commit.** `chore(ignition): read deployment artifacts from published contracts 7.3.0`
 - [ ] **Step 6: Run the verification block.** Expected: `check:bytecode` still prints `OK: 26 contracts match`, and horizon's and subgraph-service's suites pass unchanged (Review Focus 4).
 - [ ] **Step 7: Run `pre-verify`.** In `packages/horizon` and `packages/subgraph-service`, run `bash scripts/pre-verify review-tmp && rm -rf ignition/deployments/review-tmp`. Expected: exit 0, and `git status` stays empty.
