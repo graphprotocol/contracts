@@ -31,9 +31,6 @@ const config: HardhatUserConfig = {
       },
     ],
   },
-  paths: {
-    tests: './test/tests/unit',
-  },
   defaultNetwork: 'hardhat',
   networks: {
     hardhat: {
