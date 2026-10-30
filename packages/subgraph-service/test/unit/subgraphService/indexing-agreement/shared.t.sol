@@ -133,6 +133,8 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
         // Exclude named test users: mint() uses deal() which SETS (not adds) token balances,
         // so a collision would overwrite the user's initial balance, then staking drains it to 0.
         vm.assume(!_isTestUser(_seed.addr));
+        // The fuzzer can draw deployed addresses, and SubgraphService rejects itself as a payments destination.
+        vm.assume(_seed.addr != address(subgraphService));
 
         (uint256 allocationKey, address allocationId) = boundKeyAndAddr(_seed.unboundedAllocationPrivateKey);
         vm.assume(_ctx.allocations[allocationId] == address(0));
