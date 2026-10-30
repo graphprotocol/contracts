@@ -1,6 +1,6 @@
-import SubgraphNFTArtifact from '@graphprotocol/contracts/artifacts/contracts/discovery/SubgraphNFT.sol/SubgraphNFT.json'
-import SubgraphNFTDescriptorArtifact from '@graphprotocol/contracts/artifacts/contracts/discovery/SubgraphNFTDescriptor.sol/SubgraphNFTDescriptor.json'
 import L2GNSArtifact from '@graphprotocol/contracts/artifacts/contracts/l2/discovery/L2GNS.sol/L2GNS.json'
+import SubgraphNFTArtifact from '@graphprotocol/contracts-7.3.0/artifacts/contracts/discovery/SubgraphNFT.sol/SubgraphNFT.json'
+import SubgraphNFTDescriptorArtifact from '@graphprotocol/contracts-7.3.0/artifacts/contracts/discovery/SubgraphNFTDescriptor.sol/SubgraphNFTDescriptor.json'
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
 import { deployWithGraphProxy } from '../proxy/GraphProxy'

@@ -1,4 +1,4 @@
-import ServiceRegistryArtifact from '@graphprotocol/contracts/artifacts/contracts/discovery/ServiceRegistry.sol/ServiceRegistry.json'
+import ServiceRegistryArtifact from '@graphprotocol/contracts-7.3.0/artifacts/contracts/discovery/ServiceRegistry.sol/ServiceRegistry.json'
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
 export default buildModule('ServiceRegistry', (m) => {

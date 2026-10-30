@@ -644,6 +644,9 @@ importers:
       '@graphprotocol/contracts':
         specifier: workspace:^
         version: link:../contracts
+      '@graphprotocol/contracts-7.3.0':
+        specifier: npm:@graphprotocol/contracts@7.3.0
+        version: '@graphprotocol/contracts@7.3.0'
       '@graphprotocol/interfaces':
         specifier: workspace:^
         version: link:../interfaces
@@ -939,6 +942,9 @@ importers:
       '@graphprotocol/contracts':
         specifier: workspace:^
         version: link:../contracts
+      '@graphprotocol/contracts-7.3.0':
+        specifier: npm:@graphprotocol/contracts@7.3.0
+        version: '@graphprotocol/contracts@7.3.0'
       '@graphprotocol/horizon':
         specifier: workspace:^
         version: link:../horizon
@@ -2769,6 +2775,9 @@ packages:
 
   '@graphprotocol/contracts@2.1.0':
     resolution: {integrity: sha512-SeymJCUxBp488K/KNi77EKvrkPT0t/7rERGp8zFkmf5KByerjihhE9Ty9oXJAU9RzbUpxsU0JkPBSmiw9/2DYQ==}
+
+  '@graphprotocol/contracts@7.3.0':
+    resolution: {integrity: sha512-uEjgrBN4WCkJhSrUi5O64cNbU5OWI7iwy/03Er9n+J7o3WEspizpLJvSGXql8E0XtI0ygBaHBTwJfPo7SUphkg==}
 
   '@graphprotocol/pino-sentry-simple@0.7.1':
     resolution: {integrity: sha512-iccKFdFBjarSp8/liXuK1EtGq8Vwn118tqymbOJBxblecRsi4rOebk63qnL+dK/a0IvxH6h2+RjjWDbRt7UsUA==}
@@ -12502,6 +12511,8 @@ snapshots:
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
+
+  '@graphprotocol/contracts@7.3.0': {}
 
   '@graphprotocol/pino-sentry-simple@0.7.1':
     dependencies:

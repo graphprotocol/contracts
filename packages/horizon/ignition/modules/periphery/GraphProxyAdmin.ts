@@ -1,4 +1,4 @@
-import GraphProxyAdminArtifact from '@graphprotocol/contracts/artifacts/contracts/upgrades/GraphProxyAdmin.sol/GraphProxyAdmin.json'
+import GraphProxyAdminArtifact from '@graphprotocol/contracts-7.3.0/artifacts/contracts/upgrades/GraphProxyAdmin.sol/GraphProxyAdmin.json'
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
 export default buildModule('GraphProxyAdmin', (m) => {

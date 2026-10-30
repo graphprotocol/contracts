@@ -1,4 +1,4 @@
-import EpochManagerArtifact from '@graphprotocol/contracts/artifacts/contracts/epochs/EpochManager.sol/EpochManager.json'
+import EpochManagerArtifact from '@graphprotocol/contracts-7.3.0/artifacts/contracts/epochs/EpochManager.sol/EpochManager.json'
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
 import { deployWithGraphProxy } from '../proxy/GraphProxy'

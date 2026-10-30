@@ -1,4 +1,4 @@
-import ControllerArtifact from '@graphprotocol/contracts/artifacts/contracts/governance/Controller.sol/Controller.json'
+import ControllerArtifact from '@graphprotocol/contracts-7.3.0/artifacts/contracts/governance/Controller.sol/Controller.json'
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 import { ethers } from 'ethers'
 
