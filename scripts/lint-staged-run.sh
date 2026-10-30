@@ -20,6 +20,7 @@ FILES=("$@")
 # Note: These are substrings to check for in the file path, not glob patterns
 IGNORE_SUBSTRINGS=(
     "/.graphclient-extracted/"
+    "/packages/legacy/verified/"
 )
 
 # Function to check if a file should be ignored

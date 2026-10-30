@@ -1,0 +1,49 @@
+{
+  "version": "0.7.6+commit.7338295f",
+  "settings": {
+    "metadata": {
+      "bytecodeHash": "ipfs",
+      "useLiteralContent": true
+    },
+    "libraries": {},
+    "optimizer": {
+      "runs": 200,
+      "enabled": true
+    },
+    "evmVersion": "istanbul",
+    "remappings": []
+  },
+  "target": {
+    "source": "contracts/gateway/L1GraphTokenGateway.sol",
+    "name": "L1GraphTokenGateway"
+  },
+  "sourcifyMatch": "exact_match",
+  "sourceHashes": {
+    "contracts/arbitrum/IInbox.sol": "9512ab41cf60ec90fcaf54d7b1e8d4a02d73974e9e6b02a2c6fd5be2cfb92671",
+    "contracts/arbitrum/IBridge.sol": "6198806819f2e7f9709a5dc5e7e6dde2d02e1af62d4e75aaf9d1c9df77a64f56",
+    "contracts/arbitrum/IOutbox.sol": "ba7dfdd4ad21301a4b4214977216eafa8f1cc9f48aa33410078d2fcf45e312e2",
+    "contracts/staking/IStaking.sol": "17f3a421e91e745b50ca53227a4197b3992d1133946c91a307ed073993c267c9",
+    "contracts/token/IGraphToken.sol": "244ca084fd409c9ad3969e7ac5548346495466442ff7f802288b112d687705d2",
+    "contracts/curation/ICuration.sol": "5535bfac7790f46af6b64b4c0db2348d9158992a2fd7b9d7af056a6e63a8b4ba",
+    "contracts/governance/Managed.sol": "a0e4ec30705ab1d9f7fd896a957fb096168885c92e62c44069932176fd3cb8f3",
+    "contracts/governance/IManaged.sol": "bd1f47d7a16eb1a2ddbf547511166fee8e99c73d7cb871908837d5db65037bb8",
+    "contracts/governance/Pausable.sol": "99aba03d9b61a91544287ce780e02fab90f34c542ecd8fa014302d8f99d98a2a",
+    "contracts/epochs/IEpochManager.sol": "cb45047682865d6ed215af7d05d505b8fa7a1e66b1e54b45c1a47798281f47ab",
+    "contracts/staking/IStakingData.sol": "b44cad426f81eb34c59b2c276080ba8d674f98ebe685529fb24acc61c217b1bc",
+    "contracts/upgrades/IGraphProxy.sol": "d7b89c0be1a05c93facc640a08d0b4f1e0b4557cb268d9143e4c42ce24bbd1a9",
+    "contracts/arbitrum/ITokenGateway.sol": "55bd317bf1ca12a2308cc51ad4ec6c370dcb6d1cdd1631ec2308e57528ad7600",
+    "contracts/governance/IController.sol": "beb591bb70a3b94f025a5f64bbb3fc6788043fb8d5f1cdffb21acb8cbbce8f8d",
+    "contracts/rewards/IRewardsManager.sol": "5cf8c3593f475719620e6a01b478fa3b5644d3848f82e7768bb36d43069478dd",
+    "contracts/arbitrum/IMessageProvider.sol": "8b15cd25f7d816e38a127e48eea1c6e85976f111dae57b8f47861479f96a2a9b",
+    "contracts/gateway/GraphTokenGateway.sol": "0a4f95b0e1773dfd4a36967c425395146e1f4af4cca404762958ea481993cbc8",
+    "contracts/upgrades/GraphUpgradeable.sol": "fdb340dbeb5de52ea8243fbfab9d2ef8fdfb916e909dc4e1ae6b314cde0ea083",
+    "contracts/gateway/L1GraphTokenGateway.sol": "0e75ff631719d02cca4184ecf760b6e116b2bae511421e778f2ddd20ab086362",
+    "contracts/arbitrum/L1ArbitrumMessenger.sol": "3733fddf4bcac8afbdb95bd10709b68d09abd3233134fc583f87134104c9dfac",
+    "contracts/curation/IGraphCurationToken.sol": "4f905a43b8e7146f0cfa000657de76aa27a84a042522b2a98af7552d2eecb767",
+    "@openzeppelin/contracts/token/ERC20/IERC20.sol": "0573c2961569aa4906845d0cd428b5b7394956170054ceeaa8f8af96cd44875c",
+    "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol": "2c3a3edc2b1a4ac2c4a8645475b51f2668b1ad5ea22df074d0c0ebd3122ce2e7",
+    "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol": "dabaab4d3d3f03e6bfb86eec1d54f31edf0429f4bfc4dff717d5776d5231c145",
+    "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol": "877bc9cb396d0f50330bb9c0057c029407e159739b6fab0b110f19451c8681e4",
+    "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol": "57cf669fc8977ccd1738280e0a39c0156ecbde0af6142d6dd845ab1c055ca61d"
+  }
+}
