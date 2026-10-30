@@ -3,9 +3,10 @@
 /**
  * Copy Addresses for Publishing
  *
- * Replaces the dev-time symlinks under src/<name>/addresses.json with real
- * file copies before npm publish — npm does not include symlinks in the
- * published tarball. restore-symlinks.js puts the symlinks back afterwards.
+ * Copies each package's addresses.json over the tracked regular file at
+ * src/<name>/addresses.json before npm publish, so the published tarball has
+ * the current addresses. restore-symlinks.js then turns these files into
+ * symlinks, which `git checkout -- src` restores.
  */
 
 const fs = require('fs')
