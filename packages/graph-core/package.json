@@ -1,0 +1,19 @@
+{
+  "name": "@graphprotocol/graph-core",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The Graph governance and proxy contracts",
+  "license": "GPL-2.0-or-later",
+  "scripts": {
+    "build": "pnpm build:dep",
+    "build:dep": "pnpm --filter '@graphprotocol/graph-core^...' run build:self",
+    "clean": "rm -rf forge-artifacts/ cache_forge/",
+    "test": "pnpm build && pnpm test:self",
+    "test:self": "forge test"
+  },
+  "devDependencies": {
+    "@graphprotocol/contracts": "workspace:^",
+    "@graphprotocol/interfaces": "workspace:^",
+    "forge-std": "catalog:"
+  }
+}

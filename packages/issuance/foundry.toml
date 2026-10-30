@@ -10,7 +10,7 @@ remappings = [
     "forge-std/=node_modules/forge-std/src/",
 ]
 cache_path = 'cache_forge'
-fs_permissions = [{ access = "read", path = "./" }]
+fs_permissions = [{ access = "read", path = "./" }, { access = "read", path = "node_modules/@graphprotocol/contracts/artifacts" }]
 solc_version = '0.8.35'
 evm_version = 'cancun'
 isolate = false

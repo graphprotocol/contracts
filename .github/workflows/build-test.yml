@@ -24,6 +24,12 @@ jobs:
       - name: Build all packages
         run: pnpm -r --sequential run build
 
+      - name: Test scripts
+        run: pnpm test:scripts
+
+      - name: Check bytecode equivalence
+        run: pnpm check:bytecode
+
       - name: Test all packages
         run: pnpm -r --sequential run test:self
 
