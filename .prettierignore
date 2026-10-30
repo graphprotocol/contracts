@@ -36,3 +36,6 @@ deployments/hardhat/
 **/chain-*/
 **/*-localhost/
 **/*-hardhat/
+
+# Verified mainnet source, must stay byte-identical
+packages/legacy/verified/

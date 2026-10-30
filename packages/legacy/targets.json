@@ -1,0 +1,30 @@
+{
+  "GraphToken": {
+    "implementation": "0xc944E90C64B2c07662A292be6244BDf05Cda44a7",
+    "proxy": null
+  },
+  "L1GraphTokenGateway": {
+    "implementation": "0xD41ca6A1d034D178c196DFa916f22f7D1a1B8222",
+    "proxy": "0x01cDC91B0A9bA741903aA3699BF4CE31d6C5cC06"
+  },
+  "BridgeEscrow": {
+    "implementation": "0xBcD54513aa593646d72aEA31406c633C235Ad6EA",
+    "proxy": "0x36aFF7001294daE4C2ED4fDEfC478a00De77F090"
+  },
+  "L1GNS": {
+    "implementation": "0x83A5B6C542aB20436087Fc79724bdF06ea80f836",
+    "proxy": "0xaDcA0dd4729c8BA3aCf3E99F3A9f471EF37b6825"
+  },
+  "Curation": {
+    "implementation": "0xDeb46851907fd85DD475780CcE2eE0D67c969825",
+    "proxy": "0x8FE00a685Bcb3B2cc296ff6FfEaB10acA4CE1538"
+  },
+  "L1Staking": {
+    "implementation": "0x20a14D78848BC8B3F3d4B77239F2adC3C0259A10",
+    "proxy": "0xF55041E37E12cD407ad00CE2910B8269B01263b9"
+  },
+  "StakingExtension": {
+    "implementation": "0xA479c00cDa8C07bce458D7a826C7b091672EB92C",
+    "proxy": null
+  }
+}

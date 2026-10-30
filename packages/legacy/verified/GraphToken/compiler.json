@@ -1,0 +1,23 @@
+{
+  "version": "0.7.4+commit.3f05b770",
+  "settings": {
+    "metadata": {
+      "bytecodeHash": "ipfs"
+    },
+    "libraries": {},
+    "optimizer": {
+      "runs": 200,
+      "enabled": true
+    },
+    "evmVersion": "istanbul",
+    "remappings": []
+  },
+  "target": {
+    "source": "GraphToken.sol",
+    "name": "GraphToken"
+  },
+  "sourcifyMatch": "match",
+  "sourceHashes": {
+    "GraphToken.sol": "81d76b86b7aa1540eba4449fecd14a3d28529e7aab148319a7719754c5bcf479"
+  }
+}

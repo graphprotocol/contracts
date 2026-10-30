@@ -78,8 +78,8 @@
       "scripts/lint-staged-run.sh 'prettier -w --cache --log-level warn'"
     ],
     "*.sol": [
-      "solhint --fix --noPrompt --noPoster",
-      "prettier -w --cache --log-level warn"
+      "scripts/lint-staged-run.sh 'solhint --fix --noPrompt --noPoster'",
+      "scripts/lint-staged-run.sh 'prettier -w --cache --log-level warn'"
     ],
     "*.md": [
       "markdownlint --fix",
