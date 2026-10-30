@@ -16,8 +16,9 @@ Update the source address files in the contracts monorepo. These live in:
 - `packages/subgraph-service/addresses.json`
 - `packages/issuance/addresses.json`
 - `packages/data-edge/addresses.json`
+- `packages/legacy/addresses.json`
 
-The address-book package symlinks to these files during development, so changes here are automatically reflected locally.
+The address-book package tracks a regular copy of each file at `src/<name>/addresses.json`. Update the copy whenever its source changes.
 
 ## Step 2: Create a Changeset
 
@@ -56,7 +57,7 @@ git push
 
 The workflow automatically:
 
-- Publishes to npm (symlinks are converted to real files via `prepublishOnly`)
+- Publishes to npm (`prepublishOnly` copies the source files over `src/<name>/addresses.json`, and `postpublish` then turns them into symlinks, which `git checkout -- src` restores)
 - Creates and pushes a git tag (`@graphprotocol/address-book@X.Y.Z`)
 
 ## Step 6: Verify on npm
