@@ -114,16 +114,19 @@ contract RewardsManagerLegacySuiteTest is RewardsManagerSharedTest {
         vm.roll(block.number + EPOCH_LENGTH);
         _setDenied(SUBGRAPH_DEPLOYMENT_ID_1, false);
 
+        // Close in the next block, as in Hardhat: one post-undeny block accrues on top of the frozen pre-denial value
+        vm.roll(block.number + 1);
+        uint256 expectedTotal = rewardsBefore + _expectedAllocationRewards(1, ALLOCATION, ALLOCATION);
+
         uint256 supplyBefore = token.totalSupply();
         uint256 issuerBalanceBefore = token.balanceOf(address(issuer));
 
-        // Closed in the undeny block, so the amount is exactly the frozen pre-denial value
         vm.expectEmit(address(rm));
-        emit HorizonRewardsAssigned(indexer, allocationID1, rewardsBefore);
+        emit HorizonRewardsAssigned(indexer, allocationID1, expectedTotal);
         uint256 rewards = _close(allocationID1);
 
         assertGt(rewards, 0);
-        assertEq(rewards, rewardsBefore);
+        assertEq(rewards, expectedTotal);
         assertEq(token.totalSupply(), supplyBefore + rewards);
         assertEq(token.balanceOf(address(issuer)), issuerBalanceBefore + rewards);
     }
