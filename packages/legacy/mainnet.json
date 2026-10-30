@@ -1,0 +1,40 @@
+{
+  "block": 26306549,
+  "contracts": {
+    "GraphToken": {
+      "implementation": "0xc944E90C64B2c07662A292be6244BDf05Cda44a7",
+      "proxy": null,
+      "runtimeHash": "43e4307034b17a35b4411b390f76d0b7278c95408743f4e7104d7f11327012ee"
+    },
+    "L1GraphTokenGateway": {
+      "implementation": "0xD41ca6A1d034D178c196DFa916f22f7D1a1B8222",
+      "proxy": "0x01cDC91B0A9bA741903aA3699BF4CE31d6C5cC06",
+      "runtimeHash": "40b384d3427296452c81f952e3434c2394c24661ea4d42f7e8e3a2a589001eaf"
+    },
+    "BridgeEscrow": {
+      "implementation": "0xBcD54513aa593646d72aEA31406c633C235Ad6EA",
+      "proxy": "0x36aFF7001294daE4C2ED4fDEfC478a00De77F090",
+      "runtimeHash": "26e16ae208b7353a0f44e768f4f40e6467758b7004394a8a640a8a4ea29bce9e"
+    },
+    "L1GNS": {
+      "implementation": "0x83A5B6C542aB20436087Fc79724bdF06ea80f836",
+      "proxy": "0xaDcA0dd4729c8BA3aCf3E99F3A9f471EF37b6825",
+      "runtimeHash": "f88f9f204bd4f121019d8eb9164a1952f0ae0e79ed602088206e2059d3a51515"
+    },
+    "Curation": {
+      "implementation": "0xDeb46851907fd85DD475780CcE2eE0D67c969825",
+      "proxy": "0x8FE00a685Bcb3B2cc296ff6FfEaB10acA4CE1538",
+      "runtimeHash": "c8b0bdcab52a661ff3a8615f5bf29336615832f4f0b4b3cf4e2506c6b22a87b6"
+    },
+    "L1Staking": {
+      "implementation": "0x20a14D78848BC8B3F3d4B77239F2adC3C0259A10",
+      "proxy": "0xF55041E37E12cD407ad00CE2910B8269B01263b9",
+      "runtimeHash": "692f896bc98b60d256e121d90e2111108dfcfd14ccc1aa935f8be645ffb7f8d6"
+    },
+    "StakingExtension": {
+      "implementation": "0xA479c00cDa8C07bce458D7a826C7b091672EB92C",
+      "proxy": null,
+      "runtimeHash": "3f13acd82e366c4a32dd279d795ad0fd3a60b0b5b3e672ca82ca20e3371edce2"
+    }
+  }
+}

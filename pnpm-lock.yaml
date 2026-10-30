@@ -913,6 +913,15 @@ importers:
         specifier: 'catalog:'
         version: 1.7.0
 
+  packages/legacy:
+    devDependencies:
+      solc-0.7.4:
+        specifier: npm:solc@0.7.4
+        version: solc@0.7.4
+      solc-0.7.6:
+        specifier: npm:solc@0.7.6
+        version: solc@0.7.6
+
   packages/subgraph-discovery:
     devDependencies:
       '@graphprotocol/contracts':
@@ -5103,6 +5112,9 @@ packages:
   commander@2.20.3:
     resolution: {integrity: sha512-GpVkmM8vF2vQUkj2LvZmD35JxeJOLCwJ9cUkugyk2nuhbv3+mJvpLYYt+0+USMxE+oj+ey/lJEnhZw75x/OMcQ==}
 
+  commander@3.0.2:
+    resolution: {integrity: sha512-Gar0ASD4BDyKC4hl4DwHqDrmvjoxWKZigVnAbn5H1owvm4CxCPdb0HQDehwNYMJpla5+M2tPmPARzhtYuwpHow==}
+
   commander@8.3.0:
     resolution: {integrity: sha512-OkTL9umf+He2DZkUq8f8J9of7yL6RJKI24dVITBmNfZBmri9zYZQrKkuXiKhyfPSu8tUhnVBB1iKXevvnlR4Ww==}
     engines: {node: '>= 12'}
@@ -9046,6 +9058,16 @@ packages:
 
   solc@0.4.26:
     resolution: {integrity: sha512-o+c6FpkiHd+HPjmjEVpQgH7fqZ14tJpXhho+/bQXlXbliLIS/xjXb42Vxh+qQY1WCSTMQ0+a5vR9vi0MfhU6mA==}
+    hasBin: true
+
+  solc@0.7.4:
+    resolution: {integrity: sha512-IVLqAfUkJqgTS0JIgFPeC50ehUeBXu2eE+iU+rqb6UeOyf6w/BB/EsNcTSTpjtUti8BTG/sCd2qVhrWVYy7p0g==}
+    engines: {node: '>=8.0.0'}
+    hasBin: true
+
+  solc@0.7.6:
+    resolution: {integrity: sha512-WsR/W7CXwh2VnmZapB4JrsDeLlshoKBz5Pz/zYNulB6LBsOEHI2Zj/GeKLMFcvv57OHiXHvxq5ZOQB+EdqxlxQ==}
+    engines: {node: '>=8.0.0'}
     hasBin: true
 
   solc@0.8.15:
@@ -15986,6 +16008,8 @@ snapshots:
 
   commander@2.20.3: {}
 
+  commander@3.0.2: {}
+
   commander@8.3.0: {}
 
   commander@9.5.0: {}
@@ -21022,6 +21046,34 @@ snapshots:
       require-from-string: 1.2.1
       semver: 5.7.2
       yargs: 4.8.1
+
+  solc@0.7.4:
+    dependencies:
+      command-exists: 1.2.9
+      commander: 3.0.2
+      follow-redirects: 1.16.0(debug@4.4.3)
+      fs-extra: 0.30.0
+      js-sha3: 0.8.0
+      memorystream: 0.3.1
+      require-from-string: 2.0.2
+      semver: 5.7.2
+      tmp: 0.0.33
+    transitivePeerDependencies:
+      - debug
+
+  solc@0.7.6:
+    dependencies:
+      command-exists: 1.2.9
+      commander: 3.0.2
+      follow-redirects: 1.16.0(debug@4.4.3)
+      fs-extra: 0.30.0
+      js-sha3: 0.8.0
+      memorystream: 0.3.1
+      require-from-string: 2.0.2
+      semver: 5.7.2
+      tmp: 0.0.33
+    transitivePeerDependencies:
+      - debug
 
   solc@0.8.15:
     dependencies:
