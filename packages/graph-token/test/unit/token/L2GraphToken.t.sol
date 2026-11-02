@@ -1,23 +1,39 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
+import { VmSafe } from "forge-std/Vm.sol";
 import { GraphTokenSharedTest } from "./GraphTokenShared.t.sol";
 import { IGraphTokenLike } from "../interfaces/IGraphTokenLike.sol";
 import { IL2GraphTokenLike } from "../interfaces/IL2GraphTokenLike.sol";
 
 contract L2GraphTokenTest is GraphTokenSharedTest {
-    string internal constant L2_GRAPH_TOKEN =
-        string.concat(PKG_ARTIFACTS, "l2/token/L2GraphToken.sol/L2GraphToken.json");
+    string internal constant L2_GRAPH_TOKEN = "L2GraphToken.sol:L2GraphToken";
 
     IL2GraphTokenLike internal grt;
     address internal mockL2Gateway = makeAddr("mockL2Gateway");
     address internal mockL1GRT = makeAddr("mockL1GRT");
     address internal user = makeAddr("user");
 
+    function test_FoundryL2GraphTokenMatchesHardhat() public {
+        vm.skip(vm.isContext(VmSafe.ForgeContext.Coverage));
+        string memory json = vm.readFile("artifacts/contracts/l2/token/L2GraphToken.sol/L2GraphToken.json");
+        bytes memory hardhat = _stripMetadata(vm.parseJsonBytes(json, ".bytecode"));
+        bytes memory foundry = _stripMetadata(vm.getCode(L2_GRAPH_TOKEN));
+        assertGt(hardhat.length, 0);
+        assertEq(foundry, hardhat);
+    }
+
+    function _stripMetadata(bytes memory code) internal pure returns (bytes memory out) {
+        uint256 metadataLength = (uint256(uint8(code[code.length - 2])) << 8) | uint256(uint8(code[code.length - 1]));
+        uint256 newLength = code.length - metadataLength - 2;
+        out = new bytes(newLength);
+        for (uint256 i = 0; i < newLength; i++) out[i] = code[i];
+    }
+
     function setUp() public {
         vm.warp(1_700_000_000);
         _deployProtocolBase();
-        address impl = _deployArtifact(L2_GRAPH_TOKEN, "");
+        address impl = _deployPkg(L2_GRAPH_TOKEN, "");
         grt = IL2GraphTokenLike(_deployBehindProxy(impl, abi.encodeCall(IL2GraphTokenLike.initialize, (governor))));
         _setUpShared();
     }

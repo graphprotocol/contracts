@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 
-import { loadDirectAllocationArtifact } from '../lib/artifact-loaders.js'
+import { loadDirectAllocationArtifact, loadPackageArtifact } from '../lib/artifact-loaders.js'
 import {
   computeBytecodeHash,
   type LibraryArtifactResolver,
@@ -224,7 +224,7 @@ describe('Deploy Implementation Helper', function () {
       expect(l2Curation.abi).to.be.an('array')
       expect(l2Curation.bytecode).to.match(/^0x/)
 
-      const l2Token = loadContractsArtifact('l2/token', 'L2GraphToken')
+      const l2Token = loadPackageArtifact('graph-token', 'l2/token', 'L2GraphToken')
       expect(l2Token.abi).to.be.an('array')
       expect(l2Token.bytecode).to.match(/^0x/)
     })

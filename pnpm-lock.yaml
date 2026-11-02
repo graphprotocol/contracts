@@ -252,6 +252,9 @@ importers:
       '@graphprotocol/graph-core':
         specifier: workspace:^
         version: link:../graph-core
+      '@graphprotocol/graph-token':
+        specifier: workspace:^
+        version: link:../graph-token
       '@graphprotocol/interfaces':
         specifier: workspace:^
         version: link:../interfaces
@@ -462,6 +465,9 @@ importers:
       '@graphprotocol/graph-core':
         specifier: workspace:*
         version: link:../graph-core
+      '@graphprotocol/graph-token':
+        specifier: workspace:*
+        version: link:../graph-token
       '@graphprotocol/horizon':
         specifier: workspace:*
         version: link:../horizon
@@ -628,19 +634,71 @@ importers:
         version: 5.9.3
 
   packages/graph-token:
-    devDependencies:
-      '@graphprotocol/contracts':
-        specifier: workspace:^
-        version: link:../contracts
+    dependencies:
       '@graphprotocol/graph-core':
         specifier: workspace:^
         version: link:../graph-core
       '@graphprotocol/interfaces':
         specifier: workspace:^
         version: link:../interfaces
+      '@openzeppelin/contracts':
+        specifier: 3.4.2
+        version: 3.4.2
+      '@openzeppelin/contracts-upgradeable':
+        specifier: 3.4.2
+        version: 3.4.2
+      arbos-precompiles:
+        specifier: ^1.0.2
+        version: 1.0.2(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.41)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10)
+    devDependencies:
+      '@ethersproject/abi':
+        specifier: ^5.8.0
+        version: 5.8.0
+      '@ethersproject/bytes':
+        specifier: ^5.8.0
+        version: 5.8.0
+      '@ethersproject/providers':
+        specifier: ^5.8.0
+        version: 5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+      '@nomicfoundation/hardhat-verify':
+        specifier: 2.1.1
+        version: 2.1.1(hardhat@2.28.6(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.41)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10))
+      '@typechain/ethers-v5':
+        specifier: ^10.2.1
+        version: 10.2.1(@ethersproject/abi@5.8.0)(@ethersproject/providers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(ethers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(typechain@8.3.2(patch_hash=b34ed6afcf99760666fdc85ecb2094fdd20ce509f947eb09cef21665a2a6a1d6)(typescript@5.9.3))(typescript@5.9.3)
+      '@typechain/hardhat':
+        specifier: ^6.1.2
+        version: 6.1.6(@ethersproject/abi@5.8.0)(@ethersproject/providers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(@typechain/ethers-v5@10.2.1(@ethersproject/abi@5.8.0)(@ethersproject/providers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(ethers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(typechain@8.3.2(patch_hash=b34ed6afcf99760666fdc85ecb2094fdd20ce509f947eb09cef21665a2a6a1d6)(typescript@5.9.3))(typescript@5.9.3))(ethers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.28.6(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.41)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10))(typechain@8.3.2(patch_hash=b34ed6afcf99760666fdc85ecb2094fdd20ce509f947eb09cef21665a2a6a1d6)(typescript@5.9.3))
+      ethers:
+        specifier: ^5.7.2
+        version: 5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       forge-std:
         specifier: 'catalog:'
         version: https://github.com/foundry-rs/forge-std/tarball/v1.14.0
+      hardhat:
+        specifier: 'catalog:'
+        version: 2.28.6(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.41)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10)
+      hardhat-ignore-warnings:
+        specifier: 'catalog:'
+        version: 0.2.12
+      prettier:
+        specifier: 'catalog:'
+        version: 3.8.1
+      prettier-plugin-solidity:
+        specifier: 'catalog:'
+        version: 2.1.0(prettier@3.8.1)
+      solhint:
+        specifier: 'catalog:'
+        version: 6.2.1(typescript@5.9.3)
+      ts-node:
+        specifier: ^10.9.2
+        version: 10.9.2(@types/node@20.19.41)(typescript@5.9.3)
+      typechain:
+        specifier: ^8.3.2
+        version: 8.3.2(patch_hash=b34ed6afcf99760666fdc85ecb2094fdd20ce509f947eb09cef21665a2a6a1d6)(typescript@5.9.3)
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
 
   packages/hardhat-graph-protocol:
     dependencies:
@@ -705,6 +763,9 @@ importers:
       '@graphprotocol/graph-core':
         specifier: workspace:^
         version: link:../graph-core
+      '@graphprotocol/graph-token':
+        specifier: workspace:^
+        version: link:../graph-token
       '@graphprotocol/interfaces':
         specifier: workspace:^
         version: link:../interfaces
@@ -994,6 +1055,9 @@ importers:
       '@graphprotocol/graph-core':
         specifier: workspace:^
         version: link:../graph-core
+      '@graphprotocol/graph-token':
+        specifier: workspace:^
+        version: link:../graph-token
       '@graphprotocol/interfaces':
         specifier: workspace:^
         version: link:../interfaces
@@ -1012,6 +1076,9 @@ importers:
       '@graphprotocol/graph-core':
         specifier: workspace:^
         version: link:../graph-core
+      '@graphprotocol/graph-token':
+        specifier: workspace:^
+        version: link:../graph-token
       '@graphprotocol/horizon':
         specifier: workspace:^
         version: link:../horizon
@@ -1144,6 +1211,9 @@ importers:
       '@graphprotocol/graph-core':
         specifier: workspace:^
         version: link:../graph-core
+      '@graphprotocol/graph-token':
+        specifier: workspace:^
+        version: link:../graph-token
       '@graphprotocol/horizon':
         specifier: workspace:^
         version: link:../horizon
@@ -15219,6 +15289,16 @@ snapshots:
   arbos-precompiles@1.0.2(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10):
     dependencies:
       hardhat: 2.28.6(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10)
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - ts-node
+      - typescript
+      - utf-8-validate
+
+  arbos-precompiles@1.0.2(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.41)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10):
+    dependencies:
+      hardhat: 2.28.6(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.41)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10)
     transitivePeerDependencies:
       - bufferutil
       - supports-color

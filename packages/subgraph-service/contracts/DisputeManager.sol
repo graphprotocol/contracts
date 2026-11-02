@@ -13,7 +13,7 @@ import { IAttestation } from "@graphprotocol/interfaces/contracts/subgraph-servi
 import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
 import { IIndexingAgreement } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IIndexingAgreement.sol";
 
-import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
+import { TokenUtils } from "@graphprotocol/graph-token/contracts/utils/TokenUtils.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { Attestation } from "./libraries/Attestation.sol";

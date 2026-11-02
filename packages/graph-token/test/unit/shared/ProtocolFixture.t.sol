@@ -8,11 +8,16 @@ import { IGraphProxyAdmin } from "@graphprotocol/interfaces/contracts/contracts/
 
 abstract contract ProtocolFixture is Test {
     string internal constant CORE_ARTIFACTS = "node_modules/@graphprotocol/graph-core/artifacts/contracts/";
-    string internal constant PKG_ARTIFACTS = "node_modules/@graphprotocol/contracts/artifacts/contracts/";
 
     address internal governor; // makeAddr("governor"), set in _deployProtocolBase
     IController internal controller;
     IGraphProxyAdmin internal proxyAdmin;
+
+    /// id has the form "GraphToken.sol:GraphToken". Deploys the Foundry-compiled contract with CREATE
+    /// (honours an active vm.prank). Reverts if the contract is missing or its constructor reverts.
+    function _deployPkg(string memory id, bytes memory args) internal returns (address) {
+        return vm.deployCode(id, args);
+    }
 
     /// path is a full artifact path, e.g. string.concat(CORE_ARTIFACTS, "governance/Controller.sol/Controller.json").
     /// Deploys `.bytecode ++ args` with CREATE (honours an active vm.prank).

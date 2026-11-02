@@ -58,6 +58,7 @@
     "@ethersproject/providers": "^5.8.0",
     "@graphprotocol/common-ts": "^1.8.3",
     "@graphprotocol/graph-core": "workspace:^",
+    "@graphprotocol/graph-token": "workspace:^",
     "@graphprotocol/interfaces": "workspace:^",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
     "@nomicfoundation/hardhat-verify": "2.1.1",

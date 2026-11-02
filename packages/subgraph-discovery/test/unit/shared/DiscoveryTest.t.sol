@@ -12,8 +12,9 @@ import { ISubgraphNFTLike } from "../interfaces/ISubgraphNFTLike.sol";
 /// L2 discovery stack: L2GraphToken, L2Curation, SubgraphNFT and L2GNS, with a mock L2 gateway.
 /// There is no staking, rewards manager or epoch manager.
 abstract contract DiscoveryTest is ProtocolFixture {
+    string internal constant TOKEN_ARTIFACTS = "node_modules/@graphprotocol/graph-token/artifacts/contracts/";
     string internal constant L2_GRAPH_TOKEN =
-        string.concat(PKG_ARTIFACTS, "l2/token/L2GraphToken.sol/L2GraphToken.json");
+        string.concat(TOKEN_ARTIFACTS, "l2/token/L2GraphToken.sol/L2GraphToken.json");
     string internal constant GRAPH_CURATION_TOKEN =
         string.concat(PKG_ARTIFACTS, "curation/GraphCurationToken.sol/GraphCurationToken.json");
     string internal constant L2_CURATION = string.concat(PKG_ARTIFACTS, "l2/curation/L2Curation.sol/L2Curation.json");

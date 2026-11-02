@@ -24,6 +24,7 @@
   "dependencies": {
     "@graphprotocol/contracts": "workspace:*",
     "@graphprotocol/graph-core": "workspace:*",
+    "@graphprotocol/graph-token": "workspace:*",
     "@graphprotocol/horizon": "workspace:*",
     "@graphprotocol/interfaces": "workspace:*",
     "@graphprotocol/issuance": "workspace:*",

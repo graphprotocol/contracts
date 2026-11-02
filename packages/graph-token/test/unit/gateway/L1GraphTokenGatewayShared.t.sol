@@ -9,15 +9,12 @@ import { IL1GraphTokenGatewayLike } from "../interfaces/IL1GraphTokenGatewayLike
 import { IBridgeMockLike, IInboxMockLike, IOutboxMockLike } from "../interfaces/IArbitrumMocksLike.sol";
 
 abstract contract L1GraphTokenGatewaySharedTest is ProtocolFixture {
-    string internal constant GRAPH_TOKEN = string.concat(PKG_ARTIFACTS, "token/GraphToken.sol/GraphToken.json");
-    string internal constant BRIDGE_ESCROW = string.concat(PKG_ARTIFACTS, "gateway/BridgeEscrow.sol/BridgeEscrow.json");
-    string internal constant L1_GATEWAY =
-        string.concat(PKG_ARTIFACTS, "gateway/L1GraphTokenGateway.sol/L1GraphTokenGateway.json");
-    string internal constant BRIDGE_MOCK =
-        string.concat(PKG_ARTIFACTS, "tests/arbitrum/BridgeMock.sol/BridgeMock.json");
-    string internal constant INBOX_MOCK = string.concat(PKG_ARTIFACTS, "tests/arbitrum/InboxMock.sol/InboxMock.json");
-    string internal constant OUTBOX_MOCK =
-        string.concat(PKG_ARTIFACTS, "tests/arbitrum/OutboxMock.sol/OutboxMock.json");
+    string internal constant GRAPH_TOKEN = "GraphToken.sol:GraphToken";
+    string internal constant BRIDGE_ESCROW = "BridgeEscrow.sol:BridgeEscrow";
+    string internal constant L1_GATEWAY = "L1GraphTokenGateway.sol:L1GraphTokenGateway";
+    string internal constant BRIDGE_MOCK = "BridgeMock.sol:BridgeMock";
+    string internal constant INBOX_MOCK = "InboxMock.sol:InboxMock";
+    string internal constant OUTBOX_MOCK = "OutboxMock.sol:OutboxMock";
 
     uint256 internal constant SENDER_TOKENS = 1000 ether;
     uint256 internal constant MAX_GAS = 1_000_000;
@@ -47,12 +44,12 @@ abstract contract L1GraphTokenGatewaySharedTest is ProtocolFixture {
         _deployProtocolBase();
 
         vm.prank(governor);
-        grt = IGraphTokenLike(_deployArtifact(GRAPH_TOKEN, abi.encode(10_000_000_000 ether)));
+        grt = IGraphTokenLike(_deployPkg(GRAPH_TOKEN, abi.encode(10_000_000_000 ether)));
         _registerContract("GraphToken", address(grt));
 
         bridgeEscrow = IBridgeEscrowLike(
             _deployBehindProxy(
-                _deployArtifact(BRIDGE_ESCROW, ""),
+                _deployPkg(BRIDGE_ESCROW, ""),
                 abi.encodeCall(IBridgeEscrowLike.initialize, (address(controller)))
             )
         );
@@ -60,16 +57,16 @@ abstract contract L1GraphTokenGatewaySharedTest is ProtocolFixture {
 
         l1Gateway = IL1GraphTokenGatewayLike(
             _deployBehindProxy(
-                _deployArtifact(L1_GATEWAY, ""),
+                _deployPkg(L1_GATEWAY, ""),
                 abi.encodeCall(IL1GraphTokenGatewayLike.initialize, (address(controller)))
             )
         );
         _registerContract("GraphTokenGateway", address(l1Gateway));
         IManaged(address(l1Gateway)).syncAllContracts();
 
-        bridgeMock = IBridgeMockLike(_deployArtifact(BRIDGE_MOCK, ""));
-        inboxMock = IInboxMockLike(_deployArtifact(INBOX_MOCK, ""));
-        outboxMock = IOutboxMockLike(_deployArtifact(OUTBOX_MOCK, ""));
+        bridgeMock = IBridgeMockLike(_deployPkg(BRIDGE_MOCK, ""));
+        inboxMock = IInboxMockLike(_deployPkg(INBOX_MOCK, ""));
+        outboxMock = IOutboxMockLike(_deployPkg(OUTBOX_MOCK, ""));
         bridgeMock.setInbox(address(inboxMock), true);
         bridgeMock.setOutbox(address(outboxMock), true);
         inboxMock.setBridge(address(bridgeMock));

@@ -39,6 +39,7 @@
   "devDependencies": {
     "@graphprotocol/contracts": "workspace:^",
     "@graphprotocol/graph-core": "workspace:^",
+    "@graphprotocol/graph-token": "workspace:^",
     "@graphprotocol/contracts-7.3.0": "npm:@graphprotocol/contracts@7.3.0",
     "@graphprotocol/horizon": "workspace:^",
     "@graphprotocol/interfaces": "workspace:^",

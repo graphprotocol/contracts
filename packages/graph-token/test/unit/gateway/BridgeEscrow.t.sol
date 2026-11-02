@@ -7,8 +7,8 @@ import { IGraphTokenLike } from "../interfaces/IGraphTokenLike.sol";
 import { IBridgeEscrowLike } from "../interfaces/IBridgeEscrowLike.sol";
 
 contract BridgeEscrowTest is ProtocolFixture {
-    string internal constant GRAPH_TOKEN = string.concat(PKG_ARTIFACTS, "token/GraphToken.sol/GraphToken.json");
-    string internal constant BRIDGE_ESCROW = string.concat(PKG_ARTIFACTS, "gateway/BridgeEscrow.sol/BridgeEscrow.json");
+    string internal constant GRAPH_TOKEN = "GraphToken.sol:GraphToken";
+    string internal constant BRIDGE_ESCROW = "BridgeEscrow.sol:BridgeEscrow";
 
     uint256 internal constant N_TOKENS = 1000 ether;
 
@@ -22,10 +22,10 @@ contract BridgeEscrowTest is ProtocolFixture {
         _deployProtocolBase();
 
         vm.prank(governor);
-        grt = IGraphTokenLike(_deployArtifact(GRAPH_TOKEN, abi.encode(10_000_000_000 ether)));
+        grt = IGraphTokenLike(_deployPkg(GRAPH_TOKEN, abi.encode(10_000_000_000 ether)));
         _registerContract("GraphToken", address(grt));
 
-        address impl = _deployArtifact(BRIDGE_ESCROW, "");
+        address impl = _deployPkg(BRIDGE_ESCROW, "");
         bridgeEscrow = IBridgeEscrowLike(
             _deployBehindProxy(impl, abi.encodeCall(IBridgeEscrowLike.initialize, (address(controller))))
         );

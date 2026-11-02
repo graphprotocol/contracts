@@ -6,9 +6,8 @@ import { IGraphTokenLike } from "../interfaces/IGraphTokenLike.sol";
 import { ITokenUtilsMock } from "../interfaces/ITokenUtilsMock.sol";
 
 contract TokenUtilsTest is ProtocolFixture {
-    string internal constant GRAPH_TOKEN = string.concat(PKG_ARTIFACTS, "token/GraphToken.sol/GraphToken.json");
-    string internal constant TOKEN_UTILS_MOCK =
-        string.concat(PKG_ARTIFACTS, "tests/TokenUtilsMock.sol/TokenUtilsMock.json");
+    string internal constant GRAPH_TOKEN = "GraphToken.sol:GraphToken";
+    string internal constant TOKEN_UTILS_MOCK = "TokenUtilsMock.sol:TokenUtilsMock";
 
     IGraphTokenLike internal grt;
     ITokenUtilsMock internal utils;
@@ -19,8 +18,8 @@ contract TokenUtilsTest is ProtocolFixture {
         _deployProtocolBase();
 
         vm.prank(governor);
-        grt = IGraphTokenLike(_deployArtifact(GRAPH_TOKEN, abi.encode(10_000_000_000 ether)));
-        utils = ITokenUtilsMock(_deployArtifact(TOKEN_UTILS_MOCK, ""));
+        grt = IGraphTokenLike(_deployPkg(GRAPH_TOKEN, abi.encode(10_000_000_000 ether)));
+        utils = ITokenUtilsMock(_deployPkg(TOKEN_UTILS_MOCK, ""));
 
         vm.prank(governor);
         grt.mint(holder, 1000 ether);

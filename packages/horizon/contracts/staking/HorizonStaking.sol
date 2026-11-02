@@ -12,7 +12,7 @@ import { IHorizonStakingMain } from "@graphprotocol/interfaces/contracts/horizon
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
 
-import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
+import { TokenUtils } from "@graphprotocol/graph-token/contracts/utils/TokenUtils.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { PPMMath } from "../libraries/PPMMath.sol";
 import { LinkedList } from "../libraries/LinkedList.sol";

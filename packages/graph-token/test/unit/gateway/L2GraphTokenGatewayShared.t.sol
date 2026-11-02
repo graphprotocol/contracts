@@ -7,12 +7,9 @@ import { IL2GraphTokenLike } from "../interfaces/IL2GraphTokenLike.sol";
 import { IL2GraphTokenGatewayLike } from "../interfaces/IL2GraphTokenGatewayLike.sol";
 
 abstract contract L2GraphTokenGatewaySharedTest is ProtocolFixture {
-    string internal constant L2_GRAPH_TOKEN =
-        string.concat(PKG_ARTIFACTS, "l2/token/L2GraphToken.sol/L2GraphToken.json");
-    string internal constant L2_GATEWAY =
-        string.concat(PKG_ARTIFACTS, "l2/gateway/L2GraphTokenGateway.sol/L2GraphTokenGateway.json");
-    string internal constant CALLHOOK_RECEIVER_MOCK =
-        string.concat(PKG_ARTIFACTS, "tests/CallhookReceiverMock.sol/CallhookReceiverMock.json");
+    string internal constant L2_GRAPH_TOKEN = "L2GraphToken.sol:L2GraphToken";
+    string internal constant L2_GATEWAY = "L2GraphTokenGateway.sol:L2GraphTokenGateway";
+    string internal constant CALLHOOK_RECEIVER_MOCK = "CallhookReceiverMock.sol:CallhookReceiverMock";
 
     address internal constant ARB_SYS = address(0x64);
     uint256 internal constant SENDER_TOKENS = 1000 ether;
@@ -36,23 +33,20 @@ abstract contract L2GraphTokenGatewaySharedTest is ProtocolFixture {
         _deployProtocolBase();
 
         grt = IL2GraphTokenLike(
-            _deployBehindProxy(
-                _deployArtifact(L2_GRAPH_TOKEN, ""),
-                abi.encodeCall(IL2GraphTokenLike.initialize, (governor))
-            )
+            _deployBehindProxy(_deployPkg(L2_GRAPH_TOKEN, ""), abi.encodeCall(IL2GraphTokenLike.initialize, (governor)))
         );
         _registerContract("GraphToken", address(grt));
 
         l2Gateway = IL2GraphTokenGatewayLike(
             _deployBehindProxy(
-                _deployArtifact(L2_GATEWAY, ""),
+                _deployPkg(L2_GATEWAY, ""),
                 abi.encodeCall(IL2GraphTokenGatewayLike.initialize, (address(controller)))
             )
         );
         _registerContract("GraphTokenGateway", address(l2Gateway));
         IManaged(address(l2Gateway)).syncAllContracts();
 
-        callhookReceiverMock = _deployArtifact(CALLHOOK_RECEIVER_MOCK, "");
+        callhookReceiverMock = _deployPkg(CALLHOOK_RECEIVER_MOCK, "");
 
         vm.etch(routerMock, hex"1234");
         vm.etch(l1GRTMock, hex"1234");

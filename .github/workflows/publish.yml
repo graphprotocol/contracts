@@ -32,6 +32,7 @@ on:
           - address-book
           - contracts
           - graph-core
+          - graph-token
           - interfaces
           - toolshed
       tag:

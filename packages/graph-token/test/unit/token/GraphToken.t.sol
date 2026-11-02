@@ -5,7 +5,7 @@ import { GraphTokenSharedTest } from "./GraphTokenShared.t.sol";
 import { IGraphTokenLike } from "../interfaces/IGraphTokenLike.sol";
 
 contract GraphTokenTest is GraphTokenSharedTest {
-    string internal constant GRAPH_TOKEN = string.concat(PKG_ARTIFACTS, "token/GraphToken.sol/GraphToken.json");
+    string internal constant GRAPH_TOKEN = "GraphToken.sol:GraphToken";
 
     IGraphTokenLike internal grt;
 
@@ -13,7 +13,7 @@ contract GraphTokenTest is GraphTokenSharedTest {
         vm.warp(1_700_000_000);
         _deployProtocolBase();
         vm.prank(governor);
-        grt = IGraphTokenLike(_deployArtifact(GRAPH_TOKEN, abi.encode(10_000_000_000 ether)));
+        grt = IGraphTokenLike(_deployPkg(GRAPH_TOKEN, abi.encode(10_000_000_000 ether)));
         _setUpShared();
     }
 

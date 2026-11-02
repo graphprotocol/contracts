@@ -9,7 +9,7 @@ import { ILegacyAllocation } from "@graphprotocol/interfaces/contracts/subgraph-
 import { GraphDirectory } from "@graphprotocol/horizon/contracts/utilities/GraphDirectory.sol";
 import { AllocationManagerV1Storage } from "./AllocationManagerStorage.sol";
 
-import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
+import { TokenUtils } from "@graphprotocol/graph-token/contracts/utils/TokenUtils.sol";
 import { EIP712Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 import { Allocation } from "../libraries/Allocation.sol";
 import { LegacyAllocation } from "../libraries/LegacyAllocation.sol";

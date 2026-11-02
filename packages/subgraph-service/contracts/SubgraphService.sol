@@ -23,7 +23,7 @@ import { Directory } from "./utilities/Directory.sol";
 import { AllocationManager } from "./utilities/AllocationManager.sol";
 import { SubgraphServiceV2Storage } from "./SubgraphServiceStorage.sol";
 
-import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
+import { TokenUtils } from "@graphprotocol/graph-token/contracts/utils/TokenUtils.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 import { Allocation } from "./libraries/Allocation.sol";
 import { IndexingAgreementDecoder } from "./libraries/IndexingAgreementDecoder.sol";

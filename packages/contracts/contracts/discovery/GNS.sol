@@ -11,7 +11,7 @@ import { AddressUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/Ad
 
 import { Multicall } from "../base/Multicall.sol";
 import { GraphUpgradeable } from "@graphprotocol/graph-core/contracts/upgrades/GraphUpgradeable.sol";
-import { TokenUtils } from "../utils/TokenUtils.sol";
+import { TokenUtils } from "@graphprotocol/graph-token/contracts/utils/TokenUtils.sol";
 import { ICuration } from "@graphprotocol/interfaces/contracts/contracts/curation/ICuration.sol";
 import { Managed } from "@graphprotocol/graph-core/contracts/governance/Managed.sol";
 import { ISubgraphNFT } from "@graphprotocol/interfaces/contracts/contracts/discovery/ISubgraphNFT.sol";

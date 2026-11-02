@@ -42,6 +42,7 @@ types-v5/
 wagmi/
 packages/contracts/types/
 packages/graph-core/types/
+packages/graph-token/types/
 packages/interfaces/types/
 packages/token-distribution/types/
 packages/issuance/types/

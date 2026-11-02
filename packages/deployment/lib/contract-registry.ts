@@ -157,7 +157,7 @@ const HORIZON_CONTRACTS = {
     prerequisite: true,
   },
   L2GraphToken: {
-    artifact: { type: 'contracts', path: 'l2/token', name: 'L2GraphToken' },
+    artifact: { type: 'graph-token', path: 'l2/token', name: 'L2GraphToken' },
     interfaces: [{ name: 'GRAPH_TOKEN_ABI', interface: 'IGraphToken' }],
     prerequisite: true,
   },

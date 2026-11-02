@@ -11,7 +11,7 @@ remappings = [
 ]
 solc_version = '0.8.35'
 evm_version = 'cancun'
-fs_permissions = [{ access = "read", path = "node_modules/@graphprotocol/contracts/artifacts" }, { access = "read", path = "node_modules/@graphprotocol/graph-core/artifacts" }]
+fs_permissions = [{ access = "read", path = "node_modules/@graphprotocol/contracts/artifacts" }, { access = "read", path = "node_modules/@graphprotocol/graph-core/artifacts" }, { access = "read", path = "node_modules/@graphprotocol/graph-token/artifacts" }]
 ignored_warnings_from = ["node_modules"]
 
 [lint]
