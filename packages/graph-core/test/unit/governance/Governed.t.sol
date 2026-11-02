@@ -15,9 +15,7 @@ contract GovernedTest is ProtocolFixture {
         vm.warp(1_700_000_000);
         governor = makeAddr("governor");
         vm.prank(governor);
-        governed = IGoverned(
-            _deployArtifact(string.concat(PKG_ARTIFACTS, "tests/GovernedMock.sol/GovernedMock.json"), "")
-        );
+        governed = IGoverned(_deployPkg("GovernedMock.sol:GovernedMock", ""));
         assertEq(governed.governor(), governor);
     }
 

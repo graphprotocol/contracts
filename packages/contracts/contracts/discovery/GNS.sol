@@ -10,10 +10,10 @@ import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/Sa
 import { AddressUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 
 import { Multicall } from "../base/Multicall.sol";
-import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
+import { GraphUpgradeable } from "@graphprotocol/graph-core/contracts/upgrades/GraphUpgradeable.sol";
 import { TokenUtils } from "../utils/TokenUtils.sol";
 import { ICuration } from "@graphprotocol/interfaces/contracts/contracts/curation/ICuration.sol";
-import { Managed } from "../governance/Managed.sol";
+import { Managed } from "@graphprotocol/graph-core/contracts/governance/Managed.sol";
 import { ISubgraphNFT } from "@graphprotocol/interfaces/contracts/contracts/discovery/ISubgraphNFT.sol";
 
 import { IGNS } from "@graphprotocol/interfaces/contracts/contracts/discovery/IGNS.sol";

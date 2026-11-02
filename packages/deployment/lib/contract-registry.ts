@@ -15,6 +15,7 @@ import { ComponentTags } from './deployment-tags.js'
  */
 export type ArtifactSource =
   | { type: 'contracts'; path: string; name: string }
+  | { type: 'graph-core' | 'graph-token' | 'subgraph-discovery'; path: string; name: string }
   | { type: 'subgraph-service'; name: string }
   | { type: 'horizon'; path: string }
   | { type: 'issuance'; path: string }

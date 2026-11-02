@@ -4,9 +4,9 @@ pragma solidity ^0.8.27;
 import { Test } from "forge-std/Test.sol";
 
 // -- Real contracts (all on the critical path) --
-import { Controller } from "@graphprotocol/contracts/contracts/governance/Controller.sol";
-import { GraphProxy } from "@graphprotocol/contracts/contracts/upgrades/GraphProxy.sol";
-import { GraphProxyAdmin } from "@graphprotocol/contracts/contracts/upgrades/GraphProxyAdmin.sol";
+import { Controller } from "@graphprotocol/graph-core/contracts/governance/Controller.sol";
+import { GraphProxy } from "@graphprotocol/graph-core/contracts/upgrades/GraphProxy.sol";
+import { GraphProxyAdmin } from "@graphprotocol/graph-core/contracts/upgrades/GraphProxyAdmin.sol";
 import { HorizonStaking } from "horizon/staking/HorizonStaking.sol";
 import { GraphPayments } from "horizon/payments/GraphPayments.sol";
 import { PaymentsEscrow } from "horizon/payments/PaymentsEscrow.sol";

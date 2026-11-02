@@ -8,15 +8,19 @@ import type { LibraryArtifactResolver, LinkReferences } from './bytecode-utils.j
 // Create require for JSON imports in ESM
 const require = createRequire(import.meta.url)
 
+/** Packages whose Hardhat artifacts live at artifacts/contracts/<path>/<name>.sol/<name>.json */
+export type ContractsPackage = 'contracts' | 'graph-core' | 'graph-token' | 'subgraph-discovery'
+
 /**
- * Load artifact from @graphprotocol/contracts package
+ * Load artifact from a @graphprotocol/<pkg> package
  *
- * @param contractPath - Path within contracts/ (e.g., 'rewards', 'l2/token')
- * @param contractName - Contract name (e.g., 'RewardsManager', 'L2GraphToken')
+ * @param pkg - Package name without scope (e.g., 'graph-core')
+ * @param contractPath - Path within contracts/ (e.g., 'governance', 'l2/token')
+ * @param contractName - Contract name (e.g., 'Controller', 'L2GraphToken')
  */
-export function loadContractsArtifact(contractPath: string, contractName: string): Artifact {
+export function loadPackageArtifact(pkg: ContractsPackage, contractPath: string, contractName: string): Artifact {
   const artifactPath = require.resolve(
-    `@graphprotocol/contracts/artifacts/contracts/${contractPath}/${contractName}.sol/${contractName}.json`,
+    `@graphprotocol/${pkg}/artifacts/contracts/${contractPath}/${contractName}.sol/${contractName}.json`,
   )
   const artifact = JSON.parse(readFileSync(artifactPath, 'utf-8'))
   return {
@@ -25,6 +29,16 @@ export function loadContractsArtifact(contractPath: string, contractName: string
     deployedBytecode: artifact.deployedBytecode as `0x${string}`,
     metadata: artifact.metadata || '',
   }
+}
+
+/**
+ * Load artifact from @graphprotocol/contracts package
+ *
+ * @param contractPath - Path within contracts/ (e.g., 'rewards', 'l2/token')
+ * @param contractName - Contract name (e.g., 'RewardsManager', 'L2GraphToken')
+ */
+export function loadContractsArtifact(contractPath: string, contractName: string): Artifact {
+  return loadPackageArtifact('contracts', contractPath, contractName)
 }
 
 /**
@@ -137,6 +151,12 @@ export function getLibraryResolver(sourceType: string): LibraryArtifactResolver 
       return createPackageLibraryResolver('@graphprotocol/issuance/artifacts')
     case 'contracts':
       return createPackageLibraryResolver('@graphprotocol/contracts/artifacts')
+    case 'graph-core':
+      return createPackageLibraryResolver('@graphprotocol/graph-core/artifacts')
+    case 'graph-token':
+      return createPackageLibraryResolver('@graphprotocol/graph-token/artifacts')
+    case 'subgraph-discovery':
+      return createPackageLibraryResolver('@graphprotocol/subgraph-discovery/artifacts')
     default:
       return undefined
   }

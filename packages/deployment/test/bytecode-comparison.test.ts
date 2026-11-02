@@ -167,25 +167,13 @@ describe('Bytecode Utilities', function () {
 
 describe('Bytecode Hash with Real Artifacts', function () {
   let rewardsManagerArtifact: { deployedBytecode: string }
-  let artifactLoaded = false
 
   before(async function () {
-    try {
-      const artifact = await import(
-        '@graphprotocol/contracts/artifacts/contracts/rewards/RewardsManager.sol/RewardsManager.json',
-        { with: { type: 'json' } }
-      )
-      rewardsManagerArtifact = artifact.default as { deployedBytecode: string }
-      artifactLoaded = true
-    } catch (e) {
-      console.log('    Could not load artifact:', (e as Error).message)
-    }
-  })
-
-  beforeEach(function () {
-    if (!artifactLoaded) {
-      this.skip()
-    }
+    const artifact = await import(
+      '@graphprotocol/contracts/artifacts/contracts/rewards/RewardsManager.sol/RewardsManager.json',
+      { with: { type: 'json' } }
+    )
+    rewardsManagerArtifact = artifact.default as { deployedBytecode: string }
   })
 
   it('should correctly strip metadata from RewardsManager artifact', function () {

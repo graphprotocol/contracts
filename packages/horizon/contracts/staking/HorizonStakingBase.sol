@@ -14,7 +14,7 @@ import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { LinkedList } from "../libraries/LinkedList.sol";
 
 import { Multicall } from "@openzeppelin/contracts/utils/Multicall.sol";
-import { GraphUpgradeable } from "@graphprotocol/contracts/contracts/upgrades/GraphUpgradeable.sol";
+import { GraphUpgradeable } from "@graphprotocol/graph-core/contracts/upgrades/GraphUpgradeable.sol";
 import { Managed } from "./utilities/Managed.sol";
 import { HorizonStakingV1Storage } from "./HorizonStakingStorage.sol";
 

@@ -9,8 +9,8 @@ pragma solidity ^0.7.6;
 import { ERC20BurnableUpgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20BurnableUpgradeable.sol";
 import { ECDSAUpgradeable } from "@openzeppelin/contracts-upgradeable/cryptography/ECDSAUpgradeable.sol";
 
-import { GraphUpgradeable } from "../../upgrades/GraphUpgradeable.sol";
-import { Governed } from "../../governance/Governed.sol";
+import { GraphUpgradeable } from "@graphprotocol/graph-core/contracts/upgrades/GraphUpgradeable.sol";
+import { Governed } from "@graphprotocol/graph-core/contracts/governance/Governed.sol";
 
 /**
  * @title GraphTokenUpgradeable contract

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.27;
 
-import { GraphProxy } from "@graphprotocol/contracts/contracts/upgrades/GraphProxy.sol";
-import { GraphUpgradeable } from "@graphprotocol/contracts/contracts/upgrades/GraphUpgradeable.sol";
+import { GraphProxy } from "@graphprotocol/graph-core/contracts/upgrades/GraphProxy.sol";
+import { GraphUpgradeable } from "@graphprotocol/graph-core/contracts/upgrades/GraphUpgradeable.sol";
 import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManager.sol";
 
 import { FullStackHarness } from "./FullStackHarness.t.sol";

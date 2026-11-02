@@ -12,7 +12,7 @@ import { IProviderEligibility } from "@graphprotocol/interfaces/contracts/issuan
 import { IRewardsIssuer } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsIssuer.sol";
 import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManager.sol";
 import { IRewardsManagerDeprecated } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManagerDeprecated.sol";
-import { Managed } from "../governance/Managed.sol";
+import { Managed } from "@graphprotocol/graph-core/contracts/governance/Managed.sol";
 
 /**
  * @title RewardsManagerV1Storage

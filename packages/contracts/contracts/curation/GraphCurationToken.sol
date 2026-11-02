@@ -4,7 +4,7 @@ pragma solidity ^0.7.6;
 
 import { ERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
-import { Governed } from "../governance/Governed.sol";
+import { Governed } from "@graphprotocol/graph-core/contracts/governance/Governed.sol";
 
 /**
  * @title GraphCurationToken contract

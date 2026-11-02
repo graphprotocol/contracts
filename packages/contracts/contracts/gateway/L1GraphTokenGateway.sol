@@ -16,7 +16,7 @@ import { IBridge } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/
 import { IInbox } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/IInbox.sol";
 import { IOutbox } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/IOutbox.sol";
 import { ITokenGateway } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/ITokenGateway.sol";
-import { Managed } from "../governance/Managed.sol";
+import { Managed } from "@graphprotocol/graph-core/contracts/governance/Managed.sol";
 import { GraphTokenGateway } from "./GraphTokenGateway.sol";
 import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
 

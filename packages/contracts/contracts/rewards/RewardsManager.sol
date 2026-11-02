@@ -6,8 +6,8 @@ pragma abicoder v2;
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { IERC165 } from "@openzeppelin/contracts/introspection/IERC165.sol";
 
-import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
-import { Managed } from "../governance/Managed.sol";
+import { GraphUpgradeable } from "@graphprotocol/graph-core/contracts/upgrades/GraphUpgradeable.sol";
+import { Managed } from "@graphprotocol/graph-core/contracts/governance/Managed.sol";
 import { MathUtils } from "../staking/libs/MathUtils.sol";
 
 import { RewardsManagerV6Storage } from "./RewardsManagerStorage.sol";

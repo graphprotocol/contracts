@@ -29,6 +29,10 @@ function getPackageDir(artifactSource: ArtifactSource): string {
   switch (artifactSource.type) {
     case 'contracts':
       return 'packages/contracts'
+    case 'graph-core':
+    case 'graph-token':
+    case 'subgraph-discovery':
+      return `packages/${artifactSource.type}`
     case 'subgraph-service':
       return 'packages/subgraph-service'
     case 'horizon':
@@ -47,6 +51,9 @@ function getPackageDir(artifactSource: ArtifactSource): string {
 function getFullyQualifiedContractName(artifactSource: ArtifactSource): string {
   switch (artifactSource.type) {
     case 'contracts':
+    case 'graph-core':
+    case 'graph-token':
+    case 'subgraph-discovery':
       // e.g., contracts/rewards/RewardsManager.sol:RewardsManager
       return `contracts/${artifactSource.path}/${artifactSource.name}.sol:${artifactSource.name}`
     case 'subgraph-service':

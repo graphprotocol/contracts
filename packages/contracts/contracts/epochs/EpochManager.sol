@@ -7,8 +7,8 @@ pragma solidity ^0.7.6;
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
-import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
-import { Managed } from "../governance/Managed.sol";
+import { GraphUpgradeable } from "@graphprotocol/graph-core/contracts/upgrades/GraphUpgradeable.sol";
+import { Managed } from "@graphprotocol/graph-core/contracts/governance/Managed.sol";
 
 import { EpochManagerV1Storage } from "./EpochManagerStorage.sol";
 import { IEpochManager } from "@graphprotocol/interfaces/contracts/contracts/epochs/IEpochManager.sol";

@@ -2,25 +2,37 @@
 pragma solidity ^0.8.27;
 
 import { IGraphProxy } from "@graphprotocol/interfaces/contracts/contracts/upgrades/IGraphProxy.sol";
+import { VmSafe } from "forge-std/Vm.sol";
 import { GraphCoreTest } from "./GraphCoreTest.t.sol";
 
 contract FixtureTest is GraphCoreTest {
-    string internal constant CONTROLLER_ARTIFACT =
-        string.concat(CORE_ARTIFACTS, "governance/Controller.sol/Controller.json");
-    string internal constant MISSING_ARTIFACT = string.concat(CORE_ARTIFACTS, "governance/Missing.sol/Missing.json");
-
-    function deployArtifact(string memory path) external returns (address) {
-        return _deployArtifact(path, "");
+    function getCode(string memory id) external view returns (bytes memory) {
+        return vm.getCode(id);
     }
 
     function test_Fixture_ArtifactReadable() public view {
-        assertTrue(vm.isFile(CONTROLLER_ARTIFACT));
+        assertGt(vm.getCode("Controller.sol:Controller").length, 0);
     }
 
     function test_Fixture_RevertWhen_ArtifactMissing() public {
-        assertFalse(vm.isFile(MISSING_ARTIFACT));
         vm.expectRevert();
-        this.deployArtifact(MISSING_ARTIFACT);
+        this.getCode("Missing.sol:Missing");
+    }
+
+    function test_Fixture_FoundryControllerMatchesHardhat() public {
+        vm.skip(vm.isContext(VmSafe.ForgeContext.Coverage));
+        string memory json = vm.readFile("artifacts/contracts/governance/Controller.sol/Controller.json");
+        bytes memory hardhat = _stripMetadata(vm.parseJsonBytes(json, ".bytecode"));
+        bytes memory foundry = _stripMetadata(vm.getCode("Controller.sol:Controller"));
+        assertGt(hardhat.length, 0);
+        assertEq(foundry, hardhat);
+    }
+
+    function _stripMetadata(bytes memory code) internal pure returns (bytes memory out) {
+        uint256 metadataLength = (uint256(uint8(code[code.length - 2])) << 8) | uint256(uint8(code[code.length - 1]));
+        uint256 newLength = code.length - metadataLength - 2;
+        out = new bytes(newLength);
+        for (uint256 i = 0; i < newLength; i++) out[i] = code[i];
     }
 
     function test_Fixture_ProxyWiredToImplementation() public view {

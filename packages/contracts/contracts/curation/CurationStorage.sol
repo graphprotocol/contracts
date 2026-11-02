@@ -10,7 +10,7 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/Initial
 
 import { ICuration } from "@graphprotocol/interfaces/contracts/contracts/curation/ICuration.sol";
 import { IGraphCurationToken } from "@graphprotocol/interfaces/contracts/contracts/curation/IGraphCurationToken.sol";
-import { Managed } from "../governance/Managed.sol";
+import { Managed } from "@graphprotocol/graph-core/contracts/governance/Managed.sol";
 
 /**
  * @title Curation Storage version 1

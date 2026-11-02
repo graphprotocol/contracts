@@ -13,6 +13,7 @@
   },
   "devDependencies": {
     "@graphprotocol/contracts": "workspace:^",
+    "@graphprotocol/graph-core": "workspace:^",
     "@graphprotocol/interfaces": "workspace:^",
     "forge-std": "catalog:"
   }

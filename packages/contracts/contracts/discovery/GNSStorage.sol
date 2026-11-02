@@ -8,7 +8,7 @@ pragma abicoder v2;
 // solhint-disable named-parameters-mapping
 
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
-import { Managed } from "../governance/Managed.sol";
+import { Managed } from "@graphprotocol/graph-core/contracts/governance/Managed.sol";
 
 import { IEthereumDIDRegistry } from "@graphprotocol/interfaces/contracts/contracts/discovery/erc1056/IEthereumDIDRegistry.sol";
 import { IGNS } from "@graphprotocol/interfaces/contracts/contracts/discovery/IGNS.sol";

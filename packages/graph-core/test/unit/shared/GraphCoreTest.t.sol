@@ -5,7 +5,7 @@ import { ProtocolFixture } from "./ProtocolFixture.t.sol";
 import { IManagedMock } from "../interfaces/IManagedMock.sol";
 
 abstract contract GraphCoreTest is ProtocolFixture {
-    string internal constant MANAGED_MOCK = string.concat(PKG_ARTIFACTS, "tests/ManagedMock.sol/ManagedMock.json");
+    string internal constant MANAGED_MOCK = "ManagedMock.sol:ManagedMock";
 
     address internal implA;
     address internal implB;
@@ -14,8 +14,8 @@ abstract contract GraphCoreTest is ProtocolFixture {
     function setUp() public virtual {
         vm.warp(1_700_000_000);
         _deployProtocolBase();
-        implA = _deployArtifact(MANAGED_MOCK, "");
-        implB = _deployArtifact(MANAGED_MOCK, "");
+        implA = _deployPkg(MANAGED_MOCK, "");
+        implB = _deployPkg(MANAGED_MOCK, "");
         managed = IManagedMock(
             _deployBehindProxy(implA, abi.encodeCall(IManagedMock.initialize, (address(controller))))
         );

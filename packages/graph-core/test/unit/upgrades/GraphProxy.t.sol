@@ -7,6 +7,7 @@ import { GraphCoreTest } from "../shared/GraphCoreTest.t.sol";
 
 contract GraphProxyTest is GraphCoreTest {
     IGraphProxy internal proxy;
+    address internal me = makeAddr("me");
 
     function setUp() public override {
         super.setUp();
@@ -48,5 +49,23 @@ contract GraphProxyTest is GraphCoreTest {
         vm.expectRevert(bytes("Only pending implementation"));
         vm.prank(address(proxyAdmin));
         proxy.acceptUpgrade();
+    }
+
+    function test_GraphProxy_RevertWhen_AdminSendsEth() public {
+        vm.deal(address(proxyAdmin), 1 ether);
+        vm.expectRevert(bytes("Cannot fallback to proxy target"));
+        vm.prank(address(proxyAdmin));
+        (bool ok, ) = address(proxy).call{ value: 1 ether }("");
+        ok; // expectRevert consumes the revert, so the call reports success
+        assertEq(address(proxy).balance, 0);
+    }
+
+    function test_GraphProxy_RevertWhen_ReceiveDelegatesToImplementationWithoutReceive() public {
+        vm.deal(me, 1 ether);
+        vm.prank(me);
+        (bool ok, ) = address(proxy).call{ value: 1 ether }("");
+        assertFalse(ok);
+        assertEq(address(proxy).balance, 0);
+        assertEq(me.balance, 1 ether);
     }
 }

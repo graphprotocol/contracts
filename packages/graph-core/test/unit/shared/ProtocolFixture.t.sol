@@ -7,52 +7,33 @@ import { IGraphProxy } from "@graphprotocol/interfaces/contracts/contracts/upgra
 import { IGraphProxyAdmin } from "@graphprotocol/interfaces/contracts/contracts/upgrades/IGraphProxyAdmin.sol";
 
 abstract contract ProtocolFixture is Test {
-    string internal constant CORE_ARTIFACTS = "node_modules/@graphprotocol/contracts/artifacts/contracts/";
-    string internal constant PKG_ARTIFACTS = "node_modules/@graphprotocol/contracts/artifacts/contracts/";
-
     address internal governor; // makeAddr("governor"), set in _deployProtocolBase
     IController internal controller;
     IGraphProxyAdmin internal proxyAdmin;
 
-    /// path is a full artifact path, e.g. string.concat(CORE_ARTIFACTS, "governance/Controller.sol/Controller.json").
-    /// Deploys `.bytecode ++ args` with CREATE (honours an active vm.prank).
-    /// Reverts "artifact needs linking" if `.linkReferences` has any key (vm.parseJsonKeys),
-    /// and "artifact deploy failed" if CREATE returns 0.
-    function _deployArtifact(string memory path, bytes memory args) internal returns (address deployed) {
-        string memory json = vm.readFile(path);
-        require(vm.parseJsonKeys(json, ".linkReferences").length == 0, "artifact needs linking");
-        bytes memory code = bytes.concat(vm.parseJsonBytes(json, ".bytecode"), args);
-        // solhint-disable-next-line no-inline-assembly
-        assembly {
-            deployed := create(0, add(code, 0x20), mload(code))
-        }
-        require(deployed != address(0), "artifact deploy failed");
+    /// id has the form "Controller.sol:Controller". Deploys the Foundry-compiled contract with CREATE
+    /// (honours an active vm.prank). Reverts if the contract is missing or its constructor reverts.
+    function _deployPkg(string memory id, bytes memory args) internal returns (address) {
+        return vm.deployCode(id, args);
     }
 
-    /// As governor: deploys Controller and GraphProxyAdmin from CORE_ARTIFACTS, then controller.setPaused(false).
+    /// As governor: deploys Controller and GraphProxyAdmin, then controller.setPaused(false).
     /// Must be called with no active prank.
     function _deployProtocolBase() internal {
         governor = makeAddr("governor");
         vm.startPrank(governor);
-        controller = IController(
-            _deployArtifact(string.concat(CORE_ARTIFACTS, "governance/Controller.sol/Controller.json"), "")
-        );
-        proxyAdmin = IGraphProxyAdmin(
-            _deployArtifact(string.concat(CORE_ARTIFACTS, "upgrades/GraphProxyAdmin.sol/GraphProxyAdmin.json"), "")
-        );
+        controller = IController(_deployPkg("Controller.sol:Controller", ""));
+        proxyAdmin = IGraphProxyAdmin(_deployPkg("GraphProxyAdmin.sol:GraphProxyAdmin", ""));
         controller.setPaused(false);
         vm.stopPrank();
     }
 
-    /// As governor: deploys GraphProxy(address(0), proxyAdmin) from CORE_ARTIFACTS,
+    /// As governor: deploys GraphProxy(address(0), proxyAdmin)
     /// proxyAdmin.upgrade(proxy, impl), proxyAdmin.acceptProxyAndCall(impl, proxy, initData).
     /// Must be called with no active prank.
     function _deployBehindProxy(address impl, bytes memory initData) internal returns (address proxy) {
         vm.startPrank(governor);
-        proxy = _deployArtifact(
-            string.concat(CORE_ARTIFACTS, "upgrades/GraphProxy.sol/GraphProxy.json"),
-            abi.encode(address(0), address(proxyAdmin))
-        );
+        proxy = _deployPkg("GraphProxy.sol:GraphProxy", abi.encode(address(0), address(proxyAdmin)));
         proxyAdmin.upgrade(IGraphProxy(proxy), impl);
         proxyAdmin.acceptProxyAndCall(impl, IGraphProxy(proxy), initData);
         vm.stopPrank();

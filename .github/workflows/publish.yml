@@ -31,6 +31,7 @@ on:
         options:
           - address-book
           - contracts
+          - graph-core
           - interfaces
           - toolshed
       tag:

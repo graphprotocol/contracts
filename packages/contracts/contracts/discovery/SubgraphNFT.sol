@@ -9,7 +9,7 @@ pragma solidity ^0.7.6;
 import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 
-import { Governed } from "../governance/Governed.sol";
+import { Governed } from "@graphprotocol/graph-core/contracts/governance/Governed.sol";
 import { HexStrings } from "../libraries/HexStrings.sol";
 import { ISubgraphNFT } from "@graphprotocol/interfaces/contracts/contracts/discovery/ISubgraphNFT.sol";
 import { ISubgraphNFTDescriptor } from "@graphprotocol/interfaces/contracts/contracts/discovery/ISubgraphNFTDescriptor.sol";

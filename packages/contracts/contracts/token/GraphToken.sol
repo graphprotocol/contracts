@@ -11,7 +11,7 @@ import { ERC20Burnable } from "@openzeppelin/contracts/token/ERC20/ERC20Burnable
 import { ECDSA } from "@openzeppelin/contracts/cryptography/ECDSA.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
-import { Governed } from "../governance/Governed.sol";
+import { Governed } from "@graphprotocol/graph-core/contracts/governance/Governed.sol";
 
 /**
  * @title GraphToken contract

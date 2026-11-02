@@ -2,7 +2,7 @@
 
 pragma solidity ^0.7.6;
 
-import { Managed } from "../governance/Managed.sol";
+import { Managed } from "@graphprotocol/graph-core/contracts/governance/Managed.sol";
 
 /**
  * @title Epoch Manager Storage V1

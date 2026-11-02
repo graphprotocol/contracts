@@ -10,6 +10,7 @@ import {
   loadHorizonBuildArtifact,
   loadIssuanceArtifact,
   loadOpenZeppelinArtifact,
+  loadPackageArtifact,
   loadSubgraphServiceArtifact,
 } from './artifact-loaders.js'
 import { computeBytecodeHash } from './bytecode-utils.js'
@@ -78,6 +79,9 @@ export interface ImplementationDeployConfig {
    * For @graphprotocol/contracts:
    *   { type: 'contracts', path: 'rewards', name: 'RewardsManager' }
    *
+   * For @graphprotocol/graph-core, graph-token or subgraph-discovery:
+   *   { type: 'graph-core', path: 'governance', name: 'Controller' }
+   *
    * For @graphprotocol/subgraph-service (Foundry format):
    *   { type: 'subgraph-service', name: 'SubgraphService' }
    *
@@ -145,6 +149,10 @@ export function loadArtifactFromSource(source: ArtifactSource): Artifact {
   switch (source.type) {
     case 'contracts':
       return loadContractsArtifact(source.path, source.name)
+    case 'graph-core':
+    case 'graph-token':
+    case 'subgraph-discovery':
+      return loadPackageArtifact(source.type, source.path, source.name)
     case 'subgraph-service':
       return loadSubgraphServiceArtifact(source.name)
     case 'horizon':

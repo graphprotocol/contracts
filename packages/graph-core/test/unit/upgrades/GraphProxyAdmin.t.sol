@@ -23,10 +23,7 @@ contract GraphProxyAdminTest is GraphCoreTest {
 
     function _deployOtherProxyAdmin() internal returns (IGraphProxyAdmin) {
         vm.prank(governor);
-        return
-            IGraphProxyAdmin(
-                _deployArtifact(string.concat(CORE_ARTIFACTS, "upgrades/GraphProxyAdmin.sol/GraphProxyAdmin.json"), "")
-            );
+        return IGraphProxyAdmin(_deployPkg("GraphProxyAdmin.sol:GraphProxyAdmin", ""));
     }
 
     // -- admin() --

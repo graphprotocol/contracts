@@ -1,7 +1,7 @@
 {
-  "Controller": "packages/contracts/artifacts/contracts/governance/Controller.sol/Controller.json",
-  "GraphProxy": "packages/contracts/artifacts/contracts/upgrades/GraphProxy.sol/GraphProxy.json",
-  "GraphProxyAdmin": "packages/contracts/artifacts/contracts/upgrades/GraphProxyAdmin.sol/GraphProxyAdmin.json",
+  "Controller": "packages/graph-core/artifacts/contracts/governance/Controller.sol/Controller.json",
+  "GraphProxy": "packages/graph-core/artifacts/contracts/upgrades/GraphProxy.sol/GraphProxy.json",
+  "GraphProxyAdmin": "packages/graph-core/artifacts/contracts/upgrades/GraphProxyAdmin.sol/GraphProxyAdmin.json",
   "GraphToken": "packages/contracts/artifacts/contracts/token/GraphToken.sol/GraphToken.json",
   "L2GraphToken": "packages/contracts/artifacts/contracts/l2/token/L2GraphToken.sol/L2GraphToken.json",
   "L1GraphTokenGateway": "packages/contracts/artifacts/contracts/gateway/L1GraphTokenGateway.sol/L1GraphTokenGateway.json",

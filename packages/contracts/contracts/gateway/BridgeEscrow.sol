@@ -4,8 +4,8 @@ pragma solidity ^0.7.6;
 
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 
-import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
-import { Managed } from "../governance/Managed.sol";
+import { GraphUpgradeable } from "@graphprotocol/graph-core/contracts/upgrades/GraphUpgradeable.sol";
+import { Managed } from "@graphprotocol/graph-core/contracts/governance/Managed.sol";
 
 /**
  * @title Bridge Escrow
