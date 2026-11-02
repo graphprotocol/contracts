@@ -29,6 +29,7 @@
     "@graphprotocol/interfaces": "workspace:*",
     "@graphprotocol/issuance": "workspace:*",
     "@graphprotocol/subgraph-service": "workspace:*",
+    "@graphprotocol/subgraph-discovery": "workspace:*",
     "@graphprotocol/toolshed": "workspace:*",
     "@rocketh/core": "^0.17.8",
     "ethers": "^6.15.0",

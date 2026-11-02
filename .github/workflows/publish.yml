@@ -33,6 +33,7 @@ on:
           - contracts
           - graph-core
           - graph-token
+          - subgraph-discovery
           - interfaces
           - toolshed
       tag:

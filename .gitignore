@@ -43,6 +43,7 @@ wagmi/
 packages/contracts/types/
 packages/graph-core/types/
 packages/graph-token/types/
+packages/subgraph-discovery/types/
 packages/interfaces/types/
 packages/token-distribution/types/
 packages/issuance/types/

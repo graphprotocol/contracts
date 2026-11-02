@@ -44,6 +44,7 @@
     "@graphprotocol/graph-token": "workspace:^",
     "@graphprotocol/contracts-7.3.0": "npm:@graphprotocol/contracts@7.3.0",
     "@graphprotocol/interfaces": "workspace:^",
+    "@graphprotocol/subgraph-discovery": "workspace:^",
     "@graphprotocol/toolshed": "workspace:^",
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
     "@nomicfoundation/hardhat-ethers": "catalog:",

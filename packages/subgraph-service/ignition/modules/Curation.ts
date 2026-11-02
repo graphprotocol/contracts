@@ -1,4 +1,4 @@
-import CurationArtifact from '@graphprotocol/contracts/artifacts/contracts/l2/curation/L2Curation.sol/L2Curation.json'
+import CurationArtifact from '@graphprotocol/subgraph-discovery/artifacts/contracts/l2/curation/L2Curation.sol/L2Curation.json'
 import { buildModule } from '@nomicfoundation/ignition-core'
 
 // Note that this module is a no-op, we only run it to get curation addresses into the address book.

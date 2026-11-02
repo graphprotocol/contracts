@@ -220,7 +220,7 @@ describe('Deploy Implementation Helper', function () {
     })
 
     it('should load different contracts with correct paths', function () {
-      const l2Curation = loadContractsArtifact('l2/curation', 'L2Curation')
+      const l2Curation = loadPackageArtifact('subgraph-discovery', 'l2/curation', 'L2Curation')
       expect(l2Curation.abi).to.be.an('array')
       expect(l2Curation.bytecode).to.match(/^0x/)
 

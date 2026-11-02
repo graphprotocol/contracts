@@ -58,6 +58,18 @@
     "SubgraphNFT": {
       "address": "0x3FbD54f0cc17b7aE649008dEEA12ed7D2622B23f"
     },
+    "GraphCurationToken": {
+      "address": "0x47a0d56ea574419B524285d52fFe7198297D209c",
+      "creationCodeHash": "0x1ee42ee271cefe20c33c0de904501e618ac4b56debca67c634d0564cecea9ff2",
+      "runtimeCodeHash": "0x340e8f378c0117b300f3ec255bc5c3a273f9ab5bd2940fa8eb3b5065b21f86dc",
+      "txHash": "0x382568f1871a3d57f4d3787b255a2364e9926cb6770fdca3cde6cb04b577ecd5"
+    },
+    "SubgraphNFTDescriptor": {
+      "address": "0x96cce9b6489744630A058324FB22e7CD02815ebe",
+      "creationCodeHash": "0xf16e8ff11d852eea165195ac9e0dfa00f98e48f6ce3c77c469c7df9bf195b651",
+      "runtimeCodeHash": "0x39583196f2bcb85789b6e64692d8c0aa56f001c46f0ca3d371abbba2c695860f",
+      "txHash": "0xbb01566726e1d58825cf7aa2860f0f571ff47f92b3837aad0e73e7791fbca48c"
+    },
     "RewardsManager": {
       "address": "0x971B9d3d0Ae3ECa029CAB5eA1fB0F72c85e6a525",
       "proxy": "graph",
@@ -182,6 +194,18 @@
     },
     "SubgraphNFT": {
       "address": "0xF21Df5BbA7EB9b54D8F60C560aFb9bA63e6aED1A"
+    },
+    "GraphCurationToken": {
+      "address": "0x00FBd5D46FFAc54862c1Dd27BE08924BB17f5CDa",
+      "creationCodeHash": "0x1ee42ee271cefe20c33c0de904501e618ac4b56debca67c634d0564cecea9ff2",
+      "runtimeCodeHash": "0x340e8f378c0117b300f3ec255bc5c3a273f9ab5bd2940fa8eb3b5065b21f86dc",
+      "txHash": "0x045d64dc3ebb7ae6c4976854ce0a797a04524d22a6ef5f526bfc27f744bc68e5"
+    },
+    "SubgraphNFTDescriptor": {
+      "address": "0x4032F7B6b27FfC9862106f826379DaB1716C71d7",
+      "creationCodeHash": "0xf16e8ff11d852eea165195ac9e0dfa00f98e48f6ce3c77c469c7df9bf195b651",
+      "runtimeCodeHash": "0x39583196f2bcb85789b6e64692d8c0aa56f001c46f0ca3d371abbba2c695860f",
+      "txHash": "0xb7e7aeeecc693f34f491b01c56950533119810a4e3e2642081efc127f11cb782"
     },
     "RewardsManager": {
       "address": "0x1F49caE7669086c8ba53CC35d1E9f80176d67E79",

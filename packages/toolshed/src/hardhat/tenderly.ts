@@ -16,7 +16,7 @@ export interface TenderlyConfig {
   externalArtifacts?: {
     source: string
     buildInfo: string
-  }
+  }[]
   verifyList?: string[]
   excludeList?: string[]
   tag?: string
@@ -89,26 +89,29 @@ export function copyExternalArtifacts(packageDir: string, config: TenderlyConfig
   }
 
   const destDir = path.join(packageDir, '.tenderly-artifacts')
-  const sourceDir = path.resolve(packageDir, config.externalArtifacts.source)
-
-  console.log(`Copying external artifacts from ${sourceDir}...`)
 
   if (!fs.existsSync(destDir)) {
     fs.mkdirSync(destDir, { recursive: true })
   }
 
-  const sourcePath = path.join(sourceDir, 'contracts')
-  const destPath = path.join(destDir, 'contracts')
+  for (const external of config.externalArtifacts) {
+    const sourceDir = path.resolve(packageDir, external.source)
 
-  if (fs.existsSync(sourcePath)) {
-    execSync(`rsync -a "${sourcePath}/" "${destPath}/"`, { stdio: 'inherit' })
-  }
+    console.log(`Copying external artifacts from ${sourceDir}...`)
 
-  const buildInfoSource = path.resolve(packageDir, config.externalArtifacts.buildInfo)
-  const buildInfoDest = path.join(destDir, 'build-info')
+    const sourcePath = path.join(sourceDir, 'contracts')
+    const destPath = path.join(destDir, 'contracts')
 
-  if (fs.existsSync(buildInfoSource)) {
-    execSync(`rsync -a "${buildInfoSource}/" "${buildInfoDest}/"`, { stdio: 'inherit' })
+    if (fs.existsSync(sourcePath)) {
+      execSync(`rsync -a "${sourcePath}/" "${destPath}/"`, { stdio: 'inherit' })
+    }
+
+    const buildInfoSource = path.resolve(packageDir, external.buildInfo)
+    const buildInfoDest = path.join(destDir, 'build-info')
+
+    if (fs.existsSync(buildInfoSource)) {
+      execSync(`rsync -a "${buildInfoSource}/" "${buildInfoDest}/"`, { stdio: 'inherit' })
+    }
   }
 
   console.log(`✓ External artifacts copied to ${destDir}`)

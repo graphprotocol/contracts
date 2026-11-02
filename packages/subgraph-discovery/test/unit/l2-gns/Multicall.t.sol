@@ -29,4 +29,26 @@ contract MulticallTest is GNSHelpers {
         // Curation tax is zero
         assertEq(curation.getCurationPoolTokens(DEPLOYMENT_ID_0), tokens);
     }
+
+    function test_GNS_Multicall_RevertWhen_BatchedCallReverts() public {
+        bytes[] memory calls = new bytes[](2);
+        calls[0] = abi.encodeCall(IL2GNSLike.setOwnerTaxPercentage, (100));
+        calls[1] = abi.encodeCall(
+            IL2GNSLike.publishNewSubgraph,
+            (DEPLOYMENT_ID_0, _versionMetadata(DEPLOYMENT_ID_0), _subgraphMetadata(DEPLOYMENT_ID_0))
+        );
+
+        vm.expectRevert(bytes("Only Controller governor"));
+        vm.prank(me);
+        gns.multicall(calls);
+    }
+
+    function test_GNS_Multicall_RevertWhen_SelectorNotRecognized() public {
+        bytes[] memory calls = new bytes[](1);
+        calls[0] = abi.encodeWithSignature("_setOwnerTaxPercentage(uint32)", uint32(100));
+
+        vm.expectRevert(bytes(""));
+        vm.prank(me);
+        gns.multicall(calls);
+    }
 }

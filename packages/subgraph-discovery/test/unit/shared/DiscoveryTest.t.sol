@@ -15,13 +15,11 @@ abstract contract DiscoveryTest is ProtocolFixture {
     string internal constant TOKEN_ARTIFACTS = "node_modules/@graphprotocol/graph-token/artifacts/contracts/";
     string internal constant L2_GRAPH_TOKEN =
         string.concat(TOKEN_ARTIFACTS, "l2/token/L2GraphToken.sol/L2GraphToken.json");
-    string internal constant GRAPH_CURATION_TOKEN =
-        string.concat(PKG_ARTIFACTS, "curation/GraphCurationToken.sol/GraphCurationToken.json");
-    string internal constant L2_CURATION = string.concat(PKG_ARTIFACTS, "l2/curation/L2Curation.sol/L2Curation.json");
-    string internal constant SUBGRAPH_NFT = string.concat(PKG_ARTIFACTS, "discovery/SubgraphNFT.sol/SubgraphNFT.json");
-    string internal constant SUBGRAPH_NFT_DESCRIPTOR =
-        string.concat(PKG_ARTIFACTS, "discovery/SubgraphNFTDescriptor.sol/SubgraphNFTDescriptor.json");
-    string internal constant L2_GNS = string.concat(PKG_ARTIFACTS, "l2/discovery/L2GNS.sol/L2GNS.json");
+    string internal constant GRAPH_CURATION_TOKEN = "GraphCurationToken.sol:GraphCurationToken";
+    string internal constant L2_CURATION = "L2Curation.sol:L2Curation";
+    string internal constant SUBGRAPH_NFT = "SubgraphNFT.sol:SubgraphNFT";
+    string internal constant SUBGRAPH_NFT_DESCRIPTOR = "SubgraphNFTDescriptor.sol:SubgraphNFTDescriptor";
+    string internal constant L2_GNS = "L2GNS.sol:L2GNS";
 
     IGraphTokenLike internal grt;
     IL2CurationLike internal curation;
@@ -53,23 +51,23 @@ abstract contract DiscoveryTest is ProtocolFixture {
         grt.addMinter(governor);
         vm.stopPrank();
 
-        curationTokenMaster = _deployArtifact(GRAPH_CURATION_TOKEN, "");
+        curationTokenMaster = _deployPkg(GRAPH_CURATION_TOKEN, "");
 
         curation = IL2CurationLike(
             _deployBehindProxy(
-                _deployArtifact(L2_CURATION, ""),
+                _deployPkg(L2_CURATION, ""),
                 abi.encodeCall(IL2CurationLike.initialize, (address(controller), curationTokenMaster, 0, 1))
             )
         );
 
-        nft = ISubgraphNFTLike(_deployArtifact(SUBGRAPH_NFT, abi.encode(governor)));
-        address descriptor = _deployArtifact(SUBGRAPH_NFT_DESCRIPTOR, "");
+        nft = ISubgraphNFTLike(_deployPkg(SUBGRAPH_NFT, abi.encode(governor)));
+        address descriptor = _deployPkg(SUBGRAPH_NFT_DESCRIPTOR, "");
         vm.prank(governor);
         nft.setTokenDescriptor(descriptor);
 
         gns = IL2GNSLike(
             _deployBehindProxy(
-                _deployArtifact(L2_GNS, ""),
+                _deployPkg(L2_GNS, ""),
                 abi.encodeCall(IL2GNSLike.initialize, (address(controller), address(nft)))
             )
         );

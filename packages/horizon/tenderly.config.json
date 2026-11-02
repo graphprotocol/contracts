@@ -8,10 +8,16 @@
       "project": "horizon-arbitrum-one"
     }
   },
-  "externalArtifacts": {
-    "source": "../contracts/artifacts",
-    "buildInfo": "../contracts/artifacts/build-info"
-  },
+  "externalArtifacts": [
+    {
+      "source": "../subgraph-discovery/artifacts",
+      "buildInfo": "../subgraph-discovery/artifacts/build-info"
+    },
+    {
+      "source": "../contracts/artifacts",
+      "buildInfo": "../contracts/artifacts/build-info"
+    }
+  ],
   "verifyList": [
     "HorizonStaking",
     "GraphPayments",
