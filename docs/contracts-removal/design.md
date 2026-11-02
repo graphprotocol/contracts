@@ -321,7 +321,7 @@ The detailed task split is in `phase-t-plan.md`.
   - `addresses-staging.json`, `arbitrum-addresses.json`;
   - `config/`, and `configDir` in `index.js`.
 
-  Live files that also appear in `legacy` bundles stay: Multicall, GNS, GNSStorage, CurationStorage, Managed, GraphUpgradeable, TokenUtils and MathUtils. Nothing that remains imports a deleted file. A PR just before it adds the Ignition alias (§5). L1GNS, Curation, L1Staking, StakingExtension and LibExponential leave the 0c manifest, because `legacy` now checks them.
+  Live files that also appear in `legacy` bundles stay: Multicall, GNS, GNSStorage, CurationStorage, Managed, GraphUpgradeable, TokenUtils and MathUtils. Nothing that remains imports a deleted file. A PR just before it adds the Ignition alias (§5). L1GNS, Curation, L1Staking, StakingExtension and LibExponential leave the 0c manifest. `legacy` checks the first four against mainnet, and pins LibExponential by address through L1Staking's compiled code.
 
 After D3, `packages/contracts` contains only live contracts and the mocks ported tests use.
 
