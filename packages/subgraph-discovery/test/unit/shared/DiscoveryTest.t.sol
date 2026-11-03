@@ -16,11 +16,12 @@ abstract contract DiscoveryTest is ProtocolFixture {
     string internal constant L2_GRAPH_TOKEN =
         string.concat(TOKEN_ARTIFACTS, "l2/token/L2GraphToken.sol/L2GraphToken.json");
     string internal constant GRAPH_CURATION_TOKEN =
-        string.concat(PKG_ARTIFACTS, "curation/GraphCurationToken.sol/GraphCurationToken.json");
+        string.concat(TOKEN_ARTIFACTS, "curation/GraphCurationToken.sol/GraphCurationToken.json");
     string internal constant L2_CURATION = string.concat(PKG_ARTIFACTS, "l2/curation/L2Curation.sol/L2Curation.json");
-    string internal constant SUBGRAPH_NFT = string.concat(PKG_ARTIFACTS, "discovery/SubgraphNFT.sol/SubgraphNFT.json");
+    string internal constant SUBGRAPH_NFT =
+        string.concat(TOKEN_ARTIFACTS, "discovery/SubgraphNFT.sol/SubgraphNFT.json");
     string internal constant SUBGRAPH_NFT_DESCRIPTOR =
-        string.concat(PKG_ARTIFACTS, "discovery/SubgraphNFTDescriptor.sol/SubgraphNFTDescriptor.json");
+        string.concat(TOKEN_ARTIFACTS, "discovery/SubgraphNFTDescriptor.sol/SubgraphNFTDescriptor.json");
     string internal constant L2_GNS = string.concat(PKG_ARTIFACTS, "l2/discovery/L2GNS.sol/L2GNS.json");
 
     IGraphTokenLike internal grt;

@@ -120,7 +120,6 @@ function resolveContractArtifactPath(artifact: { type: string; path?: string; na
       return `@graphprotocol/contracts/artifacts/contracts/${artifact.path}/${artifact.name}.sol/${artifact.name}.json`
     case 'graph-core':
     case 'graph-token':
-    case 'subgraph-discovery':
       return `@graphprotocol/${artifact.type}/artifacts/contracts/${artifact.path}/${artifact.name}.sol/${artifact.name}.json`
     case 'subgraph-service': {
       const baseName = (artifact.name ?? '').includes('/') ? (artifact.name ?? '').split('/').pop()! : artifact.name

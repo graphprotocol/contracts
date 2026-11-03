@@ -52,7 +52,6 @@ function loadArtifact(source: ArtifactSource) {
       return loadContractsArtifact(source.path, source.name)
     case 'graph-core':
     case 'graph-token':
-    case 'subgraph-discovery':
       return loadPackageArtifact(source.type, source.path, source.name)
     case 'subgraph-service':
       return loadSubgraphServiceArtifact(source.name)

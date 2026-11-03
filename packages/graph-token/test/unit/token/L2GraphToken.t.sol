@@ -23,13 +23,6 @@ contract L2GraphTokenTest is GraphTokenSharedTest {
         assertEq(foundry, hardhat);
     }
 
-    function _stripMetadata(bytes memory code) internal pure returns (bytes memory out) {
-        uint256 metadataLength = (uint256(uint8(code[code.length - 2])) << 8) | uint256(uint8(code[code.length - 1]));
-        uint256 newLength = code.length - metadataLength - 2;
-        out = new bytes(newLength);
-        for (uint256 i = 0; i < newLength; i++) out[i] = code[i];
-    }
-
     function setUp() public {
         vm.warp(1_700_000_000);
         _deployProtocolBase();

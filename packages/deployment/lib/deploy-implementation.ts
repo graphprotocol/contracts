@@ -79,7 +79,7 @@ export interface ImplementationDeployConfig {
    * For @graphprotocol/contracts:
    *   { type: 'contracts', path: 'rewards', name: 'RewardsManager' }
    *
-   * For @graphprotocol/graph-core, graph-token or subgraph-discovery:
+   * For @graphprotocol/graph-core or graph-token:
    *   { type: 'graph-core', path: 'governance', name: 'Controller' }
    *
    * For @graphprotocol/subgraph-service (Foundry format):
@@ -151,7 +151,6 @@ export function loadArtifactFromSource(source: ArtifactSource): Artifact {
       return loadContractsArtifact(source.path, source.name)
     case 'graph-core':
     case 'graph-token':
-    case 'subgraph-discovery':
       return loadPackageArtifact(source.type, source.path, source.name)
     case 'subgraph-service':
       return loadSubgraphServiceArtifact(source.name)

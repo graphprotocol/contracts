@@ -9,7 +9,7 @@ import type { LibraryArtifactResolver, LinkReferences } from './bytecode-utils.j
 const require = createRequire(import.meta.url)
 
 /** Packages whose Hardhat artifacts live at artifacts/contracts/<path>/<name>.sol/<name>.json */
-export type ContractsPackage = 'contracts' | 'graph-core' | 'graph-token' | 'subgraph-discovery'
+export type ContractsPackage = 'contracts' | 'graph-core' | 'graph-token'
 
 /**
  * Load artifact from a @graphprotocol/<pkg> package
@@ -155,8 +155,6 @@ export function getLibraryResolver(sourceType: string): LibraryArtifactResolver 
       return createPackageLibraryResolver('@graphprotocol/graph-core/artifacts')
     case 'graph-token':
       return createPackageLibraryResolver('@graphprotocol/graph-token/artifacts')
-    case 'subgraph-discovery':
-      return createPackageLibraryResolver('@graphprotocol/subgraph-discovery/artifacts')
     default:
       return undefined
   }

@@ -19,6 +19,13 @@ abstract contract ProtocolFixture is Test {
         return vm.deployCode(id, args);
     }
 
+    function _stripMetadata(bytes memory code) internal pure returns (bytes memory out) {
+        uint256 metadataLength = (uint256(uint8(code[code.length - 2])) << 8) | uint256(uint8(code[code.length - 1]));
+        uint256 newLength = code.length - metadataLength - 2;
+        out = new bytes(newLength);
+        for (uint256 i = 0; i < newLength; i++) out[i] = code[i];
+    }
+
     /// path is a full artifact path, e.g. string.concat(CORE_ARTIFACTS, "governance/Controller.sol/Controller.json").
     /// Deploys `.bytecode ++ args` with CREATE (honours an active vm.prank).
     /// Reverts "artifact needs linking" if `.linkReferences` has any key (vm.parseJsonKeys),
