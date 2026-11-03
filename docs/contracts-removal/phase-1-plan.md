@@ -41,6 +41,7 @@ pnpm check:bytecode
 pnpm -r --sequential run test:self
 pnpm lint:sol; git status --short
 git diff -M HEAD~1 -- 'packages/*/contracts/**/*.sol' | grep -E '^[-+]' | grep -vE '^(\+\+\+|---)|^[-+]\s*(import|pragma|\}? ?from)|^[-+]\s+\w+,?$'
+rm -rf packages/deployment/fork
 FORK_NETWORK=arbitrumSepolia pnpm --filter @graphprotocol/deployment exec hardhat deploy --tags sync --skip-prompts --network fork
 ```
 
@@ -51,7 +52,7 @@ Expected:
 - The `grep` line prints nothing: moved and consumer contracts changed only in import and pragma lines. If it prints anything, the commit hook rewrote a file. The moved files pass prettier and solhint today, so this shouldn't happen. Stop and report rather than bypass the hook.
 - From P5, `legacy`'s `test:self` runs only the source-hash check. From P6, the `deploy:protocol` CI job passes.
 
-For the fork check, run the last command once on the parent commit and save its output to the scratchpad before starting the task. The two outputs must match. The public RPC default needs no secret, and a private one goes in as an inline `ARBITRUM_SEPOLIA_RPC=`. This check can't see a missing artifact, because `tryLoadArtifactFromSource` swallows the error, so P1 adds a registry test that can.
+The sync copies the address books into `packages/deployment/fork/` on first run and reuses that copy, so the `rm -rf` is required: without it, a run after an address-book change reads the old copy. For the fork check, run the last two commands once on the parent commit and save its output to the scratchpad before starting the task. The two outputs must match. The public RPC default needs no secret, and a private one goes in as an inline `ARBITRUM_SEPOLIA_RPC=`. This check can't see a missing artifact, because `tryLoadArtifactFromSource` swallows the error, so P1 adds a registry test that can.
 
 **Rebuild rule:** after a failed Hardhat compile in horizon or subgraph-service, run `rm -rf build cache` before retrying. `isProjectBuilt` passes on a partial build, and `loadTasks` then crashes on missing artifacts.
 
