@@ -21,7 +21,7 @@ No package compiles both 0.7.6 and 0.8 contracts.
 Out of scope:
 
 - Porting frozen contracts to Solidity 0.8.
-- Any change to contract behaviour. Ports change the language version, not the behaviour.
+- Any functional change to contract behaviour. Ports change the language version and the compiler pipeline, not what the contracts do. The only observable difference is revert data (§3).
 - Bringing `billing-contracts` into the monorepo. That is a separate sub-project with its own spec.
 
 ## Decisions
@@ -49,6 +49,8 @@ deployment          → graph-core, graph-token, issuance, horizon, subgraph-ser
 
 legacy              (new, private, no workspace dependencies)
 ```
+
+`subgraph-discovery` is omitted: it is a private, test-only package (`→ graph-token, graph-core, contracts`) that exists until Phase P moves its suite to subgraph-service and deletes it.
 
 Edges to `toolshed`, `hardhat-graph-protocol` and `interfaces` that exist today and don't change are omitted.
 
@@ -89,7 +91,7 @@ The test-only `subgraph-discovery` package created in Phase T is deleted in Phas
 - A frozen, private archive of the source that actually runs on mainnet, for GraphToken, L1GraphTokenGateway, BridgeEscrow, L1GNS, Curation, L1Staking and StakingExtension. Mainnet is deprecated: only the GRT contracts are still in use there.
 - Current source reproduces only Curation. GraphToken was built with solc 0.7.4, and nine files shared between the implementations, including `Managed.sol`, differ from one implementation to the next. So each contract keeps its own bundle.
 - Each bundle is `verified/<Contract>/`: the Sourcify-verified sources, unchanged, with the compiler version and settings. All seven were compiled locally and reproduce mainnet when the package was created. The README links each one to its Etherscan and Sourcify pages, which remain the authority.
-- No scripts, no compiler, no tests and no CI job. It has no Solidity imports from the workspace and no Hardhat config. Formatters and linters must not touch `verified/`; the root and package ignore files that D2 added stay.
+- No compiler, no RPC and no mainnet comparison. The only check left is `test:self` hashing every file under `verified/` against the `sourceHashes` in its bundle's `compiler.json`, so an edit or a formatter run on archived source fails CI. It has no Solidity imports from the workspace and no Hardhat config. Formatters and linters must not touch `verified/`; the root and package ignore files that D2 added stay.
 - `addresses.json` holds every L1 entry (see address-book in §5).
 - graph-token keeps its current source for GraphToken, L1GraphTokenGateway and BridgeEscrow, and its README says this is not the code running on mainnet.
 - Historical audit reports from `packages/contracts/audits/` (29 PDFs) move to `packages/legacy/audits/`.
@@ -123,15 +125,15 @@ The 0.7.6 settings must reproduce the current build exactly: solc 0.7.6, optimiz
   - Non-SafeMath arithmetic exists only at `RewardsManager.sol:482` (`+=`), `L2GNS.sol:238` (`+`), `L2GNS.sol:245` (`-`) and `Multicall.sol:23` (`++`). The two L2GNS lines compute the L1-to-L2 subgraph ID alias and rely on wrapping (about 6.7% of IDs would revert under checked arithmetic), so they go in `unchecked`. `test_GetAliasedL2SubgraphID_WrapsAroundMaxUint256` covers it.
   - OpenZeppelin 5 has no `Address.isContract`. `GNS.sol:838` and `L2Curation.sol:469` use `.code.length` instead.
   - `GNS._buildSubgraphID` reads `chainid()`, so it changes from `pure` to `view`. This was the only compile error.
-  - The ported contracts are compiled with `viaIR`, unlike the 0.7.6 legacy pipeline. Evaluation order and modifier handling can differ, so the audit covers it explicitly.
+  - The ported contracts are compiled without `viaIR`, like the 0.7.6 build, so the port changes the language version but not the code generation pipeline (see Compiler settings).
 - **Storage layout is identical.** `CurationV2Storage` and `GNSV3Storage` inherit OpenZeppelin 3's `Initializable`, whose `_initialized` and `_initializing` sit in ordinary storage slots (slot 16 in L2Curation). OpenZeppelin 5's `Initializable` uses namespaced storage, so it can't be used. The ports keep a local copy with the v3 layout and behaviour under a distinct name, `InitializableV3`, because subgraph-service also compiles OpenZeppelin 5's. RewardsManager has no OpenZeppelin storage. A trial port showed identical layouts slot for slot.
 - **Graph-core and graph-token sources stay as they are.** The ported contracts inherit Managed and GraphUpgradeable (dual pragma) and use TokenUtils (dual pragma). All of them, and every interface they reach, compile under 0.8.
 - **`interfaces` moves to OpenZeppelin 5 (Pa).** Issuance runs Hardhat 3, which resolves imports per package, so `IGraphToken`'s `IERC20` resolves to `interfaces`' own OpenZeppelin. Today that is 3.4.2 (`<0.8.0`), which a 0.8 RewardsManager can't compile. OpenZeppelin 5's `IERC20` and `IERC165` (`>=0.4.16`) and `IERC721` (`>=0.6.2`) still compile under 0.7.6. Hardhat 2 and Foundry packages resolve OpenZeppelin from their own root and are unaffected.
   - `IGraphCurationToken` stops importing `IERC20Upgradeable`, which OpenZeppelin 5 doesn't have, and extends `IERC20`. Selectors are unchanged, and L2GNS and L2Curation bytecode is identical.
-  - It changes the published package: the generated `IERC20Upgradeable` types disappear, the `IERC165` types move to `utils/introspection`, and ABI parameter names change (for example `transfer(recipient, amount)` becomes `transfer(to, value)`, and `setApprovalForAll`'s `_approved` becomes `approved`). That flows into the wagmi ABIs. Pa ships a changeset that says so.
+  - It changes the published package: the generated `IERC20Upgradeable` types disappear, the `IERC165` types move to `utils/introspection`, and ABI parameter names change (for example `transfer(recipient, amount)` becomes `transfer(to, value)`, and `setApprovalForAll`'s `_approved` becomes `approved`). That flows into the wagmi ABIs. Pa ships a `major` changeset for `@graphprotocol/interfaces` that says so.
   - OpenZeppelin becomes a regular dependency of `interfaces`, not a devDependency, so published Hardhat 3 consumers can resolve it. `@openzeppelin/contracts-upgradeable` is removed.
 - **Revert data changes.** SafeMath reverts with strings; 0.8 reverts with `Panic(0x11)`. Also, `Multicall` re-throws only revert data of at least 68 bytes, so a `Panic` or a short custom error inside a multicall surfaces as empty revert data. Tests that expect the old data are updated, and each Phase P PR lists them.
-- **Compiler settings** are the destination package's: 0.8.35 with `viaIR` and `evmVersion: cancun` in subgraph-service, and issuance's 0.8 config. Trial sizes with optimization: RewardsManager 10.6KB, L2GNS 16.9KB, L2Curation 9.6KB, all under the 24KB limit.
+- **Compiler settings:** 0.8.35 with `evmVersion: cancun`, optimizer enabled, and no `viaIR`. subgraph-service and issuance both compile with `viaIR` by default, so each adds a per-file `solidity.overrides` entry for its ported files. Neither the language version nor the size limit needs `viaIR`, and keeping the legacy pipeline leaves the auditors one less change to review. Trial sizes with optimization: RewardsManager 10.6KB, L2GNS 16.9KB, L2Curation 9.6KB, all under the 24KB limit; Pb and Pc confirm them without `viaIR`.
 
 ### 4. Tests
 
@@ -383,16 +385,16 @@ Per-step notes:
 4. **EpochManager into graph-core.**
    - Adds the `@openzeppelin/contracts-v3` alias to graph-core for EpochManager's SafeMath, and a CI grep rule limiting the alias to graph-core.
    - Moves horizon's EpochManager tests (T4) to graph-core, on `deployCode`, so coverage registers.
-5. **`legacy` simplified.** Deletes `scripts/`, `mainnet.json`, `targets.json`, the `test:self` script, the solc-js dependency and the CI job. Keeps `verified/`, `addresses.json` and `audits/`, and rewrites the README with Etherscan and Sourcify links for each bundle.
-6. **Ignition simplified** as §5 describes. Before the change, tag its parent commit `ignition-records-final`. Every remaining module imports live artifacts: Controller, GraphProxy, GraphProxyAdmin and EpochManager from graph-core; L2GraphToken, L2GraphTokenGateway, GraphCurationToken, SubgraphNFT and SubgraphNFTDescriptor from graph-token; RewardsManager, L2GNS and L2Curation from `@graphprotocol/contracts` until Phase P. Removes the `@graphprotocol/contracts-7.3.0` alias. Adds the `deploy:protocol` CI job.
+5. **`legacy` simplified.** Deletes the compile and mainnet scripts, `mainnet.json`, `targets.json` and the solc-js dependencies. `test:self` keeps only the source-hash check (§2). Keeps `verified/`, `addresses.json` and `audits/`, and rewrites the README with Etherscan and Sourcify links for each bundle.
+6. **Ignition simplified** as §5 describes. Before the change, tag its parent commit `ignition-records-final`, once that commit is in the base branch and won't be rewritten. Every remaining module imports live artifacts: Controller, GraphProxy, GraphProxyAdmin and EpochManager from graph-core; L2GraphToken, L2GraphTokenGateway, GraphCurationToken, SubgraphNFT and SubgraphNFTDescriptor from graph-token; RewardsManager, L2GNS and L2Curation from `@graphprotocol/contracts` until Phase P. Removes the `@graphprotocol/contracts-7.3.0` alias. Adds the `deploy:protocol` CI job.
 
 ### Phase P: ports of living contracts to 0.8
 
 Each port PR has two commits: a `git mv` into the destination package, then the port. Reviewers and auditors read the second commit. The first commit doesn't build on its own; the PR says so. Before the first PR, tag the last commit where these contracts are 0.7.6, so the deployed source is one checkout away.
 
-Like the rest of this stack, Phase P PRs reach `main` only after the audit covers their port commits. From then on, `main` holds only audited code, and a hotfix to any of these contracts ships the 0.8 version.
+Like the rest of this stack, Phase P PRs reach `main` only after the audit covers their port commits. From then on, `main` holds only audited code. A hotfix to one of these contracts can either ship the audited 0.8 version or branch from the pre-port tag and patch the 0.7.6 code that is deployed; the second avoids making an emergency fix the port's first deployment. A hotfix made from the tag is ported into `main` afterwards.
 
-- **Pa. interfaces to OpenZeppelin 5.** Raises `interfaces`' OpenZeppelin to `^5.4` as a regular dependency, removes `contracts-upgradeable`, and changes `IGraphCurationToken` to extend OpenZeppelin 5's `IERC20` (§3). Adds a changeset describing the type and parameter-name changes. Checks that the 0.7.6 builds in graph-core and graph-token, and the bytecode check, are unaffected.
+- **Pa. interfaces to OpenZeppelin 5.** Raises `interfaces`' OpenZeppelin to `^5.4` as a regular dependency, removes `contracts-upgradeable`, and changes `IGraphCurationToken` to extend OpenZeppelin 5's `IERC20` (§3). Adds a `major` changeset describing the type and parameter-name changes. Checks that the 0.7.6 builds in graph-core and graph-token, and the bytecode check, are unaffected.
 - **Pb. RewardsManager, RewardsManagerStorage and MathUtils into issuance.**
   - Issuance stays 0.8 only.
   - Its T5 suite runs against both builds (§4 Differential tests).
@@ -433,8 +435,8 @@ Like the rest of this stack, Phase P PRs reach `main` only after the audit cover
 ## Risks
 
 - **Merge conflicts.** RewardsManager, L2GNS and L2Curation are under active development. Keep Phase P PRs short-lived, and coordinate timing with open work.
-- **A port changes behaviour.** Mitigated by the storage-layout check, differential tests against the 0.7.6 build, and the audit of the port commit. `InitializableV3`, the L2GNS alias arithmetic and the switch to `viaIR` are the most sensitive pieces.
-- **Repo source differs from what's deployed for ported contracts until their next upgrade.** The pre-port git tag and Sourcify hold the deployed source. A hotfix ships the audited 0.8 version.
+- **A port changes behaviour.** Mitigated by the storage-layout check, differential tests against the 0.7.6 build, and the audit of the port commit. `InitializableV3` and the L2GNS alias arithmetic are the most sensitive pieces.
+- **Repo source differs from what's deployed for ported contracts until their next upgrade.** The pre-port git tag and Sourcify hold the deployed source, and a hotfix can branch from the tag (Phase P).
 - **OpenZeppelin 5 in `interfaces`.** Hardhat 3 consumers resolve `interfaces`' imports with its own OpenZeppelin, and the published types and ABI parameter names change. Pa checks that every package still builds with identical frozen bytecode, and its changeset tells external consumers.
 - **Mainnet source drift.** Current source does not reproduce most mainnet implementations. `legacy` therefore archives the verified source, and graph-token's README says its mainnet contracts aren't the deployed code.
 - **Test port fidelity.** A rewrite can silently drop behaviours. The mapping table and the coverage baseline guard against this.

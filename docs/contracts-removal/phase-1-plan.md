@@ -34,6 +34,7 @@
 
 ```bash
 pnpm install --frozen-lockfile
+pnpm --filter @graphprotocol/contracts clean
 pnpm -r --sequential run build
 pnpm test:scripts
 pnpm check:bytecode
@@ -48,7 +49,7 @@ Expected:
 - All exit 0 except the `grep` line. `check:bytecode` prints `OK: 21 contracts match` throughout Phase 1: the manifest already lists EpochManager and the moved discovery contracts, and only their paths change.
 - `git status` prints nothing. `lint:sol`'s exit code only reflects its final `pnpm todo`, so `git status` is the real check that nothing was reformatted.
 - The `grep` line prints nothing: moved and consumer contracts changed only in import and pragma lines. If it prints anything, the commit hook rewrote a file. The moved files pass prettier and solhint today, so this shouldn't happen. Stop and report rather than bypass the hook.
-- From P5, `pnpm -r test:self` runs nothing in `legacy`. From P6, the `deploy:protocol` CI job passes.
+- From P5, `legacy`'s `test:self` runs only the source-hash check. From P6, the `deploy:protocol` CI job passes.
 
 For the fork check, run the last command once on the parent commit and save its output to the scratchpad before starting the task. The two outputs must match. The public RPC default needs no secret, and a private one goes in as an inline `ARBITRUM_SEPOLIA_RPC=`. This check can't see a missing artifact, because `tryLoadArtifactFromSource` swallows the error, so P1 adds a registry test that can.
 
@@ -104,8 +105,9 @@ Done: #1394.
 **New package setup**, also used by P2 and P3:
 
 - `files` of contracts, artifacts, types and README; `exports` of `./artifacts/*`, `./contracts/*`, `./types` and `./types/*`; version `0.0.0` (the `major` changeset takes it to 1.0.0); no `"private"` and no `"type": "module"`.
-- Scripts: `build` is `pnpm build:dep && pnpm build:self`, `build:self` is `hardhat compile --quiet`, `clean` is `rm -rf artifacts/ cache/ types/ forge-artifacts/ cache_forge/ coverage/`, and `lint:sol` matches `packages/contracts`.
-- devDependencies: `@graphprotocol/interfaces`, `hardhat`, `hardhat-ignore-warnings`, `@nomicfoundation/hardhat-verify` 2.1.1, `@typechain/hardhat`, `@typechain/ethers-v5`, `typechain`, `ethers ^5.7.2`, `@ethersproject/{abi,bytes,providers}`, `ts-node`, `typescript`, `solhint`, `prettier`, `prettier-plugin-solidity`, `forge-std`, each at the version `packages/contracts` uses. Remove `@graphprotocol/contracts`.
+- Scripts: `build` is `pnpm build:dep && pnpm build:self`, `build:self` is `hardhat compile --quiet`, `prepack` is `pnpm build` (`publish.yml` has no build step, and artifacts and types are gitignored), `clean` is `rm -rf artifacts/ cache/ types/ forge-artifacts/ cache_forge/ coverage/`, and `lint:sol` matches `packages/contracts`.
+- dependencies: `@graphprotocol/interfaces`, because the published sources import it.
+- devDependencies: `hardhat`, `hardhat-ignore-warnings`, `@nomicfoundation/hardhat-verify` 2.1.1, `@typechain/hardhat`, `@typechain/ethers-v5`, `typechain`, `ethers ^5.7.2`, `@ethersproject/{abi,bytes,providers}`, `ts-node`, `typescript`, `solhint`, `prettier`, `prettier-plugin-solidity`, `forge-std`, each at the version `packages/contracts` uses. Remove `@graphprotocol/contracts`.
 - Add `packages/<pkg>/types/` to root `.gitignore`.
 - `hardhat.config.ts` has the exact 0.7.6 settings, the Arbitrum networks, `etherscan`, `typechain` (target `ethers-v5`, outDir `types`) and `warnings` from `packages/contracts/hardhat.config.ts`.
 
@@ -224,11 +226,11 @@ No Ignition change: the modules read these three artifacts from the 7.3.0 alias 
 - Produces: `@graphprotocol/graph-core/artifacts/contracts/epochs/EpochManager.sol/EpochManager.json`.
 
 - [ ] **Step 1: Record the fork output on the parent commit.**
-- [ ] **Step 2: Make the move.** Rewrite EpochManager's `@openzeppelin/contracts/math/SafeMath.sol` import to `@openzeppelin/contracts-v3/math/SafeMath.sol`. The Managed and GraphUpgradeable imports become relative. Add the alias and install. Run `pnpm --filter @graphprotocol/graph-core build:self`. Expected: exit 0. Run `pnpm check:bytecode`. Expected: EpochManager matches (the review compiled this layout and got identical creation and runtime bytecode).
+- [ ] **Step 2: Make the move.** Rewrite EpochManager's `@openzeppelin/contracts/math/SafeMath.sol` import to `@openzeppelin/contracts-v3/math/SafeMath.sol`. The Managed and GraphUpgradeable imports become relative. Add the alias and install. Point EpochManager in `manifest.json` at the new path. Run `pnpm --filter @graphprotocol/graph-core build:self`. Expected: exit 0. Run `pnpm --filter @graphprotocol/contracts clean && pnpm --filter @graphprotocol/contracts build`, then `pnpm check:bytecode`. Expected: EpochManager matches (the review compiled this layout and got identical creation and runtime bytecode).
 - [ ] **Step 3: Move the tests.** Move the T4 suite to graph-core and switch it to `_deployPkg("EpochManager.sol:EpochManager")`. Add a Review Focus 1 test for EpochManager. Run `pnpm --filter @graphprotocol/graph-core test:self`. Expected: `TBD` passing. Run horizon's `test:self`. Expected: `TBD` passing, 2 skipped, and nothing loads EpochManager from `packages/contracts`.
 - [ ] **Step 4: Add the CI rule.** Add a `lint.yml` step that fails when `git grep -l '@openzeppelin/contracts-v3' -- '*.sol' ':!packages/graph-core/**'` prints anything.
 - [ ] **Step 5: Coverage gate** for `contracts/epochs/*.sol` in graph-core.
-- [ ] **Step 6: Update `manifest.json`,** and check the lockfile.
+- [ ] **Step 6: Check the lockfile.**
 - [ ] **Step 7: Commit.** `refactor(graph-core): move EpochManager`
 - [ ] **Step 8: Run the verification block.**
 
@@ -238,14 +240,16 @@ No Ignition change: the modules read these three artifacts from the 7.3.0 alias 
 
 **Files:**
 
-- Delete: `packages/legacy/scripts/`, `mainnet.json`, `targets.json`
-- Modify: `packages/legacy/package.json` (remove `test:self`, `test`, the solc-js dependencies and anything else only the scripts used), `README.md`
-- Modify: any CI step or root script that runs `legacy`'s check, `pnpm-lock.yaml`
+- Delete: `packages/legacy/scripts/{fetch-verified,record-mainnet,verify}.mjs`, `mainnet.json`, `targets.json`
+- Create: `packages/legacy/scripts/check-sources.mjs`
+- Modify: `packages/legacy/scripts/{lib,lib.test}.mjs` (keep only what the source-hash check uses), `package.json` (`test:self` runs `node --test 'scripts/*.test.mjs' && node scripts/check-sources.mjs`; remove the solc-js dependencies), `README.md`, `pnpm-lock.yaml`
 
-- [ ] **Step 1: Delete the files and scripts.** Expected: `git grep -n 'packages/legacy/scripts\|legacy.*test:self' -- . ':!docs/contracts-removal'` prints nothing. The ignore entries for `verified/` stay.
+The check runs in CI only through `test:self`; there is no separate CI job.
+
+- [ ] **Step 1: Reduce the scripts to the source-hash check.** `check-sources.mjs` runs `checkSources` on every bundle under `verified/` and exits 1 listing any changed, extra or missing file. Keep the `lib.test.mjs` cases for `checkSources` and drop the rest. Expected: `git grep -nE 'solc|mainnet\.json|targets\.json|RPC' -- packages/legacy ':!packages/legacy/verified' ':!packages/legacy/audits'` prints only README lines. Edit one byte of a file under `verified/`, run `test:self`, and confirm it fails naming that file; restore the file. The ignore entries for `verified/` stay.
 - [ ] **Step 2: Rewrite the README.** One section per bundle with the contract, its mainnet address, compiler version, and its Etherscan and Sourcify links. State that the files were verified to reproduce mainnet bytecode when the package was created (the D2 commit), and that Sourcify and Etherscan are the authority.
 - [ ] **Step 3: Check the lockfile** drops the solc-js entries and nothing else of note.
-- [ ] **Step 4: Commit.** `chore(legacy): drop the mainnet bytecode check`
+- [ ] **Step 4: Commit.** `chore(legacy): keep only the source-hash check`
 - [ ] **Step 5: Run the verification block.**
 
 ---
@@ -268,7 +272,7 @@ No Ignition change: the modules read these three artifacts from the 7.3.0 alias 
 - Create: a CI job that runs `deploy:protocol` on a local Hardhat network
 - Modify: `pnpm-lock.yaml`
 
-- [ ] **Step 1: Tag the parent commit** `ignition-records-final`, so the deleted records and flows are one checkout away. Mention the tag in the PR. The tag is pushed only with the user's approval.
+- [ ] **Step 1: Tag the parent commit** `ignition-records-final`, so the deleted records and flows are one checkout away. Tag it only once P5 is merged into the base branch, so the tagged commit is never rewritten. Mention the tag in the PR. The tag is pushed only with the user's approval.
 - [ ] **Step 2: List what uses each file before deleting it.** Run `git grep` for every task, script and module name above, outside the files being deleted. Expected: only `deploy.ts` task registrations, `package.json` scripts, docs and the files themselves. Check `local-network/containers/core/graph-contracts/run.sh` uses only `deploy:protocol`. Check whether any ops runbook uses `transition:enable-delegation-slashing`; if one does, keep that task and report it. Report anything else before continuing.
 - [ ] **Step 3: Delete the migrate flow, the deployment records, the verification scripts and the migration-based suites.** Update the docs.
 - [ ] **Step 4: Repoint imports.** Controller, GraphProxy, GraphProxyAdmin and EpochManager go to `@graphprotocol/graph-core/artifacts/...`. L2GraphToken, L2GraphTokenGateway, GraphCurationToken, SubgraphNFT and SubgraphNFTDescriptor go to `@graphprotocol/graph-token/artifacts/...`. RewardsManager, L2GNS and L2Curation stay on `@graphprotocol/contracts/artifacts/...`. Remove the alias and install. Expected: `git grep -n 'contracts-7.3.0' -- . ':!docs/contracts-removal' ':!**/CHANGELOG.md'` prints nothing. Run the TypeScript check in both packages.
