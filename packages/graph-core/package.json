@@ -27,7 +27,8 @@
   },
   "dependencies": {
     "@graphprotocol/interfaces": "workspace:^",
-    "@openzeppelin/contracts": "^5.4.0"
+    "@openzeppelin/contracts": "^5.4.0",
+    "@openzeppelin/contracts-v3": "npm:@openzeppelin/contracts@3.4.2"
   },
   "devDependencies": {
     "@ethersproject/abi": "^5.8.0",

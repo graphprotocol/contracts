@@ -583,6 +583,9 @@ importers:
       '@openzeppelin/contracts':
         specifier: ^5.4.0
         version: 5.4.0
+      '@openzeppelin/contracts-v3':
+        specifier: npm:@openzeppelin/contracts@3.4.2
+        version: '@openzeppelin/contracts@3.4.2'
     devDependencies:
       '@ethersproject/abi':
         specifier: ^5.8.0

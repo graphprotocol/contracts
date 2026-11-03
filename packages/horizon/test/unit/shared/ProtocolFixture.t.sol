@@ -8,7 +8,6 @@ import { IGraphProxyAdmin } from "@graphprotocol/interfaces/contracts/contracts/
 
 abstract contract ProtocolFixture is Test {
     string internal constant CORE_ARTIFACTS = "node_modules/@graphprotocol/graph-core/artifacts/contracts/";
-    string internal constant PKG_ARTIFACTS = "node_modules/@graphprotocol/contracts/artifacts/contracts/";
 
     address internal governor; // makeAddr("governor"), set in _deployProtocolBase
     IController internal controller;

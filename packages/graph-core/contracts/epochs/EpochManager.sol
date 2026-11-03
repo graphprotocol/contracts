@@ -5,10 +5,10 @@ pragma solidity ^0.7.6;
 // TODO: Re-enable and fix issues when publishing a new version
 // solhint-disable gas-indexed-events, gas-small-strings, gas-strict-inequalities
 
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { SafeMath } from "@openzeppelin/contracts-v3/math/SafeMath.sol";
 
-import { GraphUpgradeable } from "@graphprotocol/graph-core/contracts/upgrades/GraphUpgradeable.sol";
-import { Managed } from "@graphprotocol/graph-core/contracts/governance/Managed.sol";
+import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
+import { Managed } from "../governance/Managed.sol";
 
 import { EpochManagerV1Storage } from "./EpochManagerStorage.sol";
 import { IEpochManager } from "@graphprotocol/interfaces/contracts/contracts/epochs/IEpochManager.sol";

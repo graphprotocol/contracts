@@ -259,6 +259,16 @@ jobs:
             echo "No Solidity files to lint with Forge"
           fi
 
+      - name: Check OpenZeppelin v3 alias scope
+        run: |
+          # The @openzeppelin/contracts-v3 alias (SafeMath for 0.7.6 code) is only for graph-core
+          MATCHES=$(git grep -l '@openzeppelin/contracts-v3' -- '*.sol' ':!packages/graph-core/**') || [ $? -eq 1 ]
+          if [ -n "$MATCHES" ]; then
+            echo "@openzeppelin/contracts-v3 may only be imported from packages/graph-core:"
+            echo "$MATCHES"
+            exit 1
+          fi
+
       - name: Check lint results
         if: always()
         run: |

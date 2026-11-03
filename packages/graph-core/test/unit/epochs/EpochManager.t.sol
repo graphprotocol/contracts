@@ -2,6 +2,7 @@
 pragma solidity ^0.8.27;
 
 import { IEpochManagerLike } from "./IEpochManagerLike.sol";
+import { VmSafe } from "forge-std/Vm.sol";
 import { ProtocolFixture } from "../shared/ProtocolFixture.t.sol";
 
 contract EpochManagerTest is ProtocolFixture {
@@ -17,13 +18,22 @@ contract EpochManagerTest is ProtocolFixture {
     function setUp() public {
         vm.warp(1_700_000_000);
         _deployProtocolBase();
-        address impl = _deployArtifact(string.concat(PKG_ARTIFACTS, "epochs/EpochManager.sol/EpochManager.json"), "");
+        address impl = _deployPkg("EpochManager.sol:EpochManager", "");
         epochManager = IEpochManagerLike(
             _deployBehindProxy(
                 impl,
                 abi.encodeCall(IEpochManagerLike.initialize, (address(controller), DEFAULT_EPOCH_LENGTH))
             )
         );
+    }
+
+    function test_Bytecode_FoundryMatchesHardhat() public {
+        vm.skip(vm.isContext(VmSafe.ForgeContext.Coverage));
+        string memory json = vm.readFile("artifacts/contracts/epochs/EpochManager.sol/EpochManager.json");
+        bytes memory hardhat = _stripMetadata(vm.parseJsonBytes(json, ".bytecode"));
+        bytes memory foundry = _stripMetadata(vm.getCode("EpochManager.sol:EpochManager"));
+        assertGt(hardhat.length, 0);
+        assertEq(foundry, hardhat);
     }
 
     modifier withLifecycleLength() {

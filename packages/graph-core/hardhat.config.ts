@@ -61,6 +61,9 @@ const config: HardhatUserConfig = {
     '@openzeppelin/contracts/**/*': {
       default: 'off',
     },
+    '@openzeppelin/contracts-v3/**/*': {
+      default: 'off',
+    },
   },
 }
 
