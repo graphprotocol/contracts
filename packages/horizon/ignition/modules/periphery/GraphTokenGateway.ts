@@ -1,4 +1,4 @@
-import GraphTokenGatewayArtifact from '@graphprotocol/contracts-7.3.0/artifacts/contracts/l2/gateway/L2GraphTokenGateway.sol/L2GraphTokenGateway.json'
+import GraphTokenGatewayArtifact from '@graphprotocol/graph-token/artifacts/contracts/l2/gateway/L2GraphTokenGateway.sol/L2GraphTokenGateway.json'
 import { buildModule } from '@nomicfoundation/ignition-core'
 
 import ControllerModule from '../periphery/Controller'
@@ -21,20 +21,6 @@ export default buildModule('L2GraphTokenGateway', (m) => {
     },
   )
   m.call(L2GraphTokenGateway, 'setPauseGuardian', [pauseGuardian])
-
-  return { L2GraphTokenGateway, L2GraphTokenGatewayImplementation }
-})
-
-export const MigrateGraphTokenGatewayModule = buildModule('L2GraphTokenGateway', (m) => {
-  const graphTokenGatewayAddress = m.getParameter('graphTokenGatewayAddress')
-  const graphTokenGatewayImplementationAddress = m.getParameter('graphTokenGatewayImplementationAddress')
-
-  const L2GraphTokenGateway = m.contractAt('L2GraphTokenGateway', GraphTokenGatewayArtifact, graphTokenGatewayAddress)
-  const L2GraphTokenGatewayImplementation = m.contractAt(
-    'L2GraphTokenGatewayAddressBook',
-    GraphTokenGatewayArtifact,
-    graphTokenGatewayImplementationAddress,
-  )
 
   return { L2GraphTokenGateway, L2GraphTokenGatewayImplementation }
 })

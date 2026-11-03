@@ -33,6 +33,10 @@ jobs:
       - name: Test all packages
         run: pnpm -r --sequential run test:self
 
+      - name: Deploy protocol on a local Hardhat network
+        working-directory: packages/subgraph-service
+        run: npx hardhat deploy:protocol --network hardhat --subgraph-service-config localNetwork
+
       - name: Test with coverage
         run: pnpm -r --sequential run test:coverage:self
 

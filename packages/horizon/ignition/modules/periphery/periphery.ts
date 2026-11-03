@@ -1,14 +1,14 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 import { ethers } from 'ethers'
 
-import ControllerModule, { MigrateControllerDeployerModule } from './Controller'
-import CurationModule, { MigrateCurationDeployerModule } from './Curation'
-import EpochManagerModule, { MigrateEpochManagerModule } from './EpochManager'
-import GNSModule, { MigrateL2GNSModule } from './GNS'
-import GraphProxyAdminModule, { MigrateGraphProxyAdminModule } from './GraphProxyAdmin'
-import GraphTokenModule, { MigrateGraphTokenModule } from './GraphToken'
-import GraphTokenGatewayModule, { MigrateGraphTokenGatewayModule } from './GraphTokenGateway'
-import RewardsManagerModule, { MigrateRewardsManagerDeployerModule } from './RewardsManager'
+import ControllerModule from './Controller'
+import CurationModule from './Curation'
+import EpochManagerModule from './EpochManager'
+import GNSModule from './GNS'
+import GraphProxyAdminModule from './GraphProxyAdmin'
+import GraphTokenModule from './GraphToken'
+import GraphTokenGatewayModule from './GraphTokenGateway'
+import RewardsManagerModule from './RewardsManager'
 
 export default buildModule('GraphHorizon_Periphery', (m) => {
   const { Controller } = m.useModule(ControllerModule)
@@ -56,38 +56,6 @@ export default buildModule('GraphHorizon_Periphery', (m) => {
     },
   )
 
-  return {
-    Controller,
-    EpochManager,
-    EpochManagerImplementation,
-    L2Curation,
-    L2CurationImplementation,
-    L2GNS,
-    L2GNSImplementation,
-    SubgraphNFT,
-    GraphProxyAdmin,
-    L2GraphToken,
-    L2GraphTokenImplementation,
-    L2GraphTokenGateway,
-    L2GraphTokenGatewayImplementation,
-    RewardsManager,
-    RewardsManagerImplementation,
-  }
-})
-
-export const MigratePeripheryModule = buildModule('GraphHorizon_Periphery', (m) => {
-  const { L2CurationProxy: L2Curation, L2CurationImplementation } = m.useModule(MigrateCurationDeployerModule)
-  const { L2GNS, L2GNSImplementation, SubgraphNFT } = m.useModule(MigrateL2GNSModule)
-  const { RewardsManagerProxy: RewardsManager, RewardsManagerImplementation } = m.useModule(
-    MigrateRewardsManagerDeployerModule,
-  )
-  const { Controller } = m.useModule(MigrateControllerDeployerModule)
-  const { GraphProxyAdmin } = m.useModule(MigrateGraphProxyAdminModule)
-  const { EpochManager, EpochManagerImplementation } = m.useModule(MigrateEpochManagerModule)
-  const { L2GraphToken, L2GraphTokenImplementation } = m.useModule(MigrateGraphTokenModule)
-  const { L2GraphTokenGateway, L2GraphTokenGatewayImplementation } = m.useModule(MigrateGraphTokenGatewayModule)
-
-  // Load these contracts so they are available in the address book
   return {
     Controller,
     EpochManager,

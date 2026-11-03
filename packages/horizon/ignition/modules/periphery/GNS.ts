@@ -1,6 +1,6 @@
 import L2GNSArtifact from '@graphprotocol/contracts/artifacts/contracts/l2/discovery/L2GNS.sol/L2GNS.json'
-import SubgraphNFTArtifact from '@graphprotocol/contracts-7.3.0/artifacts/contracts/discovery/SubgraphNFT.sol/SubgraphNFT.json'
-import SubgraphNFTDescriptorArtifact from '@graphprotocol/contracts-7.3.0/artifacts/contracts/discovery/SubgraphNFTDescriptor.sol/SubgraphNFTDescriptor.json'
+import SubgraphNFTArtifact from '@graphprotocol/graph-token/artifacts/contracts/discovery/SubgraphNFT.sol/SubgraphNFT.json'
+import SubgraphNFTDescriptorArtifact from '@graphprotocol/graph-token/artifacts/contracts/discovery/SubgraphNFTDescriptor.sol/SubgraphNFTDescriptor.json'
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
 import { deployWithGraphProxy } from '../proxy/GraphProxy'
@@ -35,20 +35,6 @@ export default buildModule('L2GNS', (m) => {
 
   const setMinterCall = m.call(SubgraphNFT, 'setMinter', [L2GNS])
   m.call(SubgraphNFT, 'transferOwnership', [governor], { after: [setMinterCall] })
-
-  return { L2GNS, L2GNSImplementation, SubgraphNFT }
-})
-
-// L2GNS and SubgraphNFT are already deployed and are not being upgraded
-// This is a no-op to get the addresses into the address book
-export const MigrateL2GNSModule = buildModule('L2GNS', (m) => {
-  const gnsProxyAddress = m.getParameter('gnsAddress')
-  const gnsImplementationAddress = m.getParameter('gnsImplementationAddress')
-  const subgraphNFTAddress = m.getParameter('subgraphNFTAddress')
-
-  const SubgraphNFT = m.contractAt('SubgraphNFT', SubgraphNFTArtifact, subgraphNFTAddress)
-  const L2GNS = m.contractAt('L2GNS', L2GNSArtifact, gnsProxyAddress)
-  const L2GNSImplementation = m.contractAt('L2GNSAddressBook', L2GNSArtifact, gnsImplementationAddress)
 
   return { L2GNS, L2GNSImplementation, SubgraphNFT }
 })

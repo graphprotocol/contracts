@@ -3,7 +3,6 @@ import { ethers } from 'ethers'
 
 import GraphPaymentsArtifact from '../../../build/contracts/contracts/payments/GraphPayments.sol/GraphPayments.json'
 import PaymentsEscrowArtifact from '../../../build/contracts/contracts/payments/PaymentsEscrow.sol/PaymentsEscrow.json'
-import { MigrateControllerGovernorModule } from '../periphery/Controller'
 import GraphPeripheryModule from '../periphery/periphery'
 import { deployGraphProxy } from '../proxy/GraphProxy'
 import { deployTransparentUpgradeableProxy } from '../proxy/TransparentUpgradeableProxy'
@@ -47,44 +46,4 @@ export default buildModule('HorizonProxies', (m) => {
     GraphPaymentsProxyAdmin,
     PaymentsEscrowProxyAdmin,
   }
-})
-
-export const MigrateHorizonProxiesDeployerModule = buildModule('HorizonProxiesDeployer', (m) => {
-  // Deploy GraphPayments proxy
-  const { Proxy: GraphPaymentsProxy, ProxyAdmin: GraphPaymentsProxyAdmin } = deployTransparentUpgradeableProxy(m, {
-    name: 'GraphPayments',
-    artifact: GraphPaymentsArtifact,
-  })
-
-  // Deploy PaymentsEscrow proxy
-  const { Proxy: PaymentsEscrowProxy, ProxyAdmin: PaymentsEscrowProxyAdmin } = deployTransparentUpgradeableProxy(m, {
-    name: 'PaymentsEscrow',
-    artifact: PaymentsEscrowArtifact,
-  })
-
-  return { GraphPaymentsProxy, PaymentsEscrowProxy, GraphPaymentsProxyAdmin, PaymentsEscrowProxyAdmin }
-})
-
-export const MigrateHorizonProxiesGovernorModule = buildModule('HorizonProxiesGovernor', (m) => {
-  const { Controller } = m.useModule(MigrateControllerGovernorModule)
-
-  const graphPaymentsAddress = m.getParameter('graphPaymentsAddress')
-  const paymentsEscrowAddress = m.getParameter('paymentsEscrowAddress')
-
-  // Register proxies in controller
-  m.call(
-    Controller,
-    'setContractProxy',
-    [ethers.keccak256(ethers.toUtf8Bytes('GraphPayments')), graphPaymentsAddress],
-    { id: 'setContractProxy_GraphPayments' },
-  )
-
-  m.call(
-    Controller,
-    'setContractProxy',
-    [ethers.keccak256(ethers.toUtf8Bytes('PaymentsEscrow')), paymentsEscrowAddress],
-    { id: 'setContractProxy_PaymentsEscrow' },
-  )
-
-  return { Controller }
 })

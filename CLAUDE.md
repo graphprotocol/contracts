@@ -42,11 +42,8 @@ cd packages/contracts && npx hardhat test test/<FILE_NAME>.ts
 # Run Foundry tests (in horizon/subgraph-service)
 cd packages/horizon && pnpm test
 
-# Run integration tests
-cd packages/horizon && pnpm test:integration
-
-# Run deployment tests
-cd packages/horizon && pnpm test:deployment
+# Check a fresh local deployment (Hardhat Ignition)
+cd packages/subgraph-service && npx hardhat deploy:protocol --network hardhat --subgraph-service-config localNetwork
 ```
 
 ### Linting and Formatting
@@ -121,7 +118,7 @@ pnpm lint:yaml      # YAML files
 - Contract addresses stored in `addresses.json` files per package
 - Multi-network support (mainnet, testnets, Arbitrum chains)
 - Hardhat Ignition for deployment management
-- Migration scripts for upgrading from original protocol to Horizon
+- `deploy:protocol` deploys fresh stacks for local networks and tests; live networks are managed by `packages/deployment`
 
 ## Development Tips
 
@@ -130,7 +127,7 @@ pnpm lint:yaml      # YAML files
 Horizon packages use both Hardhat and Foundry. When developing:
 
 1. Use `forge test` for Foundry tests
-2. Use `pnpm test:integration` for integration tests
+2. Use `npx hardhat deploy:protocol --network hardhat` to deploy a fresh local stack
 3. Set required RPC URLs using `npx hardhat vars set <variable>`
 
 ### Contract Verification

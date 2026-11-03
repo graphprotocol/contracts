@@ -30,8 +30,6 @@
     "build:self": "hardhat compile --quiet",
     "test": "pnpm build && pnpm test:self",
     "test:self": "forge test",
-    "test:deployment": "SECURE_ACCOUNTS_DISABLE_PROVIDER=true hardhat test test/deployment/*.ts",
-    "test:integration": "./scripts/integration",
     "test:coverage": "forge coverage",
     "test:coverage:self": "mkdir -p coverage && forge coverage --report lcov --report-file coverage/lcov.info",
     "prepublishOnly": "pnpm run build"
@@ -40,7 +38,6 @@
     "@graphprotocol/contracts": "workspace:^",
     "@graphprotocol/graph-core": "workspace:^",
     "@graphprotocol/graph-token": "workspace:^",
-    "@graphprotocol/contracts-7.3.0": "npm:@graphprotocol/contracts@7.3.0",
     "@graphprotocol/horizon": "workspace:^",
     "@graphprotocol/interfaces": "workspace:^",
     "@graphprotocol/toolshed": "workspace:^",
