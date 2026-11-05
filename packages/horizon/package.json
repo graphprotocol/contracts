@@ -37,7 +37,6 @@
     "prepublishOnly": "pnpm run build"
   },
   "devDependencies": {
-    "@graphprotocol/contracts": "workspace:^",
     "@graphprotocol/graph-core": "workspace:^",
     "@graphprotocol/graph-token": "workspace:^",
     "@graphprotocol/interfaces": "workspace:^",

@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // solhint-disable one-contract-per-file
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.27;
 
 // TODO: Re-enable and fix issues when publishing a new version
 // solhint-disable named-parameters-mapping
 
-import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
+import { InitializableV3 } from "../upgrades/InitializableV3.sol";
 
 import { ICuration } from "@graphprotocol/interfaces/contracts/contracts/curation/ICuration.sol";
 import { IGraphCurationToken } from "@graphprotocol/interfaces/contracts/contracts/curation/IGraphCurationToken.sol";
@@ -74,7 +74,7 @@ abstract contract CurationV1Storage is Managed, ICuration {
  * When adding new variables, create a new version that inherits this and update
  * the contracts to use the new version instead.
  */
-abstract contract CurationV2Storage is CurationV1Storage, Initializable {
+abstract contract CurationV2Storage is CurationV1Storage, InitializableV3 {
     // Nothing here, just adding Initializable
 }
 

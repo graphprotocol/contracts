@@ -28,15 +28,14 @@ pnpm build
 
 ## Deployment
 
-Note that this instructions will help you deploy Graph Horizon contracts, but no data service will be deployed. If you want to deploy the Subgraph Service please refer to the [Subgraph Service README](../subgraph-service/README.md) for deploy instructions.
-
-### New deployment
-
-To deploy Graph Horizon from scratch run the following command:
+Graph Horizon's Ignition modules are deployed together with the Subgraph Service, because the L2Curation and L2GNS artifacts they need come from `@graphprotocol/subgraph-service`. `deploy:protocol` runs from the subgraph-service package only:
 
 ```bash
-npx hardhat deploy:protocol --network hardhat
+cd ../subgraph-service
+npx hardhat deploy:protocol --network hardhat --subgraph-service-config localNetwork
 ```
+
+See the [Subgraph Service README](../subgraph-service/README.md) for details.
 
 ## Testing
 

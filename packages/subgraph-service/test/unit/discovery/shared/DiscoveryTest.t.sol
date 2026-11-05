@@ -10,6 +10,7 @@ import { IL2GNSLike } from "../interfaces/IL2GNSLike.sol";
 import { ISubgraphNFTLike } from "../interfaces/ISubgraphNFTLike.sol";
 
 /// L2 discovery stack: L2GraphToken, L2Curation, SubgraphNFT and L2GNS, with a mock L2 gateway.
+/// L2Curation and L2GNS are the 0.8 build, or the pre-port 0.7.6 fixtures when PRE_PORT=true.
 /// There is no staking, rewards manager or epoch manager.
 abstract contract DiscoveryTest is ProtocolFixture {
     string internal constant TOKEN_ARTIFACTS = "node_modules/@graphprotocol/graph-token/artifacts/contracts/";
@@ -17,12 +18,12 @@ abstract contract DiscoveryTest is ProtocolFixture {
         string.concat(TOKEN_ARTIFACTS, "l2/token/L2GraphToken.sol/L2GraphToken.json");
     string internal constant GRAPH_CURATION_TOKEN =
         string.concat(TOKEN_ARTIFACTS, "curation/GraphCurationToken.sol/GraphCurationToken.json");
-    string internal constant L2_CURATION = string.concat(PKG_ARTIFACTS, "l2/curation/L2Curation.sol/L2Curation.json");
+    string internal constant L2_CURATION_FIXTURE = "test/fixtures/pre-port/L2Curation.json";
     string internal constant SUBGRAPH_NFT =
         string.concat(TOKEN_ARTIFACTS, "discovery/SubgraphNFT.sol/SubgraphNFT.json");
     string internal constant SUBGRAPH_NFT_DESCRIPTOR =
         string.concat(TOKEN_ARTIFACTS, "discovery/SubgraphNFTDescriptor.sol/SubgraphNFTDescriptor.json");
-    string internal constant L2_GNS = string.concat(PKG_ARTIFACTS, "l2/discovery/L2GNS.sol/L2GNS.json");
+    string internal constant L2_GNS_FIXTURE = "test/fixtures/pre-port/L2GNS.json";
 
     IGraphTokenLike internal grt;
     IL2CurationLike internal curation;
@@ -58,7 +59,7 @@ abstract contract DiscoveryTest is ProtocolFixture {
 
         curation = IL2CurationLike(
             _deployBehindProxy(
-                _deployArtifact(L2_CURATION, ""),
+                _deployPorted("L2Curation.sol:L2Curation", L2_CURATION_FIXTURE),
                 abi.encodeCall(IL2CurationLike.initialize, (address(controller), curationTokenMaster, 0, 1))
             )
         );
@@ -70,7 +71,7 @@ abstract contract DiscoveryTest is ProtocolFixture {
 
         gns = IL2GNSLike(
             _deployBehindProxy(
-                _deployArtifact(L2_GNS, ""),
+                _deployPorted("L2GNS.sol:L2GNS", L2_GNS_FIXTURE),
                 abi.encodeCall(IL2GNSLike.initialize, (address(controller), address(nft)))
             )
         );

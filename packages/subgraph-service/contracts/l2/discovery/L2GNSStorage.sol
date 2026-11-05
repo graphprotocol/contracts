@@ -3,8 +3,7 @@
 // TODO: Re-enable and fix issues when publishing a new version
 // solhint-disable named-parameters-mapping
 
-pragma solidity ^0.7.6;
-pragma abicoder v2;
+pragma solidity ^0.8.27;
 
 import { IL2GNS } from "@graphprotocol/interfaces/contracts/contracts/l2/discovery/IL2GNS.sol";
 

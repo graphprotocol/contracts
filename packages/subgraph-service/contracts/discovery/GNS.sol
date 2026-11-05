@@ -1,13 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
-pragma abicoder v2;
+pragma solidity ^0.8.27;
 
 // TODO: Re-enable and fix issues when publishing a new version
 // solhint-disable function-max-lines, gas-indexed-events, gas-small-strings, gas-strict-inequalities
-
-import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
-import { AddressUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 
 import { Multicall } from "../base/Multicall.sol";
 import { GraphUpgradeable } from "@graphprotocol/graph-core/contracts/upgrades/GraphUpgradeable.sol";
@@ -30,8 +26,6 @@ import { GNSV3Storage } from "./GNSStorage.sol";
  * transaction.
  */
 abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
-    using SafeMathUpgradeable for uint256;
-
     // -- Constants --
 
     /// @dev 100% in parts per million
@@ -197,6 +191,7 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
      * @param _controller Address of the Controller contract that manages this contract
      * @param _subgraphNFT Address of the Subgraph NFT contract
      */
+    // forge-lint: disable-next-line(unprotected-initializer)
     function initialize(address _controller, address _subgraphNFT) external onlyImpl initializer {
         Managed._initialize(_controller);
 
@@ -209,6 +204,7 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
      * @inheritdoc IGNS
      */
     function approveAll() external override {
+        // forge-lint: disable-next-line(unused-return)
         graphToken().approve(address(curation()), type(uint256).max);
     }
 
@@ -236,6 +232,7 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
      * @notice Set the counterpart (L1/L2) GNS address
      * @param _counterpart Owner tax percentage
      */
+    // forge-lint: disable-next-line(missing-zero-check)
     function setCounterpartGNSAddress(address _counterpart) external onlyGovernor {
         counterpartGNSAddress = _counterpart;
         emit CounterpartGNSAddressUpdated(_counterpart);
@@ -287,11 +284,13 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
         // Mint the NFT. Use the subgraphID as tokenID.
         // This function will check the if tokenID already exists.
         _mintNFT(subgraphOwner, subgraphID);
+        // forge-lint: disable-next-line(reentrancy-events)
         emit SubgraphPublished(subgraphID, _subgraphDeploymentID, fixedReserveRatio);
 
         // Set the token metadata
         _setSubgraphMetadata(subgraphID, _subgraphMetadata);
 
+        // forge-lint: disable-next-line(reentrancy-events)
         emit SubgraphVersionUpdated(subgraphID, _subgraphDeploymentID, _versionMetadata);
     }
 
@@ -342,14 +341,17 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
 
             // Update pool: constant nSignal, vSignal can change (w/no slippage protection)
             // Buy all signal from the new deployment
+            // forge-lint: disable-next-line(unused-return)
             (subgraphData.vSignal, ) = curation.mint(_subgraphDeploymentID, tokensWithTax, 0);
 
+            // forge-lint: disable-next-line(reentrancy-events)
             emit SubgraphUpgraded(_subgraphID, subgraphData.vSignal, tokensWithTax, _subgraphDeploymentID);
         }
 
         // Update target deployment
         subgraphData.subgraphDeploymentID = _subgraphDeploymentID;
 
+        // forge-lint: disable-next-line(reentrancy-events)
         emit SubgraphVersionUpdated(_subgraphID, _subgraphDeploymentID, _versionMetadata);
     }
 
@@ -378,6 +380,7 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
         // Burn the NFT
         _burnNFT(_subgraphID);
 
+        // forge-lint: disable-next-line(reentrancy-events)
         emit SubgraphDeprecated(_subgraphID, subgraphData.withdrawableGRT);
     }
 
@@ -397,6 +400,7 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
         TokenUtils.pullTokens(graphToken(), curator, _tokensIn);
 
         // Get name signal to mint for tokens deposited
+        // forge-lint: disable-next-line(unused-return)
         (uint256 vSignal, ) = curation().mint(subgraphData.subgraphDeploymentID, _tokensIn, 0);
         uint256 nSignal = vSignalToNSignal(_subgraphID, vSignal);
 
@@ -404,10 +408,11 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
         require(nSignal >= _nSignalOutMin, "GNS: Slippage protection");
 
         // Update pools
-        subgraphData.vSignal = subgraphData.vSignal.add(vSignal);
-        subgraphData.nSignal = subgraphData.nSignal.add(nSignal);
-        subgraphData.curatorNSignal[curator] = subgraphData.curatorNSignal[curator].add(nSignal);
+        subgraphData.vSignal = subgraphData.vSignal + vSignal;
+        subgraphData.nSignal = subgraphData.nSignal + nSignal;
+        subgraphData.curatorNSignal[curator] = subgraphData.curatorNSignal[curator] + nSignal;
 
+        // forge-lint: disable-next-line(reentrancy-events)
         emit SignalMinted(_subgraphID, curator, nSignal, vSignal, _tokensIn);
     }
 
@@ -432,13 +437,14 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
         uint256 tokens = curation().burn(subgraphData.subgraphDeploymentID, vSignal, _tokensOutMin);
 
         // Update pools
-        subgraphData.vSignal = subgraphData.vSignal.sub(vSignal);
-        subgraphData.nSignal = subgraphData.nSignal.sub(_nSignal);
-        subgraphData.curatorNSignal[curator] = subgraphData.curatorNSignal[curator].sub(_nSignal);
+        subgraphData.vSignal = subgraphData.vSignal - vSignal;
+        subgraphData.nSignal = subgraphData.nSignal - _nSignal;
+        subgraphData.curatorNSignal[curator] = subgraphData.curatorNSignal[curator] - _nSignal;
 
         // Return the tokens to the nameCurator
         require(graphToken().transfer(curator, tokens), "GNS: Error sending tokens");
 
+        // forge-lint: disable-next-line(reentrancy-events)
         emit SignalBurned(_subgraphID, curator, _nSignal, vSignal, tokens);
     }
 
@@ -464,8 +470,8 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
         require(curatorBalance >= _amount, "GNS: Curator transfer amount exceeds balance");
 
         // Move the signal
-        subgraphData.curatorNSignal[curator] = subgraphData.curatorNSignal[curator].sub(_amount);
-        subgraphData.curatorNSignal[_recipient] = subgraphData.curatorNSignal[_recipient].add(_amount);
+        subgraphData.curatorNSignal[curator] = subgraphData.curatorNSignal[curator] - _amount;
+        subgraphData.curatorNSignal[_recipient] = subgraphData.curatorNSignal[_recipient] + _amount;
 
         emit SignalTransferred(_subgraphID, curator, _recipient, _amount);
     }
@@ -488,14 +494,15 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
         require(curatorNSignal != 0, "GNS: No signal to withdraw GRT");
 
         // Get curator share of tokens to be withdrawn
-        uint256 tokensOut = curatorNSignal.mul(subgraphData.withdrawableGRT).div(subgraphData.nSignal);
+        uint256 tokensOut = (curatorNSignal * subgraphData.withdrawableGRT) / subgraphData.nSignal;
         subgraphData.curatorNSignal[curator] = 0;
-        subgraphData.nSignal = subgraphData.nSignal.sub(curatorNSignal);
-        subgraphData.withdrawableGRT = subgraphData.withdrawableGRT.sub(tokensOut);
+        subgraphData.nSignal = subgraphData.nSignal - curatorNSignal;
+        subgraphData.withdrawableGRT = subgraphData.withdrawableGRT - tokensOut;
 
         // Return tokens to the curator
         TokenUtils.pushTokens(graphToken(), curator, tokensOut);
 
+        // forge-lint: disable-next-line(reentrancy-events)
         emit GRTWithdrawn(_subgraphID, curator, curatorNSignal, tokensOut);
     }
 
@@ -526,6 +533,7 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
         // Mint the NFT and send to owner
         // The subgraph owner is the graph account that created it
         _mintNFT(_graphAccount, subgraphID);
+        // forge-lint: disable-next-line(reentrancy-events)
         emit LegacySubgraphClaimed(_graphAccount, _subgraphNumber);
 
         // Set the token metadata
@@ -613,7 +621,7 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
             return _vSignalIn;
         }
 
-        return subgraphData.nSignal.mul(_vSignalIn).div(subgraphData.vSignal);
+        return (subgraphData.nSignal * _vSignalIn) / subgraphData.vSignal;
     }
 
     /**
@@ -621,7 +629,7 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
      */
     function nSignalToVSignal(uint256 _subgraphID, uint256 _nSignalIn) public view override returns (uint256) {
         SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
-        return subgraphData.vSignal.mul(_nSignalIn).div(subgraphData.nSignal);
+        return (subgraphData.vSignal * _nSignalIn) / subgraphData.nSignal;
     }
 
     /**
@@ -676,24 +684,23 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
         }
 
         // Tax on the total bonding curve funds
-        uint256 taxOnOriginal = _tokens.mul(_curationTaxPercentage).div(MAX_PPM);
+        uint256 taxOnOriginal = (_tokens * _curationTaxPercentage) / MAX_PPM;
         // Total after the tax
-        uint256 totalWithoutOwnerTax = _tokens.sub(taxOnOriginal);
+        uint256 totalWithoutOwnerTax = _tokens - taxOnOriginal;
         // The portion of tax that the owner will pay
-        uint256 ownerTax = taxOnOriginal.mul(ownerTaxPercentage).div(MAX_PPM);
+        // forge-lint: disable-next-line(divide-before-multiply)
+        uint256 ownerTax = (taxOnOriginal * ownerTaxPercentage) / MAX_PPM;
 
-        uint256 totalWithOwnerTax = totalWithoutOwnerTax.add(ownerTax);
+        uint256 totalWithOwnerTax = totalWithoutOwnerTax + ownerTax;
 
         // The total after tax, plus owner partial repay, divided by
         // the tax, to adjust it slightly upwards. ex:
         // 100 GRT, 5 GRT Tax, owner pays 100% --> 5 GRT
         // To get 100 in the protocol after tax, Owner deposits
         // ~5.26, as ~105.26 * .95 = 100
-        uint256 totalAdjustedUp = totalWithOwnerTax.mul(MAX_PPM).div(
-            uint256(MAX_PPM).sub(uint256(_curationTaxPercentage))
-        );
+        uint256 totalAdjustedUp = (totalWithOwnerTax * MAX_PPM) / (uint256(MAX_PPM) - uint256(_curationTaxPercentage));
 
-        uint256 ownerTaxAdjustedUp = totalAdjustedUp.sub(_tokens);
+        uint256 ownerTaxAdjustedUp = totalAdjustedUp - _tokens;
 
         // Get the owner of the subgraph to reimburse the curation tax
         TokenUtils.pullTokens(graphToken(), _owner, ownerTaxAdjustedUp);
@@ -719,7 +726,7 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
      */
     function _nextAccountSeqID(address _account) internal returns (uint256) {
         uint256 seqID = nextAccountSeqID[_account];
-        nextAccountSeqID[_account] = nextAccountSeqID[_account].add(1);
+        nextAccountSeqID[_account] = nextAccountSeqID[_account] + 1;
         return seqID;
     }
 
@@ -750,6 +757,7 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
 
         // Even if the following event is emitted in the NFT we emit it here to facilitate
         // subgraph indexing
+        // forge-lint: disable-next-line(reentrancy-events)
         emit SubgraphMetadataUpdated(_tokenID, _subgraphMetadata);
     }
 
@@ -808,7 +816,7 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
      * @param _seqID The sequence ID for the account
      * @return Subgraph ID
      */
-    function _buildSubgraphID(address _account, uint256 _seqID) internal pure returns (uint256) {
+    function _buildSubgraphID(address _account, uint256 _seqID) internal view returns (uint256) {
         uint256 chainId;
         // Too bad solidity 0.7.6 still doesn't have block.chainid
         // solhint-disable-next-line no-inline-assembly
@@ -826,6 +834,7 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     function _setOwnerTaxPercentage(uint32 _ownerTaxPercentage) private {
         require(_ownerTaxPercentage <= MAX_PPM, "Owner tax must be MAX_PPM or less");
         ownerTaxPercentage = _ownerTaxPercentage;
+        // forge-lint: disable-next-line(reentrancy-events)
         emit ParameterUpdated("ownerTaxPercentage");
     }
 
@@ -835,9 +844,10 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
      */
     function _setSubgraphNFT(address _subgraphNFT) private {
         require(_subgraphNFT != address(0), "NFT address cant be zero");
-        require(AddressUpgradeable.isContract(_subgraphNFT), "NFT must be valid");
+        require(_subgraphNFT.code.length > 0, "NFT must be valid");
 
         subgraphNFT = ISubgraphNFT(_subgraphNFT);
+        // forge-lint: disable-next-line(reentrancy-events)
         emit SubgraphNFTUpdated(_subgraphNFT);
     }
 }

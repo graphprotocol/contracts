@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // solhint-disable one-contract-per-file
 
-pragma solidity ^0.7.6;
-pragma abicoder v2;
+pragma solidity ^0.8.27;
 
 // TODO: Re-enable and fix issues when publishing a new version
 // solhint-disable named-parameters-mapping
 
-import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
+import { InitializableV3 } from "../upgrades/InitializableV3.sol";
 import { Managed } from "@graphprotocol/graph-core/contracts/governance/Managed.sol";
 
 import { IEthereumDIDRegistry } from "@graphprotocol/interfaces/contracts/contracts/discovery/erc1056/IEthereumDIDRegistry.sol";
@@ -74,7 +73,7 @@ abstract contract GNSV2Storage is GNSV1Storage {
  * future versions, make sure to move the gap to the new version and
  * reduce the size of the gap accordingly.
  */
-abstract contract GNSV3Storage is GNSV2Storage, Initializable {
+abstract contract GNSV3Storage is GNSV2Storage, InitializableV3 {
     /// @notice Address of the counterpart GNS contract (L1GNS/L2GNS)
     address public counterpartGNSAddress;
     /// @dev Gap to allow adding variables in future upgrades (since L1GNS and L2GNS have their own storage as well)

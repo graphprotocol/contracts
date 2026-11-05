@@ -176,7 +176,7 @@ const HORIZON_CONTRACTS = {
     lifecycleActions: ['deploy', 'upgrade', 'configure', 'transfer'],
   },
   L2Curation: {
-    artifact: { type: 'contracts', path: 'l2/curation', name: 'L2Curation' },
+    artifact: { type: 'subgraph-service', name: 'l2/curation/L2Curation' },
     proxyType: 'graph',
     proxyAdminName: 'GraphProxyAdmin',
     prerequisite: true,
@@ -202,7 +202,7 @@ const HORIZON_CONTRACTS = {
     componentTag: ComponentTags.PAYMENTS_ESCROW,
   },
   L2GNS: {
-    artifact: { type: 'contracts', path: 'l2/discovery', name: 'L2GNS' },
+    artifact: { type: 'subgraph-service', name: 'l2/discovery/L2GNS' },
     proxyType: 'graph',
     proxyAdminName: 'GraphProxyAdmin',
     prerequisite: true,

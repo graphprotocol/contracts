@@ -115,6 +115,8 @@ interface IL2GNSLike {
 
     function getAliasedL2SubgraphID(uint256 l1SubgraphID) external pure returns (uint256);
 
+    function getUnaliasedL1SubgraphID(uint256 l2SubgraphID) external pure returns (uint256);
+
     function getCuratorSignal(uint256 subgraphID, address curator) external view returns (uint256);
 
     function tokensToNSignal(uint256 subgraphID, uint256 tokensIn) external view returns (uint256, uint256, uint256);

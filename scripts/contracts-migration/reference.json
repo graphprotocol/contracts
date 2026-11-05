@@ -47,14 +47,6 @@
     "bytecode": "25293735575b568a928cf162c13f5bb4ca848833be86a98ad2c4ef7d3970aada",
     "deployedBytecode": "0b35cd9f9a56eff56b0c97eae2ca8be472cfffecdf83151deae47bda2135bc54"
   },
-  "L2Curation": {
-    "bytecode": "8d160a02518b02079b6c6fcdb9be6d356eed976f37adbf40fc9e06db369bd171",
-    "deployedBytecode": "38285a1736db0d3632fb160cdaa0a4d6d9e66d412c6223a6184716caa1f683ec"
-  },
-  "L2GNS": {
-    "bytecode": "9991ff5db9d7410bb3e9561fef43f05cf6618830fd324cca4223673f710c03ff",
-    "deployedBytecode": "0e1b063478c7beebe749534bc1f74e64bb0dc274cb8499f2415e887f6a692abe"
-  },
   "L2GraphToken": {
     "bytecode": "2509f7ce90438223a5abf9fa58175ceccca7925f3c097a950671a524507d1010",
     "deployedBytecode": "82e740658e3328bb1637d060f2f2eafd6d4e0a663f1eaa00ef8a86f36e67e7cf"

@@ -26,4 +26,11 @@ contract AliasedSubgraphIdTest is GNSHelpers {
         assertEq(gns.getAliasedL2SubgraphID(l1SubgraphId), expectedL2SubgraphId);
         assertEq(expectedL2SubgraphId, OFFSET - 1);
     }
+
+    // -- getUnaliasedL1SubgraphID --
+
+    function test_GetUnaliasedL1SubgraphID_WrapsBelowZero(uint256 l2SubgraphId) public view {
+        l2SubgraphId = bound(l2SubgraphId, 0, OFFSET - 1);
+        assertEq(gns.getUnaliasedL1SubgraphID(l2SubgraphId), type(uint256).max - OFFSET + l2SubgraphId + 1);
+    }
 }

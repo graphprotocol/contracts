@@ -7,7 +7,7 @@
     "build": "pnpm build:deps && pnpm build:self",
     "build:self": "pnpm generate:abis",
     "build:deps": "pnpm --filter @graphprotocol/deployment^... build",
-    "build:clean": "pnpm --filter @graphprotocol/contracts clean && pnpm build:deps",
+    "build:clean": "pnpm --filter @graphprotocol/issuance --filter @graphprotocol/subgraph-service clean && pnpm build:deps",
     "generate:abis": "tsx scripts/generate-abis.ts",
     "deploy": "pnpm build:clean && hardhat deploy",
     "deploy:sync": "hardhat deploy --tags sync",
@@ -22,7 +22,6 @@
     "lint:json": "prettier -w --cache --log-level warn '**/*.json'"
   },
   "dependencies": {
-    "@graphprotocol/contracts": "workspace:*",
     "@graphprotocol/graph-core": "workspace:*",
     "@graphprotocol/graph-token": "workspace:*",
     "@graphprotocol/horizon": "workspace:*",

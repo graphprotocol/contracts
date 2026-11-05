@@ -1,8 +1,10 @@
-import { HorizonModule } from '@graphprotocol/horizon/ignition'
+import { buildHorizonModule } from '@graphprotocol/horizon/ignition'
 import { loadConfig, patchConfig, saveToAddressBook } from '@graphprotocol/toolshed/hardhat'
 import { task, types } from 'hardhat/config'
 import type { HardhatRuntimeEnvironment } from 'hardhat/types'
 
+import L2CurationArtifact from '../build/contracts/contracts/l2/curation/L2Curation.sol/L2Curation.json'
+import L2GNSArtifact from '../build/contracts/contracts/l2/discovery/L2GNS.sol/L2GNS.json'
 import Deploy1Module from '../ignition/modules/deploy/deploy-1'
 import Deploy2Module from '../ignition/modules/deploy/deploy-2'
 
@@ -63,6 +65,7 @@ task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon cont
 
     // 2. Deploy Horizon
     console.log(`\n========== 🚧 Deploy Horizon ==========`)
+    const HorizonModule = buildHorizonModule({ L2Curation: L2CurationArtifact, L2GNS: L2GNSArtifact })
     const horizonDeployment = await hre.ignition.deploy(HorizonModule, {
       displayUi: true,
       parameters: patchConfig(HorizonConfig, {

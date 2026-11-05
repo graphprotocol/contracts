@@ -7,8 +7,6 @@
   "L1GraphTokenGateway": "packages/graph-token/artifacts/contracts/gateway/L1GraphTokenGateway.sol/L1GraphTokenGateway.json",
   "L2GraphTokenGateway": "packages/graph-token/artifacts/contracts/l2/gateway/L2GraphTokenGateway.sol/L2GraphTokenGateway.json",
   "BridgeEscrow": "packages/graph-token/artifacts/contracts/gateway/BridgeEscrow.sol/BridgeEscrow.json",
-  "L2GNS": "packages/contracts/artifacts/contracts/l2/discovery/L2GNS.sol/L2GNS.json",
-  "L2Curation": "packages/contracts/artifacts/contracts/l2/curation/L2Curation.sol/L2Curation.json",
   "GraphCurationToken": "packages/graph-token/artifacts/contracts/curation/GraphCurationToken.sol/GraphCurationToken.json",
   "SubgraphNFT": "packages/graph-token/artifacts/contracts/discovery/SubgraphNFT.sol/SubgraphNFT.json",
   "SubgraphNFTDescriptor": "packages/graph-token/artifacts/contracts/discovery/SubgraphNFTDescriptor.sol/SubgraphNFTDescriptor.json",

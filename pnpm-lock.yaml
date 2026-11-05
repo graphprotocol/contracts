@@ -459,9 +459,6 @@ importers:
 
   packages/deployment:
     dependencies:
-      '@graphprotocol/contracts':
-        specifier: workspace:*
-        version: link:../contracts
       '@graphprotocol/graph-core':
         specifier: workspace:*
         version: link:../graph-core
@@ -757,9 +754,6 @@ importers:
 
   packages/horizon:
     devDependencies:
-      '@graphprotocol/contracts':
-        specifier: workspace:^
-        version: link:../contracts
       '@graphprotocol/graph-core':
         specifier: workspace:^
         version: link:../graph-core
@@ -1038,29 +1032,8 @@ importers:
 
   packages/legacy: {}
 
-  packages/subgraph-discovery:
-    devDependencies:
-      '@graphprotocol/contracts':
-        specifier: workspace:^
-        version: link:../contracts
-      '@graphprotocol/graph-core':
-        specifier: workspace:^
-        version: link:../graph-core
-      '@graphprotocol/graph-token':
-        specifier: workspace:^
-        version: link:../graph-token
-      '@graphprotocol/interfaces':
-        specifier: workspace:^
-        version: link:../interfaces
-      forge-std:
-        specifier: 'catalog:'
-        version: https://github.com/foundry-rs/forge-std/tarball/v1.14.0
-
   packages/subgraph-service:
     devDependencies:
-      '@graphprotocol/contracts':
-        specifier: workspace:^
-        version: link:../contracts
       '@graphprotocol/graph-core':
         specifier: workspace:^
         version: link:../graph-core

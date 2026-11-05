@@ -1,14 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
-pragma abicoder v2;
+pragma solidity ^0.8.27;
 
 // TODO: Re-enable and fix issues when publishing a new version
 // solhint-disable gas-indexed-events, gas-small-strings, gas-strict-inequalities
 
-import { AddressUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
-import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
-import { ClonesUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
+import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
 
 import { GraphUpgradeable } from "@graphprotocol/graph-core/contracts/upgrades/GraphUpgradeable.sol";
 import { TokenUtils } from "@graphprotocol/graph-token/contracts/utils/TokenUtils.sol";
@@ -33,8 +30,6 @@ import { IL2Curation } from "@graphprotocol/interfaces/contracts/contracts/l2/cu
  * bonding curve.
  */
 contract L2Curation is CurationV3Storage, GraphUpgradeable, IL2Curation {
-    using SafeMathUpgradeable for uint256;
-
     /// @dev 100% in parts per million
     uint32 private constant MAX_PPM = 1000000;
 
@@ -114,6 +109,7 @@ contract L2Curation is CurationV3Storage, GraphUpgradeable, IL2Curation {
 
         // For backwards compatibility:
         defaultReserveRatio = fixedReserveRatio;
+        // forge-lint: disable-next-line(reentrancy-events)
         emit ParameterUpdated("defaultReserveRatio");
         _setCurationTaxPercentage(_curationTaxPercentage);
         _setMinimumCurationDeposit(_minimumCurationDeposit);
@@ -158,6 +154,7 @@ contract L2Curation is CurationV3Storage, GraphUpgradeable, IL2Curation {
      * @notice Set the subgraph service address
      * @param _subgraphService Address of the subgraph service contract
      */
+    // forge-lint: disable-next-line(missing-zero-check)
     function setSubgraphService(address _subgraphService) external override onlyGovernor {
         subgraphService = _subgraphService;
         emit SubgraphServiceSet(_subgraphService);
@@ -179,7 +176,8 @@ contract L2Curation is CurationV3Storage, GraphUpgradeable, IL2Curation {
 
         // Collect new funds into reserve
         CurationPool storage curationPool = pools[_subgraphDeploymentID];
-        curationPool.tokens = curationPool.tokens.add(_tokens);
+        // forge-lint: disable-next-line(missing-events-access-control)
+        curationPool.tokens = curationPool.tokens + _tokens;
 
         emit Collected(_subgraphDeploymentID, _tokens);
     }
@@ -217,7 +215,7 @@ contract L2Curation is CurationV3Storage, GraphUpgradeable, IL2Curation {
             // If no signal token for the pool - create one
             if (address(curationPool.gcs) == address(0)) {
                 // Use a minimal proxy to reduce gas cost
-                IGraphCurationToken gcs = IGraphCurationToken(ClonesUpgradeable.clone(curationTokenMaster));
+                IGraphCurationToken gcs = IGraphCurationToken(Clones.clone(curationTokenMaster));
                 gcs.initialize(address(this));
                 curationPool.gcs = gcs;
             }
@@ -235,9 +233,10 @@ contract L2Curation is CurationV3Storage, GraphUpgradeable, IL2Curation {
         TokenUtils.burnTokens(_graphToken, curationTax);
 
         // Update curation pool
-        curationPool.tokens = curationPool.tokens.add(_tokensIn.sub(curationTax));
+        curationPool.tokens = curationPool.tokens + (_tokensIn - curationTax);
         curationPool.gcs.mint(curator, signalOut);
 
+        // forge-lint: disable-next-line(reentrancy-events)
         emit Signalled(curator, _subgraphDeploymentID, _tokensIn, signalOut, curationTax);
 
         return (signalOut, curationTax);
@@ -267,8 +266,9 @@ contract L2Curation is CurationV3Storage, GraphUpgradeable, IL2Curation {
             // If no signal token for the pool - create one
             if (address(curationPool.gcs) == address(0)) {
                 // Use a minimal proxy to reduce gas cost
-                IGraphCurationToken gcs = IGraphCurationToken(ClonesUpgradeable.clone(curationTokenMaster));
+                IGraphCurationToken gcs = IGraphCurationToken(Clones.clone(curationTokenMaster));
                 gcs.initialize(address(this));
+                // forge-lint: disable-next-line(missing-events-access-control)
                 curationPool.gcs = gcs;
             }
         }
@@ -283,9 +283,10 @@ contract L2Curation is CurationV3Storage, GraphUpgradeable, IL2Curation {
         TokenUtils.pullTokens(_graphToken, curator, _tokensIn);
 
         // Update curation pool
-        curationPool.tokens = curationPool.tokens.add(_tokensIn);
+        curationPool.tokens = curationPool.tokens + _tokensIn;
         curationPool.gcs.mint(curator, signalOut);
 
+        // forge-lint: disable-next-line(reentrancy-events)
         emit Signalled(curator, _subgraphDeploymentID, _tokensIn, signalOut, 0);
 
         return signalOut;
@@ -321,7 +322,8 @@ contract L2Curation is CurationV3Storage, GraphUpgradeable, IL2Curation {
 
         // Update curation pool
         CurationPool storage curationPool = pools[_subgraphDeploymentID];
-        curationPool.tokens = curationPool.tokens.sub(tokensOut);
+        // forge-lint: disable-next-line(missing-events-access-control)
+        curationPool.tokens = curationPool.tokens - tokensOut;
         curationPool.gcs.burnFrom(curator, _signalIn);
 
         // If all signal burnt delete the curation pool except for the
@@ -333,6 +335,7 @@ contract L2Curation is CurationV3Storage, GraphUpgradeable, IL2Curation {
         // Return the tokens to the curator
         TokenUtils.pushTokens(graphToken(), curator, tokensOut);
 
+        // forge-lint: disable-next-line(reentrancy-events)
         emit Burned(curator, _subgraphDeploymentID, tokensOut, _signalIn);
 
         return tokensOut;
@@ -391,8 +394,8 @@ contract L2Curation is CurationV3Storage, GraphUpgradeable, IL2Curation {
     ) public view override returns (uint256, uint256) {
         // Calculate tokens after tax first, subtract that from the tokens in
         // to get the curation tax to avoid rounding down to zero.
-        uint256 tokensAfterCurationTax = uint256(MAX_PPM).sub(curationTaxPercentage).mul(_tokensIn).div(MAX_PPM);
-        uint256 curationTax = _tokensIn.sub(tokensAfterCurationTax);
+        uint256 tokensAfterCurationTax = ((uint256(MAX_PPM) - curationTaxPercentage) * _tokensIn) / MAX_PPM;
+        uint256 curationTax = _tokensIn - tokensAfterCurationTax;
         uint256 signalOut = _tokensToSignal(_subgraphDeploymentID, tokensAfterCurationTax);
         return (signalOut, curationTax);
     }
@@ -417,9 +420,9 @@ contract L2Curation is CurationV3Storage, GraphUpgradeable, IL2Curation {
         require(_tokensIn != 0, "Can't calculate with 0 tokens");
         uint256 signal = _tokensToSignal(_subgraphDeploymentID, _tokensIn);
         CurationPool memory curationPool = pools[_subgraphDeploymentID];
-        uint256 poolSignalAfter = getCurationPoolSignal(_subgraphDeploymentID).add(signal);
-        uint256 poolTokensAfter = curationPool.tokens.add(_tokensIn);
-        return poolTokensAfter.mul(signal).div(poolSignalAfter);
+        uint256 poolSignalAfter = getCurationPoolSignal(_subgraphDeploymentID) + signal;
+        uint256 poolTokensAfter = curationPool.tokens + _tokensIn;
+        return (poolTokensAfter * signal) / poolSignalAfter;
     }
 
     /**
@@ -434,7 +437,7 @@ contract L2Curation is CurationV3Storage, GraphUpgradeable, IL2Curation {
         require(curationPool.tokens != 0, "Subgraph deployment must be curated to perform calculations");
         require(curationPoolSignal >= _signalIn, "Signal must be above or equal to signal issued in the curation pool");
 
-        return curationPool.tokens.mul(_signalIn).div(curationPoolSignal);
+        return (curationPool.tokens * _signalIn) / curationPoolSignal;
     }
 
     /**
@@ -446,6 +449,7 @@ contract L2Curation is CurationV3Storage, GraphUpgradeable, IL2Curation {
         require(_minimumCurationDeposit != 0, "Minimum curation deposit cannot be 0");
 
         minimumCurationDeposit = _minimumCurationDeposit;
+        // forge-lint: disable-next-line(reentrancy-events)
         emit ParameterUpdated("minimumCurationDeposit");
     }
 
@@ -457,6 +461,7 @@ contract L2Curation is CurationV3Storage, GraphUpgradeable, IL2Curation {
         require(_percentage <= MAX_PPM, "Curation tax percentage must be below or equal to MAX_PPM");
 
         curationTaxPercentage = _percentage;
+        // forge-lint: disable-next-line(reentrancy-events)
         emit ParameterUpdated("curationTaxPercentage");
     }
 
@@ -466,9 +471,10 @@ contract L2Curation is CurationV3Storage, GraphUpgradeable, IL2Curation {
      */
     function _setCurationTokenMaster(address _curationTokenMaster) private {
         require(_curationTokenMaster != address(0), "Token master must be non-empty");
-        require(AddressUpgradeable.isContract(_curationTokenMaster), "Token master must be a contract");
+        require(_curationTokenMaster.code.length > 0, "Token master must be a contract");
 
         curationTokenMaster = _curationTokenMaster;
+        // forge-lint: disable-next-line(reentrancy-events)
         emit ParameterUpdated("curationTokenMaster");
     }
 
@@ -479,6 +485,7 @@ contract L2Curation is CurationV3Storage, GraphUpgradeable, IL2Curation {
     function _updateRewards(bytes32 _subgraphDeploymentID) private {
         IRewardsManager rewardsManager = rewardsManager();
         if (address(rewardsManager) != address(0)) {
+            // forge-lint: disable-next-line(unused-return)
             rewardsManager.onSubgraphSignalUpdate(_subgraphDeploymentID);
         }
     }
@@ -497,11 +504,10 @@ contract L2Curation is CurationV3Storage, GraphUpgradeable, IL2Curation {
         if (curationPool.tokens == 0) {
             require(_tokensIn >= minimumCurationDeposit, "Curation deposit is below minimum required");
             return
-                SIGNAL_PER_MINIMUM_DEPOSIT.add(
-                    SIGNAL_PER_MINIMUM_DEPOSIT.mul(_tokensIn.sub(minimumCurationDeposit)).div(minimumCurationDeposit)
-                );
+                SIGNAL_PER_MINIMUM_DEPOSIT +
+                ((SIGNAL_PER_MINIMUM_DEPOSIT * (_tokensIn - minimumCurationDeposit)) / minimumCurationDeposit);
         }
 
-        return getCurationPoolSignal(_subgraphDeploymentID).mul(_tokensIn).div(curationPool.tokens);
+        return (getCurationPoolSignal(_subgraphDeploymentID) * _tokensIn) / curationPool.tokens;
     }
 }

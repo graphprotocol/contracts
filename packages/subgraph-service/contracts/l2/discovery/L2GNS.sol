@@ -1,12 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
-pragma abicoder v2;
+pragma solidity ^0.8.27;
 
 // TODO: Re-enable and fix issues when publishing a new version
 // solhint-disable gas-indexed-events, gas-small-strings, gas-strict-inequalities
-
-import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 
 import { GNS } from "../../discovery/GNS.sol";
 import { ICuration } from "@graphprotocol/interfaces/contracts/contracts/curation/ICuration.sol";
@@ -28,8 +25,6 @@ import { IL2Curation } from "@graphprotocol/interfaces/contracts/contracts/l2/cu
  * receive subgraphs that are transferred from L1.
  */
 contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
-    using SafeMathUpgradeable for uint256;
-
     /// @notice Offset added to an L1 subgraph ID to compute the L2 subgraph ID alias
     uint256 public constant SUBGRAPH_ID_ALIAS_OFFSET =
         uint256(0x1111000000000000000000000000000000000000000000000000000000001111);
@@ -146,28 +141,37 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
             // This can't revert because the bridge ensures that _tokensIn is > 0,
             // and the minimum curation in L2 is 1 wei GRT
             uint256 tokensAfter = curation.tokensToSignalToTokensNoTax(_subgraphDeploymentID, tokens);
-            roundingError = tokens.sub(tokensAfter).mul(MAX_PPM).div(tokens);
+            roundingError = ((tokens - tokensAfter) * MAX_PPM) / tokens;
         }
         if (roundingError <= MAX_ROUNDING_ERROR) {
             vSignal = curation.mintTaxFree(_subgraphDeploymentID, tokens);
             nSignal = vSignalToNSignal(_l2SubgraphID, vSignal);
+            // forge-lint: disable-next-line(reentrancy-events)
             emit SignalMinted(_l2SubgraphID, msg.sender, nSignal, vSignal, tokens);
+            // forge-lint: disable-next-line(reentrancy-events)
             emit SubgraphUpgraded(_l2SubgraphID, vSignal, tokens, _subgraphDeploymentID);
         } else {
+            // forge-lint: disable-next-line(erc20-unchecked-transfer)
             graphToken().transfer(msg.sender, tokens);
+            // forge-lint: disable-next-line(reentrancy-events)
             emit CuratorBalanceReturnedToBeneficiary(getUnaliasedL1SubgraphID(_l2SubgraphID), msg.sender, tokens);
+            // forge-lint: disable-next-line(uninitialized-local, reentrancy-events)
             emit SubgraphUpgraded(_l2SubgraphID, vSignal, 0, _subgraphDeploymentID);
         }
 
         subgraphData.disabled = false;
         subgraphData.vSignal = vSignal;
+        // forge-lint: disable-next-line(uninitialized-local)
         subgraphData.nSignal = nSignal;
         subgraphData.curatorNSignal[msg.sender] = nSignal;
         subgraphData.subgraphDeploymentID = _subgraphDeploymentID;
         // Set the token metadata
         _setSubgraphMetadata(_l2SubgraphID, _subgraphMetadata);
+        // forge-lint: disable-next-line(reentrancy-events)
         emit SubgraphPublished(_l2SubgraphID, _subgraphDeploymentID, fixedReserveRatio);
+        // forge-lint: disable-next-line(reentrancy-events)
         emit SubgraphVersionUpdated(_l2SubgraphID, _subgraphDeploymentID, _versionMetadata);
+        // forge-lint: disable-next-line(reentrancy-events)
         emit SubgraphL2TransferFinalized(_l2SubgraphID);
     }
 
@@ -220,14 +224,17 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
 
             // Update pool: constant nSignal, vSignal can change (with slippage protection)
             // Buy all signal from the new deployment
+            // forge-lint: disable-next-line(unused-return)
             (subgraphData.vSignal, ) = curation.mint(_subgraphDeploymentID, tokensWithTax, _signalOutMin);
 
+            // forge-lint: disable-next-line(reentrancy-events)
             emit SubgraphUpgraded(_subgraphID, subgraphData.vSignal, tokensWithTax, _subgraphDeploymentID);
         }
 
         // Update target deployment
         subgraphData.subgraphDeploymentID = _subgraphDeploymentID;
 
+        // forge-lint: disable-next-line(reentrancy-events)
         emit SubgraphVersionUpdated(_subgraphID, _subgraphDeploymentID, _versionMetadata);
     }
 
@@ -235,14 +242,18 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
      * @inheritdoc IL2GNS
      */
     function getAliasedL2SubgraphID(uint256 _l1SubgraphID) public pure override returns (uint256) {
-        return _l1SubgraphID + SUBGRAPH_ID_ALIAS_OFFSET;
+        unchecked {
+            return _l1SubgraphID + SUBGRAPH_ID_ALIAS_OFFSET;
+        }
     }
 
     /**
      * @inheritdoc IL2GNS
      */
     function getUnaliasedL1SubgraphID(uint256 _l2SubgraphID) public pure override returns (uint256) {
-        return _l2SubgraphID - SUBGRAPH_ID_ALIAS_OFFSET;
+        unchecked {
+            return _l2SubgraphID - SUBGRAPH_ID_ALIAS_OFFSET;
+        }
     }
 
     /**
@@ -271,6 +282,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         // check in finishSubgraphTransferFromL1.
         _mintNFT(_subgraphOwner, l2SubgraphID);
 
+        // forge-lint: disable-next-line(reentrancy-events)
         emit SubgraphReceivedFromL1(_l1SubgraphID, l2SubgraphID, _subgraphOwner, _tokens);
     }
 
@@ -294,11 +306,14 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
             // This can't revert because the bridge ensures that _tokensIn is > 0,
             // and the minimum curation in L2 is 1 wei GRT
             uint256 tokensAfter = curation.tokensToSignalToTokensNoTax(subgraphData.subgraphDeploymentID, _tokensIn);
-            roundingError = _tokensIn.sub(tokensAfter).mul(MAX_PPM).div(_tokensIn);
+            roundingError = ((_tokensIn - tokensAfter) * MAX_PPM) / _tokensIn;
         }
         // If subgraph transfer wasn't finished, we should send the tokens to the curator
+        // forge-lint: disable-next-line(uninitialized-local)
         if (!transferData.l2Done || subgraphData.disabled || roundingError > MAX_ROUNDING_ERROR) {
+            // forge-lint: disable-next-line(erc20-unchecked-transfer)
             graphToken().transfer(_curator, _tokensIn);
+            // forge-lint: disable-next-line(reentrancy-events)
             emit CuratorBalanceReturnedToBeneficiary(_l1SubgraphID, _curator, _tokensIn);
         } else {
             // Get name signal to mint for tokens deposited
@@ -306,11 +321,13 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
             uint256 nSignal = vSignalToNSignal(l2SubgraphID, vSignal);
 
             // Update pools
-            subgraphData.vSignal = subgraphData.vSignal.add(vSignal);
-            subgraphData.nSignal = subgraphData.nSignal.add(nSignal);
-            subgraphData.curatorNSignal[_curator] = subgraphData.curatorNSignal[_curator].add(nSignal);
+            subgraphData.vSignal = subgraphData.vSignal + vSignal;
+            subgraphData.nSignal = subgraphData.nSignal + nSignal;
+            subgraphData.curatorNSignal[_curator] = subgraphData.curatorNSignal[_curator] + nSignal;
 
+            // forge-lint: disable-next-line(reentrancy-events)
             emit SignalMinted(l2SubgraphID, _curator, nSignal, vSignal, _tokensIn);
+            // forge-lint: disable-next-line(reentrancy-events)
             emit CuratorBalanceReceived(_l1SubgraphID, l2SubgraphID, _curator, _tokensIn);
         }
     }

@@ -127,7 +127,7 @@ pnpm lint:yaml      # YAML files
 Horizon packages use both Hardhat and Foundry. When developing:
 
 1. Use `forge test` for Foundry tests
-2. Use `npx hardhat deploy:protocol --network hardhat` to deploy a fresh local stack
+2. Use `npx hardhat deploy:protocol --network hardhat --subgraph-service-config localNetwork` from `packages/subgraph-service` to deploy a fresh local stack (`deploy:protocol` runs from subgraph-service only)
 3. Set required RPC URLs using `npx hardhat vars set <variable>`
 
 ### Contract Verification

@@ -7,7 +7,11 @@ import {
   type LinkReferences,
   stripMetadata,
 } from '../lib/bytecode-utils.js'
-import { loadContractsArtifact, loadIssuanceArtifact } from '../lib/deploy-implementation.js'
+import {
+  loadContractsArtifact,
+  loadIssuanceArtifact,
+  loadSubgraphServiceArtifact,
+} from '../lib/deploy-implementation.js'
 import { graph } from '../rocketh/deploy.js'
 
 /**
@@ -217,9 +221,11 @@ describe('Deploy Implementation Helper', function () {
     it('should throw for non-existent contract', function () {
       expect(() => loadContractsArtifact('nonexistent', 'FakeContract')).to.throw()
     })
+  })
 
+  describe('loadSubgraphServiceArtifact', function () {
     it('should load different contracts with correct paths', function () {
-      const l2Curation = loadContractsArtifact('l2/curation', 'L2Curation')
+      const l2Curation = loadSubgraphServiceArtifact('l2/curation/L2Curation')
       expect(l2Curation.abi).to.be.an('array')
       expect(l2Curation.bytecode).to.match(/^0x/)
 
