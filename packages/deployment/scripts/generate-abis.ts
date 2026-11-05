@@ -29,7 +29,8 @@ const OUTPUT_FILE = join(OUTPUT_DIR, 'abis.ts')
 const UTILITY_ABIS: Array<{ name: string; artifactPath: string }> = [
   {
     name: 'IERC165_ABI',
-    artifactPath: '@graphprotocol/interfaces/artifacts/@openzeppelin/contracts/introspection/IERC165.sol/IERC165.json',
+    artifactPath:
+      '@graphprotocol/interfaces/artifacts/@openzeppelin/contracts/utils/introspection/IERC165.sol/IERC165.json',
   },
   {
     name: 'ISSUANCE_TARGET_ABI',

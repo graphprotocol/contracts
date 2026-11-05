@@ -882,6 +882,10 @@ importers:
         version: 5.9.3
 
   packages/interfaces:
+    dependencies:
+      '@openzeppelin/contracts':
+        specifier: ^5.4.0
+        version: 5.4.0
     devDependencies:
       '@ethersproject/abi':
         specifier: 5.7.0
@@ -898,12 +902,6 @@ importers:
       '@nomicfoundation/hardhat-verify':
         specifier: ^2.0.0
         version: 2.1.1(hardhat@2.28.6(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.41)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10))
-      '@openzeppelin/contracts':
-        specifier: 3.4.2
-        version: 3.4.2
-      '@openzeppelin/contracts-upgradeable':
-        specifier: 3.4.2
-        version: 3.4.2
       '@typechain/ethers-v5':
         specifier: ^10.2.1
         version: 10.2.1(@ethersproject/abi@5.7.0)(@ethersproject/providers@5.7.2(bufferutil@4.0.9)(utf-8-validate@5.0.10))(ethers@6.16.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(typechain@8.3.2(patch_hash=b34ed6afcf99760666fdc85ecb2094fdd20ce509f947eb09cef21665a2a6a1d6)(typescript@5.9.3))(typescript@5.9.3)
