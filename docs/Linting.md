@@ -152,7 +152,7 @@ pnpm lint:staged  # Run linting on git-staged files only
 Each package can define its own linting scripts that work with the inherited configurations:
 
 ```bash
-# Example from packages/contracts
+# Example from packages/graph-core
 pnpm lint:sol   # Solhint for contracts in this package only
 pnpm lint:ts    # ESLint for TypeScript files in this package
 ```

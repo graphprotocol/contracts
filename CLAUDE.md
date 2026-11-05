@@ -36,9 +36,6 @@ pnpm test:coverage
 # Test a specific package
 cd packages/<package-name> && pnpm test
 
-# Test a single file (in contracts package)
-cd packages/contracts && npx hardhat test test/<FILE_NAME>.ts
-
 # Run Foundry tests (in horizon/subgraph-service)
 cd packages/horizon && pnpm test
 
@@ -68,20 +65,16 @@ pnpm lint:yaml      # YAML files
 
 ### Package Structure
 
-1. **contracts** - Original Graph Protocol contracts (staking, curation, disputes)
-   - Uses Hardhat for development
-   - Contains E2E testing framework for protocol validation
-
-2. **horizon** - Next iteration of The Graph protocol
+1. **horizon** - Next iteration of The Graph protocol
    - Uses Hardhat + Foundry for testing
    - Deployment via Hardhat Ignition
    - Migration path from original protocol
 
-3. **subgraph-service** - Data service implementation for Graph Horizon
+2. **subgraph-service** - Data service implementation for Graph Horizon
    - Manages disputes and allocations
    - Part of the Horizon ecosystem
 
-4. **interfaces** - Shared contract interfaces
+3. **interfaces** - Shared contract interfaces
    - Centralized repository for all Solidity contract interfaces
    - Used by multiple packages/programs for contract implementation and interaction
    - Generates TypeScript types for distribution via npm
@@ -90,11 +83,11 @@ pnpm lint:yaml      # YAML files
    - Includes ethers v5 type generation
    - Published types can be imported by any TypeScript program
 
-5. **token-distribution** - Token locking and vesting contracts
+4. **token-distribution** - Token locking and vesting contracts
    - GraphTokenLockWallet and GraphTokenLockManager
    - L2 token distribution functionality
 
-6. **toolshed** - Shared development utilities
+5. **toolshed** - Shared development utilities
    - Deployment helpers
    - Test fixtures
    - Hardhat extensions

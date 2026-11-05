@@ -7,11 +7,7 @@ import {
   type LinkReferences,
   stripMetadata,
 } from '../lib/bytecode-utils.js'
-import {
-  loadContractsArtifact,
-  loadIssuanceArtifact,
-  loadSubgraphServiceArtifact,
-} from '../lib/deploy-implementation.js'
+import { loadIssuanceArtifact, loadSubgraphServiceArtifact } from '../lib/deploy-implementation.js'
 import { graph } from '../rocketh/deploy.js'
 
 /**
@@ -217,9 +213,17 @@ describe('Deploy Implementation Helper', function () {
     })
   })
 
-  describe('loadContractsArtifact', function () {
+  describe('loadPackageArtifact', function () {
+    it('should load Controller artifact from @graphprotocol/graph-core', function () {
+      const artifact = loadPackageArtifact('graph-core', 'governance', 'Controller')
+      expect(artifact.abi).to.be.an('array').that.is.not.empty
+      expect(artifact.bytecode)
+        .to.be.a('string')
+        .and.match(/^0x[0-9a-f]{1000,}/)
+    })
+
     it('should throw for non-existent contract', function () {
-      expect(() => loadContractsArtifact('nonexistent', 'FakeContract')).to.throw()
+      expect(() => loadPackageArtifact('graph-core', 'nonexistent', 'FakeContract')).to.throw()
     })
   })
 

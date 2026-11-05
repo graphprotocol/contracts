@@ -39,4 +39,4 @@ New tests are in `packages/graph-token`. The cases of `lib/graphTokenTests.ts` r
 
 MISSING initialize: `L2GraphToken.initialize` and `BridgeEscrow.initialize` are called by the fixture through `abi.encodeCall` in the proxy init data (`acceptProxyAndCall`), not by a `.initialize(` call. Every test runs it, and it must succeed for the proxy to work. The other listed external/public functions are called directly.
 
-Additions with no old test: `test/unit/utils/TokenUtils.t.sol` (`TokenUtils` was only exercised through GNS and L2Curation, which are not in graph-token), through `TokenUtilsMock` in `packages/contracts/contracts/tests/`.
+Additions with no old test: `test/unit/utils/TokenUtils.t.sol` (`TokenUtils` was only exercised through GNS and L2Curation, which are not in graph-token), through `TokenUtilsMock`.

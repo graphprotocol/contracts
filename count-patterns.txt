@@ -16,7 +16,6 @@ packages/interfaces/contracts/**/*.sol
 !*Test.sol
 !*.t.sol
 
-!packages/contracts/contracts/!(rewards)/*.sol
 !**/@(IGraphToken|SubgraphAvailabilityManager).sol
 
 # Glob pattern examples:

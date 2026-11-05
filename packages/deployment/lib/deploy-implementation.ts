@@ -6,7 +6,6 @@ import { getAddressBookForType, getTargetChainIdFromEnv } from './address-book-u
 import {
   getLibraryResolver,
   linkArtifactLibraries,
-  loadContractsArtifact,
   loadHorizonBuildArtifact,
   loadIssuanceArtifact,
   loadOpenZeppelinArtifact,
@@ -18,7 +17,7 @@ import { type AddressBookType, type ArtifactSource, getContractMetadata, type Pr
 import { buildDeploymentMetadata } from './deployment-metadata.js'
 
 // Re-export artifact loaders for backwards compatibility
-export { loadContractsArtifact, loadIssuanceArtifact, loadSubgraphServiceArtifact }
+export { loadIssuanceArtifact, loadSubgraphServiceArtifact }
 
 // Re-export ArtifactSource for backwards compatibility
 export type { ArtifactSource }
@@ -76,9 +75,6 @@ export interface ImplementationDeployConfig {
   /**
    * Artifact source configuration
    *
-   * For @graphprotocol/contracts:
-   *   { type: 'contracts', path: 'rewards', name: 'RewardsManager' }
-   *
    * For @graphprotocol/graph-core or graph-token:
    *   { type: 'graph-core', path: 'governance', name: 'Controller' }
    *
@@ -87,14 +83,8 @@ export interface ImplementationDeployConfig {
    *
    * For @graphprotocol/issuance:
    *   { type: 'issuance', path: 'contracts/allocate/DirectAllocation.sol/DirectAllocation' }
-   *
-   * Legacy shorthand (contracts only):
-   *   artifactPath: 'rewards' + artifactName defaults to contractName
    */
-  artifact?: ArtifactSource
-
-  /** @deprecated Use artifact.path instead */
-  artifactPath?: string
+  artifact: ArtifactSource
 
   /**
    * Proxy type
@@ -147,8 +137,6 @@ export interface ImplementationDeployResult {
  */
 export function loadArtifactFromSource(source: ArtifactSource): Artifact {
   switch (source.type) {
-    case 'contracts':
-      return loadContractsArtifact(source.path, source.name)
     case 'graph-core':
     case 'graph-token':
       return loadPackageArtifact(source.type, source.path, source.name)
@@ -244,6 +232,10 @@ export function getImplementationConfig(
     throw new Error(`Contract '${contractName}' not found in ${addressBook} registry`)
   }
 
+  if (!metadata.artifact) {
+    throw new Error(`Contract '${contractName}' in ${addressBook} registry has no artifact source`)
+  }
+
   return {
     contractName,
     artifact: metadata.artifact,
@@ -273,11 +265,11 @@ export function hasImplementationConfig(addressBook: AddressBookType, contractNa
  * 3. Deploy new implementation if bytecode changed
  * 4. Store as pendingImplementation in address book for governance upgrade
  *
- * @example Graph Legacy (RewardsManager, Staking, Curation):
+ * @example Graph Legacy (RewardsManager):
  * ```typescript
  * await deployImplementation(env, {
  *   contractName: 'RewardsManager',
- *   artifactPath: 'rewards',
+ *   artifact: { type: 'issuance', path: 'contracts/rewards/RewardsManager.sol/RewardsManager' },
  *   proxyAdminName: 'GraphProxyAdmin',
  * })
  * ```
@@ -301,12 +293,7 @@ export async function deployImplementation(
 ): Promise<ImplementationDeployResult> {
   const { contractName, proxyAdminName, constructorArgs = [], proxyType = 'graph', addressBook = 'horizon' } = config
 
-  // Resolve artifact source (support legacy artifactPath for backwards compatibility)
-  const artifactSource: ArtifactSource = config.artifact ?? {
-    type: 'contracts',
-    path: config.artifactPath!,
-    name: contractName,
-  }
+  const artifactSource: ArtifactSource = config.artifact
 
   const deployFn = deploy(env)
 

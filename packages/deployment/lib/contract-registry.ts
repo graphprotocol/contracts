@@ -14,7 +14,6 @@ import { ComponentTags } from './deployment-tags.js'
  * Artifact source configuration - where to load contract ABI and bytecode from
  */
 export type ArtifactSource =
-  | { type: 'contracts'; path: string; name: string }
   | { type: 'graph-core' | 'graph-token'; path: string; name: string }
   | { type: 'subgraph-service'; name: string }
   | { type: 'horizon'; path: string }

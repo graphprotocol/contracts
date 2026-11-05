@@ -18,9 +18,9 @@ High-level architecture for the unified deployment system.
 
 **Referenced contracts** (already deployed):
 
-- RewardsManager (from @graphprotocol/contracts or @graphprotocol/horizon)
-- GraphToken (from @graphprotocol/contracts)
-- GraphProxyAdmin (from @graphprotocol/contracts or @graphprotocol/horizon)
+- RewardsManager (from @graphprotocol/issuance)
+- GraphToken (from @graphprotocol/graph-token)
+- GraphProxyAdmin (from @graphprotocol/graph-core)
 
 ## Directory Structure
 

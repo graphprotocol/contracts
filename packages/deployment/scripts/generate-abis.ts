@@ -117,8 +117,6 @@ function loadAbiFromArtifact(artifactPath: string): AbiEntry[] {
  */
 function resolveContractArtifactPath(artifact: { type: string; path?: string; name?: string }): string {
   switch (artifact.type) {
-    case 'contracts':
-      return `@graphprotocol/contracts/artifacts/contracts/${artifact.path}/${artifact.name}.sol/${artifact.name}.json`
     case 'graph-core':
     case 'graph-token':
       return `@graphprotocol/${artifact.type}/artifacts/contracts/${artifact.path}/${artifact.name}.sol/${artifact.name}.json`

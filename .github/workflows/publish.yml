@@ -30,7 +30,6 @@ on:
         type: choice
         options:
           - address-book
-          - contracts
           - graph-core
           - graph-token
           - interfaces

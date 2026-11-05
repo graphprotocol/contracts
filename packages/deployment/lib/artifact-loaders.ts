@@ -9,7 +9,7 @@ import type { LibraryArtifactResolver, LinkReferences } from './bytecode-utils.j
 const require = createRequire(import.meta.url)
 
 /** Packages whose Hardhat artifacts live at artifacts/contracts/<path>/<name>.sol/<name>.json */
-export type ContractsPackage = 'contracts' | 'graph-core' | 'graph-token'
+export type ContractsPackage = 'graph-core' | 'graph-token'
 
 /**
  * Load artifact from a @graphprotocol/<pkg> package
@@ -29,16 +29,6 @@ export function loadPackageArtifact(pkg: ContractsPackage, contractPath: string,
     deployedBytecode: artifact.deployedBytecode as `0x${string}`,
     metadata: artifact.metadata || '',
   }
-}
-
-/**
- * Load artifact from @graphprotocol/contracts package
- *
- * @param contractPath - Path within contracts/ (e.g., 'rewards', 'l2/token')
- * @param contractName - Contract name (e.g., 'RewardsManager', 'L2GraphToken')
- */
-export function loadContractsArtifact(contractPath: string, contractName: string): Artifact {
-  return loadPackageArtifact('contracts', contractPath, contractName)
 }
 
 /**
@@ -149,8 +139,6 @@ export function getLibraryResolver(sourceType: string): LibraryArtifactResolver 
       return createPackageLibraryResolver('@graphprotocol/horizon/artifacts')
     case 'issuance':
       return createPackageLibraryResolver('@graphprotocol/issuance/artifacts')
-    case 'contracts':
-      return createPackageLibraryResolver('@graphprotocol/contracts/artifacts')
     case 'graph-core':
       return createPackageLibraryResolver('@graphprotocol/graph-core/artifacts')
     case 'graph-token':

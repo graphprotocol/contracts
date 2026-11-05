@@ -27,8 +27,6 @@ const ADDRESS_BOOK_TYPES: AddressBookType[] = ['horizon', 'subgraph-service', 'i
  */
 function getPackageDir(artifactSource: ArtifactSource): string {
   switch (artifactSource.type) {
-    case 'contracts':
-      return 'packages/contracts'
     case 'graph-core':
     case 'graph-token':
       return `packages/${artifactSource.type}`
@@ -49,7 +47,6 @@ function getPackageDir(artifactSource: ArtifactSource): string {
  */
 export function getFullyQualifiedContractName(artifactSource: ArtifactSource): string {
   switch (artifactSource.type) {
-    case 'contracts':
     case 'graph-core':
     case 'graph-token':
       // e.g., contracts/rewards/RewardsManager.sol:RewardsManager

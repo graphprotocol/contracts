@@ -11,7 +11,7 @@ import type {
 import type { ContractList } from '../contract'
 
 export const SubgraphServiceContractNameList = [
-  // @graphprotocol/contracts
+  // L2Curation, L2GNS: @graphprotocol/subgraph-service; SubgraphNFT: @graphprotocol/graph-token
   'L2Curation',
   'L2GNS',
   'SubgraphNFT',
@@ -20,13 +20,13 @@ export const SubgraphServiceContractNameList = [
   'SubgraphService',
   'DisputeManager',
 
-  // @graphprotocol/contracts - legacy
+  // legacy, no longer built in this repository
   'LegacyDisputeManager',
   'LegacyServiceRegistry',
 ] as const
 
 export interface SubgraphServiceContracts extends ContractList<SubgraphServiceContractName> {
-  // @graphprotocol/contracts
+  // L2Curation, L2GNS: @graphprotocol/subgraph-service; SubgraphNFT: @graphprotocol/graph-token
   L2Curation: L2Curation
   L2GNS: L2GNS
   SubgraphNFT: SubgraphNFT
@@ -35,7 +35,7 @@ export interface SubgraphServiceContracts extends ContractList<SubgraphServiceCo
   SubgraphService: SubgraphService
   DisputeManager: DisputeManager
 
-  // @graphprotocol/contracts - legacy
+  // legacy, no longer built in this repository
   LegacyDisputeManager: LegacyDisputeManager
   LegacyServiceRegistry: LegacyServiceRegistry
 
