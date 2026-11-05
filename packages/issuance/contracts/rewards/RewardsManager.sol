@@ -1,10 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
-pragma abicoder v2;
+pragma solidity ^0.8.27;
 
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
-import { IERC165 } from "@openzeppelin/contracts/introspection/IERC165.sol";
+import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import { GraphUpgradeable } from "@graphprotocol/graph-core/contracts/upgrades/GraphUpgradeable.sol";
 import { Managed } from "@graphprotocol/graph-core/contracts/governance/Managed.sol";
@@ -49,8 +47,6 @@ contract RewardsManager is
     IRewardsManagerDeprecated,
     RewardsManagerV6Storage
 {
-    using SafeMath for uint256;
-
     /// @dev Fixed point scaling factor used for decimals in reward calculations
     uint256 private constant FIXED_POINT_SCALING_FACTOR = 1e18;
 
@@ -113,13 +109,16 @@ contract RewardsManager is
         updateAccRewardsPerSignal();
 
         issuancePerBlock = _issuancePerBlock;
+        // forge-lint: disable-next-line(reentrancy-events)
         emit ParameterUpdated("issuancePerBlock");
     }
 
     /**
      * @inheritdoc IRewardsManager
      */
+    // forge-lint: disable-next-line(missing-zero-check)
     function setSubgraphAvailabilityOracle(address _subgraphAvailabilityOracle) external override onlyGovernor {
+        // forge-lint: disable-next-line(missing-events-access-control)
         subgraphAvailabilityOracle = _subgraphAvailabilityOracle;
         emit ParameterUpdated("subgraphAvailabilityOracle");
     }
@@ -190,6 +189,7 @@ contract RewardsManager is
                 );
             }
 
+            // forge-lint: disable-next-line(reentrancy-events)
             emit IssuanceAllocatorSet(issuanceAllocator, newIssuanceAllocator);
             issuanceAllocator = newIssuanceAllocator;
         }
@@ -257,6 +257,7 @@ contract RewardsManager is
     /**
      * @inheritdoc IRewardsManager
      */
+    // forge-lint: disable-next-line(missing-zero-check)
     function setDefaultReclaimAddress(address newAddress) external override onlyGovernor {
         address oldAddress = defaultReclaimAddress;
 
@@ -297,6 +298,7 @@ contract RewardsManager is
         if (stateChange) {
             uint256 sinceBlock = deny ? block.number : 0;
             denylist[subgraphDeploymentId] = sinceBlock;
+            // forge-lint: disable-next-line(reentrancy-events)
             emit RewardsDenylistUpdated(subgraphDeploymentId, sinceBlock);
         }
     }
@@ -371,7 +373,7 @@ contract RewardsManager is
      */
     function _getNewRewardsPerSignal() private view returns (uint256 claimablePerSignal, uint256 unclaimableTokens) {
         // Calculate time steps
-        uint256 t = block.number.sub(accRewardsPerSignalLastBlockUpdated);
+        uint256 t = block.number - accRewardsPerSignalLastBlockUpdated;
         // Optimization to skip calculations if zero time steps elapsed
         if (t == 0) return (0, 0);
 
@@ -379,7 +381,7 @@ contract RewardsManager is
 
         if (rewardsIssuancePerBlock == 0) return (0, 0);
 
-        uint256 x = rewardsIssuancePerBlock.mul(t);
+        uint256 x = rewardsIssuancePerBlock * t;
 
         // Check signalled tokens
         uint256 signalledTokens = graphToken().balanceOf(address(curation()));
@@ -387,12 +389,12 @@ contract RewardsManager is
 
         // Get the new issuance per signalled token
         // We multiply the decimals to keep the precision as fixed-point number
-        return (x.mul(FIXED_POINT_SCALING_FACTOR).div(signalledTokens), 0);
+        return ((x * FIXED_POINT_SCALING_FACTOR) / signalledTokens, 0);
     }
 
     /// @inheritdoc IRewardsManager
     function getAccRewardsPerSignal() public view override returns (uint256) {
-        return accRewardsPerSignal.add(getNewRewardsPerSignal());
+        return accRewardsPerSignal + getNewRewardsPerSignal();
     }
 
     /**
@@ -404,7 +406,7 @@ contract RewardsManager is
     function getAccRewardsForSubgraph(bytes32 _subgraphDeploymentID) public view override returns (uint256) {
         Subgraph storage subgraph = subgraphs[_subgraphDeploymentID];
         (uint256 newRewards, , bytes32 condition) = _getSubgraphRewardsState(_subgraphDeploymentID);
-        return subgraph.accRewardsForSubgraph.add(condition == RewardsCondition.NONE ? newRewards : 0);
+        return subgraph.accRewardsForSubgraph + (condition == RewardsCondition.NONE ? newRewards : 0);
     }
 
     /**
@@ -433,10 +435,9 @@ contract RewardsManager is
             return (subgraph.accRewardsPerAllocatedToken, accRewardsForSubgraph);
         }
 
-        uint256 newRewardsPerAllocatedToken = newRewardsForSubgraph.mul(FIXED_POINT_SCALING_FACTOR).div(
-            subgraphAllocatedTokens
-        );
-        return (subgraph.accRewardsPerAllocatedToken.add(newRewardsPerAllocatedToken), accRewardsForSubgraph);
+        uint256 newRewardsPerAllocatedToken = (newRewardsForSubgraph * FIXED_POINT_SCALING_FACTOR) /
+            subgraphAllocatedTokens;
+        return (subgraph.accRewardsPerAllocatedToken + newRewardsPerAllocatedToken, accRewardsForSubgraph);
     }
 
     // -- Internal Helpers --
@@ -455,8 +456,8 @@ contract RewardsManager is
     ) private view returns (uint256 newRewards, uint256 subgraphAllocatedTokens, bytes32 condition) {
         Subgraph storage subgraph = subgraphs[_subgraphDeploymentID];
         uint256 signalledTokens = curation().getCurationPoolTokens(_subgraphDeploymentID);
-        uint256 accRewardsPerSignalDelta = getAccRewardsPerSignal().sub(subgraph.accRewardsPerSignalSnapshot);
-        newRewards = accRewardsPerSignalDelta.mul(signalledTokens).div(FIXED_POINT_SCALING_FACTOR);
+        uint256 accRewardsPerSignalDelta = getAccRewardsPerSignal() - subgraph.accRewardsPerSignalSnapshot;
+        newRewards = (accRewardsPerSignalDelta * signalledTokens) / FIXED_POINT_SCALING_FACTOR;
         subgraphAllocatedTokens = _getSubgraphAllocatedTokens(_subgraphDeploymentID);
 
         condition = isDenied(_subgraphDeploymentID) ? RewardsCondition.SUBGRAPH_DENIED : RewardsCondition.NONE;
@@ -502,8 +503,10 @@ contract RewardsManager is
         if (0 < unclaimableTokens)
             _reclaimRewards(RewardsCondition.NO_SIGNAL, unclaimableTokens, address(0), address(0), bytes32(0));
 
-        uint256 newAccRewardsPerSignal = accRewardsPerSignal.add(claimablePerSignal);
+        uint256 newAccRewardsPerSignal = accRewardsPerSignal + claimablePerSignal;
+        // forge-lint: disable-next-line(missing-events-arithmetic)
         accRewardsPerSignal = newAccRewardsPerSignal;
+        // forge-lint: disable-next-line(missing-events-arithmetic)
         accRewardsPerSignalLastBlockUpdated = block.number;
         return newAccRewardsPerSignal;
     }
@@ -540,16 +543,16 @@ contract RewardsManager is
         // accRewardsForSubgraphSnapshot (the old alloc hook set the snapshot from a view that included
         // pending rewards, while the old signal hook only wrote the stored value). The full expression
         // is always non-negative because rewardsSinceSignalSnapshot covers a superset of the gap.
-        uint256 undistributedRewards = accRewardsForSubgraph.add(rewardsSinceSignalSnapshot).sub(
-            subgraph.accRewardsForSubgraphSnapshot
-        );
+        uint256 undistributedRewards = accRewardsForSubgraph +
+            rewardsSinceSignalSnapshot -
+            subgraph.accRewardsForSubgraphSnapshot;
 
         if (condition != RewardsCondition.NONE) {
             _reclaimRewards(condition, undistributedRewards, address(0), address(0), _subgraphDeploymentID);
             undistributedRewards = 0;
             newAccRewardsForSubgraph = accRewardsForSubgraph;
         } else {
-            newAccRewardsForSubgraph = accRewardsForSubgraph.add(rewardsSinceSignalSnapshot);
+            newAccRewardsForSubgraph = accRewardsForSubgraph + rewardsSinceSignalSnapshot;
             subgraph.accRewardsForSubgraph = newAccRewardsForSubgraph;
         }
 
@@ -557,9 +560,9 @@ contract RewardsManager is
 
         newAccRewardsPerAllocatedToken = accRewardsPerAllocatedToken;
         if (undistributedRewards != 0) {
-            newAccRewardsPerAllocatedToken = accRewardsPerAllocatedToken.add(
-                undistributedRewards.mul(FIXED_POINT_SCALING_FACTOR).div(subgraphAllocatedTokens)
-            );
+            newAccRewardsPerAllocatedToken =
+                accRewardsPerAllocatedToken +
+                ((undistributedRewards * FIXED_POINT_SCALING_FACTOR) / subgraphAllocatedTokens);
             subgraph.accRewardsPerAllocatedToken = newAccRewardsPerAllocatedToken;
         }
     }
@@ -650,6 +653,7 @@ contract RewardsManager is
     function getRewards(address _rewardsIssuer, address _allocationID) external view override returns (uint256) {
         require(_rewardsIssuer == address(subgraphService), "Not a rewards issuer");
 
+        // forge-lint: disable-start(unused-return)
         (
             bool isActive,
             ,
@@ -658,14 +662,14 @@ contract RewardsManager is
             uint256 alloAccRewardsPerAllocatedToken,
             uint256 accRewardsPending
         ) = IRewardsIssuer(_rewardsIssuer).getAllocationData(_allocationID);
+        // forge-lint: disable-end(unused-return)
 
         if (!isActive) {
             return 0;
         }
 
         (uint256 accRewardsPerAllocatedToken, ) = getAccRewardsPerAllocatedToken(subgraphDeploymentId);
-        return
-            accRewardsPending.add(_calcRewards(tokens, alloAccRewardsPerAllocatedToken, accRewardsPerAllocatedToken));
+        return accRewardsPending + _calcRewards(tokens, alloAccRewardsPerAllocatedToken, accRewardsPerAllocatedToken);
     }
 
     /**
@@ -678,7 +682,7 @@ contract RewardsManager is
         uint256 _tokens,
         uint256 _accRewardsPerAllocatedToken
     ) external pure override returns (uint256) {
-        return _accRewardsPerAllocatedToken.mul(_tokens).div(FIXED_POINT_SCALING_FACTOR);
+        return (_accRewardsPerAllocatedToken * _tokens) / FIXED_POINT_SCALING_FACTOR;
     }
 
     /**
@@ -693,8 +697,8 @@ contract RewardsManager is
         uint256 _startAccRewardsPerAllocatedToken,
         uint256 _endAccRewardsPerAllocatedToken
     ) private pure returns (uint256) {
-        uint256 newAccrued = _endAccRewardsPerAllocatedToken.sub(_startAccRewardsPerAllocatedToken);
-        return newAccrued.mul(_tokens).div(FIXED_POINT_SCALING_FACTOR);
+        uint256 newAccrued = _endAccRewardsPerAllocatedToken - _startAccRewardsPerAllocatedToken;
+        return (newAccrued * _tokens) / FIXED_POINT_SCALING_FACTOR;
     }
 
     /**
@@ -721,9 +725,7 @@ contract RewardsManager is
         uint256 updatedAccRewardsPerAllocatedToken = onSubgraphAllocationUpdate(_subgraphDeploymentID);
 
         rewards = isActive
-            ? accRewardsPending.add(
-                _calcRewards(tokens, accRewardsPerAllocatedToken, updatedAccRewardsPerAllocatedToken)
-            )
+            ? accRewardsPending + _calcRewards(tokens, accRewardsPerAllocatedToken, updatedAccRewardsPerAllocatedToken)
             : 0;
 
         indexer = _indexer;
@@ -759,7 +761,9 @@ contract RewardsManager is
         if (target == address(0)) target = defaultReclaimAddress;
         if (target == address(0)) return 0; // Dropped, not reclaimed
 
+        // forge-lint: disable-next-line(reentrancy-no-eth)
         graphToken().mint(target, rewards);
+        // forge-lint: disable-next-line(reentrancy-events)
         emit RewardsReclaimed(reason, rewards, indexer, allocationId, subgraphDeploymentId);
         return rewards;
     }
@@ -793,7 +797,9 @@ contract RewardsManager is
 
         if (!isDeniedSubgraph && !isIneligible) return false;
 
+        // forge-lint: disable-next-line(reentrancy-events)
         if (isDeniedSubgraph) emit RewardsDenied(indexer, allocationID);
+        // forge-lint: disable-next-line(reentrancy-events)
         if (isIneligible) emit RewardsDeniedDueToEligibility(indexer, allocationID, rewards);
 
         bytes32 reason = isDeniedSubgraph ? RewardsCondition.SUBGRAPH_DENIED : RewardsCondition.NONE;
@@ -828,6 +834,7 @@ contract RewardsManager is
         if (_deniedRewards(rewards, indexer, _allocationID, subgraphDeploymentID)) return 0;
 
         graphToken().mint(rewardsIssuer, rewards);
+        // forge-lint: disable-next-line(reentrancy-events)
         emit HorizonRewardsAssigned(indexer, _allocationID, rewards);
 
         return rewards;

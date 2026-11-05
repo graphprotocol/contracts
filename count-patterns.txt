@@ -7,7 +7,6 @@
 
 # Include patterns (files to count):
 packages/issuance/contracts/**/*.sol
-packages/contracts/contracts/rewards/RewardsManager*.sol
 packages/interfaces/contracts/**/*.sol
 
 # Exclude patterns (files to ignore):

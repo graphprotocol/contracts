@@ -1,4 +1,4 @@
-import RewardsManagerArtifact from '@graphprotocol/contracts/artifacts/contracts/rewards/RewardsManager.sol/RewardsManager.json'
+import RewardsManagerArtifact from '@graphprotocol/issuance/artifacts/contracts/rewards/RewardsManager.sol/RewardsManager.json'
 import { buildModule } from '@nomicfoundation/ignition-core'
 
 import { deployWithGraphProxy } from '../proxy/GraphProxy'

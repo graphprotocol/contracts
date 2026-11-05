@@ -18,10 +18,10 @@ remappings = [
 ]
 solc_version = '0.8.35'
 evm_version = 'cancun'
-# Allow reading the hardhat-compiled artifact for the real (Solidity 0.7.6) RewardsManager,
-# which forge cannot compile in this 0.8.x project and must load as precompiled bytecode.
+# Allow reading issuance's hardhat-compiled RewardsManager artifact, which the harness deploys as the
+# production build (0.8.35, optimizer 200 runs, no viaIR) rather than forge's own compile.
 # See test/harness/RealRewardsHarness.t.sol and test/integration/IndexingRewardsCollection.t.sol.
-fs_permissions = [{ access = "read", path = "node_modules/@graphprotocol/contracts/artifacts" }]
+fs_permissions = [{ access = "read", path = "node_modules/@graphprotocol/issuance/artifacts" }]
 
 # Opt-in profile for production-matching bytecode (viaIR + optimizer).
 # Use FOUNDRY_PROFILE=prod for CI / pre-merge runs that should mirror what hardhat

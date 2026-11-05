@@ -67,10 +67,6 @@
     "bytecode": "c5ee87225cd0c023d298d810457736f2a6fcf011d8e9be8bfeea96c4c34936f5",
     "deployedBytecode": "07e1e1055195ed396e9ac8df7d84d98a37644bea8b48f9ccab0f31f677d53d99"
   },
-  "RewardsManager": {
-    "bytecode": "0dea68140e59bec61d669269c2097630bd0a9da9b2a241fe887073f741df30ac",
-    "deployedBytecode": "f361c19bcc1553e923fef7a16d423766cf3a0ea2577223f61b84fe41cf1a77da"
-  },
   "SubgraphNFT": {
     "bytecode": "830d22ac49214e1f6ba157c5cc7794d69277e96d5c93a773272ab3055a13426a",
     "deployedBytecode": "9718d61570d90867068568f9b0f33a9633e55bb3cf8e8cea1f11ab5e8298f36a"

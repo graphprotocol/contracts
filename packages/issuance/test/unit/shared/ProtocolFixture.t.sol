@@ -8,7 +8,6 @@ import { IGraphProxyAdmin } from "@graphprotocol/interfaces/contracts/contracts/
 
 abstract contract ProtocolFixture is Test {
     string internal constant CORE_ARTIFACTS = "node_modules/@graphprotocol/graph-core/artifacts/contracts/";
-    string internal constant PKG_ARTIFACTS = "node_modules/@graphprotocol/contracts/artifacts/contracts/";
 
     address internal governor; // makeAddr("governor"), set in _deployProtocolBase
     IController internal controller;
@@ -27,6 +26,17 @@ abstract contract ProtocolFixture is Test {
             deployed := create(0, add(code, 0x20), mload(code))
         }
         require(deployed != address(0), "artifact deploy failed");
+    }
+
+    /// True when the suite runs against the pre-port 0.7.6 fixtures (PRE_PORT=true) instead of the 0.8 build.
+    function _isPrePort() internal view returns (bool) {
+        return vm.envOr("PRE_PORT", false);
+    }
+
+    /// Deploys a ported contract: the 0.8 build `id` (e.g. "RewardsManager.sol:RewardsManager") with deployCode,
+    /// or, when `_isPrePort()`, the pre-port Hardhat artifact at `fixture`.
+    function _deployPorted(string memory id, string memory fixture) internal returns (address) {
+        return _isPrePort() ? _deployArtifact(fixture, "") : deployCode(id);
     }
 
     /// As governor: deploys Controller and GraphProxyAdmin from CORE_ARTIFACTS, then controller.setPaused(false).

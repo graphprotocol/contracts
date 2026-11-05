@@ -13,7 +13,6 @@
   "SubgraphNFT": "packages/graph-token/artifacts/contracts/discovery/SubgraphNFT.sol/SubgraphNFT.json",
   "SubgraphNFTDescriptor": "packages/graph-token/artifacts/contracts/discovery/SubgraphNFTDescriptor.sol/SubgraphNFTDescriptor.json",
   "EpochManager": "packages/graph-core/artifacts/contracts/epochs/EpochManager.sol/EpochManager.json",
-  "RewardsManager": "packages/contracts/artifacts/contracts/rewards/RewardsManager.sol/RewardsManager.json",
   "HorizonStaking": "packages/horizon/build/contracts/contracts/staking/HorizonStaking.sol/HorizonStaking.json",
   "GraphPayments": "packages/horizon/build/contracts/contracts/payments/GraphPayments.sol/GraphPayments.json",
   "PaymentsEscrow": "packages/horizon/build/contracts/contracts/payments/PaymentsEscrow.sol/PaymentsEscrow.json",

@@ -139,7 +139,7 @@ export interface ContractMetadata {
 
 const HORIZON_CONTRACTS = {
   RewardsManager: {
-    artifact: { type: 'contracts', path: 'rewards', name: 'RewardsManager' },
+    artifact: { type: 'issuance', path: 'contracts/rewards/RewardsManager.sol/RewardsManager' },
     interfaces: [
       { name: 'REWARDS_MANAGER_ABI', interface: 'IRewardsManager' },
       { name: 'REWARDS_MANAGER_DEPRECATED_ABI', interface: 'IRewardsManagerDeprecated' },

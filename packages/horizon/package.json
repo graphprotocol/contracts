@@ -41,6 +41,7 @@
     "@graphprotocol/graph-core": "workspace:^",
     "@graphprotocol/graph-token": "workspace:^",
     "@graphprotocol/interfaces": "workspace:^",
+    "@graphprotocol/issuance": "workspace:^",
     "@graphprotocol/toolshed": "workspace:^",
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
     "@nomicfoundation/hardhat-ethers": "catalog:",

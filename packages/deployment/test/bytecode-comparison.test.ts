@@ -7,7 +7,7 @@ import {
   type LinkReferences,
   stripMetadata,
 } from '../lib/bytecode-utils.js'
-import { loadContractsArtifact } from '../lib/deploy-implementation.js'
+import { loadContractsArtifact, loadIssuanceArtifact } from '../lib/deploy-implementation.js'
 import { graph } from '../rocketh/deploy.js'
 
 /**
@@ -168,12 +168,9 @@ describe('Bytecode Utilities', function () {
 describe('Bytecode Hash with Real Artifacts', function () {
   let rewardsManagerArtifact: { deployedBytecode: string }
 
-  before(async function () {
-    const artifact = await import(
-      '@graphprotocol/contracts/artifacts/contracts/rewards/RewardsManager.sol/RewardsManager.json',
-      { with: { type: 'json' } }
-    )
-    rewardsManagerArtifact = artifact.default as { deployedBytecode: string }
+  before(function () {
+    const artifact = loadIssuanceArtifact('contracts/rewards/RewardsManager.sol/RewardsManager')
+    rewardsManagerArtifact = { deployedBytecode: artifact.deployedBytecode! }
   })
 
   it('should correctly strip metadata from RewardsManager artifact', function () {
@@ -197,9 +194,9 @@ describe('Bytecode Hash with Real Artifacts', function () {
 // =============================================================================
 
 describe('Deploy Implementation Helper', function () {
-  describe('loadContractsArtifact', function () {
-    it('should load RewardsManager artifact from @graphprotocol/contracts', function () {
-      const artifact = loadContractsArtifact('rewards', 'RewardsManager')
+  describe('loadIssuanceArtifact', function () {
+    it('should load RewardsManager artifact from @graphprotocol/issuance', function () {
+      const artifact = loadIssuanceArtifact('contracts/rewards/RewardsManager.sol/RewardsManager')
 
       expect(artifact).to.have.property('abi')
       expect(artifact).to.have.property('bytecode')
@@ -214,7 +211,9 @@ describe('Deploy Implementation Helper', function () {
       expect(artifact.bytecode.length).to.be.greaterThan(1000)
       expect(artifact.deployedBytecode!.length).to.be.greaterThan(1000)
     })
+  })
 
+  describe('loadContractsArtifact', function () {
     it('should throw for non-existent contract', function () {
       expect(() => loadContractsArtifact('nonexistent', 'FakeContract')).to.throw()
     })

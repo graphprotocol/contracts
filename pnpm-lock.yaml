@@ -769,6 +769,9 @@ importers:
       '@graphprotocol/interfaces':
         specifier: workspace:^
         version: link:../interfaces
+      '@graphprotocol/issuance':
+        specifier: workspace:^
+        version: link:../issuance
       '@graphprotocol/toolshed':
         specifier: workspace:^
         version: link:../toolshed
@@ -944,19 +947,16 @@ importers:
 
   packages/issuance:
     dependencies:
-      '@noble/hashes':
-        specifier: ^1.8.0
-        version: 1.8.0
-    devDependencies:
-      '@graphprotocol/contracts':
-        specifier: workspace:^
-        version: link:../contracts
       '@graphprotocol/graph-core':
         specifier: workspace:^
         version: link:../graph-core
       '@graphprotocol/interfaces':
         specifier: workspace:^
         version: link:../interfaces
+      '@noble/hashes':
+        specifier: ^1.8.0
+        version: 1.8.0
+    devDependencies:
       '@nomicfoundation/hardhat-ethers':
         specifier: ^4.0.0
         version: 4.0.4(bufferutil@4.0.9)(hardhat@3.1.5(bufferutil@4.0.9)(utf-8-validate@5.0.10))(utf-8-validate@5.0.10)
@@ -1193,9 +1193,6 @@ importers:
 
   packages/testing:
     devDependencies:
-      '@graphprotocol/contracts':
-        specifier: workspace:^
-        version: link:../contracts
       '@graphprotocol/graph-core':
         specifier: workspace:^
         version: link:../graph-core
@@ -3998,6 +3995,7 @@ packages:
   '@smithy/core@3.24.6':
     resolution: {integrity: sha512-wBXDRup6UU97VKyaiRo8AssnfStPtG0oAAfpq/bC0a1YYau8pM86YB4kM6ccoVi1mS8l/UHbn9oDM+7uozr/ug==}
     engines: {node: '>=18.0.0'}
+    deprecated: Deprecated due to a bug in custom logger data redaction. See https://github.com/aws/aws-sdk-js-v3/issues/8393.
 
   '@smithy/credential-provider-imds@4.3.8':
     resolution: {integrity: sha512-5cAM+KZC02sTqDt6NaLXyu50M/GNMd1eTzDVR8Lb0BBsVtu7RWHo47VPPEEv1vt3Yub6uzr+M5FHC+GtoT0USg==}

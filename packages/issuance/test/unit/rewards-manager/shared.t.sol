@@ -13,7 +13,8 @@ import { RMEligibilityOracleMock } from "./mocks/RMEligibilityOracleMock.sol";
 import { RMIssuanceAllocatorMock } from "./mocks/RMIssuanceAllocatorMock.sol";
 import { RMIssuerMock } from "./mocks/RMIssuerMock.sol";
 
-/// @notice Shared setup for RewardsManager tests: the 0.7.6 RewardsManager artifact behind a GraphProxy,
+/// @notice Shared setup for RewardsManager tests: the RewardsManager (0.8 build, or the pre-port 0.7.6
+/// fixture when PRE_PORT=true) behind a GraphProxy,
 /// wired to 0.8 mocks for GraphToken, Curation and the rewards issuer (subgraph service).
 contract RewardsManagerSharedTest is ProtocolFixture {
     uint256 internal constant ISSUANCE_PER_BLOCK = 200 ether;
@@ -21,6 +22,8 @@ contract RewardsManagerSharedTest is ProtocolFixture {
     uint256 internal constant ALLOCATION = 12_500 ether;
     /// Blocks per `helpers.mineEpoch`: the old tests set the epoch length to 10
     uint256 internal constant EPOCH_LENGTH = 10;
+
+    string internal constant RM_FIXTURE = "test/fixtures/pre-port/RewardsManager.json";
 
     IRewardsManagerLike internal rm;
     MockGraphToken internal token;
@@ -36,10 +39,7 @@ contract RewardsManagerSharedTest is ProtocolFixture {
         vm.roll(1_000_000);
         _deployProtocolBase();
 
-        address impl = _deployArtifact(
-            string.concat(PKG_ARTIFACTS, "rewards/RewardsManager.sol/RewardsManager.json"),
-            ""
-        );
+        address impl = _deployPorted("RewardsManager.sol:RewardsManager", RM_FIXTURE);
         rm = IRewardsManagerLike(
             _deployBehindProxy(impl, abi.encodeCall(IRewardsManagerLike.initialize, (address(controller))))
         );

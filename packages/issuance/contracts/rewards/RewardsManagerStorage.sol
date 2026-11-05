@@ -5,7 +5,7 @@
 // TODO: Re-enable and fix issues when publishing a new version
 // solhint-disable named-parameters-mapping
 
-pragma solidity ^0.7.6 || ^0.8.27;
+pragma solidity ^0.8.27;
 
 import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationDistribution.sol";
 import { IProviderEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IProviderEligibility.sol";
@@ -28,14 +28,17 @@ contract RewardsManagerV1Storage is Managed {
     /// @notice Accumulated rewards per signal (fixed-point, scaled by 1e18)
     /// @dev Never decreases. Only increases via updateAccRewardsPerSignal().
     /// Represents the cumulative GRT rewards per signaled token since contract deployment.
+    // forge-lint: disable-next-line(uninitialized-state)
     uint256 public accRewardsPerSignal;
 
     /// @notice Block number when accumulated rewards per signal was last updated
     /// @dev Used to calculate time delta for new reward accrual. Must be updated atomically
     /// with accRewardsPerSignal to maintain accounting consistency.
+    // forge-lint: disable-next-line(uninitialized-state)
     uint256 public accRewardsPerSignalLastBlockUpdated;
 
     /// @notice Address of role allowed to deny rewards on subgraphs
+    // forge-lint: disable-next-line(uninitialized-state)
     address public subgraphAvailabilityOracle;
 
     /// @notice Subgraph related rewards: subgraph deployment ID => subgraph rewards
@@ -58,6 +61,7 @@ contract RewardsManagerV1Storage is Managed {
  */
 contract RewardsManagerV2Storage is RewardsManagerV1Storage {
     /// @notice Minimum amount of signaled tokens on a subgraph required to accrue rewards
+    // forge-lint: disable-next-line(uninitialized-state)
     uint256 public minimumSubgraphSignal;
 }
 

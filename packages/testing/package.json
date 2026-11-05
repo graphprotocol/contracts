@@ -12,7 +12,6 @@
     "test:gas": "forge test --match-contract Gas -vv"
   },
   "devDependencies": {
-    "@graphprotocol/contracts": "workspace:^",
     "@graphprotocol/graph-core": "workspace:^",
     "@graphprotocol/graph-token": "workspace:^",
     "@graphprotocol/horizon": "workspace:^",

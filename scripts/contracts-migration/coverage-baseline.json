@@ -631,10 +631,10 @@
     "functionsHit": ["_add", "_div", "_mul", "exp", "mul", "mulDiv", "one", "sub", "toFixed", "toInteger", "uintMul"]
   },
   "contracts/staking/libs/MathUtils.sol": {
-    "linesFound": 3,
-    "linesHit": 3,
+    "linesFound": 2,
+    "linesHit": 2,
     "pct": 100,
-    "functionsHit": ["diffOrZero", "min", "weightedAverageRoundingUp"]
+    "functionsHit": ["diffOrZero"]
   },
   "contracts/staking/libs/Stakes.sol": {
     "linesFound": 28,
