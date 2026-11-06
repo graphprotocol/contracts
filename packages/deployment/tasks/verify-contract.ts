@@ -49,7 +49,7 @@ export function getFullyQualifiedContractName(artifactSource: ArtifactSource): s
   switch (artifactSource.type) {
     case 'graph-core':
     case 'graph-token':
-      // e.g., contracts/rewards/RewardsManager.sol:RewardsManager
+      // e.g., contracts/governance/Controller.sol:Controller
       return `contracts/${artifactSource.path}/${artifactSource.name}.sol:${artifactSource.name}`
     case 'subgraph-service':
       // e.g., contracts/SubgraphService.sol:SubgraphService, contracts/l2/curation/L2Curation.sol:L2Curation

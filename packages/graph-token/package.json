@@ -3,6 +3,11 @@
   "version": "0.0.0",
   "description": "The Graph token and bridge escrow contracts",
   "license": "GPL-2.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/graphprotocol/contracts",
+    "directory": "packages/graph-token"
+  },
   "scripts": {
     "build": "pnpm build:dep && pnpm build:self",
     "build:dep": "pnpm --filter '@graphprotocol/graph-token^...' run build:self",

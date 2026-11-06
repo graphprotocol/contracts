@@ -30,6 +30,9 @@ jobs:
       - name: Check bytecode equivalence
         run: pnpm check:bytecode
 
+      - name: Check storage layouts of ported contracts
+        run: pnpm check:storage
+
       - name: Test all packages
         run: pnpm -r --sequential run test:self
 

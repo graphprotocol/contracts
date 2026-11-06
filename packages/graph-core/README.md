@@ -1,6 +1,6 @@
 # Graph Core
 
-Governance and proxy contracts shared by The Graph Protocol: `Controller`, `Governed`, `Managed`, `Pausable`, and the `GraphProxy` upgrade pattern (`GraphProxy`, `GraphProxyAdmin`, `GraphProxyStorage`, `GraphUpgradeable`).
+Governance, proxy and epoch contracts shared by The Graph Protocol: `Controller`, `Governed`, `Managed`, `Pausable`, the `GraphProxy` upgrade pattern (`GraphProxy`, `GraphProxyAdmin`, `GraphProxyStorage`, `GraphUpgradeable`), and `EpochManager` with `EpochManagerStorage`.
 
 The contracts compile with solc 0.7.6 (optimizer enabled, 200 runs) to keep their bytecode identical to the deployed protocol.
 
