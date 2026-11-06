@@ -63,11 +63,11 @@ jobs:
           echo "Head SHA: $HEAD_SHA"
 
           # Get changed files, filtering out deleted files and files in ignored directories
-          CHANGED_TS_JS=$(git diff --name-only --diff-filter=d $BASE_SHA $HEAD_SHA | grep -E '\.(js|ts|jsx|tsx|cjs|mjs)$' | grep -v -E '(node_modules|dist|build|cache|reports|lib|coverage|artifacts|typechain|hardhat-cache|ignition/deployments|ignition/modules/artifacts)' || true)
-          CHANGED_SOL=$(git diff --name-only --diff-filter=d $BASE_SHA $HEAD_SHA | grep -E '\.sol$' | grep -v -E '(node_modules|dist|build|cache|reports|lib|coverage|artifacts|typechain|hardhat-cache|ignition/deployments|ignition/modules/artifacts|/test/)' || true)
-          CHANGED_MD=$(git diff --name-only --diff-filter=d $BASE_SHA $HEAD_SHA | grep -E '\.md$' | grep -v -E '(node_modules|dist|build|cache|reports|lib|coverage|artifacts|typechain|hardhat-cache|ignition/deployments|ignition/modules/artifacts)' || true)
-          CHANGED_JSON=$(git diff --name-only --diff-filter=d $BASE_SHA $HEAD_SHA | grep -E '\.json$' | grep -v -E '(node_modules|dist|build|cache|reports|lib|coverage|artifacts|typechain|hardhat-cache|ignition/deployments|ignition/modules/artifacts)' || true)
-          CHANGED_YAML=$(git diff --name-only --diff-filter=d $BASE_SHA $HEAD_SHA | grep -E '\.(yml|yaml)$' | grep -v -E '(node_modules|dist|build|cache|reports|lib|coverage|artifacts|typechain|hardhat-cache|ignition/deployments|ignition/modules/artifacts)' || true)
+          CHANGED_TS_JS=$(git diff --name-only --diff-filter=d $BASE_SHA $HEAD_SHA | grep -E '\.(js|ts|jsx|tsx|cjs|mjs)$' | grep -v -E '(node_modules|dist|build|cache|reports|lib|coverage|artifacts|typechain|hardhat-cache|ignition/deployments|ignition/modules/artifacts)' | grep -v '^packages/billing/' || true)
+          CHANGED_SOL=$(git diff --name-only --diff-filter=d $BASE_SHA $HEAD_SHA | grep -E '\.sol$' | grep -v -E '(node_modules|dist|build|cache|reports|lib|coverage|artifacts|typechain|hardhat-cache|ignition/deployments|ignition/modules/artifacts|/test/)' | grep -v '^packages/billing/' || true)
+          CHANGED_MD=$(git diff --name-only --diff-filter=d $BASE_SHA $HEAD_SHA | grep -E '\.md$' | grep -v -E '(node_modules|dist|build|cache|reports|lib|coverage|artifacts|typechain|hardhat-cache|ignition/deployments|ignition/modules/artifacts)' | grep -v '^packages/billing/' || true)
+          CHANGED_JSON=$(git diff --name-only --diff-filter=d $BASE_SHA $HEAD_SHA | grep -E '\.json$' | grep -v -E '(node_modules|dist|build|cache|reports|lib|coverage|artifacts|typechain|hardhat-cache|ignition/deployments|ignition/modules/artifacts)' | grep -v '^packages/billing/' || true)
+          CHANGED_YAML=$(git diff --name-only --diff-filter=d $BASE_SHA $HEAD_SHA | grep -E '\.(yml|yaml)$' | grep -v -E '(node_modules|dist|build|cache|reports|lib|coverage|artifacts|typechain|hardhat-cache|ignition/deployments|ignition/modules/artifacts)' | grep -v '^packages/billing/' || true)
 
           # Save to files for later use
           echo "$CHANGED_TS_JS" > changed_ts_js.txt
@@ -104,10 +104,10 @@ jobs:
         run: |
           if [ "${{ steps.lint_mode.outputs.mode }}" = "all" ]; then
             echo "Linting all Solidity files in each package..."
-            # Run solhint in each workspace package that has contracts (check mode)
-            pnpm -r exec bash -c 'if [ -d "contracts" ]; then npx solhint --max-warnings=0 --noPrompt --noPoster "contracts/**/*.sol" 2>/dev/null || exit 1; fi'
+            # Run solhint in each workspace package that has contracts (check mode), skipping imported billing-contracts
+            pnpm -r --filter '!./packages/billing' exec bash -c 'if [ -d "contracts" ]; then npx solhint --max-warnings=0 --noPrompt --noPoster "contracts/**/*.sol" 2>/dev/null || exit 1; fi'
             # Check formatting with prettier
-            SOL_FILES=$(git ls-files '*.sol')
+            SOL_FILES=$(git ls-files '*.sol' ':!packages/billing/**')
             if [ -n "$SOL_FILES" ]; then
               echo "$SOL_FILES" | tr '\n' '\0' | xargs -0 npx prettier --check --cache --log-level warn
             else
@@ -148,7 +148,7 @@ jobs:
         run: |
           if [ "${{ steps.lint_mode.outputs.mode }}" = "all" ]; then
             echo "Linting all TypeScript/JavaScript files..."
-            TS_FILES=$(git ls-files '*.js' '*.ts' '*.cjs' '*.mjs' '*.jsx' '*.tsx')
+            TS_FILES=$(git ls-files '*.js' '*.ts' '*.cjs' '*.mjs' '*.jsx' '*.tsx' ':!packages/billing/**')
             if [ -n "$TS_FILES" ]; then
               echo "$TS_FILES" | tr '\n' '\0' | xargs -0 npx eslint --max-warnings=0 --no-warn-ignored
               echo "$TS_FILES" | tr '\n' '\0' | xargs -0 npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
@@ -169,7 +169,7 @@ jobs:
         run: |
           if [ "${{ steps.lint_mode.outputs.mode }}" = "all" ]; then
             echo "Linting all Markdown files..."
-            MD_FILES=$(git ls-files '*.md')
+            MD_FILES=$(git ls-files '*.md' ':!packages/billing/**')
             if [ -n "$MD_FILES" ]; then
               echo "$MD_FILES" | tr '\n' '\0' | xargs -0 npx markdownlint --ignore-path .gitignore --ignore-path .markdownlintignore
               echo "$MD_FILES" | tr '\n' '\0' | xargs -0 npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
@@ -191,7 +191,7 @@ jobs:
           if [ "${{ steps.lint_mode.outputs.mode }}" = "all" ]; then
             echo "Linting all JSON files..."
             # Exclude Ignition deployment artifacts and other build artifacts
-            JSON_FILES=$(git ls-files '*.json' | { grep -v -E '(ignition/deployments/.*/artifacts/|ignition/deployments/.*/build-info/|/\.openzeppelin/|deployments/.*/solcInputs/)' || true; })
+            JSON_FILES=$(git ls-files '*.json' ':!packages/billing/**' | { grep -v -E '(ignition/deployments/.*/artifacts/|ignition/deployments/.*/build-info/|/\.openzeppelin/|deployments/.*/solcInputs/)' || true; })
             if [ -n "$JSON_FILES" ]; then
               echo "$JSON_FILES" | tr '\n' '\0' | xargs -0 npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
             else
@@ -215,7 +215,7 @@ jobs:
         run: |
           if [ "${{ steps.lint_mode.outputs.mode }}" = "all" ]; then
             echo "Linting all YAML files..."
-            YAML_FILES=$(git ls-files '*.yml' '*.yaml')
+            YAML_FILES=$(git ls-files '*.yml' '*.yaml' ':!packages/billing/**')
             if [ -n "$YAML_FILES" ]; then
               echo "$YAML_FILES" | tr '\n' '\0' | xargs -0 npx yaml-lint
               echo "$YAML_FILES" | tr '\n' '\0' | xargs -0 npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern

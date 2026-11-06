@@ -21,6 +21,7 @@ FILES=("$@")
 IGNORE_SUBSTRINGS=(
     "/.graphclient-extracted/"
     "/packages/legacy/verified/"
+    "/packages/billing/"
 )
 
 # Function to check if a file should be ignored

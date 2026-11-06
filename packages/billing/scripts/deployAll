@@ -1,0 +1,177 @@
+#!/bin/bash
+
+set -eo pipefail
+
+yarn clean:all
+yarn
+yarn build
+
+source .env
+
+function error_exit() {
+    echo $1
+    exit 1
+}
+
+if [[ -z "$L1_MNEMONIC" ]]; then
+    error_exit "Please set an L1_MNEMONIC in .env"
+fi
+
+if [[ -z "$L2_MNEMONIC" ]]; then
+    error_exit "Please set an L2_MNEMONIC in .env"
+fi
+
+if [[ "$L1_CHAINID" -eq "1" ]]; then
+    L1_NETWORK="mainnet"
+elif [[ "$L1_CHAINID" -eq "5" ]]; then
+    L1_NETWORK="goerli"
+elif [[ "$L1_CHAINID" -eq "11155111" ]]; then
+    L1_NETWORK="sepolia"
+else
+    error_exit "Please set a valid L1_CHAINID in .env"
+fi
+
+if [[ "$L2_CHAINID" -eq "42161" ]]; then
+    if [[ "$L1_CHAINID" -ne "1" ]]; then
+        error_exit "Should connect Arbitrum One to Mainnet!"
+    fi
+    L2_NETWORK="arbitrum-one"
+elif [[ "$L2_CHAINID" -eq "421613" ]]; then
+    if [[ "$L1_CHAINID" -ne "5" ]]; then
+        error_exit "Should connect Arbitrum Goerli to Goerli!"
+    fi
+    L2_NETWORK="arbitrum-goerli"
+elif [[ "$L2_CHAINID" -eq "421614" ]]; then
+    if [[ "$L1_CHAINID" -ne "11155111" ]]; then
+        error_exit "Should connect Arbitrum Sepolia to Sepolia!"
+    fi
+    L2_NETWORK="arbitrum-sepolia"
+else
+    error_exit "Please set a valid L2_CHAINID in .env"
+fi
+
+ADDRESS_BOOK=${ADDRESS_BOOK:-"addresses.json"}
+
+echo "Using address book: $ADDRESS_BOOK"
+
+collector=$(jq -r ".[\"$L2_CHAINID\"].collector" $ADDRESS_BOOK || echo "null")
+if [[ "$collector" = "null" ]]; then
+    error_exit "Please set a collector for chainID $L2_CHAINID in $ADDRESS_BOOK"
+fi
+
+L2GraphToken=$(jq -r ".[\"$L2_CHAINID\"].L2GraphToken" $ADDRESS_BOOK || echo "null")
+if [[ "$L2GraphToken" = "null" ]]; then
+    error_exit "Please set an L2GraphToken for chainID $L2_CHAINID in $ADDRESS_BOOK"
+fi
+
+l2Governor=$(jq -r ".[\"$L2_CHAINID\"].governor" $ADDRESS_BOOK || echo "null")
+if [[ "$l2Governor" = "null" ]]; then
+    error_exit "Please set a governor for chainID $L2_CHAINID in $ADDRESS_BOOK"
+fi
+
+L2GraphTokenGateway=$(jq -r ".[\"$L2_CHAINID\"].L2GraphTokenGateway" $ADDRESS_BOOK || echo "null")
+if [[ "$L2GraphTokenGateway" = "null" ]]; then
+    error_exit "Please set an L2GraphTokenGateway for chainID $L2_CHAINID in $ADDRESS_BOOK"
+fi
+
+export MNEMONIC="$L2_MNEMONIC"
+l2Deployer=$(npx hardhat print-account --network $L2_NETWORK --num 0)
+
+echo "Using L2 deployer $l2Deployer"
+
+echo "Deploying Billing:"
+npx hardhat deploy-billing --network $L2_NETWORK \
+    --address-book $ADDRESS_BOOK \
+    --collector $collector \
+    --token $L2GraphToken \
+    --governor $l2Deployer \
+    --tokengateway $L2GraphTokenGateway
+
+Billing=$(jq -r ".[\"$L2_CHAINID\"].Billing" $ADDRESS_BOOK || echo "null")
+if [[ "$Billing" = "null" ]]; then
+    error_exit "Could not get new Billing address from $ADDRESS_BOOK"
+else
+    echo "Billing deployed to $Billing"
+fi
+
+function verify_billing() {
+    npx hardhat verify --network $L2_NETWORK \
+        $Billing \
+        $collector \
+        $L2GraphToken \
+        $l2Deployer \
+        $L2GraphTokenGateway
+}
+
+echo "Verifying Billing:"
+if ! verify_billing; then
+    echo "Retrying in 60s..."
+    sleep 60 # Give arbiscan some time to catch up...
+    verify_billing
+fi
+
+GraphToken=$(jq -r ".[\"$L1_CHAINID\"].GraphToken" $ADDRESS_BOOK || echo "null")
+if [[ "$GraphToken" = "null" ]]; then
+    error_exit "Please set a GraphToken for chainID $L1_CHAINID in $ADDRESS_BOOK"
+fi
+
+l1Governor=$(jq -r ".[\"$L1_CHAINID\"].governor" $ADDRESS_BOOK || echo "null")
+if [[ "$l1Governor" = "null" ]]; then
+    error_exit "Please set a governor for chainID $L1_CHAINID in $ADDRESS_BOOK"
+fi
+
+L1GraphTokenGateway=$(jq -r ".[\"$L1_CHAINID\"].L1GraphTokenGateway" $ADDRESS_BOOK || echo "null")
+if [[ "$L1GraphTokenGateway" = "null" ]]; then
+    error_exit "Please set an L1GraphTokenGateway for chainID $L1_CHAINID in $ADDRESS_BOOK"
+fi
+
+ArbitrumInbox=$(jq -r ".[\"$L1_CHAINID\"].ArbitrumInbox" $ADDRESS_BOOK || echo "null")
+if [[ "$ArbitrumInbox" = "null" ]]; then
+    error_exit "Please set an ArbitrumInbox for chainID $L1_CHAINID in $ADDRESS_BOOK"
+fi
+
+l1Deployer=$(MNEMONIC=$L1_MNEMONIC npx hardhat print-account --network $L1_NETWORK --num 0)
+
+echo "Using L1 deployer $l1Deployer"
+
+  export MNEMONIC="$L1_MNEMONIC"
+echo "Deploying BillingConnector:"
+npx hardhat deploy-billing-connector --network $L1_NETWORK \
+    --address-book $ADDRESS_BOOK \
+    --tokengateway $L1GraphTokenGateway \
+    --billing $Billing \
+    --token $GraphToken \
+    --governor $l1Governor \
+    --inbox $ArbitrumInbox
+
+BillingConnector=$(jq -r ".[\"$L1_CHAINID\"].BillingConnector" $ADDRESS_BOOK || echo "null")
+if [[ "$BillingConnector" = "null" ]]; then
+    error_exit "Could not get new BillingConnector address from $ADDRESS_BOOK"
+fi
+
+function verify_billing_connector() {
+    npx hardhat verify --network $L1_NETWORK \
+        $BillingConnector \
+        $L1GraphTokenGateway \
+        $Billing \
+        $GraphToken \
+        $l1Governor \
+        $ArbitrumInbox
+}
+
+echo "Verifying BillingConnector:"
+if ! verify_billing_connector; then
+    echo "Retrying in 60s..."
+    sleep 60 # Give etherscan some time to catch up...
+    verify_billing_connector
+fi
+
+  export MNEMONIC="$L2_MNEMONIC"
+echo "Connecting Billing to BillingConnector, and (optionally) transferring ownership:"
+npx hardhat configure-billing --network $L2_NETWORK \
+    --address-book $ADDRESS_BOOK \
+    --governor $l2Governor \
+    --billingconnector $BillingConnector
+
+echo "Billing and BillingConnector deployed and configured"
+echo "(but L2 governor $l2Governor might still have to accept ownership of the Billing contract)"

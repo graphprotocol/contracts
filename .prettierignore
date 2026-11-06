@@ -40,5 +40,8 @@ deployments/hardhat/
 # Verified mainnet source, must stay byte-identical
 packages/legacy/verified/
 
+# Imported billing-contracts, must stay byte-identical
+packages/billing/
+
 # Pre-port artifacts, must stay byte-identical
 packages/*/test/fixtures/pre-port/
