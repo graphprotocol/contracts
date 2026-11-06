@@ -1,13 +1,13 @@
 import { expect } from 'chai'
 
-import { loadDirectAllocationArtifact } from '../lib/artifact-loaders.js'
+import { loadDirectAllocationArtifact, loadPackageArtifact } from '../lib/artifact-loaders.js'
 import {
   computeBytecodeHash,
   type LibraryArtifactResolver,
   type LinkReferences,
   stripMetadata,
 } from '../lib/bytecode-utils.js'
-import { loadContractsArtifact } from '../lib/deploy-implementation.js'
+import { loadIssuanceArtifact, loadSubgraphServiceArtifact } from '../lib/deploy-implementation.js'
 import { graph } from '../rocketh/deploy.js'
 
 /**
@@ -167,25 +167,10 @@ describe('Bytecode Utilities', function () {
 
 describe('Bytecode Hash with Real Artifacts', function () {
   let rewardsManagerArtifact: { deployedBytecode: string }
-  let artifactLoaded = false
 
-  before(async function () {
-    try {
-      const artifact = await import(
-        '@graphprotocol/contracts/artifacts/contracts/rewards/RewardsManager.sol/RewardsManager.json',
-        { with: { type: 'json' } }
-      )
-      rewardsManagerArtifact = artifact.default as { deployedBytecode: string }
-      artifactLoaded = true
-    } catch (e) {
-      console.log('    Could not load artifact:', (e as Error).message)
-    }
-  })
-
-  beforeEach(function () {
-    if (!artifactLoaded) {
-      this.skip()
-    }
+  before(function () {
+    const artifact = loadIssuanceArtifact('contracts/rewards/RewardsManager.sol/RewardsManager')
+    rewardsManagerArtifact = { deployedBytecode: artifact.deployedBytecode! }
   })
 
   it('should correctly strip metadata from RewardsManager artifact', function () {
@@ -209,9 +194,9 @@ describe('Bytecode Hash with Real Artifacts', function () {
 // =============================================================================
 
 describe('Deploy Implementation Helper', function () {
-  describe('loadContractsArtifact', function () {
-    it('should load RewardsManager artifact from @graphprotocol/contracts', function () {
-      const artifact = loadContractsArtifact('rewards', 'RewardsManager')
+  describe('loadIssuanceArtifact', function () {
+    it('should load RewardsManager artifact from @graphprotocol/issuance', function () {
+      const artifact = loadIssuanceArtifact('contracts/rewards/RewardsManager.sol/RewardsManager')
 
       expect(artifact).to.have.property('abi')
       expect(artifact).to.have.property('bytecode')
@@ -226,19 +211,31 @@ describe('Deploy Implementation Helper', function () {
       expect(artifact.bytecode.length).to.be.greaterThan(1000)
       expect(artifact.deployedBytecode!.length).to.be.greaterThan(1000)
     })
+  })
 
-    it('should throw for non-existent contract', function () {
-      expect(() => loadContractsArtifact('nonexistent', 'FakeContract')).to.throw()
+  describe('loadPackageArtifact', function () {
+    it('should load Controller artifact from @graphprotocol/graph-core', function () {
+      const artifact = loadPackageArtifact('graph-core', 'governance', 'Controller')
+      expect(artifact.abi).to.be.an('array').that.is.not.empty
+      expect(artifact.bytecode)
+        .to.be.a('string')
+        .and.match(/^0x[0-9a-f]{1000,}/)
     })
 
-    it('should load different contracts with correct paths', function () {
-      const staking = loadContractsArtifact('staking', 'Staking')
-      expect(staking.abi).to.be.an('array')
-      expect(staking.bytecode).to.match(/^0x/)
+    it('should throw for non-existent contract', function () {
+      expect(() => loadPackageArtifact('graph-core', 'nonexistent', 'FakeContract')).to.throw()
+    })
+  })
 
-      const curation = loadContractsArtifact('curation', 'Curation')
-      expect(curation.abi).to.be.an('array')
-      expect(curation.bytecode).to.match(/^0x/)
+  describe('loadSubgraphServiceArtifact', function () {
+    it('should load different contracts with correct paths', function () {
+      const l2Curation = loadSubgraphServiceArtifact('l2/curation/L2Curation')
+      expect(l2Curation.abi).to.be.an('array')
+      expect(l2Curation.bytecode).to.match(/^0x/)
+
+      const l2Token = loadPackageArtifact('graph-token', 'l2/token', 'L2GraphToken')
+      expect(l2Token.abi).to.be.an('array')
+      expect(l2Token.bytecode).to.match(/^0x/)
     })
   })
 })

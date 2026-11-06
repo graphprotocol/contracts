@@ -1,9 +1,0 @@
-{
-  "extends": "../../tsconfig.json",
-  "compilerOptions": {
-    "outDir": "./build",
-    "declarationDir": "./types"
-  },
-  "include": ["src/**/*.ts", "test/**/*.ts", "deploy/**/*.ts"],
-  "exclude": ["node_modules", "build", "types", "artifacts", "cache"]
-}

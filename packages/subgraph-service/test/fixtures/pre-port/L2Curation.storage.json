@@ -1,0 +1,188 @@
+{
+  "storage": [
+    {
+      "astId": 1172,
+      "contract": "contracts/l2/curation/L2Curation.sol:L2Curation",
+      "label": "controller",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_contract(IController)2319"
+    },
+    {
+      "astId": 1177,
+      "contract": "contracts/l2/curation/L2Curation.sol:L2Curation",
+      "label": "_addressCache",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_mapping(t_bytes32,t_address)"
+    },
+    {
+      "astId": 1182,
+      "contract": "contracts/l2/curation/L2Curation.sol:L2Curation",
+      "label": "__gap",
+      "offset": 0,
+      "slot": "2",
+      "type": "t_array(t_uint256)10_storage"
+    },
+    {
+      "astId": 25,
+      "contract": "contracts/l2/curation/L2Curation.sol:L2Curation",
+      "label": "curationTaxPercentage",
+      "offset": 0,
+      "slot": "12",
+      "type": "t_uint32"
+    },
+    {
+      "astId": 28,
+      "contract": "contracts/l2/curation/L2Curation.sol:L2Curation",
+      "label": "defaultReserveRatio",
+      "offset": 4,
+      "slot": "12",
+      "type": "t_uint32"
+    },
+    {
+      "astId": 31,
+      "contract": "contracts/l2/curation/L2Curation.sol:L2Curation",
+      "label": "curationTokenMaster",
+      "offset": 8,
+      "slot": "12",
+      "type": "t_address"
+    },
+    {
+      "astId": 34,
+      "contract": "contracts/l2/curation/L2Curation.sol:L2Curation",
+      "label": "minimumCurationDeposit",
+      "offset": 0,
+      "slot": "13",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 37,
+      "contract": "contracts/l2/curation/L2Curation.sol:L2Curation",
+      "label": "bondingCurve",
+      "offset": 0,
+      "slot": "14",
+      "type": "t_address"
+    },
+    {
+      "astId": 42,
+      "contract": "contracts/l2/curation/L2Curation.sol:L2Curation",
+      "label": "pools",
+      "offset": 0,
+      "slot": "15",
+      "type": "t_mapping(t_bytes32,t_struct(CurationPool)21_storage)"
+    },
+    {
+      "astId": 4039,
+      "contract": "contracts/l2/curation/L2Curation.sol:L2Curation",
+      "label": "_initialized",
+      "offset": 0,
+      "slot": "16",
+      "type": "t_bool"
+    },
+    {
+      "astId": 4042,
+      "contract": "contracts/l2/curation/L2Curation.sol:L2Curation",
+      "label": "_initializing",
+      "offset": 1,
+      "slot": "16",
+      "type": "t_bool"
+    },
+    {
+      "astId": 55,
+      "contract": "contracts/l2/curation/L2Curation.sol:L2Curation",
+      "label": "subgraphService",
+      "offset": 2,
+      "slot": "16",
+      "type": "t_address"
+    }
+  ],
+  "types": {
+    "t_address": {
+      "encoding": "inplace",
+      "label": "address",
+      "numberOfBytes": "20"
+    },
+    "t_array(t_uint256)10_storage": {
+      "encoding": "inplace",
+      "label": "uint256[10]",
+      "numberOfBytes": "320",
+      "base": "t_uint256"
+    },
+    "t_bool": {
+      "encoding": "inplace",
+      "label": "bool",
+      "numberOfBytes": "1"
+    },
+    "t_bytes32": {
+      "encoding": "inplace",
+      "label": "bytes32",
+      "numberOfBytes": "32"
+    },
+    "t_contract(IController)2319": {
+      "encoding": "inplace",
+      "label": "contract IController",
+      "numberOfBytes": "20"
+    },
+    "t_contract(IGraphCurationToken)1959": {
+      "encoding": "inplace",
+      "label": "contract IGraphCurationToken",
+      "numberOfBytes": "20"
+    },
+    "t_mapping(t_bytes32,t_address)": {
+      "encoding": "mapping",
+      "key": "t_bytes32",
+      "label": "mapping(bytes32 => address)",
+      "numberOfBytes": "32",
+      "value": "t_address"
+    },
+    "t_mapping(t_bytes32,t_struct(CurationPool)21_storage)": {
+      "encoding": "mapping",
+      "key": "t_bytes32",
+      "label": "mapping(bytes32 => struct CurationV1Storage.CurationPool)",
+      "numberOfBytes": "32",
+      "value": "t_struct(CurationPool)21_storage"
+    },
+    "t_struct(CurationPool)21_storage": {
+      "encoding": "inplace",
+      "label": "struct CurationV1Storage.CurationPool",
+      "numberOfBytes": "64",
+      "members": [
+        {
+          "astId": 16,
+          "contract": "contracts/l2/curation/L2Curation.sol:L2Curation",
+          "label": "tokens",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 18,
+          "contract": "contracts/l2/curation/L2Curation.sol:L2Curation",
+          "label": "reserveRatio",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_uint32"
+        },
+        {
+          "astId": 20,
+          "contract": "contracts/l2/curation/L2Curation.sol:L2Curation",
+          "label": "gcs",
+          "offset": 4,
+          "slot": "1",
+          "type": "t_contract(IGraphCurationToken)1959"
+        }
+      ]
+    },
+    "t_uint256": {
+      "encoding": "inplace",
+      "label": "uint256",
+      "numberOfBytes": "32"
+    },
+    "t_uint32": {
+      "encoding": "inplace",
+      "label": "uint32",
+      "numberOfBytes": "4"
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "name": "@graphprotocol/graph-core",
+  "version": "0.0.0",
+  "description": "The Graph governance and proxy contracts",
+  "license": "GPL-2.0-or-later",
+  "scripts": {
+    "build": "pnpm build:dep && pnpm build:self",
+    "build:dep": "pnpm --filter '@graphprotocol/graph-core^...' run build:self",
+    "build:self": "hardhat compile --quiet",
+    "clean": "rm -rf artifacts/ cache/ types/ forge-artifacts/ cache_forge/ coverage/",
+    "lint:sol": "solhint --fix --noPrompt --noPoster 'contracts/**/*.sol'; prettier -w --cache --log-level warn 'contracts/**/*.sol'",
+    "prepack": "pnpm build",
+    "test": "pnpm build && pnpm test:self",
+    "test:self": "forge test"
+  },
+  "files": [
+    "artifacts/**/*",
+    "types/**/*",
+    "contracts/**/*",
+    "README.md"
+  ],
+  "exports": {
+    "./artifacts/*": "./artifacts/*",
+    "./contracts/*": "./contracts/*",
+    "./types": "./types/index.ts",
+    "./types/*": "./types/*"
+  },
+  "dependencies": {
+    "@graphprotocol/interfaces": "workspace:^",
+    "@openzeppelin/contracts": "^5.4.0",
+    "@openzeppelin/contracts-v3": "npm:@openzeppelin/contracts@3.4.2"
+  },
+  "devDependencies": {
+    "@ethersproject/abi": "^5.8.0",
+    "@ethersproject/bytes": "^5.8.0",
+    "@ethersproject/providers": "^5.8.0",
+    "@nomicfoundation/hardhat-verify": "2.1.1",
+    "@typechain/ethers-v5": "^10.2.1",
+    "@typechain/hardhat": "^6.1.2",
+    "ethers": "^5.7.2",
+    "forge-std": "catalog:",
+    "hardhat": "catalog:",
+    "hardhat-ignore-warnings": "catalog:",
+    "prettier": "catalog:",
+    "prettier-plugin-solidity": "catalog:",
+    "solhint": "catalog:",
+    "ts-node": "^10.9.2",
+    "typechain": "^8.3.2",
+    "typescript": "catalog:"
+  }
+}

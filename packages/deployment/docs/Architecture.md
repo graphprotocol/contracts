@@ -51,7 +51,7 @@ const require = createRequire(import.meta.url)
 
 // Load artifact from sibling package
 const artifactPath =
-  require.resolve('@graphprotocol/horizon/artifacts/contracts/RewardsManager.sol/RewardsManager.json')
+  require.resolve('@graphprotocol/graph-core/artifacts/contracts/governance/Controller.sol/Controller.json')
 const artifact = JSON.parse(readFileSync(artifactPath, 'utf-8'))
 ```
 

@@ -10,9 +10,9 @@ import type { DeploymentMetadata } from '@graphprotocol/toolshed/deployments'
 import type { AnyAddressBookOps } from './address-book-ops.js'
 import {
   getLibraryResolver,
-  loadContractsArtifact,
   loadIssuanceArtifact,
   loadOpenZeppelinArtifact,
+  loadPackageArtifact,
   loadSubgraphServiceArtifact,
 } from './artifact-loaders.js'
 import { computeBytecodeHash } from './bytecode-utils.js'
@@ -47,8 +47,9 @@ export interface ValidationOptions {
  */
 function loadArtifact(source: ArtifactSource) {
   switch (source.type) {
-    case 'contracts':
-      return loadContractsArtifact(source.path, source.name)
+    case 'graph-core':
+    case 'graph-token':
+      return loadPackageArtifact(source.type, source.path, source.name)
     case 'subgraph-service':
       return loadSubgraphServiceArtifact(source.name)
     case 'issuance':

@@ -1,3 +1,0 @@
-#!/bin/bash
-
-git ls-files --others --exclude-standard ignition/deployments | xargs rm -f

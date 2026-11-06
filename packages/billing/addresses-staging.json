@@ -1,0 +1,16 @@
+{
+  "421614": {
+    "L2GraphToken": "0xf8c05dCF59E8B28BFD5eed176C562bEbcfc7Ac04",
+    "L2GraphTokenGateway": "0xB24Ce0f8c18c4DdDa584A7EeC132F49C966813bb",
+    "collector": "0x66FFdb62688deA21A0031Db7CD4C219C82e9B315",
+    "governor": "0x97B47D976b9ddD2608D61E77Ab10DAf05d17cbF9",
+    "Billing": "0x1AbcE187d2401687520dBf720210a0ec84C0690D"
+  },
+  "11155111": {
+    "ArbitrumInbox": "0xaAe29B0366299461418F5324a79Afc425BE5ae21",
+    "GraphToken": "0xCA59cCeb39bE1808d7aA607153f4A5062daF3a83",
+    "L1GraphTokenGateway": "0x549DCB0b510Ee7C8d6E8e346ab9aC75E22DD78B3",
+    "governor": "0x20cFA0e7Db2ECd14032784075A4c686befc76758",
+    "BillingConnector": "0xf9B9FCf0d603e6bead3335953EB5Bcf876990043"
+  }
+}

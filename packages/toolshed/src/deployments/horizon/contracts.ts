@@ -19,7 +19,7 @@ import type {
 import type { ContractList } from '../contract'
 
 export const GraphHorizonContractNameList = [
-  // @graphprotocol/contracts
+  // GraphProxyAdmin, Controller, EpochManager: @graphprotocol/graph-core; RewardsManager: @graphprotocol/issuance; L2GraphToken, L2GraphTokenGateway: @graphprotocol/graph-token
   'GraphProxyAdmin',
   'Controller',
   'EpochManager',
@@ -27,7 +27,7 @@ export const GraphHorizonContractNameList = [
   'L2GraphToken',
   'L2GraphTokenGateway',
 
-  // @graphprotocol/contracts - subgraph-service compatibility
+  // L2Curation, L2GNS: @graphprotocol/subgraph-service; SubgraphNFT: @graphprotocol/graph-token
   'L2Curation',
   'L2GNS',
   'SubgraphNFT',
@@ -41,14 +41,14 @@ export const GraphHorizonContractNameList = [
 ] as const
 
 export interface GraphHorizonContracts extends ContractList<GraphHorizonContractName> {
-  // @graphprotocol/contracts
+  // GraphProxyAdmin, Controller, EpochManager: @graphprotocol/graph-core; RewardsManager: @graphprotocol/issuance; L2GraphToken, L2GraphTokenGateway: @graphprotocol/graph-token
   EpochManager: EpochManager
   RewardsManager: RewardsManager
   GraphProxyAdmin: GraphProxyAdmin
   Controller: Controller
   L2GraphToken: L2GraphToken
 
-  // @graphprotocol/contracts - subgraph-service compatibility
+  // L2Curation, L2GNS: @graphprotocol/subgraph-service; SubgraphNFT: @graphprotocol/graph-token
   L2Curation: L2Curation
   L2GNS: L2GNS
   SubgraphNFT: SubgraphNFT

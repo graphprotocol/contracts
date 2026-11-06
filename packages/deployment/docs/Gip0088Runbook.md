@@ -293,8 +293,7 @@ run record.
 1. `pnpm hardhat deploy --tags GIP-0088:upgrade --network <network>` — shows the
    upgrade phase complete; `isRewardsManagerUpgraded`
    ([lib/contract-checks.ts](../lib/contract-checks.ts)) is true.
-2. `pnpm test:deployment` in `packages/horizon` and `packages/subgraph-service`.
-3. `TEST_DEPLOYMENT_NETWORK=<network> pnpm test:deployment` in `packages/deployment`
+2. `TEST_DEPLOYMENT_NETWORK=<network> pnpm test:deployment` in `packages/deployment`
    (the new-contract deployment suites).
 
 **Pass criterion.** Every proxy on its new implementation; all `test:deployment`

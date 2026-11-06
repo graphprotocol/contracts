@@ -18,9 +18,29 @@ export const issuanceSolidityConfig = {
   },
 }
 
+// RewardsManager and its dependencies were ported from 0.7.6 and keep the legacy pipeline (no viaIR)
+const portedSolidityConfig = {
+  version: '0.8.35',
+  settings: {
+    optimizer: {
+      enabled: true,
+      runs: 200,
+    },
+    evmVersion: 'cancun' as const,
+  },
+}
+
+const overrides = Object.fromEntries(
+  [
+    'contracts/rewards/RewardsManager.sol',
+    'contracts/rewards/RewardsManagerStorage.sol',
+    'contracts/staking/libs/MathUtils.sol',
+  ].map((file) => [file, portedSolidityConfig]),
+)
+
 // Base configuration for issuance package (HH v3)
 export const issuanceBaseConfig: HardhatUserConfig = {
-  solidity: issuanceSolidityConfig,
+  solidity: { compilers: [issuanceSolidityConfig], overrides },
   chainDescriptors: {
     // Local hardhat network
     31337: {

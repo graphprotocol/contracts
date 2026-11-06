@@ -23,7 +23,7 @@ Note: `forge build` and `forge test` work correctly in the same project, suggest
 ## Error message
 
 ```
-Error: attempting to read `/path/to/project/node_modules/@graphprotocol/contracts/testing/node_modules/@graphprotocol/contracts/testing/node_modules/@graphprotocol/contracts/testing/[...repeating...]/contracts/governance` resulted in an error: Too many levels of symbolic links (os error 40)
+Error: attempting to read `/path/to/project/node_modules/@scope/package-a/testing/node_modules/@scope/package-a/testing/node_modules/@scope/package-a/testing/[...repeating...]/contracts/governance` resulted in an error: Too many levels of symbolic links (os error 40)
 ```
 
 ## To reproduce
@@ -123,7 +123,7 @@ The traversal logic appears to recursively walk the entire directory tree before
 
 Evidence:
 
-- `node_modules/@graphprotocol/contracts/testing/` is not a standard Solidity directory
+- `node_modules/@scope/package-a/testing/` is not a standard Solidity directory
 - It's not in the package exports
 - It's not `src`, `test`, `script`, or `lib`
 - Yet forge descends into it (and its nested `node_modules`)
@@ -134,8 +134,8 @@ The fix should apply ignore patterns during traversal (using something like `fil
 
 This pattern is common in monorepos where:
 
-- A main package exists (e.g., `@graphprotocol/contracts`)
-- Sub-packages for testing/tooling exist within it (e.g., `contracts/testing/`)
+- A main package exists (e.g., `@scope/package-a`)
+- Sub-packages for testing/tooling exist within it (e.g., `package-a/testing/`)
 - Sub-packages depend on the parent for shared code
 
 pnpm resolves this by creating symlinks back to the parent, which is intentional and works correctly with Node.js module resolution (which has built-in cycle detection).

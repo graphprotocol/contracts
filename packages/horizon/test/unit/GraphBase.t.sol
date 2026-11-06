@@ -2,9 +2,9 @@
 pragma solidity ^0.8.27;
 
 import { Create2 } from "@openzeppelin/contracts/utils/Create2.sol";
-import { GraphProxyAdmin } from "@graphprotocol/contracts/contracts/upgrades/GraphProxyAdmin.sol";
-import { GraphProxy } from "@graphprotocol/contracts/contracts/upgrades/GraphProxy.sol";
-import { Controller } from "@graphprotocol/contracts/contracts/governance/Controller.sol";
+import { GraphProxyAdmin } from "@graphprotocol/graph-core/contracts/upgrades/GraphProxyAdmin.sol";
+import { GraphProxy } from "@graphprotocol/graph-core/contracts/upgrades/GraphProxy.sol";
+import { Controller } from "@graphprotocol/graph-core/contracts/governance/Controller.sol";
 import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 import { PaymentsEscrow } from "contracts/payments/PaymentsEscrow.sol";

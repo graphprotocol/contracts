@@ -2,14 +2,14 @@
 
 pragma solidity ^0.7.6 || ^0.8.0;
 
-import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title Graph Curation Token Interface
  * @author Edge & Node
  * @notice Interface for curation tokens that represent shares in subgraph curation pools
  */
-interface IGraphCurationToken is IERC20Upgradeable {
+interface IGraphCurationToken is IERC20 {
     /**
      * @notice Graph Curation Token Contract initializer.
      * @param owner Address of the contract issuing this token

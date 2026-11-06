@@ -2,7 +2,7 @@
 pragma solidity ^0.8.27;
 
 import { Test } from "forge-std/Test.sol";
-import { Controller } from "@graphprotocol/contracts/contracts/governance/Controller.sol";
+import { Controller } from "@graphprotocol/graph-core/contracts/governance/Controller.sol";
 import { PaymentsEscrow } from "contracts/payments/PaymentsEscrow.sol";
 import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
 

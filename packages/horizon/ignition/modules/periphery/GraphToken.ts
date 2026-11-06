@@ -1,4 +1,4 @@
-import GraphTokenArtifact from '@graphprotocol/contracts/artifacts/contracts/l2/token/L2GraphToken.sol/L2GraphToken.json'
+import GraphTokenArtifact from '@graphprotocol/graph-token/artifacts/contracts/l2/token/L2GraphToken.sol/L2GraphToken.json'
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
 import GraphProxyAdminModule from '../periphery/GraphProxyAdmin'
@@ -37,20 +37,6 @@ export default buildModule('L2GraphToken', (m) => {
     after: [mintCall, renounceMinterCall, addMinterRewardsManagerCall, addMinterGatewayCall],
   })
   m.call(L2GraphToken, 'acceptOwnership', [], { from: governor, after: [transferOwnershipCall] })
-
-  return { L2GraphToken, L2GraphTokenImplementation }
-})
-
-export const MigrateGraphTokenModule = buildModule('L2GraphToken', (m) => {
-  const graphTokenAddress = m.getParameter('graphTokenAddress')
-  const graphTokenImplementationAddress = m.getParameter('graphTokenImplementationAddress')
-
-  const L2GraphToken = m.contractAt('L2GraphToken', GraphTokenArtifact, graphTokenAddress)
-  const L2GraphTokenImplementation = m.contractAt(
-    'L2GraphTokenAddressBook',
-    GraphTokenArtifact,
-    graphTokenImplementationAddress,
-  )
 
   return { L2GraphToken, L2GraphTokenImplementation }
 })

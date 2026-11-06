@@ -32,15 +32,15 @@
     "build:self": "hardhat compile --quiet",
     "test": "pnpm build && pnpm test:self",
     "test:self": "forge test",
-    "test:deployment": "SECURE_ACCOUNTS_DISABLE_PROVIDER=true hardhat test test/deployment/*.ts",
-    "test:integration": "./scripts/integration",
     "test:coverage": "forge coverage",
     "test:coverage:self": "mkdir -p coverage && forge coverage --report lcov --report-file coverage/lcov.info",
     "prepublishOnly": "pnpm run build"
   },
   "devDependencies": {
-    "@graphprotocol/contracts": "workspace:^",
+    "@graphprotocol/graph-core": "workspace:^",
+    "@graphprotocol/graph-token": "workspace:^",
     "@graphprotocol/interfaces": "workspace:^",
+    "@graphprotocol/issuance": "workspace:^",
     "@graphprotocol/toolshed": "workspace:^",
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
     "@nomicfoundation/hardhat-ethers": "catalog:",

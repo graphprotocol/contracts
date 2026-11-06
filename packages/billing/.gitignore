@@ -1,0 +1,26 @@
+# Ignore node stuff
+node_modules/
+yarn-error.log
+
+# Ignore build stuff
+cache/
+build/
+dist/
+
+# Hardhat cache
+cached/
+
+# Ignore solc bin output
+bin/
+
+# Others
+.env
+.DS_Store
+.vscode
+
+# Coverage and other reports
+/reports
+coverage.json
+
+tasks/ops/depositors.json
+tasks/ops/depositors.json.bak

@@ -1,0 +1,10 @@
+{
+  "name": "@graphprotocol/legacy",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Archive of the Sourcify-verified source of The Graph's mainnet implementations",
+  "license": "GPL-2.0-or-later",
+  "scripts": {
+    "test:self": "node scripts/check-sources.mjs && node --test 'scripts/*.test.mjs'"
+  }
+}

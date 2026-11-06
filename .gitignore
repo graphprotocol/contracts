@@ -29,7 +29,6 @@ packages/*/.eslintcache
 dist/
 dist-v5/
 build/
-packages/contracts/**/types/
 deployments/hardhat/
 *.js.map
 *.d.ts.map
@@ -40,8 +39,8 @@ typechain-src/
 typechain-types/
 types-v5/
 wagmi/
-packages/contracts/types/
-packages/contracts-test/types/
+packages/graph-core/types/
+packages/graph-token/types/
 packages/interfaces/types/
 packages/token-distribution/types/
 packages/issuance/types/

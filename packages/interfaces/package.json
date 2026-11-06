@@ -61,14 +61,15 @@
     "watch": "tsc --watch",
     "prepublishOnly": "pnpm run build"
   },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.4.0"
+  },
   "devDependencies": {
     "@ethersproject/abi": "5.7.0",
     "@ethersproject/providers": "5.7.2",
     "@nomicfoundation/hardhat-ethers": "^3.0.0",
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
     "@nomicfoundation/hardhat-verify": "^2.0.0",
-    "@openzeppelin/contracts": "3.4.2",
-    "@openzeppelin/contracts-upgradeable": "3.4.2",
     "@typechain/ethers-v5": "^10.2.1",
     "@wagmi/cli": "^2.3.1",
     "ethers": "catalog:",

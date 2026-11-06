@@ -38,3 +38,6 @@ deployments/hardhat/
 **/*-localhost/
 **/*-hardhat/
 .changeset/
+
+# Imported billing-contracts, must stay byte-identical
+packages/billing/
