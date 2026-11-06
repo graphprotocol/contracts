@@ -2,6 +2,6 @@
 
 set -eo pipefail
 
-yarn run compile
-yarn run typechain
+pnpm run compile
+pnpm run typechain
 npx hardhat coverage $@

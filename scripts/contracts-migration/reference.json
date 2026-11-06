@@ -1,7 +1,23 @@
 {
+  "AddressAliasHelper": {
+    "bytecode": "f66d4b1dc59dcabe26442384c59819b8a63e08cbf21d9283655de14a276cc9ba",
+    "deployedBytecode": "ea10e79b42a6d5d0a19bf59f9eb4df0d210ddb233340020ce474f78eefe57c85"
+  },
   "AllocationHandler": {
     "bytecode": "32c496212c35507775978c944588ba0fc72bf48edfad06b207b02cad2a4b4308",
     "deployedBytecode": "5e1aae4006573c7e7780a8b32abdc442cc12559b788be8461edc81508a4fb034"
+  },
+  "BanxaWrapper": {
+    "bytecode": "2388e166f6ae19c5c670d2487b5abea1753bd0361e2f379518f3082eb33bfed3",
+    "deployedBytecode": "dc4e927bd3872b1afefc7ec66abfa783adfa23a7e5329ee8b4563d743e219483"
+  },
+  "Billing": {
+    "bytecode": "a61962d7d326fff60cc34073906d72f1d1d5b71cfce7b4bf20d1099d64e5d605",
+    "deployedBytecode": "709dee34ebdefd0cdd2859e793cbd2d646d70c595c569a305692c39516c3c415"
+  },
+  "BillingConnector": {
+    "bytecode": "a7a493ee14bbd0f9ca0883b30a80b2916e2ec43e21b4f7b0995948ef4852df17",
+    "deployedBytecode": "6de4fc80472253b00daa29c1dcd05c3670d48a0e3b9548eddcec71229d63899a"
   },
   "BridgeEscrow": {
     "bytecode": "5c106df052caf18fcabdacbef3255435a7e561053b528bf30233088d3a2caba0",
@@ -18,6 +34,10 @@
   "EpochManager": {
     "bytecode": "fb46ad844725360c5048cd427bd4f2c230b62ce22673c1b8edd3574fb2f90eac",
     "deployedBytecode": "bfd994416a46234114f88f2d28a0d40d60441ff305a105908bb1d1089b2dac91"
+  },
+  "Governed": {
+    "bytecode": "123b237c048f3597915f2989c98d535bfbc0b0e5f81dbca8b733a5c1af926c86",
+    "deployedBytecode": "8fb64825ce4793603584873f5b2a8c9e2642c07165bbffd03076d25955128bed"
   },
   "GraphCurationToken": {
     "bytecode": "c88b7af1a3200b97603a7c30352662b80882ef467bcee3991a0b3c40981bb874",
@@ -58,6 +78,10 @@
   "PaymentsEscrow": {
     "bytecode": "c5ee87225cd0c023d298d810457736f2a6fcf011d8e9be8bfeea96c4c34936f5",
     "deployedBytecode": "07e1e1055195ed396e9ac8df7d84d98a37644bea8b48f9ccab0f31f677d53d99"
+  },
+  "Rescuable": {
+    "bytecode": "c92b188473494f49c52c80869859a8247da794f2f5795e73f87b53afff1029ce",
+    "deployedBytecode": "b232687b253af14b616e69f6d2ea289e6be5cd9c9965f967159da4e1f63994ae"
   },
   "SubgraphNFT": {
     "bytecode": "830d22ac49214e1f6ba157c5cc7794d69277e96d5c93a773272ab3055a13426a",

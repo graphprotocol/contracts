@@ -92,6 +92,8 @@ pnpm lint:yaml      # YAML files
    - Test fixtures
    - Hardhat extensions
 
+6. **billing** - Graph Studio billing contracts (Billing, BillingConnector, BanxaWrapper), private, Hardhat 2 with ethers v5
+
 ### Key Architectural Patterns
 
 - **Proxy Upgradeable Pattern**: Most contracts use OpenZeppelin's upgradeable proxy pattern

@@ -2,9 +2,9 @@
 
 set -eo pipefail
 
-yarn clean:all
-yarn
-yarn build
+pnpm clean:all
+pnpm install
+pnpm build
 
 source .env
 

@@ -16,5 +16,11 @@
   "PaymentsEscrow": "packages/horizon/build/contracts/contracts/payments/PaymentsEscrow.sol/PaymentsEscrow.json",
   "SubgraphService": "packages/subgraph-service/build/contracts/contracts/SubgraphService.sol/SubgraphService.json",
   "DisputeManager": "packages/subgraph-service/build/contracts/contracts/DisputeManager.sol/DisputeManager.json",
-  "AllocationHandler": "packages/subgraph-service/build/contracts/contracts/libraries/AllocationHandler.sol/AllocationHandler.json"
+  "AllocationHandler": "packages/subgraph-service/build/contracts/contracts/libraries/AllocationHandler.sol/AllocationHandler.json",
+  "Billing": "packages/billing/build/artifacts/contracts/Billing.sol/Billing.json",
+  "BillingConnector": "packages/billing/build/artifacts/contracts/BillingConnector.sol/BillingConnector.json",
+  "BanxaWrapper": "packages/billing/build/artifacts/contracts/BanxaWrapper.sol/BanxaWrapper.json",
+  "Governed": "packages/billing/build/artifacts/contracts/Governed.sol/Governed.json",
+  "Rescuable": "packages/billing/build/artifacts/contracts/Rescuable.sol/Rescuable.json",
+  "AddressAliasHelper": "packages/billing/build/artifacts/contracts/arbitrum/AddressAliasHelper.sol/AddressAliasHelper.json"
 }

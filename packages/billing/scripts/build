@@ -2,5 +2,5 @@
 
 set -eo pipefail
 
-yarn run compile
-yarn run flatten
+pnpm run compile
+pnpm run flatten
