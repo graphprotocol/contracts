@@ -3,6 +3,11 @@
   "version": "0.0.0",
   "description": "The Graph governance and proxy contracts",
   "license": "GPL-2.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/graphprotocol/contracts",
+    "directory": "packages/graph-core"
+  },
   "scripts": {
     "build": "pnpm build:dep && pnpm build:self",
     "build:dep": "pnpm --filter '@graphprotocol/graph-core^...' run build:self",

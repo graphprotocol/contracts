@@ -2,4 +2,4 @@
 '@graphprotocol/graph-token': major
 ---
 
-Publish the token and bridge contracts (GraphToken, L2GraphToken, TokenUtils, the Arbitrum gateways and BridgeEscrow) as `@graphprotocol/graph-token`.
+Publish the token, bridge, curation-token and subgraph NFT contracts (GraphToken, L2GraphToken, TokenUtils, the Arbitrum gateways, BridgeEscrow, GraphCurationToken, SubgraphNFT, SubgraphNFTDescriptor, HexStrings and Base58Encoder) as `@graphprotocol/graph-token`.

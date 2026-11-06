@@ -131,7 +131,7 @@ function acceptProxyAndCall(address implementation, IGraphProxy proxy, bytes cal
 **Notes on parameter type choice:**
 
 - Used `address` instead of `GraphUpgradeable` for the implementation parameter
-- This avoids creating a dependency from interfaces package to contracts package
+- This avoids creating a dependency from the interfaces package to graph-core
 - The actual contract uses `GraphUpgradeable`, but `address` is compatible (Solidity allows passing addresses for contract types)
 - The ABI encoding is identical - both produce the same function selector and parameter encoding
 

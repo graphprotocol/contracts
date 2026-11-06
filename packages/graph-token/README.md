@@ -1,6 +1,6 @@
 # Graph Token
 
-The Graph token and the Arbitrum bridge contracts: `GraphToken`, `L2GraphToken`, `GraphTokenUpgradeable`, `TokenUtils`, `L1GraphTokenGateway`, `L2GraphTokenGateway`, `GraphTokenGateway`, `BridgeEscrow` and the Arbitrum messenger helpers.
+The Graph token and the Arbitrum bridge contracts: `GraphToken`, `L2GraphToken`, `GraphTokenUpgradeable`, `TokenUtils`, `L1GraphTokenGateway`, `L2GraphTokenGateway`, `GraphTokenGateway`, `BridgeEscrow` and the Arbitrum messenger helpers, plus the curation share token `GraphCurationToken` and the subgraph NFT contracts `SubgraphNFT`, `SubgraphNFTDescriptor`, `HexStrings` and `Base58Encoder`.
 
 `GraphToken`, `L1GraphTokenGateway` and `BridgeEscrow` here are not the code running on mainnet. The mainnet sources are held in `packages/legacy`.
 

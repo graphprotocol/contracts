@@ -68,7 +68,6 @@ pnpm lint:yaml      # YAML files
 1. **horizon** - Next iteration of The Graph protocol
    - Uses Hardhat + Foundry for testing
    - Deployment via Hardhat Ignition
-   - Migration path from original protocol
 
 2. **subgraph-service** - Data service implementation for Graph Horizon
    - Manages disputes and allocations
@@ -93,6 +92,12 @@ pnpm lint:yaml      # YAML files
    - Hardhat extensions
 
 6. **billing** - Graph Studio billing contracts (Billing, BillingConnector, BanxaWrapper), private, Hardhat 2 with ethers v5
+
+7. **graph-core** - Governance, proxy and epoch contracts (Controller, GraphProxy, GraphProxyAdmin, EpochManager), solc 0.7.6 with bytecode identical to the deployed protocol
+
+8. **graph-token** - GraphToken, L2GraphToken, the Arbitrum gateways, GraphCurationToken and the SubgraphNFT contracts, solc 0.7.6 with bytecode identical to the deployed protocol
+
+9. **legacy** - Archive of the verified source of the mainnet implementations, with addresses and audits (private)
 
 ### Key Architectural Patterns
 

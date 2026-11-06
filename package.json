@@ -28,6 +28,7 @@
     "test:prod": "FOUNDRY_PROFILE=prod pnpm test",
     "test:scripts": "node --test 'scripts/**/*.test.mjs'",
     "check:bytecode": "node scripts/contracts-migration/check-bytecode.mjs",
+    "check:storage": "node scripts/contracts-migration/check-storage.mjs",
     "test:coverage": "pnpm build && pnpm -r run build:self:coverage && pnpm -r run test:coverage:self"
   },
   "devDependencies": {
