@@ -36,17 +36,11 @@ pnpm test:coverage
 # Test a specific package
 cd packages/<package-name> && pnpm test
 
-# Test a single file (in contracts package)
-cd packages/contracts && npx hardhat test test/<FILE_NAME>.ts
-
 # Run Foundry tests (in horizon/subgraph-service)
 cd packages/horizon && pnpm test
 
-# Run integration tests
-cd packages/horizon && pnpm test:integration
-
-# Run deployment tests
-cd packages/horizon && pnpm test:deployment
+# Check a fresh local deployment (Hardhat Ignition)
+cd packages/subgraph-service && npx hardhat deploy:protocol --network hardhat --subgraph-service-config localNetwork
 ```
 
 ### Linting and Formatting
@@ -71,20 +65,15 @@ pnpm lint:yaml      # YAML files
 
 ### Package Structure
 
-1. **contracts** - Original Graph Protocol contracts (staking, curation, disputes)
-   - Uses Hardhat for development
-   - Contains E2E testing framework for protocol validation
-
-2. **horizon** - Next iteration of The Graph protocol
+1. **horizon** - Next iteration of The Graph protocol
    - Uses Hardhat + Foundry for testing
    - Deployment via Hardhat Ignition
-   - Migration path from original protocol
 
-3. **subgraph-service** - Data service implementation for Graph Horizon
+2. **subgraph-service** - Data service implementation for Graph Horizon
    - Manages disputes and allocations
    - Part of the Horizon ecosystem
 
-4. **interfaces** - Shared contract interfaces
+3. **interfaces** - Shared contract interfaces
    - Centralized repository for all Solidity contract interfaces
    - Used by multiple packages/programs for contract implementation and interaction
    - Generates TypeScript types for distribution via npm
@@ -93,14 +82,22 @@ pnpm lint:yaml      # YAML files
    - Includes ethers v5 type generation
    - Published types can be imported by any TypeScript program
 
-5. **token-distribution** - Token locking and vesting contracts
+4. **token-distribution** - Token locking and vesting contracts
    - GraphTokenLockWallet and GraphTokenLockManager
    - L2 token distribution functionality
 
-6. **toolshed** - Shared development utilities
+5. **toolshed** - Shared development utilities
    - Deployment helpers
    - Test fixtures
    - Hardhat extensions
+
+6. **billing** - Graph Studio billing contracts (Billing, BillingConnector, BanxaWrapper), private, Hardhat 2 with ethers v5
+
+7. **graph-core** - Governance, proxy and epoch contracts (Controller, GraphProxy, GraphProxyAdmin, EpochManager), solc 0.7.6 with bytecode identical to the deployed protocol
+
+8. **graph-token** - GraphToken, L2GraphToken, the Arbitrum gateways, GraphCurationToken and the SubgraphNFT contracts, solc 0.7.6 with bytecode identical to the deployed protocol
+
+9. **legacy** - Archive of the verified source of the mainnet implementations, with addresses and audits (private)
 
 ### Key Architectural Patterns
 
@@ -121,7 +118,7 @@ pnpm lint:yaml      # YAML files
 - Contract addresses stored in `addresses.json` files per package
 - Multi-network support (mainnet, testnets, Arbitrum chains)
 - Hardhat Ignition for deployment management
-- Migration scripts for upgrading from original protocol to Horizon
+- `deploy:protocol` deploys fresh stacks for local networks and tests; live networks are managed by `packages/deployment`
 
 ## Development Tips
 
@@ -130,7 +127,7 @@ pnpm lint:yaml      # YAML files
 Horizon packages use both Hardhat and Foundry. When developing:
 
 1. Use `forge test` for Foundry tests
-2. Use `pnpm test:integration` for integration tests
+2. Use `npx hardhat deploy:protocol --network hardhat --subgraph-service-config localNetwork` from `packages/subgraph-service` to deploy a fresh local stack (`deploy:protocol` runs from subgraph-service only)
 3. Set required RPC URLs using `npx hardhat vars set <variable>`
 
 ### Contract Verification

@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
 /**
- * Restore Symlinks After Publishing
+ * Create Symlinks After Publishing
  *
- * Restores the dev-time symlinks under src/<name>/addresses.json after
- * npm publish. copy-addresses-for-publish.js replaces them with real files
- * for the publish step; this puts them back.
+ * Turns src/<name>/addresses.json into symlinks to each package's
+ * addresses.json after npm publish. The tracked files are regular files, so
+ * the symlinks show as changes in git until `git checkout -- src` restores them.
  */
 
 const fs = require('fs')

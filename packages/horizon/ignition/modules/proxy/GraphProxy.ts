@@ -1,4 +1,4 @@
-import GraphProxyArtifact from '@graphprotocol/contracts/artifacts/contracts/upgrades/GraphProxy.sol/GraphProxy.json'
+import GraphProxyArtifact from '@graphprotocol/graph-core/artifacts/contracts/upgrades/GraphProxy.sol/GraphProxy.json'
 import {
   CallableContractFuture,
   ContractFuture,

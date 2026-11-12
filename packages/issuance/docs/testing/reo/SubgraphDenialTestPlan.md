@@ -710,4 +710,4 @@ cast call <REWARDS_MANAGER> "isDenied(bytes32)(bool)" <SUBGRAPH_DEPLOYMENT_ID> -
 
 ---
 
-_Derived from issuance upgrade behavior changes. Contracts: `packages/contracts/contracts/rewards/RewardsManager.sol`, `packages/subgraph-service/contracts/libraries/AllocationHandler.sol` (POI deferral)._
+_Derived from issuance upgrade behavior changes. Contracts: `packages/issuance/contracts/rewards/RewardsManager.sol`, `packages/subgraph-service/contracts/libraries/AllocationHandler.sol` (POI deferral)._

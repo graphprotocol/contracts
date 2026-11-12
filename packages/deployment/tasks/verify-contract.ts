@@ -27,8 +27,9 @@ const ADDRESS_BOOK_TYPES: AddressBookType[] = ['horizon', 'subgraph-service', 'i
  */
 function getPackageDir(artifactSource: ArtifactSource): string {
   switch (artifactSource.type) {
-    case 'contracts':
-      return 'packages/contracts'
+    case 'graph-core':
+    case 'graph-token':
+      return `packages/${artifactSource.type}`
     case 'subgraph-service':
       return 'packages/subgraph-service'
     case 'horizon':
@@ -44,14 +45,15 @@ function getPackageDir(artifactSource: ArtifactSource): string {
  * Get fully qualified contract name for hardhat verify --contract flag
  * This ensures hardhat uses current build artifacts instead of Ignition deployment artifacts
  */
-function getFullyQualifiedContractName(artifactSource: ArtifactSource): string {
+export function getFullyQualifiedContractName(artifactSource: ArtifactSource): string {
   switch (artifactSource.type) {
-    case 'contracts':
-      // e.g., contracts/rewards/RewardsManager.sol:RewardsManager
+    case 'graph-core':
+    case 'graph-token':
+      // e.g., contracts/governance/Controller.sol:Controller
       return `contracts/${artifactSource.path}/${artifactSource.name}.sol:${artifactSource.name}`
     case 'subgraph-service':
-      // e.g., contracts/SubgraphService.sol:SubgraphService
-      return `contracts/${artifactSource.name}.sol:${artifactSource.name}`
+      // e.g., contracts/SubgraphService.sol:SubgraphService, contracts/l2/curation/L2Curation.sol:L2Curation
+      return `contracts/${artifactSource.name}.sol:${path.basename(artifactSource.name)}`
     case 'horizon': {
       // path is like 'contracts/staking/HorizonStaking.sol/HorizonStaking'
       // Need to convert to 'contracts/staking/HorizonStaking.sol:HorizonStaking'

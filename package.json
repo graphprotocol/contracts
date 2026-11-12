@@ -21,11 +21,14 @@
     "lint:ts": "eslint --fix --cache 'packages/**/*.{js,ts,cjs,mjs,jsx,tsx}' 'scripts/**/*.{js,ts,cjs,mjs}' '*.{js,ts,cjs,mjs}'; prettier -w --cache --log-level warn 'packages/**/*.{js,ts,cjs,mjs,jsx,tsx}' 'scripts/**/*.{js,ts,cjs,mjs}' '*.{js,ts,cjs,mjs}'",
     "lint:sol": "pnpm -r run lint:sol; prettier -w --cache --log-level warn 'packages/**/*.sol'; pnpm todo",
     "lint:forge": "pnpm -r run lint:forge",
-    "lint:md": "markdownlint --fix --ignore-path .gitignore 'packages/**/*.md' 'docs/**/*.md' '*.md'; prettier -w --cache --log-level warn 'packages/**/*.md' 'docs/**/*.md' '*.md'",
+    "lint:md": "markdownlint --fix --ignore-path .gitignore --ignore 'packages/billing/**' 'packages/**/*.md' 'docs/**/*.md' '*.md'; prettier -w --cache --log-level warn 'packages/**/*.md' 'docs/**/*.md' '*.md'",
     "lint:json": "prettier -w --cache --log-level warn 'packages/**/*.{json,json5}' '.changeset/**/*.json' '*.{json,json5}'",
-    "lint:yaml": "npx yaml-lint .github/**/*.{yml,yaml} packages/contracts/task/config/*.yml; prettier -w --cache --log-level warn 'packages/**/*.{yml,yaml}' '.github/**/*.{yml,yaml}'",
+    "lint:yaml": "npx yaml-lint .github/**/*.{yml,yaml}; prettier -w --cache --log-level warn 'packages/**/*.{yml,yaml}' '.github/**/*.{yml,yaml}'",
     "test": "pnpm build && pnpm -r run test:self",
     "test:prod": "FOUNDRY_PROFILE=prod pnpm test",
+    "test:scripts": "node --test 'scripts/**/*.test.mjs'",
+    "check:bytecode": "node scripts/contracts-migration/check-bytecode.mjs",
+    "check:storage": "node scripts/contracts-migration/check-storage.mjs",
     "test:coverage": "pnpm build && pnpm -r run build:self:coverage && pnpm -r run test:coverage:self"
   },
   "devDependencies": {
@@ -76,17 +79,17 @@
       "scripts/lint-staged-run.sh 'prettier -w --cache --log-level warn'"
     ],
     "*.sol": [
-      "solhint --fix --noPrompt --noPoster",
-      "prettier -w --cache --log-level warn"
+      "scripts/lint-staged-run.sh 'solhint --fix --noPrompt --noPoster'",
+      "scripts/lint-staged-run.sh 'prettier -w --cache --log-level warn'"
     ],
     "*.md": [
-      "markdownlint --fix",
-      "prettier -w --cache --log-level warn"
+      "scripts/lint-staged-run.sh 'markdownlint --fix'",
+      "scripts/lint-staged-run.sh 'prettier -w --cache --log-level warn'"
     ],
-    "*.{json,json5}": "prettier -w --cache --log-level warn",
+    "*.{json,json5}": "scripts/lint-staged-run.sh 'prettier -w --cache --log-level warn'",
     "*.{yml,yaml}": [
-      "npx yamllint",
-      "prettier -w --cache --log-level warn"
+      "scripts/lint-staged-run.sh 'npx yamllint'",
+      "scripts/lint-staged-run.sh 'prettier -w --cache --log-level warn'"
     ]
   }
 }

@@ -44,7 +44,7 @@ function acceptProxyAndCall(IGraphProxy proxy, bytes calldata data) external;
 
 ### Actual GraphProxyAdmin Implementation
 
-From `packages/contracts/contracts/upgrades/GraphProxyAdmin.sol`:
+From `packages/graph-core/contracts/upgrades/GraphProxyAdmin.sol`:
 
 ```solidity
 function acceptProxy(GraphUpgradeable _implementation, IGraphProxy _proxy) external onlyGovernor {
@@ -79,7 +79,7 @@ Because the interface was wrong, the deployment code had to work around it by lo
 // Interface shows: acceptProxy(IGraphProxy proxy)
 // Contract has: acceptProxy(GraphUpgradeable _implementation, IGraphProxy _proxy)
 export const GRAPH_PROXY_ADMIN_ABI = loadAbi(
-  '@graphprotocol/contracts/artifacts/contracts/upgrades/GraphProxyAdmin.sol/GraphProxyAdmin.json',
+  '@graphprotocol/graph-core/artifacts/contracts/upgrades/GraphProxyAdmin.sol/GraphProxyAdmin.json',
 )
 ```
 
@@ -131,7 +131,7 @@ function acceptProxyAndCall(address implementation, IGraphProxy proxy, bytes cal
 **Notes on parameter type choice:**
 
 - Used `address` instead of `GraphUpgradeable` for the implementation parameter
-- This avoids creating a dependency from interfaces package to contracts package
+- This avoids creating a dependency from the interfaces package to graph-core
 - The actual contract uses `GraphUpgradeable`, but `address` is compatible (Solidity allows passing addresses for contract types)
 - The ABI encoding is identical - both produce the same function selector and parameter encoding
 

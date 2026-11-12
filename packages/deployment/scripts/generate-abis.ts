@@ -29,7 +29,8 @@ const OUTPUT_FILE = join(OUTPUT_DIR, 'abis.ts')
 const UTILITY_ABIS: Array<{ name: string; artifactPath: string }> = [
   {
     name: 'IERC165_ABI',
-    artifactPath: '@graphprotocol/interfaces/artifacts/@openzeppelin/contracts/introspection/IERC165.sol/IERC165.json',
+    artifactPath:
+      '@graphprotocol/interfaces/artifacts/@openzeppelin/contracts/utils/introspection/IERC165.sol/IERC165.json',
   },
   {
     name: 'ISSUANCE_TARGET_ABI',
@@ -116,8 +117,9 @@ function loadAbiFromArtifact(artifactPath: string): AbiEntry[] {
  */
 function resolveContractArtifactPath(artifact: { type: string; path?: string; name?: string }): string {
   switch (artifact.type) {
-    case 'contracts':
-      return `@graphprotocol/contracts/artifacts/contracts/${artifact.path}/${artifact.name}.sol/${artifact.name}.json`
+    case 'graph-core':
+    case 'graph-token':
+      return `@graphprotocol/${artifact.type}/artifacts/contracts/${artifact.path}/${artifact.name}.sol/${artifact.name}.json`
     case 'subgraph-service': {
       const baseName = (artifact.name ?? '').includes('/') ? (artifact.name ?? '').split('/').pop()! : artifact.name
       return `@graphprotocol/subgraph-service/artifacts/contracts/${artifact.name}.sol/${baseName}.json`

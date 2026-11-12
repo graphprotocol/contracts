@@ -5,9 +5,20 @@ libs = ["node_modules"]
 auto_detect_remappings = false
 test = 'test'
 cache_path = 'cache_forge'
-fs_permissions = [{ access = "read", path = "./" }]
+fs_permissions = [{ access = "read", path = "./" }, { access = "read", path = "node_modules/@graphprotocol/graph-core/artifacts" }, { access = "read", path = "node_modules/@graphprotocol/graph-token/artifacts" }]
 solc_version = '0.8.35'
 evm_version = 'cancun'
+# Ported 0.7.6 contracts compile like their Hardhat override: 0.8.35, optimizer 200 runs, no viaIR
+additional_compiler_profiles = [
+    { name = "ported", via_ir = false, optimizer = true, optimizer_runs = 200, evm_version = "cancun" },
+]
+compilation_restrictions = [
+    { paths = "contracts/base/**", version = "=0.8.35", via_ir = false, min_optimizer_runs = 200, max_optimizer_runs = 200, evm_version = "cancun" },
+    { paths = "contracts/curation/**", version = "=0.8.35", via_ir = false, min_optimizer_runs = 200, max_optimizer_runs = 200, evm_version = "cancun" },
+    { paths = "contracts/discovery/**", version = "=0.8.35", via_ir = false, min_optimizer_runs = 200, max_optimizer_runs = 200, evm_version = "cancun" },
+    { paths = "contracts/l2/**", version = "=0.8.35", via_ir = false, min_optimizer_runs = 200, max_optimizer_runs = 200, evm_version = "cancun" },
+    { paths = "contracts/upgrades/**", version = "=0.8.35", via_ir = false, min_optimizer_runs = 200, max_optimizer_runs = 200, evm_version = "cancun" },
+]
 # Suppress solc warnings emitted from third-party code we don't control
 # (e.g. @openzeppelin/foundry-upgrades' state-mutability suggestions).
 ignored_warnings_from = ["node_modules"]
@@ -22,6 +33,12 @@ no_match_coverage = "(^test/|/mocks/)"
 optimizer = true
 optimizer_runs = 100
 via_ir = true
+
+# Coverage profile: without the ported files' pins, which keep the optimizer on and let it inline
+# small internal functions (e.g. L2GNS._getSubgraphData) so coverage can't see them.
+[profile.coverage]
+additional_compiler_profiles = []
+compilation_restrictions = []
 
 # Lint configuration
 [lint]

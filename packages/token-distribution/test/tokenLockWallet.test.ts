@@ -1,9 +1,9 @@
 import '@nomiclabs/hardhat-ethers'
 import 'hardhat-deploy'
 
-import { Staking__factory } from '@graphprotocol/contracts/types'
+import IStakingArtifact from '@graphprotocol/interfaces/artifacts/contracts/contracts/staking/IStaking.sol/IStaking.json'
 import { expect } from 'chai'
-import { BigNumber, constants, Wallet } from 'ethers'
+import { BigNumber, constants, Contract, Wallet } from 'ethers'
 import { deployments, ethers } from 'hardhat'
 import { DeployOptions } from 'hardhat-deploy/types'
 
@@ -216,7 +216,7 @@ describe('GraphTokenLockWallet', () => {
 
     beforeEach(async () => {
       // Use the tokenLock contract as if it were the Staking contract
-      lockAsStaking = Staking__factory.connect(tokenLock.address, deployer.signer)
+      lockAsStaking = new Contract(tokenLock.address, IStakingArtifact.abi, deployer.signer)
 
       // Add the staking contract as token destination
       await tokenLockManager.addTokenDestination(staking.address)
@@ -268,7 +268,7 @@ describe('GraphTokenLockWallet', () => {
       tokenLock = await initWithArgs({ ...initArgs, periods: 6, revocable: Revocability.Enabled })
 
       // Use the tokenLock contract as if it were the Staking contract
-      lockAsStaking = Staking__factory.connect(tokenLock.address, deployer.signer)
+      lockAsStaking = new Contract(tokenLock.address, IStakingArtifact.abi, deployer.signer)
 
       // Add the staking contract as token destination
       await tokenLockManager.addTokenDestination(staking.address)

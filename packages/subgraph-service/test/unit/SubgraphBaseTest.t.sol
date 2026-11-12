@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import { Controller } from "@graphprotocol/contracts/contracts/governance/Controller.sol";
+import { Controller } from "@graphprotocol/graph-core/contracts/governance/Controller.sol";
 import { GraphPayments } from "@graphprotocol/horizon/contracts/payments/GraphPayments.sol";
-import { GraphProxy } from "@graphprotocol/contracts/contracts/upgrades/GraphProxy.sol";
-import { GraphProxyAdmin } from "@graphprotocol/contracts/contracts/upgrades/GraphProxyAdmin.sol";
+import { GraphProxy } from "@graphprotocol/graph-core/contracts/upgrades/GraphProxy.sol";
+import { GraphProxyAdmin } from "@graphprotocol/graph-core/contracts/upgrades/GraphProxyAdmin.sol";
 import { HorizonStaking } from "@graphprotocol/horizon/contracts/staking/HorizonStaking.sol";
 import { IHorizonStaking } from "@graphprotocol/interfaces/contracts/horizon/IHorizonStaking.sol";
 import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";

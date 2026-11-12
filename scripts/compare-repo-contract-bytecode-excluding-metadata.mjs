@@ -18,27 +18,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'fs'
 import { basename, join, relative, resolve } from 'path'
 
-/**
- * Strip Solidity metadata hash from bytecode to focus on functional differences.
- *
- * Solidity appends CBOR-encoded metadata at the end of contract bytecode:
- * - a264697066735822 = CBOR encoding of {"ipfs": bytes(
- * - [68 hex chars] = 34-byte IPFS multihash (0x1220 prefix + 32-byte SHA2-256 hash)
- * - 64736f6c63 = CBOR encoding of "solc"
- * - [variable] = CBOR-encoded version bytes (e.g., 0x430007060033 for v0.7.6)
- *
- * Example: a264697066735822<1220+hash>64736f6c63430007060033
- *          └─ ipfs ──┘ └─34 bytes─┘ └solc┘ └─ version ─┘
- */
-function stripMetadata(bytecode) {
-  if (bytecode.startsWith('0x')) {
-    bytecode = bytecode.slice(2)
-  }
-
-  // Match and remove the complete CBOR metadata suffix
-  // Note: 68 hex chars = 34 bytes (multihash prefix 0x1220 + 32-byte hash)
-  return bytecode.replace(/a264697066735822[a-fA-F0-9]{68}64736f6c63[a-fA-F0-9]+$/, '')
-}
+import { stripMetadata } from './lib/bytecode.mjs'
 
 /**
  * Extract and process bytecode from contract artifact JSON file.

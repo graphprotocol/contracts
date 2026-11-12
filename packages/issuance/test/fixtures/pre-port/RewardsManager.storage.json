@@ -1,0 +1,256 @@
+{
+  "storage": [
+    {
+      "astId": 1926,
+      "contract": "contracts/rewards/RewardsManager.sol:RewardsManager",
+      "label": "controller",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_contract(IController)2963"
+    },
+    {
+      "astId": 1931,
+      "contract": "contracts/rewards/RewardsManager.sol:RewardsManager",
+      "label": "_addressCache",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_mapping(t_bytes32,t_address)"
+    },
+    {
+      "astId": 1936,
+      "contract": "contracts/rewards/RewardsManager.sol:RewardsManager",
+      "label": "__gap",
+      "offset": 0,
+      "slot": "2",
+      "type": "t_array(t_uint256)10_storage"
+    },
+    {
+      "astId": 1734,
+      "contract": "contracts/rewards/RewardsManager.sol:RewardsManager",
+      "label": "__DEPRECATED_issuanceRate",
+      "offset": 0,
+      "slot": "12",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 1737,
+      "contract": "contracts/rewards/RewardsManager.sol:RewardsManager",
+      "label": "accRewardsPerSignal",
+      "offset": 0,
+      "slot": "13",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 1740,
+      "contract": "contracts/rewards/RewardsManager.sol:RewardsManager",
+      "label": "accRewardsPerSignalLastBlockUpdated",
+      "offset": 0,
+      "slot": "14",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 1743,
+      "contract": "contracts/rewards/RewardsManager.sol:RewardsManager",
+      "label": "subgraphAvailabilityOracle",
+      "offset": 0,
+      "slot": "15",
+      "type": "t_address"
+    },
+    {
+      "astId": 1748,
+      "contract": "contracts/rewards/RewardsManager.sol:RewardsManager",
+      "label": "subgraphs",
+      "offset": 0,
+      "slot": "16",
+      "type": "t_mapping(t_bytes32,t_struct(Subgraph)3097_storage)"
+    },
+    {
+      "astId": 1753,
+      "contract": "contracts/rewards/RewardsManager.sol:RewardsManager",
+      "label": "denylist",
+      "offset": 0,
+      "slot": "17",
+      "type": "t_mapping(t_bytes32,t_uint256)"
+    },
+    {
+      "astId": 1760,
+      "contract": "contracts/rewards/RewardsManager.sol:RewardsManager",
+      "label": "minimumSubgraphSignal",
+      "offset": 0,
+      "slot": "18",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 1767,
+      "contract": "contracts/rewards/RewardsManager.sol:RewardsManager",
+      "label": "__DEPRECATED_tokenSupplySnapshot",
+      "offset": 0,
+      "slot": "19",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 1777,
+      "contract": "contracts/rewards/RewardsManager.sol:RewardsManager",
+      "label": "issuancePerBlock",
+      "offset": 0,
+      "slot": "20",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 1787,
+      "contract": "contracts/rewards/RewardsManager.sol:RewardsManager",
+      "label": "subgraphService",
+      "offset": 0,
+      "slot": "21",
+      "type": "t_contract(IRewardsIssuer)3015"
+    },
+    {
+      "astId": 1794,
+      "contract": "contracts/rewards/RewardsManager.sol:RewardsManager",
+      "label": "rewardsEligibilityOracle",
+      "offset": 0,
+      "slot": "22",
+      "type": "t_contract(IProviderEligibility)4390"
+    },
+    {
+      "astId": 1797,
+      "contract": "contracts/rewards/RewardsManager.sol:RewardsManager",
+      "label": "issuanceAllocator",
+      "offset": 0,
+      "slot": "23",
+      "type": "t_contract(IIssuanceAllocationDistribution)4309"
+    },
+    {
+      "astId": 1802,
+      "contract": "contracts/rewards/RewardsManager.sol:RewardsManager",
+      "label": "reclaimAddresses",
+      "offset": 0,
+      "slot": "24",
+      "type": "t_mapping(t_bytes32,t_address)"
+    },
+    {
+      "astId": 1805,
+      "contract": "contracts/rewards/RewardsManager.sol:RewardsManager",
+      "label": "defaultReclaimAddress",
+      "offset": 0,
+      "slot": "25",
+      "type": "t_address"
+    },
+    {
+      "astId": 1808,
+      "contract": "contracts/rewards/RewardsManager.sol:RewardsManager",
+      "label": "revertOnIneligible",
+      "offset": 20,
+      "slot": "25",
+      "type": "t_bool"
+    }
+  ],
+  "types": {
+    "t_address": {
+      "encoding": "inplace",
+      "label": "address",
+      "numberOfBytes": "20"
+    },
+    "t_array(t_uint256)10_storage": {
+      "encoding": "inplace",
+      "label": "uint256[10]",
+      "numberOfBytes": "320",
+      "base": "t_uint256"
+    },
+    "t_bool": {
+      "encoding": "inplace",
+      "label": "bool",
+      "numberOfBytes": "1"
+    },
+    "t_bytes32": {
+      "encoding": "inplace",
+      "label": "bytes32",
+      "numberOfBytes": "32"
+    },
+    "t_contract(IController)2963": {
+      "encoding": "inplace",
+      "label": "contract IController",
+      "numberOfBytes": "20"
+    },
+    "t_contract(IIssuanceAllocationDistribution)4309": {
+      "encoding": "inplace",
+      "label": "contract IIssuanceAllocationDistribution",
+      "numberOfBytes": "20"
+    },
+    "t_contract(IProviderEligibility)4390": {
+      "encoding": "inplace",
+      "label": "contract IProviderEligibility",
+      "numberOfBytes": "20"
+    },
+    "t_contract(IRewardsIssuer)3015": {
+      "encoding": "inplace",
+      "label": "contract IRewardsIssuer",
+      "numberOfBytes": "20"
+    },
+    "t_mapping(t_bytes32,t_address)": {
+      "encoding": "mapping",
+      "key": "t_bytes32",
+      "label": "mapping(bytes32 => address)",
+      "numberOfBytes": "32",
+      "value": "t_address"
+    },
+    "t_mapping(t_bytes32,t_struct(Subgraph)3097_storage)": {
+      "encoding": "mapping",
+      "key": "t_bytes32",
+      "label": "mapping(bytes32 => struct IRewardsManager.Subgraph)",
+      "numberOfBytes": "32",
+      "value": "t_struct(Subgraph)3097_storage"
+    },
+    "t_mapping(t_bytes32,t_uint256)": {
+      "encoding": "mapping",
+      "key": "t_bytes32",
+      "label": "mapping(bytes32 => uint256)",
+      "numberOfBytes": "32",
+      "value": "t_uint256"
+    },
+    "t_struct(Subgraph)3097_storage": {
+      "encoding": "inplace",
+      "label": "struct IRewardsManager.Subgraph",
+      "numberOfBytes": "128",
+      "members": [
+        {
+          "astId": 3090,
+          "contract": "contracts/rewards/RewardsManager.sol:RewardsManager",
+          "label": "accRewardsForSubgraph",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 3092,
+          "contract": "contracts/rewards/RewardsManager.sol:RewardsManager",
+          "label": "accRewardsForSubgraphSnapshot",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 3094,
+          "contract": "contracts/rewards/RewardsManager.sol:RewardsManager",
+          "label": "accRewardsPerSignalSnapshot",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 3096,
+          "contract": "contracts/rewards/RewardsManager.sol:RewardsManager",
+          "label": "accRewardsPerAllocatedToken",
+          "offset": 0,
+          "slot": "3",
+          "type": "t_uint256"
+        }
+      ]
+    },
+    "t_uint256": {
+      "encoding": "inplace",
+      "label": "uint256",
+      "numberOfBytes": "32"
+    }
+  }
+}

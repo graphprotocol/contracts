@@ -1,0 +1,390 @@
+{
+  "storage": [
+    {
+      "astId": 2714,
+      "contract": "contracts/l2/discovery/L2GNS.sol:L2GNS",
+      "label": "controller",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_contract(IController)3925"
+    },
+    {
+      "astId": 2719,
+      "contract": "contracts/l2/discovery/L2GNS.sol:L2GNS",
+      "label": "_addressCache",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_mapping(t_bytes32,t_address)"
+    },
+    {
+      "astId": 2724,
+      "contract": "contracts/l2/discovery/L2GNS.sol:L2GNS",
+      "label": "__gap",
+      "offset": 0,
+      "slot": "2",
+      "type": "t_array(t_uint256)10_storage"
+    },
+    {
+      "astId": 1837,
+      "contract": "contracts/l2/discovery/L2GNS.sol:L2GNS",
+      "label": "ownerTaxPercentage",
+      "offset": 0,
+      "slot": "12",
+      "type": "t_uint32"
+    },
+    {
+      "astId": 1840,
+      "contract": "contracts/l2/discovery/L2GNS.sol:L2GNS",
+      "label": "__DEPRECATED_bondingCurve",
+      "offset": 4,
+      "slot": "12",
+      "type": "t_address"
+    },
+    {
+      "astId": 1847,
+      "contract": "contracts/l2/discovery/L2GNS.sol:L2GNS",
+      "label": "legacySubgraphs",
+      "offset": 0,
+      "slot": "13",
+      "type": "t_mapping(t_address,t_mapping(t_uint256,t_bytes32))"
+    },
+    {
+      "astId": 1852,
+      "contract": "contracts/l2/discovery/L2GNS.sol:L2GNS",
+      "label": "nextAccountSeqID",
+      "offset": 0,
+      "slot": "14",
+      "type": "t_mapping(t_address,t_uint256)"
+    },
+    {
+      "astId": 1859,
+      "contract": "contracts/l2/discovery/L2GNS.sol:L2GNS",
+      "label": "legacySubgraphData",
+      "offset": 0,
+      "slot": "15",
+      "type": "t_mapping(t_address,t_mapping(t_uint256,t_struct(SubgraphData)3491_storage))"
+    },
+    {
+      "astId": 1862,
+      "contract": "contracts/l2/discovery/L2GNS.sol:L2GNS",
+      "label": "__DEPRECATED_erc1056Registry",
+      "offset": 0,
+      "slot": "16",
+      "type": "t_contract(IEthereumDIDRegistry)3775"
+    },
+    {
+      "astId": 1871,
+      "contract": "contracts/l2/discovery/L2GNS.sol:L2GNS",
+      "label": "legacySubgraphKeys",
+      "offset": 0,
+      "slot": "17",
+      "type": "t_mapping(t_uint256,t_struct(LegacySubgraphKey)3496_storage)"
+    },
+    {
+      "astId": 1876,
+      "contract": "contracts/l2/discovery/L2GNS.sol:L2GNS",
+      "label": "subgraphs",
+      "offset": 0,
+      "slot": "18",
+      "type": "t_mapping(t_uint256,t_struct(SubgraphData)3491_storage)"
+    },
+    {
+      "astId": 1879,
+      "contract": "contracts/l2/discovery/L2GNS.sol:L2GNS",
+      "label": "subgraphNFT",
+      "offset": 0,
+      "slot": "19",
+      "type": "t_contract(ISubgraphNFT)3751"
+    },
+    {
+      "astId": 5627,
+      "contract": "contracts/l2/discovery/L2GNS.sol:L2GNS",
+      "label": "_initialized",
+      "offset": 20,
+      "slot": "19",
+      "type": "t_bool"
+    },
+    {
+      "astId": 5630,
+      "contract": "contracts/l2/discovery/L2GNS.sol:L2GNS",
+      "label": "_initializing",
+      "offset": 21,
+      "slot": "19",
+      "type": "t_bool"
+    },
+    {
+      "astId": 1888,
+      "contract": "contracts/l2/discovery/L2GNS.sol:L2GNS",
+      "label": "counterpartGNSAddress",
+      "offset": 0,
+      "slot": "20",
+      "type": "t_address"
+    },
+    {
+      "astId": 1893,
+      "contract": "contracts/l2/discovery/L2GNS.sol:L2GNS",
+      "label": "__gap",
+      "offset": 0,
+      "slot": "21",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 2681,
+      "contract": "contracts/l2/discovery/L2GNS.sol:L2GNS",
+      "label": "subgraphL2TransferData",
+      "offset": 0,
+      "slot": "71",
+      "type": "t_mapping(t_uint256,t_struct(SubgraphL2TransferData)4008_storage)"
+    },
+    {
+      "astId": 2686,
+      "contract": "contracts/l2/discovery/L2GNS.sol:L2GNS",
+      "label": "__gap",
+      "offset": 0,
+      "slot": "72",
+      "type": "t_array(t_uint256)50_storage"
+    }
+  ],
+  "types": {
+    "t_address": {
+      "encoding": "inplace",
+      "label": "address",
+      "numberOfBytes": "20"
+    },
+    "t_array(t_uint256)10_storage": {
+      "encoding": "inplace",
+      "label": "uint256[10]",
+      "numberOfBytes": "320",
+      "base": "t_uint256"
+    },
+    "t_array(t_uint256)50_storage": {
+      "encoding": "inplace",
+      "label": "uint256[50]",
+      "numberOfBytes": "1600",
+      "base": "t_uint256"
+    },
+    "t_bool": {
+      "encoding": "inplace",
+      "label": "bool",
+      "numberOfBytes": "1"
+    },
+    "t_bytes32": {
+      "encoding": "inplace",
+      "label": "bytes32",
+      "numberOfBytes": "32"
+    },
+    "t_contract(IController)3925": {
+      "encoding": "inplace",
+      "label": "contract IController",
+      "numberOfBytes": "20"
+    },
+    "t_contract(IEthereumDIDRegistry)3775": {
+      "encoding": "inplace",
+      "label": "contract IEthereumDIDRegistry",
+      "numberOfBytes": "20"
+    },
+    "t_contract(ISubgraphNFT)3751": {
+      "encoding": "inplace",
+      "label": "contract ISubgraphNFT",
+      "numberOfBytes": "20"
+    },
+    "t_mapping(t_address,t_bool)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => bool)",
+      "numberOfBytes": "32",
+      "value": "t_bool"
+    },
+    "t_mapping(t_address,t_mapping(t_uint256,t_bytes32))": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => mapping(uint256 => bytes32))",
+      "numberOfBytes": "32",
+      "value": "t_mapping(t_uint256,t_bytes32)"
+    },
+    "t_mapping(t_address,t_mapping(t_uint256,t_struct(SubgraphData)3491_storage))": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => mapping(uint256 => struct IGNS.SubgraphData))",
+      "numberOfBytes": "32",
+      "value": "t_mapping(t_uint256,t_struct(SubgraphData)3491_storage)"
+    },
+    "t_mapping(t_address,t_uint256)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => uint256)",
+      "numberOfBytes": "32",
+      "value": "t_uint256"
+    },
+    "t_mapping(t_bytes32,t_address)": {
+      "encoding": "mapping",
+      "key": "t_bytes32",
+      "label": "mapping(bytes32 => address)",
+      "numberOfBytes": "32",
+      "value": "t_address"
+    },
+    "t_mapping(t_uint256,t_bytes32)": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => bytes32)",
+      "numberOfBytes": "32",
+      "value": "t_bytes32"
+    },
+    "t_mapping(t_uint256,t_struct(LegacySubgraphKey)3496_storage)": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => struct IGNS.LegacySubgraphKey)",
+      "numberOfBytes": "32",
+      "value": "t_struct(LegacySubgraphKey)3496_storage"
+    },
+    "t_mapping(t_uint256,t_struct(SubgraphData)3491_storage)": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => struct IGNS.SubgraphData)",
+      "numberOfBytes": "32",
+      "value": "t_struct(SubgraphData)3491_storage"
+    },
+    "t_mapping(t_uint256,t_struct(SubgraphL2TransferData)4008_storage)": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => struct IL2GNS.SubgraphL2TransferData)",
+      "numberOfBytes": "32",
+      "value": "t_struct(SubgraphL2TransferData)4008_storage"
+    },
+    "t_struct(LegacySubgraphKey)3496_storage": {
+      "encoding": "inplace",
+      "label": "struct IGNS.LegacySubgraphKey",
+      "numberOfBytes": "64",
+      "members": [
+        {
+          "astId": 3493,
+          "contract": "contracts/l2/discovery/L2GNS.sol:L2GNS",
+          "label": "account",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_address"
+        },
+        {
+          "astId": 3495,
+          "contract": "contracts/l2/discovery/L2GNS.sol:L2GNS",
+          "label": "accountSeqID",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_uint256"
+        }
+      ]
+    },
+    "t_struct(SubgraphData)3491_storage": {
+      "encoding": "inplace",
+      "label": "struct IGNS.SubgraphData",
+      "numberOfBytes": "192",
+      "members": [
+        {
+          "astId": 3476,
+          "contract": "contracts/l2/discovery/L2GNS.sol:L2GNS",
+          "label": "vSignal",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 3478,
+          "contract": "contracts/l2/discovery/L2GNS.sol:L2GNS",
+          "label": "nSignal",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 3482,
+          "contract": "contracts/l2/discovery/L2GNS.sol:L2GNS",
+          "label": "curatorNSignal",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_mapping(t_address,t_uint256)"
+        },
+        {
+          "astId": 3484,
+          "contract": "contracts/l2/discovery/L2GNS.sol:L2GNS",
+          "label": "subgraphDeploymentID",
+          "offset": 0,
+          "slot": "3",
+          "type": "t_bytes32"
+        },
+        {
+          "astId": 3486,
+          "contract": "contracts/l2/discovery/L2GNS.sol:L2GNS",
+          "label": "__DEPRECATED_reserveRatio",
+          "offset": 0,
+          "slot": "4",
+          "type": "t_uint32"
+        },
+        {
+          "astId": 3488,
+          "contract": "contracts/l2/discovery/L2GNS.sol:L2GNS",
+          "label": "disabled",
+          "offset": 4,
+          "slot": "4",
+          "type": "t_bool"
+        },
+        {
+          "astId": 3490,
+          "contract": "contracts/l2/discovery/L2GNS.sol:L2GNS",
+          "label": "withdrawableGRT",
+          "offset": 0,
+          "slot": "5",
+          "type": "t_uint256"
+        }
+      ]
+    },
+    "t_struct(SubgraphL2TransferData)4008_storage": {
+      "encoding": "inplace",
+      "label": "struct IL2GNS.SubgraphL2TransferData",
+      "numberOfBytes": "128",
+      "members": [
+        {
+          "astId": 3999,
+          "contract": "contracts/l2/discovery/L2GNS.sol:L2GNS",
+          "label": "tokens",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 4003,
+          "contract": "contracts/l2/discovery/L2GNS.sol:L2GNS",
+          "label": "curatorBalanceClaimed",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_mapping(t_address,t_bool)"
+        },
+        {
+          "astId": 4005,
+          "contract": "contracts/l2/discovery/L2GNS.sol:L2GNS",
+          "label": "l2Done",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_bool"
+        },
+        {
+          "astId": 4007,
+          "contract": "contracts/l2/discovery/L2GNS.sol:L2GNS",
+          "label": "subgraphReceivedOnL2BlockNumber",
+          "offset": 0,
+          "slot": "3",
+          "type": "t_uint256"
+        }
+      ]
+    },
+    "t_uint256": {
+      "encoding": "inplace",
+      "label": "uint256",
+      "numberOfBytes": "32"
+    },
+    "t_uint32": {
+      "encoding": "inplace",
+      "label": "uint32",
+      "numberOfBytes": "4"
+    }
+  }
+}

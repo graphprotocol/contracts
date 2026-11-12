@@ -24,18 +24,6 @@ contract IndexingRewardsCollectionTest is RealRewardsHarness {
     ///         downsized to zero tokens but stays open, no pending reward is left behind, and a
     ///         further collection on the zero-token allocation pays nothing.
     function test_Collect_Indexing_OverAllocated_PaysEachAccrualOnce() public {
-        if (!realRmAvailable) {
-            emit log(
-                string.concat(
-                    "SKIP: RewardsManager artifact not found at ",
-                    RM_ARTIFACT,
-                    " (build the contracts package first)"
-                )
-            );
-            vm.skip(true);
-            return;
-        }
-
         IndexerSetup memory ix = _setupIndexer("indexer", SUBGRAPH, MINIMUM_PROVISION_TOKENS * 100);
 
         // Thaw half the provision so the allocated tokens exceed the available provision: the

@@ -1,9 +1,9 @@
 import '@nomiclabs/hardhat-ethers'
 import 'hardhat-deploy'
 
-import { Staking__factory } from '@graphprotocol/contracts/types'
+import IStakingArtifact from '@graphprotocol/interfaces/artifacts/contracts/contracts/staking/IStaking.sol/IStaking.json'
 import { expect } from 'chai'
-import { BigNumber, constants, Signer } from 'ethers'
+import { BigNumber, constants, Contract, Signer } from 'ethers'
 import { defaultAbiCoder, hexValue, keccak256, parseEther } from 'ethers/lib/utils'
 import { deployments, ethers, upgrades } from 'hardhat'
 import { DeployOptions } from 'hardhat-deploy/types'
@@ -492,7 +492,7 @@ describe('L1GraphTokenLockTransferTool', () => {
     })
     it('accepts calls from a wallet that has funds staked in the protocol', async function () {
       // Use the tokenLock contract as if it were the Staking contract
-      const lockAsStaking = Staking__factory.connect(tokenLock.address, deployer.signer)
+      const lockAsStaking = new Contract(tokenLock.address, IStakingArtifact.abi, deployer.signer)
       const stakeAmount = toGRT('1000')
       // Stake some funds
       await lockAsStaking.connect(beneficiary.signer).stake(stakeAmount)

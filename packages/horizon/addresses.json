@@ -58,6 +58,12 @@
     "SubgraphNFT": {
       "address": "0x3FbD54f0cc17b7aE649008dEEA12ed7D2622B23f"
     },
+    "GraphCurationToken": {
+      "address": "0x47a0d56ea574419B524285d52fFe7198297D209c"
+    },
+    "SubgraphNFTDescriptor": {
+      "address": "0x96cce9b6489744630A058324FB22e7CD02815ebe"
+    },
     "RewardsManager": {
       "address": "0x971B9d3d0Ae3ECa029CAB5eA1fB0F72c85e6a525",
       "proxy": "graph",
@@ -182,6 +188,12 @@
     },
     "SubgraphNFT": {
       "address": "0xF21Df5BbA7EB9b54D8F60C560aFb9bA63e6aED1A"
+    },
+    "GraphCurationToken": {
+      "address": "0x00FBd5D46FFAc54862c1Dd27BE08924BB17f5CDa"
+    },
+    "SubgraphNFTDescriptor": {
+      "address": "0x4032F7B6b27FfC9862106f826379DaB1716C71d7"
     },
     "RewardsManager": {
       "address": "0x1F49caE7669086c8ba53CC35d1E9f80176d67E79",

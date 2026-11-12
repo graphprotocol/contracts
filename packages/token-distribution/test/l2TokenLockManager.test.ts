@@ -1,9 +1,9 @@
 import '@nomiclabs/hardhat-ethers'
 import 'hardhat-deploy'
 
-import { Staking, Staking__factory } from '@graphprotocol/contracts/types'
+import IStakingArtifact from '@graphprotocol/interfaces/artifacts/contracts/contracts/staking/IStaking.sol/IStaking.json'
 import { expect } from 'chai'
-import { constants, Wallet } from 'ethers'
+import { constants, Contract, Wallet } from 'ethers'
 import { defaultAbiCoder, keccak256 } from 'ethers/lib/utils'
 import { deployments, ethers } from 'hardhat'
 import { DeployOptions } from 'hardhat-deploy/types'
@@ -75,7 +75,7 @@ describe('L2GraphTokenLockManager', () => {
   let tokenLockImplementation: L2GraphTokenLockWallet
   let tokenLockManager: L2GraphTokenLockManager
   let staking: StakingMock
-  let lockAsStaking: Staking
+  let lockAsStaking: Contract
 
   let initArgs: TokenLockParameters
 
@@ -175,7 +175,7 @@ describe('L2GraphTokenLockManager', () => {
       // Stake in the protocol using the lock as a Staking contract
       const amount = toGRT('10000000')
 
-      lockAsStaking = Staking__factory.connect(tokenLock.address, deployer.signer)
+      lockAsStaking = new Contract(tokenLock.address, IStakingArtifact.abi, deployer.signer)
       await lockAsStaking.connect(beneficiary.signer).stake(amount)
 
       // Check that the staking contract received the tokens
@@ -389,7 +389,7 @@ describe('L2GraphTokenLockManager', () => {
       // Stake in the protocol using the lock as a Staking contract
       const amount = toGRT('100000')
 
-      const lockAsStaking = Staking__factory.connect(tokenLock.address, deployer.signer)
+      const lockAsStaking = new Contract(tokenLock.address, IStakingArtifact.abi, deployer.signer)
       await lockAsStaking.connect(beneficiary.signer).stake(amount)
 
       // Check that the staking contract received the tokens

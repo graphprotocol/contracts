@@ -14,7 +14,7 @@ import { ComponentTags } from './deployment-tags.js'
  * Artifact source configuration - where to load contract ABI and bytecode from
  */
 export type ArtifactSource =
-  | { type: 'contracts'; path: string; name: string }
+  | { type: 'graph-core' | 'graph-token'; path: string; name: string }
   | { type: 'subgraph-service'; name: string }
   | { type: 'horizon'; path: string }
   | { type: 'issuance'; path: string }
@@ -138,7 +138,7 @@ export interface ContractMetadata {
 
 const HORIZON_CONTRACTS = {
   RewardsManager: {
-    artifact: { type: 'contracts', path: 'rewards', name: 'RewardsManager' },
+    artifact: { type: 'issuance', path: 'contracts/rewards/RewardsManager.sol/RewardsManager' },
     interfaces: [
       { name: 'REWARDS_MANAGER_ABI', interface: 'IRewardsManager' },
       { name: 'REWARDS_MANAGER_DEPRECATED_ABI', interface: 'IRewardsManagerDeprecated' },
@@ -156,7 +156,7 @@ const HORIZON_CONTRACTS = {
     prerequisite: true,
   },
   L2GraphToken: {
-    artifact: { type: 'contracts', path: 'l2/token', name: 'L2GraphToken' },
+    artifact: { type: 'graph-token', path: 'l2/token', name: 'L2GraphToken' },
     interfaces: [{ name: 'GRAPH_TOKEN_ABI', interface: 'IGraphToken' }],
     prerequisite: true,
   },
@@ -175,7 +175,7 @@ const HORIZON_CONTRACTS = {
     lifecycleActions: ['deploy', 'upgrade', 'configure', 'transfer'],
   },
   L2Curation: {
-    artifact: { type: 'contracts', path: 'l2/curation', name: 'L2Curation' },
+    artifact: { type: 'subgraph-service', name: 'l2/curation/L2Curation' },
     proxyType: 'graph',
     proxyAdminName: 'GraphProxyAdmin',
     prerequisite: true,
@@ -201,7 +201,7 @@ const HORIZON_CONTRACTS = {
     componentTag: ComponentTags.PAYMENTS_ESCROW,
   },
   L2GNS: {
-    artifact: { type: 'contracts', path: 'l2/discovery', name: 'L2GNS' },
+    artifact: { type: 'subgraph-service', name: 'l2/discovery/L2GNS' },
     proxyType: 'graph',
     proxyAdminName: 'GraphProxyAdmin',
     prerequisite: true,

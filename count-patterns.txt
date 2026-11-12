@@ -7,7 +7,6 @@
 
 # Include patterns (files to count):
 packages/issuance/contracts/**/*.sol
-packages/contracts/contracts/rewards/RewardsManager*.sol
 packages/interfaces/contracts/**/*.sol
 
 # Exclude patterns (files to ignore):
@@ -17,7 +16,6 @@ packages/interfaces/contracts/**/*.sol
 !*Test.sol
 !*.t.sol
 
-!packages/contracts/contracts/!(rewards)/*.sol
 !**/@(IGraphToken|SubgraphAvailabilityManager).sol
 
 # Glob pattern examples:

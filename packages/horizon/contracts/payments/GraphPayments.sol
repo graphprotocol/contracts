@@ -10,7 +10,7 @@ import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizo
 
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { MulticallUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
-import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
+import { TokenUtils } from "@graphprotocol/graph-token/contracts/utils/TokenUtils.sol";
 import { PPMMath } from "../libraries/PPMMath.sol";
 
 import { GraphDirectory } from "../utilities/GraphDirectory.sol";
