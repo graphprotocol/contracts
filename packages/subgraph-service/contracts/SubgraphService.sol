@@ -21,7 +21,7 @@ import { DataService } from "@graphprotocol/horizon/contracts/data-service/DataS
 import { DataServiceFees } from "@graphprotocol/horizon/contracts/data-service/extensions/DataServiceFees.sol";
 import { Directory } from "./utilities/Directory.sol";
 import { AllocationManager } from "./utilities/AllocationManager.sol";
-import { SubgraphServiceV2Storage } from "./SubgraphServiceStorage.sol";
+import { SubgraphServiceV3Storage } from "./SubgraphServiceStorage.sol";
 
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
@@ -47,7 +47,7 @@ contract SubgraphService is
     AllocationManager,
     IRewardsIssuer,
     ISubgraphService,
-    SubgraphServiceV2Storage
+    SubgraphServiceV3Storage
 {
     using PPMMath for uint256;
     using Allocation for mapping(address => IAllocation.State);
@@ -359,9 +359,36 @@ contract SubgraphService is
 
     /// @inheritdoc ISubgraphService
     function setCurationCut(uint256 curationCut) external override onlyOwner {
-        require(PPMMath.isValidPPM(curationCut), SubgraphServiceInvalidCurationCut(curationCut));
+        require(
+            PPMMath.isValidPPM(curationCut) && PPMMath.isValidPPM(curationCut + gatewayCut),
+            SubgraphServiceInvalidCurationCut(curationCut)
+        );
         curationFeesCut = curationCut;
         emit CurationCutSet(curationCut);
+    }
+
+    /// @inheritdoc ISubgraphService
+    function setGatewayCut(uint256 gatewayCut_) external override onlyOwner {
+        require(
+            PPMMath.isValidPPM(gatewayCut_) && PPMMath.isValidPPM(gatewayCut_ + curationFeesCut),
+            SubgraphServiceInvalidGatewayCut(gatewayCut_)
+        );
+        require(
+            gatewayCut_ == 0 || gatewayCutDestination != address(0),
+            SubgraphServiceInvalidGatewayCutDestination(address(0))
+        );
+        gatewayCut = gatewayCut_;
+        emit GatewayCutSet(gatewayCut_);
+    }
+
+    /// @inheritdoc ISubgraphService
+    function setGatewayCutDestination(address gatewayCutDestination_) external override onlyOwner {
+        require(
+            gatewayCutDestination_ != address(0) && gatewayCutDestination_ != address(this),
+            SubgraphServiceInvalidGatewayCutDestination(gatewayCutDestination_)
+        );
+        gatewayCutDestination = gatewayCutDestination_;
+        emit GatewayCutDestinationSet(gatewayCutDestination_);
     }
 
     /// @inheritdoc ISubgraphService
@@ -639,6 +666,7 @@ contract SubgraphService is
      * Emits a {StakeClaimsReleased} event, and a {StakeClaimReleased} event for each claim released.
      * Emits a {StakeClaimLocked} event.
      * Emits a {QueryFeesCollected} event.
+     * Emits a {GatewayCutCollected} event if a gateway cut is taken.
      *
      * @param _indexer The address of the indexer
      * @param _data Encoded data:
@@ -674,23 +702,12 @@ contract SubgraphService is
         // release expired stake claims
         _releaseStake(_indexer, 0);
 
-        // Collect from GraphPayments - only curators cut is sent back to the subgraph service
-        uint256 tokensCollected;
-        uint256 tokensCurators;
-        {
-            uint256 balanceBefore = _graphToken().balanceOf(address(this));
-
-            tokensCollected = _graphTallyCollector().collect(
-                IGraphPayments.PaymentTypes.QueryFee,
-                _encodeGraphTallyData(signedRav, _curation().isCurated(subgraphDeploymentId) ? curationFeesCut : 0),
-                tokensToCollect
-            );
-
-            uint256 balanceAfter = _graphToken().balanceOf(address(this));
-            // solhint-disable-next-line gas-strict-inequalities
-            require(balanceAfter >= balanceBefore, SubgraphServiceInconsistentCollection(balanceBefore, balanceAfter));
-            tokensCurators = balanceAfter - balanceBefore;
-        }
+        // Collect from GraphPayments - the curation and gateway cuts are sent back to the subgraph service
+        (uint256 tokensCollected, uint256 tokensCurators, uint256 tokensGateway) = _collectQueryFeePayment(
+            signedRav,
+            subgraphDeploymentId,
+            tokensToCollect
+        );
 
         if (tokensCollected > 0) {
             // lock stake as economic security for fees
@@ -708,6 +725,11 @@ contract SubgraphService is
                 _graphToken().pushTokens(address(_curation()), tokensCurators);
                 _curation().collect(subgraphDeploymentId, tokensCurators);
             }
+
+            if (tokensGateway > 0) {
+                _graphToken().pushTokens(gatewayCutDestination, tokensGateway);
+                emit GatewayCutCollected(_indexer, signedRav.rav.payer, allocationId, tokensGateway);
+            }
         }
 
         emit QueryFeesCollected(
@@ -719,6 +741,42 @@ contract SubgraphService is
             tokensCurators
         );
         return tokensCollected;
+    }
+
+    /**
+     * @notice Collects a query fee payment through the GraphTallyCollector and splits the tokens sent back to
+     * this contract between curators and the gateway cut destination.
+     * @dev The curation cut and the gateway cut are passed to GraphPayments as a single data service cut, so the
+     * tokens received are split in proportion to the 2 cuts. Curators receive any rounding remainder.
+     * @param _signedRav The signed RAV
+     * @param _subgraphDeploymentId The id of the subgraph deployment the RAV pays for
+     * @param _tokensToCollect The amount of tokens to collect, 0 to collect the entire RAV
+     * @return tokensCollected The amount of tokens collected
+     * @return tokensCurators The amount of tokens curators receive
+     * @return tokensGateway The amount of tokens the gateway cut destination receives
+     */
+    function _collectQueryFeePayment(
+        IGraphTallyCollector.SignedRAV memory _signedRav,
+        bytes32 _subgraphDeploymentId,
+        uint256 _tokensToCollect
+    ) private returns (uint256 tokensCollected, uint256 tokensCurators, uint256 tokensGateway) {
+        uint256 curationCut = _curation().isCurated(_subgraphDeploymentId) ? curationFeesCut : 0;
+        uint256 gatewayCut_ = gatewayCut;
+        uint256 balanceBefore = _graphToken().balanceOf(address(this));
+
+        tokensCollected = _graphTallyCollector().collect(
+            IGraphPayments.PaymentTypes.QueryFee,
+            _encodeGraphTallyData(_signedRav, curationCut + gatewayCut_),
+            _tokensToCollect
+        );
+
+        uint256 balanceAfter = _graphToken().balanceOf(address(this));
+        // solhint-disable-next-line gas-strict-inequalities
+        require(balanceAfter >= balanceBefore, SubgraphServiceInconsistentCollection(balanceBefore, balanceAfter));
+        uint256 tokensDataService = balanceAfter - balanceBefore;
+
+        if (gatewayCut_ > 0) tokensGateway = (tokensDataService * gatewayCut_) / (curationCut + gatewayCut_);
+        tokensCurators = tokensDataService - tokensGateway;
     }
 
     /**
@@ -816,13 +874,13 @@ contract SubgraphService is
      * @notice Encodes the data for the GraphTallyCollector
      * @dev The purpose of this function is just to avoid stack too deep errors
      * @param _signedRav The signed RAV
-     * @param _curationCut The curation cut
+     * @param _dataServiceCut The data service cut, the curation cut plus the gateway cut
      * @return The encoded data
      */
     function _encodeGraphTallyData(
         IGraphTallyCollector.SignedRAV memory _signedRav,
-        uint256 _curationCut
+        uint256 _dataServiceCut
     ) private view returns (bytes memory) {
-        return abi.encode(_signedRav, _curationCut, paymentsDestination[_signedRav.rav.serviceProvider]);
+        return abi.encode(_signedRav, _dataServiceCut, paymentsDestination[_signedRav.rav.serviceProvider]);
     }
 }

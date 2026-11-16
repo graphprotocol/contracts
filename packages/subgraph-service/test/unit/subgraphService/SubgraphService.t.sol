@@ -186,7 +186,15 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
 
     struct QueryFeeData {
         uint256 curationCut;
+        uint256 gatewayCut;
         uint256 protocolPaymentCut;
+    }
+
+    struct QueryFeeSplit {
+        uint256 tokensProtocol;
+        uint256 tokensCurators;
+        uint256 tokensGateway;
+        uint256 tokensIndexer;
     }
 
     struct CollectPaymentData {
@@ -195,6 +203,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         uint256 delegationPoolBalance;
         uint256 indexerBalance;
         uint256 curationBalance;
+        uint256 gatewayCutDestinationBalance;
         uint256 lockedTokens;
         uint256 indexerStake;
     }
@@ -254,6 +263,10 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         );
         collectPaymentData.indexerBalance = token.balanceOf(_indexer);
         collectPaymentData.curationBalance = token.balanceOf(address(curation));
+        address gatewayCutDestination = subgraphService.gatewayCutDestination();
+        collectPaymentData.gatewayCutDestinationBalance = gatewayCutDestination == address(0)
+            ? 0
+            : token.balanceOf(gatewayCutDestination);
         collectPaymentData.lockedTokens = subgraphService.feesProvisionTracker(_indexer);
         collectPaymentData.indexerStake = staking.getStake(_indexer);
         return collectPaymentData;
@@ -283,9 +296,12 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         );
         paymentCollected = tokensToCollect == 0 ? signedRav.rav.valueAggregate - tokensCollected : tokensToCollect;
 
-        QueryFeeData memory queryFeeData = _queryFeeData(allocation.subgraphDeploymentId);
-        uint256 tokensProtocol = paymentCollected.mulPPMRoundUp(queryFeeData.protocolPaymentCut);
-        uint256 tokensCurators = (paymentCollected - tokensProtocol).mulPPMRoundUp(queryFeeData.curationCut);
+        QueryFeeSplit memory split = _queryFeeSplit(paymentCollected, _queryFeeData(subgraphDeploymentId));
+
+        if (split.tokensGateway > 0) {
+            vm.expectEmit(address(subgraphService));
+            emit ISubgraphService.GatewayCutCollected(_indexer, payer, allocationId, split.tokensGateway);
+        }
 
         vm.expectEmit(address(subgraphService));
         emit ISubgraphService.QueryFeesCollected(
@@ -294,7 +310,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
             allocationId,
             subgraphDeploymentId,
             paymentCollected,
-            tokensCurators
+            split.tokensCurators
         );
 
         return paymentCollected;
@@ -305,7 +321,23 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         queryFeeData.protocolPaymentCut = graphPayments.PROTOCOL_PAYMENT_CUT();
         uint256 curationFeesCut = subgraphService.curationFeesCut();
         queryFeeData.curationCut = curation.isCurated(_subgraphDeploymentId) ? curationFeesCut : 0;
+        queryFeeData.gatewayCut = subgraphService.gatewayCut();
         return queryFeeData;
+    }
+
+    /// @dev Mirrors how GraphPayments and the Subgraph Service split a query fee payment
+    function _queryFeeSplit(
+        uint256 _paymentCollected,
+        QueryFeeData memory _queryFeeData
+    ) private pure returns (QueryFeeSplit memory split) {
+        split.tokensProtocol = _paymentCollected.mulPPMRoundUp(_queryFeeData.protocolPaymentCut);
+        uint256 dataServiceCut = _queryFeeData.curationCut + _queryFeeData.gatewayCut;
+        uint256 tokensDataService = (_paymentCollected - split.tokensProtocol).mulPPMRoundUp(dataServiceCut);
+        split.tokensGateway = _queryFeeData.gatewayCut == 0
+            ? 0
+            : (tokensDataService * _queryFeeData.gatewayCut) / dataServiceCut;
+        split.tokensCurators = tokensDataService - split.tokensGateway;
+        split.tokensIndexer = _paymentCollected - split.tokensProtocol - tokensDataService;
     }
 
     function _handleIndexingRewardsCollection(
@@ -373,10 +405,8 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         IAllocation.State memory allocation = subgraphService.getAllocation(
             address(uint160(uint256(signedRav.rav.collectionId)))
         );
-        QueryFeeData memory queryFeeData = _queryFeeData(allocation.subgraphDeploymentId);
-        uint256 tokensProtocol = _paymentCollected.mulPPMRoundUp(queryFeeData.protocolPaymentCut);
-        uint256 curationTokens = (_paymentCollected - tokensProtocol).mulPPMRoundUp(queryFeeData.curationCut);
-        uint256 expectedIndexerTokensPayment = _paymentCollected - tokensProtocol - curationTokens;
+        QueryFeeSplit memory split = _queryFeeSplit(_paymentCollected, _queryFeeData(allocation.subgraphDeploymentId));
+        uint256 expectedIndexerTokensPayment = split.tokensIndexer;
 
         assertEq(
             collectPaymentDataAfter.indexerBalance - collectPaymentDataBefore.indexerBalance,
@@ -398,7 +428,14 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
                 ? expectedIndexerTokensPayment
                 : 0
         );
-        assertEq(collectPaymentDataAfter.curationBalance, collectPaymentDataBefore.curationBalance + curationTokens);
+        assertEq(
+            collectPaymentDataAfter.curationBalance,
+            collectPaymentDataBefore.curationBalance + split.tokensCurators
+        );
+        assertEq(
+            collectPaymentDataAfter.gatewayCutDestinationBalance,
+            collectPaymentDataBefore.gatewayCutDestinationBalance + split.tokensGateway
+        );
 
         // Check locked tokens
         uint256 tokensToLock = _paymentCollected * subgraphService.stakeToFeesRatio();

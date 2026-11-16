@@ -39,3 +39,16 @@ abstract contract SubgraphServiceV2Storage is SubgraphServiceV1Storage {
     /// @notice When true, closing an allocation that has an active indexing agreement will revert.
     bool internal blockClosingAllocationWithActiveAgreement;
 }
+
+/**
+ * @title SubgraphServiceV3Storage
+ * @author Edge & Node
+ * @notice Adds the gateway cut taken from query fee payments.
+ */
+abstract contract SubgraphServiceV3Storage is SubgraphServiceV2Storage {
+    /// @notice The cut the protocol takes from every query fee payment, whoever the payer is. In PPM.
+    uint256 public override gatewayCut;
+
+    /// @notice The address the gateway cut is sent to
+    address public override gatewayCutDestination;
+}

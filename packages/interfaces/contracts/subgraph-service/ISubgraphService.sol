@@ -80,6 +80,33 @@ interface ISubgraphService is IDataServiceAgreements, IDataServiceFees {
     // solhint-disable-previous-line gas-indexed-events
 
     /**
+     * @notice Emitted when the gateway cut is set
+     * @param gatewayCut The gateway cut
+     */
+    event GatewayCutSet(uint256 gatewayCut);
+    // solhint-disable-previous-line gas-indexed-events
+
+    /**
+     * @notice Emitted when the gateway cut destination is set
+     * @param gatewayCutDestination The address the gateway cut is sent to
+     */
+    event GatewayCutDestinationSet(address indexed gatewayCutDestination);
+
+    /**
+     * @notice Emitted when the gateway cut is taken from a query fee payment
+     * @param serviceProvider The address of the service provider
+     * @param payer The address paying for the query fees
+     * @param allocationId The id of the allocation
+     * @param tokens The amount of tokens sent to the gateway cut destination
+     */
+    event GatewayCutCollected(
+        address indexed serviceProvider,
+        address indexed payer,
+        address indexed allocationId,
+        uint256 tokens
+    );
+
+    /**
      * @notice Emitted when the block closing allocation with active agreement setting is toggled
      * @param enabled Whether the setting is enabled
      */
@@ -97,6 +124,18 @@ interface ISubgraphService is IDataServiceAgreements, IDataServiceFees {
      * @param indexingFeesCut The indexing fees cut value
      */
     error SubgraphServiceInvalidIndexingFeesCut(uint256 indexingFeesCut);
+
+    /**
+     * @notice Thrown when trying to set a gateway cut that, added to the curation cut, is not a valid PPM value
+     * @param gatewayCut The gateway cut value
+     */
+    error SubgraphServiceInvalidGatewayCut(uint256 gatewayCut);
+
+    /**
+     * @notice Thrown when the gateway cut destination is invalid, or is missing while a gateway cut is set
+     * @param gatewayCutDestination The gateway cut destination
+     */
+    error SubgraphServiceInvalidGatewayCutDestination(address gatewayCutDestination);
 
     /**
      * @notice Thrown when an indexer tries to register with an empty URL
@@ -277,9 +316,31 @@ interface ISubgraphService is IDataServiceAgreements, IDataServiceFees {
     /**
      * @notice Sets the curators payment cut for query fees
      * @dev Emits a {CuratorCutSet} event
+     * Requirements:
+     * - The curation cut plus the gateway cut must be a valid PPM value
      * @param curationCut The curation cut for the payment type
      */
     function setCurationCut(uint256 curationCut) external;
+
+    /**
+     * @notice Sets the cut the protocol takes from every query fee payment, whoever the payer (gateway) is.
+     * The cut is sent to the gateway cut destination.
+     * @dev Emits a {GatewayCutSet} event
+     * Requirements:
+     * - The gateway cut plus the curation cut must be a valid PPM value
+     * - A gateway cut destination must be set before the gateway cut can be above zero
+     * @param gatewayCut The gateway cut in PPM
+     */
+    function setGatewayCut(uint256 gatewayCut) external;
+
+    /**
+     * @notice Sets the address the gateway cut is sent to
+     * @dev Emits a {GatewayCutDestinationSet} event
+     * Requirements:
+     * - The destination cannot be the zero address or the Subgraph Service itself
+     * @param gatewayCutDestination The address the gateway cut is sent to
+     */
+    function setGatewayCutDestination(address gatewayCutDestination) external;
 
     /**
      * @notice Sets the data service payment cut for indexing fees
@@ -423,6 +484,18 @@ interface ISubgraphService is IDataServiceAgreements, IDataServiceFees {
      * @return The curation fees cut
      */
     function curationFeesCut() external view returns (uint256);
+
+    /**
+     * @notice Gets the gateway cut
+     * @return The gateway cut in PPM
+     */
+    function gatewayCut() external view returns (uint256);
+
+    /**
+     * @notice Gets the gateway cut destination
+     * @return The address the gateway cut is sent to
+     */
+    function gatewayCutDestination() external view returns (address);
 
     /**
      * @notice Gets the payments destination

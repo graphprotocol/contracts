@@ -76,6 +76,14 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         escrow.deposit(address(graphTallyCollector), users.indexer, tokens);
     }
 
+    function _setGatewayCut(uint256 gatewayCut) private {
+        (, address msgSender, ) = vm.readCallers();
+        resetPrank(users.governor);
+        subgraphService.setGatewayCutDestination(makeAddr("gatewayCutDestination"));
+        subgraphService.setGatewayCut(gatewayCut);
+        resetPrank(msgSender);
+    }
+
     function _authorizeSigner() private {
         uint256 proofDeadline = block.timestamp + 1;
         bytes memory proof = _getSignerProof(proofDeadline, signerPrivateKey);
@@ -132,6 +140,75 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
 
         resetPrank(users.indexer);
         subgraphService.setPaymentsDestination(users.indexer);
+        // forge-lint: disable-next-line(unsafe-typecast)
+        bytes memory data = _getQueryFeeEncodedData(users.indexer, uint128(tokensPayment), 0);
+        _collect(users.indexer, IGraphPayments.PaymentTypes.QueryFee, data);
+    }
+
+    function testCollect_QueryFees_WithGatewayCut(
+        uint256 tokensAllocated,
+        uint256 tokensPayment,
+        uint256 gatewayCut
+    ) public useIndexer useAllocation(tokensAllocated) {
+        vm.assume(tokensAllocated > MINIMUM_PROVISION_TOKENS * STAKE_TO_FEES_RATIO);
+        uint256 maxTokensPayment = tokensAllocated / STAKE_TO_FEES_RATIO > type(uint128).max
+            ? type(uint128).max
+            : tokensAllocated / STAKE_TO_FEES_RATIO;
+        tokensPayment = bound(tokensPayment, MINIMUM_PROVISION_TOKENS, maxTokensPayment);
+        gatewayCut = bound(gatewayCut, 1, MAX_PPM - subgraphService.curationFeesCut());
+        _setGatewayCut(gatewayCut);
+
+        resetPrank(users.gateway);
+        _deposit(tokensPayment);
+        _authorizeSigner();
+
+        resetPrank(users.indexer);
+        // forge-lint: disable-next-line(unsafe-typecast)
+        bytes memory data = _getQueryFeeEncodedData(users.indexer, uint128(tokensPayment), 0);
+        _collect(users.indexer, IGraphPayments.PaymentTypes.QueryFee, data);
+    }
+
+    function testCollect_QueryFees_WithGatewayCut_ExactSplit() public useIndexer useAllocation(10_000 ether) {
+        // 1% protocol cut, then 1% curation cut and 5% gateway cut taken together from the remaining 990 GRT
+        assertEq(PROTOCOL_PAYMENT_CUT, 10_000);
+        assertEq(subgraphService.curationFeesCut(), 10_000);
+        _setGatewayCut(50_000);
+        address gatewayCutDestination = subgraphService.gatewayCutDestination();
+        uint256 curationBalanceBefore = token.balanceOf(address(curation));
+
+        resetPrank(users.gateway);
+        _deposit(1_000 ether);
+        _authorizeSigner();
+
+        resetPrank(users.indexer);
+        bytes memory data = _getQueryFeeEncodedData(users.indexer, 1_000 ether, 0);
+        _collect(users.indexer, IGraphPayments.PaymentTypes.QueryFee, data);
+
+        // 990 GRT * 6% = 59.4 GRT for the data service, split 5:1 between the gateway cut and curators
+        assertEq(token.balanceOf(gatewayCutDestination), 49.5 ether);
+        assertEq(token.balanceOf(address(curation)) - curationBalanceBefore, 9.9 ether);
+    }
+
+    function testCollect_QueryFees_WithGatewayCut_NotCurated(
+        uint256 tokensAllocated,
+        uint256 tokensPayment,
+        uint256 gatewayCut
+    ) public useIndexer useAllocation(tokensAllocated) {
+        vm.assume(tokensAllocated > MINIMUM_PROVISION_TOKENS * STAKE_TO_FEES_RATIO);
+        uint256 maxTokensPayment = tokensAllocated / STAKE_TO_FEES_RATIO > type(uint128).max
+            ? type(uint128).max
+            : tokensAllocated / STAKE_TO_FEES_RATIO;
+        tokensPayment = bound(tokensPayment, MINIMUM_PROVISION_TOKENS, maxTokensPayment);
+        gatewayCut = bound(gatewayCut, 1, MAX_PPM - subgraphService.curationFeesCut());
+        _setGatewayCut(gatewayCut);
+        // Without curation signal, the whole data service cut goes to the gateway cut destination
+        vm.mockCall(address(curation), abi.encodeWithSelector(curation.isCurated.selector), abi.encode(false));
+
+        resetPrank(users.gateway);
+        _deposit(tokensPayment);
+        _authorizeSigner();
+
+        resetPrank(users.indexer);
         // forge-lint: disable-next-line(unsafe-typecast)
         bytes memory data = _getQueryFeeEncodedData(users.indexer, uint128(tokensPayment), 0);
         _collect(users.indexer, IGraphPayments.PaymentTypes.QueryFee, data);
