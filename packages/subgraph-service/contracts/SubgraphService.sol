@@ -377,7 +377,8 @@ contract SubgraphService is
             gatewayCut_ == 0 || gatewayCutDestination != address(0),
             SubgraphServiceInvalidGatewayCutDestination(address(0))
         );
-        gatewayCut = gatewayCut_;
+        // forge-lint: disable-next-line(unsafe-typecast)
+        gatewayCut = uint32(gatewayCut_); // safe: checked above to be at most MAX_PPM
         emit GatewayCutSet(gatewayCut_);
     }
 

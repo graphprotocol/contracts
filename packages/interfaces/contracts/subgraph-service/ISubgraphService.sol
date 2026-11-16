@@ -489,7 +489,7 @@ interface ISubgraphService is IDataServiceAgreements, IDataServiceFees {
      * @notice Gets the gateway cut
      * @return The gateway cut in PPM
      */
-    function gatewayCut() external view returns (uint256);
+    function gatewayCut() external view returns (uint32);
 
     /**
      * @notice Gets the gateway cut destination

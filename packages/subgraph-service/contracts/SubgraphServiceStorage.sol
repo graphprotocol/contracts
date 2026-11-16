@@ -46,9 +46,12 @@ abstract contract SubgraphServiceV2Storage is SubgraphServiceV1Storage {
  * @notice Adds the gateway cut taken from query fee payments.
  */
 abstract contract SubgraphServiceV3Storage is SubgraphServiceV2Storage {
-    /// @notice The cut the protocol takes from every query fee payment, whoever the payer is. In PPM.
-    uint256 public override gatewayCut;
+    // Both variables share a storage slot with `blockClosingAllocationWithActiveAgreement`,
+    // so collecting query fees reads them with a single storage read.
 
     /// @notice The address the gateway cut is sent to
     address public override gatewayCutDestination;
+
+    /// @notice The cut the protocol takes from every query fee payment, whoever the payer is. In PPM.
+    uint32 public override gatewayCut;
 }
