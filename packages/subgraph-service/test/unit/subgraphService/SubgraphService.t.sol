@@ -328,14 +328,12 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
     /// @dev Mirrors how GraphPayments and the Subgraph Service split a query fee payment
     function _queryFeeSplit(
         uint256 _paymentCollected,
-        QueryFeeData memory _queryFeeData
+        QueryFeeData memory _fees
     ) private pure returns (QueryFeeSplit memory split) {
-        split.tokensProtocol = _paymentCollected.mulPPMRoundUp(_queryFeeData.protocolPaymentCut);
-        uint256 dataServiceCut = _queryFeeData.curationCut + _queryFeeData.gatewayCut;
+        split.tokensProtocol = _paymentCollected.mulPPMRoundUp(_fees.protocolPaymentCut);
+        uint256 dataServiceCut = _fees.curationCut + _fees.gatewayCut;
         uint256 tokensDataService = (_paymentCollected - split.tokensProtocol).mulPPMRoundUp(dataServiceCut);
-        split.tokensGateway = _queryFeeData.gatewayCut == 0
-            ? 0
-            : (tokensDataService * _queryFeeData.gatewayCut) / dataServiceCut;
+        split.tokensGateway = _fees.gatewayCut == 0 ? 0 : (tokensDataService * _fees.gatewayCut) / dataServiceCut;
         split.tokensCurators = tokensDataService - split.tokensGateway;
         split.tokensIndexer = _paymentCollected - split.tokensProtocol - tokensDataService;
     }
