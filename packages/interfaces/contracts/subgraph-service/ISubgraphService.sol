@@ -114,7 +114,8 @@ interface ISubgraphService is IDataServiceAgreements, IDataServiceFees {
     // solhint-disable-previous-line gas-indexed-events
 
     /**
-     * @notice Thrown when trying to set a curation cut that is not a valid PPM value
+     * @notice Thrown when trying to set a curation cut that is not a valid PPM value, or that adds up to more
+     * than 100% with the gateway cut
      * @param curationCut The curation cut value
      */
     error SubgraphServiceInvalidCurationCut(uint256 curationCut);
@@ -324,11 +325,12 @@ interface ISubgraphService is IDataServiceAgreements, IDataServiceFees {
 
     /**
      * @notice Sets the cut the protocol takes from every query fee payment, whoever the payer (gateway) is.
-     * The cut is sent to the gateway cut destination.
+     * The cut is sent to the gateway cut destination. The payer pays the same amount either way: the cut
+     * comes out of what the indexer and its delegators receive.
      * @dev Emits a {GatewayCutSet} event
      * Requirements:
      * - The gateway cut plus the curation cut must be a valid PPM value
-     * - A gateway cut destination must be set before the gateway cut can be above zero
+     * - A gateway cut destination must be set before the gateway cut can be above 0
      * @param gatewayCut The gateway cut in PPM
      */
     function setGatewayCut(uint256 gatewayCut) external;

@@ -52,6 +52,7 @@ abstract contract SubgraphServiceV3Storage is SubgraphServiceV2Storage {
     /// @notice The address the gateway cut is sent to
     address public override gatewayCutDestination;
 
-    /// @notice The cut the protocol takes from every query fee payment, whoever the payer is. In PPM.
+    /// @notice The cut the protocol takes from every query fee payment, whoever the payer is, out of what the
+    /// indexer and its delegators receive. In PPM.
     uint32 public override gatewayCut;
 }
